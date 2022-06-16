@@ -18,11 +18,15 @@ Testing
 
 When you make a change, check that it didn't break something by running::
 
-    pytest
+    pytest --cov=cosipy --cov-report term --cov-report html:tests/coverage_report
 
-You can install ``pytest`` with::
+Open ``tests/coverage_report/index.html`` in a browser and check the coverage. This
+is the percentage of lines that were executed during the tests. The goal is to have
+a 100% coverage!
+    
+You can install ``pytest`` and ``pytest-cov`` with::
 
-    conda install -c conda-forge pytest
+    conda install -c conda-forge pytest pytest-cov
 
 Compiling the docs
 ------------------
