@@ -13,6 +13,16 @@ Do the following (preferably inside a conda environment)::
 The flag ``-e`` (``--editable``) allows you to make changes and try them without
 having to run ``pip`` again.
 
+Testing
+.......
+
+When you make a change, check that it didn't break something by running::
+
+    pytest
+
+You can install ``pytest`` with::
+
+    conda install -c conda-forge pytest
 
 Compiling the docs
 ------------------
