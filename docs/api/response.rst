@@ -3,10 +3,10 @@ response
 
 Detector response matrices
 
-SpecResponse
-------------
+DetectorResponse
+----------------
 
-.. autoclass:: cosipy.SpecResponse
+.. autoclass:: cosipy.DetectorResponse
    :show-inheritance:
    :members:
    :inherited-members:
