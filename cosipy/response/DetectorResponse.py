@@ -26,7 +26,8 @@ def cosi_rsp_dump(argv = None):
     """
     Print the content of a detector response to stdout.
     """
-    
+
+    # Parse arguments from commandline
     aPar = argparse.ArgumentParser(
         usage = ("%(prog)s filename "
                  "[--help] [options]"),
@@ -40,7 +41,8 @@ def cosi_rsp_dump(argv = None):
                       help="Path to instrument response")
     
     args = aPar.parse_args(argv)
-    
+
+    # Init and dump 
     dr =  DetectorResponse(args.filename)
   
     dr.dump()
