@@ -1,6 +1,8 @@
 import argparse
 import textwrap
 
+from histpy import Histogram
+
 class DetectorResponse:
     """
     DetectorResponse handles the multi-dimensional matrix that describes the
@@ -8,12 +10,40 @@ class DetectorResponse:
 
     Parameters
     ----------
-    filename : str, Path
-        Path to RSP file
+    filename : str, Path, optional
+        Path to file
     """
     
     def __init__(self, filename = None):
-        self._filename = filename
+        pass
+
+    @classmethod
+    def open(self, filename)
+        """
+        Open a detector response file.
+
+        Parameters
+        ----------
+        filename : str, Path
+            Path to HDF5 file
+        """
+
+        self._dr = Histogram.open(filename)
+
+        #Verify
+        if self._dr.axes.labels != ("Ei","NuLambda","Em","Phi","PsiChi","SigmaTau","Dist"):
+            raise ValueError("Unknown histogram axes labels")
+
+    def get_directional_response(def, coord, interp = True):
+        """
+        Get the 
+        """
+        pass
+        
+    def get_point_source_expectation(self, orientation):
+        pass
+
+    
     
     def dump(self):
         """
