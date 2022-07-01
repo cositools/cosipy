@@ -17,6 +17,7 @@ from pathlib import Path
 from sparse import COO
 
 from .DetectorResponseDirection import DetectorResponseDirection
+from .healpix_axis import HealpixAxis
 
 class DetectorResponse(HealpixBase):
     """
@@ -62,11 +63,11 @@ class DetectorResponse(HealpixBase):
 
             axis_type = axis.attrs['TYPE']
 
-            if axis_type == 'healpy':
+            if axis_type == 'healpix':
 
-                axes += [HealpixAxis(np.array(axis),
-                                     label = axis_label,
+                axes += [HealpixAxis(edges = np.array(axis),
                                      nside = axis.attrs['NSIDE'],
+                                     label = axis_label,
                                      scheme = axis.attrs['SCHEME'],
                                      coordsys = SpacecraftFrame())]
 
