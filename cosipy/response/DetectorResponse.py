@@ -52,7 +52,8 @@ class DetectorResponse(HealpixBase):
 
         # Init HealpixMap (local coordinates, main axis)
         super().__init__(nside = self._drm.attrs["NSIDE"],
-                         scheme = self._drm.attrs["SCHEME"])
+                         scheme = self._drm.attrs["SCHEME"],
+                         coordsys = SpacecraftFrame())
 
         # The rest of the axes
         axes = []
@@ -128,18 +129,18 @@ class DetectorResponse(HealpixBase):
         
         return Path(self._file.filename)
 
-    def get_interp_matrix(self, coord):
+    def get_interp_response(self, coord):
 
-        pixels, weights = self.get_interp_weights(self, coord)
+        pixels, weights = self.get_interp_weights(coord)
 
+        dr = DetectorResponseDirection(self._axes, sparse = True)
         
+        for p,w in zip(pixels, weights):
+
+            dr += self[p]*w
+
+        return dr
     
-    def get_directional_response(self, coord, interp = True):
-        """
-        Get the 
-        """
-        
-        
     def get_point_source_expectation(self, orientation):
         pass
 

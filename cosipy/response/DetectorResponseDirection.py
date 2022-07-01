@@ -1,10 +1,10 @@
 from histpy import Histogram, Axes, Axis
 
-class DetectorResponseDirection:
+class DetectorResponseDirection(Histogram):
 
-    def __init__(self, axes, contents):
+    def __init__(self, *args, **kwargs):
 
-        self._hist = Histogram(axes, contents = contents)
+        super().__init__(*args, **kwargs)
         
     
         
