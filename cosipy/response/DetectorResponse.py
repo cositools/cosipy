@@ -18,6 +18,7 @@ from sparse import COO
 
 from .DetectorResponseDirection import DetectorResponseDirection
 from .healpix_axis import HealpixAxis
+from .PointSourceResponse import PointSourceResponse
 
 class DetectorResponse(HealpixBase):
     """
@@ -141,10 +142,24 @@ class DetectorResponse(HealpixBase):
 
         return dr
     
-    def get_point_source_expectation(self, orientation):
-        pass
+    def get_point_source_response(self, exposure_map):
+        """
 
-    
+        exposure_map : HealpixMap
+            Effective time spent by the source at each location in spacecraft coordinate
+        """
+
+        if not self.conformable(exposure_map):
+            raise ValueError("Exposure map has a different grid than the detector response")
+            
+        psr = PointSourceResponse(self._axes, sparse = True)
+        
+        for p in range(self.npix):
+
+            if exposure_map[p] != 0:
+                psr += self[p]*exposure_map[p]
+            
+        return psr
     
     def dump(self):
         """
