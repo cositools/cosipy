@@ -1,10 +1,12 @@
 from histpy import Histogram
 
+import astropy.units as u
+from astropy.units import Quantity, UnitBase
+
+import numpy as np
+
 class QuantityHistogram(Histogram):
 
-    # Enforce a physical dimension
-    _unit_base = None
-    
     def __init__(self,
                  *args,
                  unit = None,
@@ -12,41 +14,12 @@ class QuantityHistogram(Histogram):
 
         super().__init__(*args, **kwargs)
 
-        self.unit = unit
+        self._unit = unit
 
     @property
     def unit(self):
         return self._unit
 
-    @unit.setter
-    def unit(self, unit):
-        if _unit_base is not None and not _unit_base.is_equivalent(unit):
-            raise ValueError(f"{self.unit} is not a valid unit")
-
-        self._unit = u.Unit(unit)
-
-    def _unit_operation(self, other, operation):
-        """
-        Returns the unit of the result of an operation with a given object.
-
-        Parameters
-        ----------
-        other : QuantityHistogram, Quantity, UnitBase, float, int, array
-            The other operand
-        operations : function
-            Binary operation function
-        """
-
-        if isinstance(other, (QuantityHistogram, Quantity)):
-            other_unit = other.unit
-        elif isinstance(other, UnitBase):
-            other_unit = other
-        else:
-            other_unit = u.dimensionless_unscaled
-
-        return operation(1*self.unit, 1*other_unit).unit
-
-    
     def _to_value_unit(self, other):
         """
         Separate between unit and value for binary operations
@@ -83,29 +56,13 @@ class QuantityHistogram(Histogram):
         # Separate
         other_value, other_unit = self._to_value_unit(other)
 
-        # Match units. self.unit doesn't change
-        other_value *= other_unit.to(self.unit).value
-
-        # Operation
-        super()._ioperation(other, operation)
-
-        return self
-
-    def _operation(self, other, operation):
-
-        # Separate
-        other_value, other_unit = self._to_value_unit(other)
-
         # Value operation
-        new = super()._operation(other_value, operation)
+        super()._ioperation(other_value, operation)
 
         # Unit operation
-        # In this case change the base unit, since there is nothing to enforce (new object)
-        new_unit = operation(1*self.unit, 1*other_unit).unit
-        new._unit_base = new_unit
-        new.unit = new_unit
+        self._unit = operation(1*self.unit, 1*other_unit).unit
         
-        return new
+        return self
 
     def to(self, unit, equivalencies=[], copy=True):
         """
@@ -131,7 +88,7 @@ class QuantityHistogram(Histogram):
 
             new = self * factor
 
-            new.unit = unit
+            new._unit = unit
 
             return new
             
@@ -139,8 +96,7 @@ class QuantityHistogram(Histogram):
         
             self *= factor
 
-            self.unit = unit
+            self._unit = unit
             
             return self
-            
             

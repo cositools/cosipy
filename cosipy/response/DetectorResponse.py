@@ -6,8 +6,6 @@ from .quantity_histogram import QuantityHistogram
 
 class DetectorResponse(QuantityHistogram):
 
-    _unit_base = u.cm*u.cm
-    
     def get_spectral_response(self):
 
         spec = self.project(['Ei','Em'])

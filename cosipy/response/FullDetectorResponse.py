@@ -16,6 +16,8 @@ from pathlib import Path
 
 from sparse import COO
 
+import astropy.units as u
+
 from .DetectorResponse import DetectorResponse
 from .healpix_axis import HealpixAxis
 from .quantity_axis import QuantityAxis
@@ -57,7 +59,7 @@ class FullDetectorResponse(HealpixBase):
                          scheme = self._drm.attrs["SCHEME"],
                          coordsys = SpacecraftFrame())
 
-        self._unit = self._drm.attrs['UNIT']
+        self._unit = u.Unit(self._drm.attrs['UNIT'])
         
         # The rest of the axes
         axes = []
@@ -92,7 +94,11 @@ class FullDetectorResponse(HealpixBase):
     @property
     def axes(self):
         return self._axes
-    
+
+    @property
+    def unit(self):
+        return self._unit
+        
     def __getitem__(self, pix):
 
         if not isinstance(pix, (int, np.integer)) or pix < 0 or not pix < self.npix:
@@ -101,10 +107,12 @@ class FullDetectorResponse(HealpixBase):
         coords = np.reshape(self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim - 1,-1))
         data = np.array(self._file['DRM']['CONTENTS'][pix])
 
-        return DetectorResponse(self.axes, COO(coords = coords,
-                                                         data = data,
-                                                         shape = tuple(self.axes.nbins)))
-        
+        return DetectorResponse(self.axes,
+                                contents = COO(coords = coords,
+                                               data = data,
+                                               shape = tuple(self.axes.nbins)),
+                                unit = self.unit)
+    
     def close(self):
         """
         Close the HDF5 file containing the DetectorResponse
@@ -142,8 +150,8 @@ class FullDetectorResponse(HealpixBase):
         pixels, weights = self.get_interp_weights(coord)
 
         dr = DetectorResponse(self.axes,
-                                       sparse = True,
-                                       unit = self.unit)
+                              sparse = True,
+                              unit = self.unit)
         
         for p,w in zip(pixels, weights):
 
@@ -195,10 +203,10 @@ class FullDetectorResponse(HealpixBase):
                            f"    NSIDE: {axis.nside}\n"
                            f"    SCHEME: '{axis.scheme}'\n")
             else:
-                output += (f"    TYPE: {axis.axis_scale}\n"
+                output += (f"    TYPE: '{axis.axis_scale}'\n"
                            f"    UNIT: '{axis.unit}'\n"
                            f"    NBINS: {axis.nbins}\n"
-                           f"    EDGES: {axis.edges}\n")
+                           f"    EDGES: [{', '.join([str(e) for e in axis.edges])}]\n")
 
         return output
 

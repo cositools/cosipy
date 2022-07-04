@@ -6,8 +6,6 @@ from .quantity_histogram import QuantityHistogram
 
 class PointSourceResponse(QuantityHistogram):
 
-    _enforce_unit_type = u.cm*u.cm*u.s
-    
     @property
     def photon_energy_axis(self):
         return self.axes['Ei']

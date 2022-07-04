@@ -6,8 +6,6 @@ import astropy.units as u
 
 class SpectralResponse(QuantityHistogram):
 
-    _unit_base = u.cm*u.cm
-    
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
