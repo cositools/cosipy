@@ -57,7 +57,7 @@ class FullDetectorResponse(HealpixBase):
                          scheme = self._drm.attrs["SCHEME"],
                          coordsys = SpacecraftFrame())
 
-        self._unit = self._drm.attrs('UNIT')
+        self._unit = self._drm.attrs['UNIT']
         
         # The rest of the axes
         axes = []
@@ -88,7 +88,11 @@ class FullDetectorResponse(HealpixBase):
     def ndim(self):
 
         return self._axes.ndim+1
-        
+
+    @property
+    def axes(self):
+        return self._axes
+    
     def __getitem__(self, pix):
 
         if not isinstance(pix, (int, np.integer)) or pix < 0 or not pix < self.npix:
@@ -97,9 +101,9 @@ class FullDetectorResponse(HealpixBase):
         coords = np.reshape(self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim - 1,-1))
         data = np.array(self._file['DRM']['CONTENTS'][pix])
 
-        return DetectorResponse(self._axes, COO(coords = coords,
+        return DetectorResponse(self.axes, COO(coords = coords,
                                                          data = data,
-                                                         shape = tuple(self._axes.nbins)))
+                                                         shape = tuple(self.axes.nbins)))
         
     def close(self):
         """
@@ -137,7 +141,7 @@ class FullDetectorResponse(HealpixBase):
 
         pixels, weights = self.get_interp_weights(coord)
 
-        dr = DetectorResponse(self._axes,
+        dr = DetectorResponse(self.axes,
                                        sparse = True,
                                        unit = self.unit)
         
@@ -157,7 +161,7 @@ class FullDetectorResponse(HealpixBase):
         if not self.conformable(exposure_map):
             raise ValueError("Exposure map has a different grid than the detector response")
             
-        psr = PointSourceResponse(self._axes, sparse = True)
+        psr = PointSourceResponse(self.axes, sparse = True)
         
         for p in range(self.npix):
 
@@ -165,6 +169,45 @@ class FullDetectorResponse(HealpixBase):
                 psr += self[p]*exposure_map[p]
             
         return psr
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(filename = '{self.filename.resolve()}')"
+
+    def __repr__(self):
+        return str(self)
+
+    def describe(self):
+        
+        output = (f"FILENAME: '{self.filename.resolve()}'\n"
+                  f"NPIX: {self.npix}\n"
+                  f"NSIDE: {self.nside}\n"
+                  f"SCHEME: '{self.scheme}'\n"
+                  f"AXES:\n")
+        
+        for axis in self.axes:
+
+            output += (f"  {axis.label}:\n"
+                       f"    DESCRIPTION: '{self._drm['AXES'][axis.label].attrs['DESCRIPTION']}'\n")
+                
+            if isinstance(axis, HealpixAxis):
+                output += (f"    TYPE: 'healpix'\n"
+                           f"    NPIX: {axis.npix}\n"
+                           f"    NSIDE: {axis.nside}\n"
+                           f"    SCHEME: '{axis.scheme}'\n")
+            else:
+                output += (f"    TYPE: {axis.axis_scale}\n"
+                           f"    UNIT: '{axis.unit}'\n"
+                           f"    NBINS: {axis.nbins}\n"
+                           f"    EDGES: {axis.edges}\n")
+
+        return output
+
+    def _repr_pretty_(self, p, cycle):
+
+        if cycle:
+            p.text(str(self))
+        else:
+            p.text(self.describe())
     
     def dump(self):
         """
