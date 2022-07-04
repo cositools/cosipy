@@ -14,7 +14,7 @@ class SpectralResponse(QuantityHistogram):
 
         self._aeff = None
     
-    def get_energy_dispersion_matrix(self):
+    def get_dispersion_matrix(self):
 
         # Get effective area normalization
         norm = dr_spec.get_effective_area().full_contents
@@ -42,6 +42,10 @@ class SpectralResponse(QuantityHistogram):
     @property
     def photon_energy_axis(self):
         return self.axes['Ei']
+        
+    @property
+    def measured_energy_axis(self):
+        return self.axes['Em']
         
 
         
