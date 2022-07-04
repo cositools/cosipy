@@ -1,10 +1,16 @@
 from histpy import Histogram, Axes, Axis
 
-class DetectorResponseDirection(Histogram):
+import astropy.units as u
 
-    def __init__(self, *args, **kwargs):
+class DetectorResponseDirection(QuantityHistogram):
 
-        super().__init__(*args, **kwargs)
-        
+    _unit_base = u.cm*u.cm
     
+    def get_spectral_response(self):
+
+        spec = self.project(['Ei','Em'])
+        
+        return SpectralResponse(spec.axes,
+                                contents = spec.full_contents,
+                                unit = spec.unit)
         

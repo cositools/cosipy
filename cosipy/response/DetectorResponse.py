@@ -18,6 +18,7 @@ from sparse import COO
 
 from .DetectorResponseDirection import DetectorResponseDirection
 from .healpix_axis import HealpixAxis
+from .quantity_axis import QuantityAxis
 from .PointSourceResponse import PointSourceResponse
 
 class DetectorResponse(HealpixBase):
@@ -56,6 +57,8 @@ class DetectorResponse(HealpixBase):
                          scheme = self._drm.attrs["SCHEME"],
                          coordsys = SpacecraftFrame())
 
+        self._unit = self._drm.attrs('UNIT')
+        
         # The rest of the axes
         axes = []
 
@@ -74,12 +77,12 @@ class DetectorResponse(HealpixBase):
                                      coordsys = SpacecraftFrame())]
 
             else:
-                axes += [Axis(np.array(axis),
-                              scale = axis_type,
-                              label = axis_label)]
+                axes += [QuantityAxis(np.array(axis),
+                                      scale = axis_type,
+                                      label = axis_label,
+                                      unit = axis.attrs['UNIT'])]
 
         self._axes = Axes(axes)
-
 
     @property
     def ndim(self):
@@ -134,7 +137,9 @@ class DetectorResponse(HealpixBase):
 
         pixels, weights = self.get_interp_weights(coord)
 
-        dr = DetectorResponseDirection(self._axes, sparse = True)
+        dr = DetectorResponseDirection(self._axes,
+                                       sparse = True,
+                                       unit = self.unit)
         
         for p,w in zip(pixels, weights):
 
