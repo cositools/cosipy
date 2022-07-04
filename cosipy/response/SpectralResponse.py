@@ -15,11 +15,11 @@ class SpectralResponse(QuantityHistogram):
     def get_dispersion_matrix(self):
 
         # Get effective area normalization
-        norm = dr_spec.get_effective_area().full_contents
+        norm = self.get_effective_area().full_contents
 
         # Hack the under/overflow bins to supress 0/0 wearning
-        norm[0] = 1 if norm[0] else norm[0]
-        norm[-1] = 1 if norm[-1] else norm[-1]
+        norm[0] = 1 if norm[0] == 0 else norm[0]
+        norm[-1] = 1 if norm[-1] == 0 else norm[-1]
 
         # "Broadcast" such that it has the compatible dimensions with the 2D matrix
         norm = self.expand_dims(norm, 'Ei')
@@ -35,6 +35,7 @@ class SpectralResponse(QuantityHistogram):
         if energy is None:
             return deepcopy(self._aeff)
         else:
+            energy = energy.to_value(self._aeff.axis.unit)
             return self._aeff.interp(energy)
 
     @property
