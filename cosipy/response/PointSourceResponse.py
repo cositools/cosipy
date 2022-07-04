@@ -2,6 +2,8 @@ from histpy import Histogram, Axes, Axis
 
 import astropy.units as u
 
+from .quantity_histogram import QuantityHistogram
+
 class PointSourceResponse(QuantityHistogram):
 
     _enforce_unit_type = u.cm*u.cm*u.s

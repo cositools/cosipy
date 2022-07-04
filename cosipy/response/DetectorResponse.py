@@ -2,6 +2,8 @@ from histpy import Histogram, Axes, Axis
 
 import astropy.units as u
 
+from .quantity_histogram import QuantityHistogram
+
 class DetectorResponse(QuantityHistogram):
 
     _unit_base = u.cm*u.cm

@@ -16,7 +16,7 @@ from pathlib import Path
 
 from sparse import COO
 
-from .DetectorResponseDirection import DetectorResponse
+from .DetectorResponse import DetectorResponse
 from .healpix_axis import HealpixAxis
 from .quantity_axis import QuantityAxis
 from .PointSourceResponse import PointSourceResponse

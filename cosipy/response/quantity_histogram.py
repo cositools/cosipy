@@ -1,4 +1,4 @@
-
+from histpy import Histogram
 
 class QuantityHistogram(Histogram):
 
