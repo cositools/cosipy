@@ -19,6 +19,22 @@ class QuantityAxis(Axis):
     def unit(self):
         return self._unit
 
-    
+    @property
+    def lower_bounds(self):
+        '''
+        Lower bound of each bin
+        '''
+
+        return self._edges[:-1]*self._unit
+
+    @property
+    def upper_bounds(self):
+        '''
+        Upper bound of each bin
+        '''
+
+        return self._edges[1:]*self._unit
+
+
         
 

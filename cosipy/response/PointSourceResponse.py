@@ -4,6 +4,8 @@ import astropy.units as u
 
 from .quantity_histogram import QuantityHistogram
 
+from astropy.units import Quantity
+
 class PointSourceResponse(QuantityHistogram):
 
     @property
