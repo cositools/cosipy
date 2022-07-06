@@ -5,7 +5,7 @@ import h5py as h5
 
 from histpy import Histogram, Axes, Axis
 
-from cosipy.coords import SpacecraftFrame
+from cosipy.coordinates import SpacecraftFrame
 
 from mhealpy import HealpixBase
 import mhealpy as hp

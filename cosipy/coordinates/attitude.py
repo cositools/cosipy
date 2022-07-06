@@ -45,7 +45,7 @@ class Quaternion(Attitude):
         self._quat /= np.sqrt(np.sum(self._quat*self._quat, axis = 0))
 
     @classmethod
-    def from_v_theta(cls, v, theta):
+    def from_vector_angle(cls, v, theta):
 
         v = np.array(v, dtype = float)
         v /= np.sqrt(np.sum(v*v, axis=0))
