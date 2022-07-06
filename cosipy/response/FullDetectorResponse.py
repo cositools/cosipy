@@ -169,7 +169,9 @@ class FullDetectorResponse(HealpixBase):
         if not self.conformable(exposure_map):
             raise ValueError("Exposure map has a different grid than the detector response")
             
-        psr = PointSourceResponse(self.axes, sparse = True)
+        psr = PointSourceResponse(self.axes,
+                                  sparse = True,
+                                  unit = u.cm*u.cm*u.s)
         
         for p in range(self.npix):
 
