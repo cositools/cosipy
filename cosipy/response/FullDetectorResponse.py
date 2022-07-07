@@ -37,9 +37,10 @@ class FullDetectorResponse(HealpixBase):
     def __init__(self, filename = None, *args, **kwargs):
 
         if filename is not None:
-            self.open(filename, *args, **kwargs)
+            self._open(filename, *args, **kwargs)
 
-    def open(self, filename, *args, **kwargs):
+    @classmethod
+    def open(cls, *args, **kwargs):
         """
         Open a detector response file.
 
@@ -49,6 +50,13 @@ class FullDetectorResponse(HealpixBase):
             Path to HDF5 file
         """
 
+        new = cls()
+
+        new._open(*args, **kwargs)
+
+        return new
+    
+    def _open(self, filename, *args, **kwargs):
         # Open HDF5
         self._file = h5.File(filename, *args, **kwargs)
 
