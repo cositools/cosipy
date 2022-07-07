@@ -8,3 +8,5 @@ notebooks that you can execute interactively.
    :maxdepth: 1
 
    UnitsAndCoords.ipynb
+   DetectorResponse.ipynb
+   
