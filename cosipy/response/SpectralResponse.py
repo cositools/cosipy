@@ -36,7 +36,7 @@ class SpectralResponse(QuantityHistogram):
             return deepcopy(self._aeff)
         else:
             energy = energy.to_value(self._aeff.axis.unit)
-            return self._aeff.interp(energy)
+            return self._aeff.interp(energy)*self.unit
 
     @property
     def photon_energy_axis(self):
