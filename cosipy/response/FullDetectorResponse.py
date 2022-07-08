@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 import argparse
 import textwrap
 
@@ -6,8 +9,9 @@ import h5py as h5
 from histpy import Histogram, Axes, Axis
 
 from cosipy.coordinates import SpacecraftFrame
+from cosipy.config import Configurator
 
-from mhealpy import HealpixBase
+from mhealpy import HealpixBase, HealpixMap
 import mhealpy as hp
 
 import numpy as np
@@ -17,6 +21,13 @@ from pathlib import Path
 from sparse import COO
 
 import astropy.units as u
+from astropy.units import Quantity
+from astropy.coordinates import SkyCoord
+from astropy.time import Time
+
+import matplotlib.pyplot as plt
+
+import importlib
 
 from .DetectorResponse import DetectorResponse
 from .healpix_axis import HealpixAxis
@@ -234,30 +245,199 @@ class FullDetectorResponse(HealpixBase):
 
         print(f"Filename: {self._filename}. No contents for now!")
 
-def cosi_rsp_dump(argv = None):
+def cosi_response(argv = None):
     """
     Print the content of a detector response to stdout.
     """
 
     # Parse arguments from commandline
-    aPar = argparse.ArgumentParser(
-        usage = ("%(prog)s filename "
-                 "[--help] [options]"),
+    apar = argparse.ArgumentParser(
+        usage = textwrap.dedent(
+            """
+            %(prog)s [--help] <command> [<args>] <filename> [<options>]
+            """),
         description = textwrap.dedent(
             """
-            Dump DR contents
+            Quick view of the information contained in a response file
+
+            %(prog)s --help
+            %(prog)s dump header [FILENAME]
+            %(prog)s dump aeff [FILENAME] --lon [LON] --lat [LAT]
+            %(prog)s dump expectation [FILENAME] --config [CONFIG]
+            %(prog)s plot aeff [FILENAME] --lon [LON] --lat [LAT]
+            %(prog)s plot dispersion [FILENAME] --lon [LON] --lat [LAT]
+            %(prog)s plot expectation [FILENAME] --lon [LON] --lat [LAT]
+
+            Arguments:
+            - header: Response header and axes information
+            - aeff: Effective area
+            - dispersion: Energy dispection matrix
+            - expectation: Expected number of counts
             """),
         formatter_class=argparse.RawTextHelpFormatter)
 
-    aPar.add_argument('filename',
+    apar.add_argument('command',
+                      help=argparse.SUPPRESS)
+    apar.add_argument('args', nargs = '*',
+                      help=argparse.SUPPRESS)
+    apar.add_argument('filename', 
                       help="Path to instrument response")
+    apar.add_argument('--lon',
+                      help = "Longitude in sopacecraft coordinates. e.g. '11deg'")
+    apar.add_argument('--lat',
+                      help = "Latitude in sopacecraft coordinates. e.g. '10deg'")
+    apar.add_argument('--output','-o',
+                      help="Save output to file. Default: stdout")
+    apar.add_argument('--config','-c',
+                      help="Path to config file describing exposure and source charateristics.")
+    apar.add_argument('--config-override', dest = 'override', 
+                      help="Override option in config file")
     
-    args = aPar.parse_args(argv)
+    args = apar.parse_args(argv)
 
-    # Init and dump 
-    dr =  FullDetectorResponse(args.filename)
-  
-    dr.dump()
+    # Config
+    if args.config is None:
+        config = Configurator()
+    else:
+        config = Configurator.open(args.config)
+
+        if args.override is not None:
+            config.override(args.override)
+
+    # Get info
+    with FullDetectorResponse.open(args.filename) as response:
+    
+        # Commands and functions
+        def get_drm():
+
+            lat = Quantity(args.lat)
+            lon = Quantity(args.lon)
+            
+            loc = SkyCoord(lon = lon, lat = lat, frame = SpacecraftFrame())
+            
+            return response.get_interp_response(loc)
+
+        def get_expectation():
+
+            # Exposure map
+            exposure_map = HealpixMap(base = response, 
+                                      unit = u.s, 
+                                      coordsys = SpacecraftFrame())
+
+            ti = Time(config['exposure:time_i'])
+            tf = Time(config['exposure:time_f'])
+            dt = (tf-ti).to(u.s)
+            
+            exposure_map[:4] = dt/4
+
+            logger.warning(f"Spacecraft file not yet implemented, faking source at "
+                           f"zenith from {ti} to {tf} ({dt:.2f})")
+
+            # Point source response
+            psr = response.get_point_source_response(exposure_map)
+            
+            # Spectrum
+            spectrum_module = importlib.import_module('gammapy.modeling.models')
+            spectrum_class = getattr(spectrum_module, config['source:spectrum:class'])
+            spectrum = spectrum_class(*config.get('source:spectrum:args', []),
+                                      **config.get('source:spectrum:kwargs', {}))
+
+            logger.info(f"Using spectrum:\n {spectrum}")
+            
+            # Expectation
+            expectation = psr.get_expectation(spectrum).project('Em')
+
+            return expectation
+            
+        def command_dump():
+
+            if len(args.args) != 1:
+                apar.error("Command 'dump' takes a single argument")
+                
+            option = args.args[0]
+                
+            if option == 'header':
+                    
+                result = response.describe()
+                    
+            elif option == 'aeff':
+                
+                drm = get_drm()
+
+                aeff = drm.get_spectral_response().get_effective_area()
+
+                result = "#Energy[keV]     Aeff[cm2]\n"
+
+                for e,a in zip(aeff.axis.centers*aeff.axis.unit, aeff):
+                    # IMC: fix this latter when histpy has units
+                    result += f"{e.to_value(u.keV):>12.2e}  {a:>12.2e}\n"
+
+            elif option == 'expectation':
+
+                expectation = get_expectation()
+                
+                result = "#Energy_min[keV]   Energy_max[keV]  Expected_counts\n"
+
+                for emin,emax,ex in zip(expectation.axis.lower_bounds,
+                                        expectation.axis.upper_bounds,
+                                        expectation):
+                    # IMC: fix this latter when histpy has units
+                    result += (f"{emin.to_value(u.keV):>16.2e}  "
+                               f"{emax.to_value(u.keV):>16.2e}  "
+                               f"{ex:>15.2e}\n")
+                    
+            else:
+                    
+                apar.error(f"Argument '{option}' not valid for 'dump' command")
+
+            if args.output is None:
+                print(result)
+            else:
+                logger.info(f"Saving result to {Path(args.output).resolve()}")
+                f = open(args.output,'a')
+                f.write(result)
+                f.close()
+            
+                
+        def command_plot():
+
+            if len(args.args) != 1:
+                apar.error("Command 'plot' takes a single argument")
+                
+            option = args.args[0]
+
+            drm = get_drm()
+            
+            if option == 'aeff':
+                
+                drm.get_spectral_response().get_effective_area().plot(errorbars = False)
+
+            elif option == 'dispersion':
+
+                drm.get_spectral_response().get_dispersion_matrix().plot() 
+
+            elif option == 'expectation':
+
+                expectation = get_expectation().plot(errorbars = False)
+                
+            else:
+
+                apar.error(f"Argument '{option}' not valid for 'plot' command")
+
+            if args.output is None:
+                plt.show()
+            else:
+                logger.info(f"Saving plot to {Path(args.output).resolve()}")
+                fig.savefig(args.output)
+                
+        # Run
+        if args.command == 'plot':
+            command_plot()
+        elif args.command == 'dump':
+            command_dump()
+        else:
+            apar.error(f"Command '{args.command}' unknown")
         
         
-        
+
+            

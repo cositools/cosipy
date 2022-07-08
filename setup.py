@@ -25,7 +25,7 @@ setup(name='cosipy',
       install_requires = ['histpy','mhealpy'],
       description = "High-level analysis for the COSI telescope data",
       entry_points={"console_scripts":[
-          "cosi-rsp-dump = cosipy.response.DetectorResponse:cosi_rsp_dump",
+          "cosi-response = cosipy.response.FullDetectorResponse:cosi_response",
                               ]},
       
       long_description = long_description,
