@@ -1,2 +1,2 @@
 from .spacecraft_frame import SpacecraftFrame
-from .attitude import  Attitude, Quaternion, AttitudeAttribute
+from .attitude import  Attitude, AttitudeAttribute

@@ -1,105 +1,80 @@
-from astropy.coordinates import TimeAttribute, Attribute, EarthLocationAttribute
+from astropy.coordinates import (TimeAttribute, Attribute, EarthLocationAttribute,
+                                 ICRS, CartesianRepresentation, SkyCoord)
 import astropy.units as u
 
 import numpy as np
 
 from abc import ABC, abstractmethod
 
-class Attitude(ABC):
-    
-    @property
-    @abstractmethod
-    def rot_matrix(self):
-        ...
-        
-    @property
-    @abstractmethod
-    def shape(self):
-        ...        
+from scipy.spatial.transform import Rotation
 
-class Quaternion(Attitude):
-    """
-    Holds one or more quaternions representing a rotation.
-    
-    The convention for a rotation around an unit vector :math:`(X,Y,Z)` by an 
-    angle :math:`\theta` is as follows:
-        
-    .. math::
-        q = (XS, YS, ZS, C)
-        
-    where :math:`C = \cos(\theta/2)` and :math:`S = \sin(\theta/2)`
-    
-    Args:
-        quat (array): Shaped (4,N). Will be normalized
-    """
-    
-    def __init__(self, quat):
-        
-        if np.isscalar(quat) or np.shape(quat)[0] != 4:
-            raise ValueError("Wrong quaternion shape")
+class Attitude:
 
-        # Standard format
-        self._quat = np.array(quat, dtype = float)
+    def __init__(self, rot, frame = None):
         
-        #Normalize
-        self._quat /= np.sqrt(np.sum(self._quat*self._quat, axis = 0))
+        self._rot = rot
+
+        if frame is None:
+            self._frame = 'icrs'
+        else:
+            self._frame = frame
+    
+    @classmethod
+    def from_quat(cls, quat, frame = None):
+
+        return cls(Rotation.from_quat(quat), frame)
 
     @classmethod
-    def from_vector_angle(cls, v, theta):
+    def from_matrix(cls, matrix, frame = None):
 
-        v = np.array(v, dtype = float)
-        v /= np.sqrt(np.sum(v*v, axis=0))
-
-        half_theta = theta.to_value(u.rad)/2
+        return cls(Rotation.from_matrix(matrix), frame)
         
-        s = np.sin(half_theta)
-        c = np.cos(half_theta)
+    @classmethod
+    def from_rotvec(cls, rotvec, frame = None):
 
-        return cls(np.append(s*v, c))
-                
+        return cls(Rotation.from_rotvec(rotvec.to_value(u.rad)), frame)
+
+    def transform_to(self, frame):
+
+        if self.frame == frame:
+            return self
+        
+        # Each row of a rotation matrix is composed of the unit vector along
+        # each axis on the new frame. We then convert each of this to the new frame,
+        # resulting on a new rotation matrix
+        
+        old_rot = CartesianRepresentation(x = self._rot.as_matrix().transpose())
+        
+        new_rot = SkyCoord(old_rot, frame = self.frame).transform_to(frame)
+
+        new_rot = new_rot.represent_as('cartesian').xyz.value.transpose()
+
+        return self.from_matrix(new_rot, frame = frame)
+
     @property
-    def rot_matrix(self):
-        """
-        Corresponding rotation matrix. Shaped (3,3,N)
-        """
+    def frame(self):
+        return self._frame
+    
+    def as_matrix(self):
+        return self._rot.as_matrix()
 
-        a = self._quat[3]
-        b = self._quat[0]
-        c = self._quat[1]
-        d = self._quat[2]
+    def as_rotvet(self):
+        return self._rot.as_rotvec()*u.rad
 
-        a2 = a*a
-        b2 = b*b
-        c2 = c*c
-        d2 = d*d
-
-        ab = a*b
-        ac = a*c
-        ad = a*d
-        
-        bc = b*c
-        bd = b*d
-
-        cd = c*d
-        
-        return np.array([[a2+b2-c2-d2,    2*(bc-ad),    2*(bd+ac)],
-                         [  2*(bc+ad),  a2-b2+c2-d2,    2*(cd-ab)],
-                         [  2*(bc-ac),    2*(cd+ab),  a2-b2-c2+d2]])
-
+    def as_quat(self):
+        return self._rot.as_quat()
+    
     @property
     def shape(self):
-        return self.quat.shape[1:]
+        return np.asarray(self._rot).shape
 
-    def __array__(self):
-        return self._quat
+    def __getitem__(self, key):
+        return self._rot[key]
 
     def __str__(self):
-        return str(self._quat)
+        return f"<{self._rot.as_matrix()}, frame = {self.frame}>"
 
-    def __repr__(self):
-        return repr(self._quat)
     
-        
 class AttitudeAttribute(Attribute):
     """
     Interface for attitude (e.g. a quaternion) with astropy's custom frame
@@ -110,13 +85,9 @@ class AttitudeAttribute(Attribute):
         if value is None:
             return None, False
         
-        converted = False
-        
         if not isinstance(value, Attitude):
-            # Currently only a quaternion is supported
+            raise ValueError("Attitude is not an instance of Attitude.")
             
-            value = Quaternion(value)
-            
-            converted = True
+        converted = True
                         
         return value,converted

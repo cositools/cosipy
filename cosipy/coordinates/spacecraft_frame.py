@@ -35,7 +35,7 @@ def spacecraft_to_icrs(sc_coord, icrs_frame):
     if sc_coord.attitude is None:
         raise RuntimeError("Spacecraft coordinates need attitude quaternion to transform to ICRS")
         
-    return sc_coord.attitude.rot_matrix
+    return sc_coord.attitude.transform_to('icrs').as_matrix()
 
 @frame_transform_graph.transform(DynamicMatrixTransform, ICRS, SpacecraftFrame)
 def spacecraft_to_icrs(icrs_coord, sc_frame):
@@ -43,5 +43,5 @@ def spacecraft_to_icrs(icrs_coord, sc_frame):
     if sc_frame.attitude is None:
         raise RuntimeError("Spacecraft coordinates need attitude quaternion to transform from ICRS")
         
-    return np.transpose(sc_frame.attitude.rot_matrix, [1,0])
+    return sc_frame.attitude.transform_to('icrs').inv().as_matrix()
 
