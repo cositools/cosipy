@@ -1,5 +1,5 @@
 from astropy.coordinates import (TimeAttribute, Attribute, EarthLocationAttribute,
-                                 ICRS, CartesianRepresentation, SkyCoord)
+                                 ICRS, CartesianRepresentation, SkyCoord, UnitSphericalRepresentation)
 import astropy.units as u
 
 import numpy as np
@@ -34,6 +34,30 @@ class Attitude:
 
         return cls(Rotation.from_rotvec(rotvec.to_value(u.rad)), frame)
 
+    @classmethod
+    def from_axes(cls, x = None, y = None, z = None, frame = None):
+        """
+        right handed
+        """
+
+        if len([i for i in [x,y,z] if i is None]) > 1:
+            raise ValueError("At least two axes are needed.")
+        
+        # Get the missing axis if needed
+        if x is None:
+            x = y.cross(x)
+        elif y is None:
+            y = z.cross(x)
+        elif z is None:
+            z = x.cross(y)
+
+        # Get the rotation matrix. Each axis is a row. Transpose = inverted rot
+        matrix = np.transpose([x.to_cartesian().xyz.value,
+                               y.to_cartesian().xyz.value,
+                               z.to_cartesian().xyz.value])
+
+        return cls.from_matrix(matrix, frame = frame)
+            
     def transform_to(self, frame):
 
         if self.frame == frame:
@@ -58,7 +82,7 @@ class Attitude:
     def as_matrix(self):
         return self._rot.as_matrix()
 
-    def as_rotvet(self):
+    def as_rotvec(self):
         return self._rot.as_rotvec()*u.rad
 
     def as_quat(self):
@@ -71,8 +95,11 @@ class Attitude:
     def __getitem__(self, key):
         return self._rot[key]
 
+    def __setitem__(self, key, value):
+        self._rot[key] = value.transform_to(self.frame)._rot
+
     def __str__(self):
-        return f"<{self._rot.as_matrix()}, frame = {self.frame}>"
+        return f"<quat = {self._rot.as_quat()}, frame = {self.frame}>"
 
     
 class AttitudeAttribute(Attribute):
