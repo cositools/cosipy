@@ -22,7 +22,7 @@ setup(name='cosipy',
       author_email='imc@umd.edu',
       url='https://github.com/cositools/cosipy',
       packages = find_packages(include=["cosipy", "cosipy.*"]),
-      install_requires = ['histpy','mhealpy'],
+      install_requires = ['histpy','mhealpy','gammapy'],
       description = "High-level analysis for the COSI telescope data",
       entry_points={"console_scripts":[
           "cosi-response = cosipy.response.FullDetectorResponse:cosi_response",

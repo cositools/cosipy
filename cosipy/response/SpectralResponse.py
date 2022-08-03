@@ -1,10 +1,10 @@
 from copy import deepcopy
 
-from .quantity_histogram import QuantityHistogram
+from histpy import Histogram
 
 import astropy.units as u
 
-class SpectralResponse(QuantityHistogram):
+class SpectralResponse(Histogram):
 
     def __init__(self, *args, **kwargs):
 
@@ -18,8 +18,8 @@ class SpectralResponse(QuantityHistogram):
         norm = self.get_effective_area().full_contents
 
         # Hack the under/overflow bins to supress 0/0 wearning
-        norm[0] = 1 if norm[0] == 0 else norm[0]
-        norm[-1] = 1 if norm[-1] == 0 else norm[-1]
+        norm[0] = 1*self.unit if norm[0] == 0 else norm[0]
+        norm[-1] = 1*self.unit if norm[-1] == 0 else norm[-1]
 
         # "Broadcast" such that it has the compatible dimensions with the 2D matrix
         norm = self.expand_dims(norm, 'Ei')
@@ -35,8 +35,7 @@ class SpectralResponse(QuantityHistogram):
         if energy is None:
             return deepcopy(self._aeff)
         else:
-            energy = energy.to_value(self._aeff.axis.unit)
-            return self._aeff.interp(energy)*self.unit
+            return self._aeff.interp(energy)
 
     @property
     def photon_energy_axis(self):

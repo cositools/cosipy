@@ -18,6 +18,14 @@ class Attitude:
             self._frame = 'icrs'
         else:
             self._frame = frame
+
+    @property
+    def rot(self):
+        return self._rot
+            
+    @property
+    def frame(self):
+        return self._frame
     
     @classmethod
     def from_quat(cls, quat, frame = None):
@@ -57,7 +65,16 @@ class Attitude:
                                z.to_cartesian().xyz.value])
 
         return cls.from_matrix(matrix, frame = frame)
-            
+
+    @classmethod
+    def identity(cls, frame = None):
+
+        return cls(Rotation.identity(), frame = frame)
+
+    def inv(self):
+        
+        return Attitude(self.rot.inv(), frame = self.frame)
+    
     def transform_to(self, frame):
 
         if self.frame == frame:
@@ -67,7 +84,7 @@ class Attitude:
         # each axis on the new frame. We then convert each of this to the new frame,
         # resulting on a new rotation matrix
         
-        old_rot = CartesianRepresentation(x = self._rot.as_matrix().transpose())
+        old_rot = CartesianRepresentation(x = self.rot.as_matrix().transpose())
         
         new_rot = SkyCoord(old_rot, frame = self.frame).transform_to(frame)
 
@@ -75,31 +92,27 @@ class Attitude:
 
         return self.from_matrix(new_rot, frame = frame)
 
-    @property
-    def frame(self):
-        return self._frame
-    
     def as_matrix(self):
-        return self._rot.as_matrix()
+        return self.rot.as_matrix()
 
     def as_rotvec(self):
-        return self._rot.as_rotvec()*u.rad
+        return self.rot.as_rotvec()*u.rad
 
     def as_quat(self):
-        return self._rot.as_quat()
+        return self.rot.as_quat()
     
     @property
     def shape(self):
-        return np.asarray(self._rot).shape
+        return np.asarray(self.rot).shape
 
     def __getitem__(self, key):
-        return self._rot[key]
+        return self.rot[key]
 
     def __setitem__(self, key, value):
-        self._rot[key] = value.transform_to(self.frame)._rot
+        self.rot[key] = value.transform_to(self.frame)._rot
 
     def __str__(self):
-        return f"<quat = {self._rot.as_quat()}, frame = {self.frame}>"
+        return f"<quat = {self.rot.as_quat()}, frame = {self.frame}>"
 
     
 class AttitudeAttribute(Attribute):

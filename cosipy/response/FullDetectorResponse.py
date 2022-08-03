@@ -31,7 +31,6 @@ import importlib
 
 from .DetectorResponse import DetectorResponse
 from .healpix_axis import HealpixAxis
-from .quantity_axis import QuantityAxis
 from .PointSourceResponse import PointSourceResponse
 
 class FullDetectorResponse(HealpixBase):
@@ -98,10 +97,9 @@ class FullDetectorResponse(HealpixBase):
                                      coordsys = SpacecraftFrame())]
 
             else:
-                axes += [QuantityAxis(np.array(axis),
-                                      scale = axis_type,
-                                      label = axis_label,
-                                      unit = axis.attrs['UNIT'])]
+                axes += [Axis(np.array(axis) * u.Unit(axis.attrs['UNIT']),
+                              scale = axis_type,
+                              label = axis_label)]
 
         self._axes = Axes(axes)
 

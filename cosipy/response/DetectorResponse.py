@@ -2,10 +2,9 @@ from histpy import Histogram, Axes, Axis
 
 import astropy.units as u
 
-from .quantity_histogram import QuantityHistogram
 from .SpectralResponse import SpectralResponse
 
-class DetectorResponse(QuantityHistogram):
+class DetectorResponse(Histogram):
 
     def get_spectral_response(self):
 
