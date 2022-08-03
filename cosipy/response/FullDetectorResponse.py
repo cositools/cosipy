@@ -38,9 +38,13 @@ class FullDetectorResponse(HealpixBase):
     FullDetectorResponse handles the multi-dimensional matrix that describes the
     full all-sky response of the instrument.
 
+    You can access the :py:class:`DetectorResponse` at a given pixel using the ``[]``
+    operator. Alternatively you can obtain the interpolated reponse using
+    :py:func:`get_interp_response`.
+    
     Parameters
     ----------
-    filename : str, Path, optional
+    filename : str, :py:class:`~pathlib.Path`, optional
         Path to file
     """
     
@@ -56,7 +60,7 @@ class FullDetectorResponse(HealpixBase):
 
         Parameters
         ----------
-        filename : str, Path
+        filename : str, :py:class:`~pathlib.Path`
             Path to HDF5 file
         """
 
@@ -105,15 +109,37 @@ class FullDetectorResponse(HealpixBase):
 
     @property
     def ndim(self):
+        """
+        Dimensionality of detector response matrix. At each coordinate location.
 
-        return self._axes.ndim+1
+        Returns
+        -------
+        int
+        """
+        
+        return self._axes.ndim
 
     @property
     def axes(self):
+        """
+        List of axes. At each coordinate location.
+
+        Returns
+        -------
+        :py:class:`histpy.Axes`
+        """
         return self._axes
 
     @property
     def unit(self):
+        """
+        Physical unit of the contents of the detector reponse.
+
+        Returns
+        -------
+        :py:class:`astropy.units.Unit`
+        """
+        
         return self._unit
         
     def __getitem__(self, pix):
@@ -121,7 +147,7 @@ class FullDetectorResponse(HealpixBase):
         if not isinstance(pix, (int, np.integer)) or pix < 0 or not pix < self.npix:
             raise IndexError("Pixel number out of range, or not an integer")
         
-        coords = np.reshape(self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim - 1,-1))
+        coords = np.reshape(self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim,-1))
         data = np.array(self._file['DRM']['CONTENTS'][pix])
 
         return DetectorResponse(self.axes,
@@ -132,7 +158,7 @@ class FullDetectorResponse(HealpixBase):
     
     def close(self):
         """
-        Close the HDF5 file containing the DetectorResponse
+        Close the HDF5 file containing the response
         """
 
         self._file.close()
@@ -156,14 +182,27 @@ class FullDetectorResponse(HealpixBase):
         """
         Path to on-disk file containing DetectorResponse
         
-        Return:
-            Path
+        Returns
+        -------
+        :py:class:`~pathlib.Path`
         """
         
         return Path(self._file.filename)
 
     def get_interp_response(self, coord):
+        """
+        Get the bilinearly interpolated response at a given coordinate location.
 
+        Parameters
+        ----------
+        coord : :py:class:`astropy.coordinates.SkyCoord`
+            Coordinate in the :py:class:`.SpacecraftFrame`
+        
+        Returns
+        -------
+        :py:class:`DetectorResponse`
+        """
+        
         pixels, weights = self.get_interp_weights(coord)
 
         dr = DetectorResponse(self.axes,
@@ -178,9 +217,17 @@ class FullDetectorResponse(HealpixBase):
     
     def get_point_source_response(self, exposure_map):
         """
+        Convolve the all-sky detector response with exposure for a source at a given
+        sky location.
+        
+        Parameters
+        ----------
+        exposure_map : :py:class:`mhealpy.HealpixMap`
+            Effective time spent by the source at each pixel location in spacecraft coordinates
 
-        exposure_map : HealpixMap
-            Effective time spent by the source at each location in spacecraft coordinate
+        Returns
+        -------
+        :py:class:`PointSourceResponse`
         """
 
         if not self.conformable(exposure_map):
