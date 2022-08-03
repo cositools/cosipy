@@ -58,6 +58,7 @@ intersphinx_mapping = {
     'astropy' : ('https://docs.astropy.org/en/stable', None),
     'python' : ('https://docs.python.org/3', None),
     'mhealpy' : ('https://mhealpy.readthedocs.io/en/latest/', None),
+    'sparse' : ('https://sparse.pydata.org/en/stable/', None),
   }
 
 # -- Options for HTML output -------------------------------------------------

@@ -1,7 +1,9 @@
-response
-========
+Detector response
+=================
 
-Detector response matrices
+Different matrices that charaterize the response of the instrument. These encode the effective
+area and the various detector effects seens in the data, and allow to compute
+the expected counts given a source hypothesis.
 
 FullDetectorResponse
 --------------------
@@ -9,7 +11,6 @@ FullDetectorResponse
 .. autoclass:: cosipy.response.FullDetectorResponse
    :show-inheritance:
    :members:
-   :inherited-members:
 
 DetectorResponse
 ----------------
@@ -17,7 +18,6 @@ DetectorResponse
 .. autoclass:: cosipy.response.DetectorResponse
    :show-inheritance:
    :members:
-   :inherited-members:
 
 PointSourceResponse
 -------------------
@@ -25,4 +25,4 @@ PointSourceResponse
 .. autoclass:: cosipy.response.PointSourceResponse
    :show-inheritance:
    :members:
-   :inherited-members:
+

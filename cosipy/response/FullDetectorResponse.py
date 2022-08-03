@@ -35,7 +35,7 @@ from .PointSourceResponse import PointSourceResponse
 
 class FullDetectorResponse(HealpixBase):
     """
-    FullDetectorResponse handles the multi-dimensional matrix that describes the
+    Handles the multi-dimensional matrix that describes the
     full all-sky response of the instrument.
 
     You can access the :py:class:`DetectorResponse` at a given pixel using the ``[]``
