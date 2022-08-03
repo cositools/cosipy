@@ -10,15 +10,20 @@ from abc import ABC, abstractmethod
 
 class SpacecraftFrame(BaseCoordinateFrame):
     """
-    Reference frame attached to the spacecraft
+    Reference frame attached to the spacecraft.
 
-    Args:
-        lon (Quantity): longitude
-        lat (Quantity): latitude
-        distance (Quantity): distance
-        attitude (Quaternion): The orientation of the spacecraft with respect to ICRS
-        obtime (Time): The time at which the observation is taken.
-        location (EarthLocation): The location of the spacecraft on Earth coordinates.
+    Parameters
+    ----------
+    lon : :py:class:`astropy.units.Quantity`
+        Latitude
+    lat : :py:class:`astropy.units.Quantity`
+        Latitude
+    attitude : :py:class:`.Attitude`, optional
+        The orientation of the spacecraft with respect to an internatial frame.
+    obtime : :py:class:`astropy.time.Time`, optional
+        The time at which the observation was taken.
+    location : :py:class:`astropy.coordinates.EarthLocation`, optional
+        The location of the spacecraft on the Earth.
     """
     
     default_representation = SphericalRepresentation
@@ -33,7 +38,7 @@ class SpacecraftFrame(BaseCoordinateFrame):
 def spacecraft_to_icrs(sc_coord, icrs_frame):
     
     if sc_coord.attitude is None:
-        raise RuntimeError("Spacecraft coordinates need attitude quaternion to transform to ICRS")
+        raise RuntimeError("Spacecraft coordinates need attitude to transform to ICRS")
         
     return sc_coord.attitude.transform_to('icrs').as_matrix()
 
@@ -41,7 +46,7 @@ def spacecraft_to_icrs(sc_coord, icrs_frame):
 def spacecraft_to_icrs(icrs_coord, sc_frame):
     
     if sc_frame.attitude is None:
-        raise RuntimeError("Spacecraft coordinates need attitude quaternion to transform from ICRS")
+        raise RuntimeError("Spacecraft coordinates need attitude to transform from ICRS")
         
     return sc_frame.attitude.transform_to('icrs').inv().as_matrix()
 
