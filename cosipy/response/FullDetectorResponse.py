@@ -248,9 +248,6 @@ class FullDetectorResponse(HealpixBase):
         return f"{self.__class__.__name__}(filename = '{self.filename.resolve()}')"
 
     def __repr__(self):
-        return str(self)
-
-    def describe(self):
         
         output = (f"FILENAME: '{self.filename.resolve()}'\n"
                   f"NPIX: {self.npix}\n"
@@ -281,15 +278,8 @@ class FullDetectorResponse(HealpixBase):
         if cycle:
             p.text(str(self))
         else:
-            p.text(self.describe())
+            p.text(repr(describe()))
     
-    def dump(self):
-        """
-        Print the content of the response to stdout.
-        """
-
-        print(f"Filename: {self._filename}. No contents for now!")
-
 def cosi_response(argv = None):
     """
     Print the content of a detector response to stdout.
@@ -403,7 +393,7 @@ def cosi_response(argv = None):
                 
             if option == 'header':
                     
-                result = response.describe()
+                result = repr(describe())
                     
             elif option == 'aeff':
                 
