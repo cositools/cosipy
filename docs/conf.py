@@ -60,6 +60,7 @@ intersphinx_mapping = {
     'mhealpy' : ('https://mhealpy.readthedocs.io/en/latest/', None),
     'sparse' : ('https://sparse.pydata.org/en/stable/', None),
     'gammapy' : ('https://docs.gammapy.org/dev', None),
+    'scipy' : ('https://scipy.github.io/devdocs', None),
   }
 
 # -- Options for HTML output -------------------------------------------------
