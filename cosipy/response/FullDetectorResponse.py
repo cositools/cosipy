@@ -82,10 +82,15 @@ class FullDetectorResponse(HealpixBase):
                          coordsys = SpacecraftFrame())
 
         self._unit = u.Unit(self._drm.attrs['UNIT'])
+
+        # The main coordinate axis
+        axes = [HealpixAxis(edges = np.arange(self.npix+1),
+                            nside = self.nside,
+                            label = 'NuLambda',
+                            scheme = self.scheme,
+                            coordsys = SpacecraftFrame())]
         
         # The rest of the axes
-        axes = []
-
         for axis_label in self._drm["AXES"]:
             
             axis = self._drm['AXES'][axis_label]
@@ -110,19 +115,19 @@ class FullDetectorResponse(HealpixBase):
     @property
     def ndim(self):
         """
-        Dimensionality of detector response matrix. At each coordinate location.
+        Dimensionality of detector response matrix.
 
         Returns
         -------
         int
         """
         
-        return self._axes.ndim
+        return self.axes.ndim
 
     @property
     def axes(self):
         """
-        List of axes. At each coordinate location.
+        List of axes.
 
         Returns
         -------
@@ -147,13 +152,13 @@ class FullDetectorResponse(HealpixBase):
         if not isinstance(pix, (int, np.integer)) or pix < 0 or not pix < self.npix:
             raise IndexError("Pixel number out of range, or not an integer")
         
-        coords = np.reshape(self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim,-1))
+        coords = np.reshape(self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim-1,-1))
         data = np.array(self._file['DRM']['CONTENTS'][pix])
 
-        return DetectorResponse(self.axes,
+        return DetectorResponse(self.axes[1:],
                                 contents = COO(coords = coords,
                                                data = data,
-                                               shape = tuple(self.axes.nbins)),
+                                               shape = tuple(self.axes.nbins[1:])),
                                 unit = self.unit)
     
     def close(self):
@@ -205,7 +210,7 @@ class FullDetectorResponse(HealpixBase):
         
         pixels, weights = self.get_interp_weights(coord)
 
-        dr = DetectorResponse(self.axes,
+        dr = DetectorResponse(self.axes[1:],
                               sparse = True,
                               unit = self.unit)
         
@@ -233,7 +238,7 @@ class FullDetectorResponse(HealpixBase):
         if not self.conformable(exposure_map):
             raise ValueError("Exposure map has a different grid than the detector response")
             
-        psr = PointSourceResponse(self.axes,
+        psr = PointSourceResponse(self.axes[1:],
                                   sparse = True,
                                   unit = u.cm*u.cm*u.s)
         
@@ -250,15 +255,17 @@ class FullDetectorResponse(HealpixBase):
     def __repr__(self):
         
         output = (f"FILENAME: '{self.filename.resolve()}'\n"
-                  f"NPIX: {self.npix}\n"
-                  f"NSIDE: {self.nside}\n"
-                  f"SCHEME: '{self.scheme}'\n"
                   f"AXES:\n")
         
-        for axis in self.axes:
+        for naxis, axis in enumerate(self.axes):
 
+            if naxis == 0:
+                description = "Location of the simulated source in the spacecraft coordinates"
+            else:
+                description = self._drm['AXES'][axis.label].attrs['DESCRIPTION']
+                
             output += (f"  {axis.label}:\n"
-                       f"    DESCRIPTION: '{self._drm['AXES'][axis.label].attrs['DESCRIPTION']}'\n")
+                       f"    DESCRIPTION: '{description}'\n")
                 
             if isinstance(axis, HealpixAxis):
                 output += (f"    TYPE: 'healpix'\n"

@@ -9,6 +9,7 @@ from pytest import approx
 def test_transform_to():
 
     # Following the same conventions as GBM. Tested against
+    # gbm.coords.spacecraft_to_radec(az = 40, zen = 10, quat = np.array([0.08, 0.17, 0.25, 0.94]), deg=True)
     # https://fermi.gsfc.nasa.gov/ssc/data/analysis/gbm/gbm_data_tools/gdt-docs/api/api-utils.html?highlight=quaternion#gbm.coords.spacecraft_to_radec
 
     # From SC to RA/Dec
