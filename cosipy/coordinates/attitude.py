@@ -124,13 +124,13 @@ class Attitude:
         
         Parameters
         ----------
-        x : :py:class:`astropy.coordinates.BaseRepresentation`, optional
+        x : :py:class:`astropy.coordinates.SkyCoord`, optional
             Coordinate in the inertial reference frame that the spacecraft reference frame
             x-axis is pointing to.
-        y : :py:class:`astropy.coordinates.BaseRepresentation`, optional
+        y : :py:class:`astropy.coordinates.SkyCoord`, optional
             Coordinate in the inertial reference frame that the spacecraft reference frame
             y-axis is pointing to.
-        z : :py:class:`astropy.coordinates.BaseRepresentation`, optional
+        z : :py:class:`astropy.coordinates.SkyCoord`, optional
             Coordinate in the inertial reference frame that the spacecraft reference frame
             z-axis is pointing to.
         frame : :py:class:`astropy.coordinates.BaseCoordinateFrame`
@@ -141,10 +141,21 @@ class Attitude:
         :py:class:`Attitude`
         """
 
+        # Make sure all inputs are in the same frame
+        if frame is None:
+            frame = 'icrs'
+        
+        if x is not None:
+            x = x.transform_to(frame).represent_as('cartesian')
+        if y is not None:
+            y = y.transform_to(frame).represent_as('cartesian')
+        if z is not None:
+            z = z.transform_to(frame).represent_as('cartesian')
+            
+        # Get the missing axis if needed
         if len([i for i in [x,y,z] if i is None]) > 1:
             raise ValueError("At least two axes are needed.")
-        
-        # Get the missing axis if needed
+
         if x is None:
             x = y.cross(x)
         elif y is None:
@@ -153,9 +164,9 @@ class Attitude:
             z = x.cross(y)
 
         # Get the rotation matrix. Each axis is a row. Transpose = inverted rot
-        matrix = np.transpose([x.to_cartesian().xyz.value,
-                               y.to_cartesian().xyz.value,
-                               z.to_cartesian().xyz.value])
+        matrix = np.transpose([x.xyz.value,
+                               y.xyz.value,
+                               z.xyz.value])
 
         return cls.from_matrix(matrix, frame = frame)
 
@@ -247,6 +258,30 @@ class Attitude:
         """
         
         return self.rot.as_quat()
+
+    def as_axes(self):
+        """
+        Return the sky coordinate in the intertial frame that the axes of the spacecraft
+        frame are pointing to.
+
+        Returns
+        -------
+        x : :py:class:`astropy.coordinates.SkyCoord`, optional
+            Coordinate in the inertial reference frame that the spacecraft reference frame
+            x-axis is pointing to.
+        y : :py:class:`astropy.coordinates.SkyCoord`, optional
+            Coordinate in the inertial reference frame that the spacecraft reference frame
+            y-axis is pointing to.
+        z : :py:class:`astropy.coordinates.SkyCoord`, optional
+            Coordinate in the inertial reference frame that the spacecraft reference frame
+            z-axis is pointing to.
+        """
+        
+        matrix = self.as_matrix()
+        
+        return (SkyCoord(CartesianRepresentation(*matrix[0]), frame = self.frame),
+                SkyCoord(CartesianRepresentation(*matrix[1]), frame = self.frame),
+                SkyCoord(CartesianRepresentation(*matrix[2]), frame = self.frame))
     
     @property
     def shape(self):
