@@ -8,6 +8,8 @@ from abc import ABC, abstractmethod
 
 from scipy.spatial.transform import Rotation
 
+from copy import deepcopy
+
 class Attitude:
     """
     Orientation of the spacecraft with respect to an inertial reference frame.
@@ -15,8 +17,8 @@ class Attitude:
     Parameters
     ----------
     rot : :py:class:`scipy.spatial.transform.Rotation`
-        Rotation transformation from a :py:class:`.SpacecraftFrame` to the reference inertial
-        reference frame
+        Rotation transformation from a coordinate in :py:class:`.SpacecraftFrame`
+        to that in a inertial reference frame.
     frame : :py:class:`astropy.coordinates.BaseCoordinateFrame`
         Inertial reference frame
     """
@@ -213,20 +215,12 @@ class Attitude:
         """
         
         if self.frame == frame:
-            return self
-        
-        # Each row of a rotation matrix is composed of the unit vector along
-        # each axis on the new frame. We then convert each of this to the new frame,
-        # resulting on a new rotation matrix
-        
-        old_rot = CartesianRepresentation(x = self.rot.as_matrix().transpose())
-        
-        new_rot = SkyCoord(old_rot, frame = self.frame).transform_to(frame)
+            return deepcopy(self)
 
-        new_rot = new_rot.represent_as('cartesian').xyz.value.transpose()
+        axes = self.as_axes()
 
-        return self.from_matrix(new_rot, frame = frame)
-
+        return self.from_axes(*axes, frame = frame)
+        
     def as_matrix(self):
         """
         Represent as rotation matrix.
@@ -277,7 +271,7 @@ class Attitude:
             z-axis is pointing to.
         """
         
-        matrix = self.as_matrix()
+        matrix = np.transpose(self.as_matrix())
         
         return (SkyCoord(CartesianRepresentation(*matrix[0]), frame = self.frame),
                 SkyCoord(CartesianRepresentation(*matrix[1]), frame = self.frame),
