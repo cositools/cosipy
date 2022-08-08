@@ -270,7 +270,7 @@ class FullDetectorResponse(HealpixBase):
         if cycle:
             p.text(str(self))
         else:
-            p.text(repr(describe()))
+            p.text(repr(self))
     
 def cosi_response(argv = None):
     """
@@ -357,8 +357,8 @@ def cosi_response(argv = None):
             
             exposure_map[:4] = dt/4
 
-            logger.warning(f"Spacecraft file not yet implemented, faking source at "
-                           f"zenith from {ti} to {tf} ({dt:.2f})")
+            logger.warning(f"Spacecraft file not yet implemented, faking source on "
+                           f"axis from {ti} to {tf} ({dt:.2f})")
 
             # Point source response
             psr = response.get_point_source_response(exposure_map)
@@ -385,7 +385,7 @@ def cosi_response(argv = None):
                 
             if option == 'header':
                     
-                result = repr(describe())
+                result = repr(response)
                     
             elif option == 'aeff':
                 
@@ -395,9 +395,9 @@ def cosi_response(argv = None):
 
                 result = "#Energy[keV]     Aeff[cm2]\n"
 
-                for e,a in zip(aeff.axis.centers*aeff.axis.unit, aeff):
+                for e,a in zip(aeff.axis.centers, aeff):
                     # IMC: fix this latter when histpy has units
-                    result += f"{e.to_value(u.keV):>12.2e}  {a:>12.2e}\n"
+                    result += f"{e.to_value(u.keV):>12.2e}  {a.to_value(u.cm*u.cm):>12.2e}\n"
 
             elif option == 'expectation':
 
@@ -433,14 +433,16 @@ def cosi_response(argv = None):
                 
             option = args.args[0]
 
-            drm = get_drm()
-            
             if option == 'aeff':
                 
+                drm = get_drm()
+            
                 drm.get_spectral_response().get_effective_area().plot(errorbars = False)
 
             elif option == 'dispersion':
 
+                drm = get_drm()
+                
                 drm.get_spectral_response().get_dispersion_matrix().plot() 
 
             elif option == 'expectation':
@@ -455,7 +457,7 @@ def cosi_response(argv = None):
                 plt.show()
             else:
                 logger.info(f"Saving plot to {Path(args.output).resolve()}")
-                fig.savefig(args.output)
+                plt.savefig(args.output)
                 
         # Run
         if args.command == 'plot':

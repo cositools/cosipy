@@ -7,10 +7,11 @@ import astropy.units as u
 
 from cosipy import test_data
 from cosipy.response import FullDetectorResponse
+from cosipy.response.FullDetectorResponse import cosi_response
 
 from pytest import approx
 
-response_path = test_data.path / "test_full_detector_response.h5"
+response_path = test_data.path/"test_full_detector_response.h5"
 
 def test_get_effective_area():
     
@@ -72,9 +73,28 @@ def test_get_dispersion_matrix():
 
         assert np.allclose(rmf.project('Ei').to_dense().contents, 1)
     
+def test_cosi_response(tmp_path):
 
+    # Just check if it runs without errors
+    
+    cosi_response(['dump','header', str(response_path)])
 
+    cosi_response(['dump', 'aeff', str(response_path),
+                   '--lat', '90deg', '--lon', '0deg'])
 
+    cosi_response(['plot', 'aeff', str(response_path),
+                   '--lat', '90deg', '--lon', '0deg',
+                   '-o', str(tmp_path/'test_plot_aeff.png')])
 
+    cosi_response(['dump', 'expectation', str(response_path),
+                   '-c', str(test_data.path/'cosi-response-config-example.yaml'),
+                   '--config-override', 'source:spectrum:kwargs:index=3'])
 
-        
+    cosi_response(['plot', 'expectation', str(response_path),
+                   '-c', str(test_data.path/'cosi-response-config-example.yaml'),
+                   '-o', str(tmp_path/'test_plot_expectation.png')])
+
+    cosi_response(['plot', 'dispersion' ,str(response_path),
+                   '--lat', '90deg', '--lon', '0deg',
+                   '-o', str(tmp_path/'test_plot_dispersion.png')])
+
