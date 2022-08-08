@@ -40,21 +40,15 @@ class FullDetectorResponse(HealpixBase):
 
     You can access the :py:class:`DetectorResponse` at a given pixel using the ``[]``
     operator. Alternatively you can obtain the interpolated reponse using
-    :py:func:`get_interp_response`.
-    
-    Parameters
-    ----------
-    filename : str, :py:class:`~pathlib.Path`, optional
-        Path to file
+    :py:func:`get_interp_response`.    
     """
     
-    def __init__(self, filename = None, *args, **kwargs):
-
-        if filename is not None:
-            self._open(filename, *args, **kwargs)
-
+    def __init__(self, *args, **kwargs):
+        # Overload parent init. Called in class methods.
+        pass
+        
     @classmethod
-    def open(cls, *args, **kwargs):
+    def open(cls, filename):
         """
         Open a detector response file.
 
@@ -64,36 +58,20 @@ class FullDetectorResponse(HealpixBase):
             Path to HDF5 file
         """
 
-        new = cls()
+        new = cls(filename)
 
-        new._open(*args, **kwargs)
-
-        return new
-    
-    def _open(self, filename, *args, **kwargs):
-        # Open HDF5
-        self._file = h5.File(filename, *args, **kwargs)
-
-        self._drm = self._file['DRM']
-
-        # Init HealpixMap (local coordinates, main axis)
-        super().__init__(nside = self._drm.attrs["NSIDE"],
-                         scheme = self._drm.attrs["SCHEME"],
-                         coordsys = SpacecraftFrame())
-
-        self._unit = u.Unit(self._drm.attrs['UNIT'])
-
-        # The main coordinate axis
-        axes = [HealpixAxis(edges = np.arange(self.npix+1),
-                            nside = self.nside,
-                            label = 'NuLambda',
-                            scheme = self.scheme,
-                            coordsys = SpacecraftFrame())]
+        new._file = h5.File(filename, mode = 'r')
         
-        # The rest of the axes
-        for axis_label in self._drm["AXES"]:
+        new._drm = new._file['DRM']
+
+        new._unit = u.Unit(new._drm.attrs['UNIT'])
+
+        # Axes
+        axes = []
+        
+        for axis_label in new._drm["AXES"]:
             
-            axis = self._drm['AXES'][axis_label]
+            axis = new._drm['AXES'][axis_label]
 
             axis_type = axis.attrs['TYPE']
 
@@ -110,8 +88,15 @@ class FullDetectorResponse(HealpixBase):
                               scale = axis_type,
                               label = axis_label)]
 
-        self._axes = Axes(axes)
+        new._axes = Axes(axes)
 
+        # Init HealpixMap (local coordinates, main axis)
+        HealpixBase.__init__(new,
+                             base = new.axes['NuLambda'],
+                             coordsys = SpacecraftFrame())
+
+        return new
+        
     @property
     def ndim(self):
         """
