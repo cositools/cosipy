@@ -65,7 +65,7 @@ class HealpixAxis(Axis, HealpixBase):
 
         if isinstance(value, (SkyCoord, BaseRepresentation)):
 
-            pixels, weights = HealpixBase.get_interp_weights(value)
+            pixels, weights = self.get_interp_weights(value)
 
             return self.find_bin(pixels), weights
 
