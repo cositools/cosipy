@@ -6,3 +6,4 @@ API
    :caption: Contents:
 
    response
+   coordinates

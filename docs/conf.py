@@ -50,6 +50,19 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The master toctree document.
 master_doc = 'index'
 
+# intersphinx
+
+intersphinx_mapping = {
+    'histpy': ('https://histpy.readthedocs.io/en/latest', None),
+    'h5py' : ('https://docs.h5py.org/en/stable/', None),
+    'astropy' : ('https://docs.astropy.org/en/stable', None),
+    'python' : ('https://docs.python.org/3', None),
+    'mhealpy' : ('https://mhealpy.readthedocs.io/en/latest/', None),
+    'sparse' : ('https://sparse.pydata.org/en/stable/', None),
+    'gammapy' : ('https://docs.gammapy.org/dev', None),
+    'scipy' : ('https://scipy.github.io/devdocs', None),
+  }
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
