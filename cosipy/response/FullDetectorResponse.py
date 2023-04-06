@@ -364,15 +364,16 @@ def cosi_response(argv = None):
             psr = response.get_point_source_response(exposure_map)
             
             # Spectrum
-            spectrum_module = importlib.import_module('gammapy.modeling.models')
-            spectrum_class = getattr(spectrum_module, config['source:spectrum:class'])
-            spectrum = spectrum_class(*config.get('source:spectrum:args', []),
-                                      **config.get('source:spectrum:kwargs', {}))
-
-            logger.info(f"Using spectrum:\n {spectrum}")
+            spectrum_module = importlib.import_module('astromodels.core.model_parser')
+            model_load = getattr(spectrum_module, 'ModelParser')
+            model = model_load(model_dict=config['sources']).get_model()
+            
+            for src_name, src in model.point_sources.items():
+                for comp_name, component in src.components.items():
+                    logger.info(f"Using spectrum:\n {component.shape}")
             
             # Expectation
-            expectation = psr.get_expectation(spectrum).project('Em')
+            expectation = psr.get_expectation(spectrum).project('Em') ######
 
             return expectation
             

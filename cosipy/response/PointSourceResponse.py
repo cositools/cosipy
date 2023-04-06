@@ -4,6 +4,10 @@ import astropy.units as u
 
 from astropy.units import Quantity
 
+from scipy import integrate
+
+from threeML import *
+
 class PointSourceResponse(Histogram):
     """
     Handles the multi-dimensional matrix that describes the expected
@@ -45,7 +49,7 @@ class PointSourceResponse(Histogram):
 
         Parameters
         ----------
-        spectrum : :py:class:`gammapy.modeling.models.spectral.SpectralModel`
+        spectrum : :py:class:`threeML.Model`
             Spectral hypothesis.
 
         Returns
@@ -56,7 +60,23 @@ class PointSourceResponse(Histogram):
         
         eaxis = self.photon_energy_axis
         
-        flux = Quantity([spectrum.integral(lo_lim, hi_lim)
+        if (isinstance(spectrum, Blackbody) or isinstance(spectrum, ModifiedBlackbody) or isinstance(spectrum, NonDissipativePhotosphere) or 
+            isinstance(spectrum, NonDissipativePhotosphere_Deep) or isinstance(spectrum, Sin) or isinstance(spectrum, Log_parabola) or 
+            isinstance(spectrum, Exponential_cutoff) or isinstance(spectrum, Powerlaw) or isinstance(spectrum, Cutoff_powerlaw) or 
+            isinstance(spectrum, Cutoff_powerlaw_Ep) or isinstance(spectrum, Inverse_cutoff_powerlaw) or isinstance(spectrum, Super_cutoff_powerlaw) or
+            isinstance(spectrum, SmoothlyBrokenPowerLaw) or isinstance(spectrum, Broken_powerlaw) or isinstance(spectrum, Band) or 
+            isinstance(spectrum, Band_grbm) or isinstance(spectrum, Cauchy)):
+            spectrum_unit = spectrum.K.unit
+        elif isinstance(spectrum, Constant):
+            spectrum_unit = spectrum.k.unit
+        elif isinstance(spectrum, Line) or isinstance(spectrum, Quadratic) or isinstance(spectrum, Cubic) or isinstance(spectrum, Quartic):
+            spectrum_unit = spectrum.a.unit
+        elif isinstance(spectrum, Powerlaw_Eflux) or isinstance(spectrum, Log_normal):
+            spectrum_unit = spectrum.F.unit
+        else:
+            raise RuntimeError("Spectrum not yet supported")
+        
+        flux = Quantity([integrate.quad(spectrum, lo_lim/lo_lim.unit, hi_lim/hi_lim.unit)[0] * spectrum_unit * lo_lim.unit
                          for lo_lim,hi_lim
                          in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
 
