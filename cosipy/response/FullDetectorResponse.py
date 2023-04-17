@@ -27,7 +27,7 @@ from astropy.time import Time
 
 import matplotlib.pyplot as plt
 
-import importlib
+from astromodels.core.model_parser import ModelParser
 
 from .DetectorResponse import DetectorResponse
 from .healpix_axis import HealpixAxis
@@ -364,16 +364,14 @@ def cosi_response(argv = None):
             psr = response.get_point_source_response(exposure_map)
             
             # Spectrum
-            spectrum_module = importlib.import_module('astromodels.core.model_parser')
-            model_load = getattr(spectrum_module, 'ModelParser')
-            model = model_load(model_dict=config['sources']).get_model()
+            model = ModelParser(model_dict=config['sources']).get_model()
             
             for src_name, src in model.point_sources.items():
                 for comp_name, component in src.components.items():
                     logger.info(f"Using spectrum:\n {component.shape}")
             
             # Expectation
-            expectation = psr.get_expectation(spectrum).project('Em') ######
+            expectation = psr.get_expectation(spectrum).project('Em')
 
             return expectation
             

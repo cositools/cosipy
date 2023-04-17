@@ -6,7 +6,7 @@ from astropy.units import Quantity
 
 from scipy import integrate
 
-from threeML import *
+from threeML import Blackbody, ModifiedBlackbody, NonDissipativePhotosphere, NonDissipativePhotosphere_Deep, StepFunction, StepFunctionUpper, Sin, DiracDelta, Log_parabola, Exponential_cutoff, PhAbs, TbAbs, WAbs, ZDust, Constant, Line, Quadratic, Cubic, Quartic, Powerlaw, Powerlaw_flux, Powerlaw_Eflux, Cutoff_powerlaw, Cutoff_powerlaw_Ep, Inverse_cutoff_powerlaw, Super_cutoff_powerlaw, SmoothlyBrokenPowerLaw, Broken_powerlaw, Band, Band_grbm, Band_Calderone, DMFitFunction, DMSpectra, Gaussian, Truncated_gaussian, Cauchy, Cosine_Prior, Log_normal, Uniform_prior, Log_uniform_prior
 
 class PointSourceResponse(Histogram):
     """
