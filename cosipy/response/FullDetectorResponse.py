@@ -6,7 +6,7 @@ import textwrap
 
 import h5py as h5
 
-from histpy import Histogram, Axes, Axis
+from histpy import Histogram, Axes, Axis, HealpixAxis
 
 from cosipy.coordinates import SpacecraftFrame
 from cosipy.config import Configurator
@@ -30,7 +30,6 @@ import matplotlib.pyplot as plt
 import importlib
 
 from .DetectorResponse import DetectorResponse
-from .healpix_axis import HealpixAxis
 from .PointSourceResponse import PointSourceResponse
 
 class FullDetectorResponse(HealpixBase):
