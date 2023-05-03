@@ -25,7 +25,7 @@ setup(name='cosipy',
       install_requires = ["histpy @ git+https://gitlab.com/burstcube/histpy.git@develop",
                           "mhealpy @ git+https://gitlab.com/burstcube/mhealpy.git@develop",
                           'astromodels',
-                          'treeml'],
+                          'threeml'],
       description = "High-level analysis for the COSI telescope data",
       entry_points={"console_scripts":[
           "cosi-response = cosipy.response.FullDetectorResponse:cosi_response",
