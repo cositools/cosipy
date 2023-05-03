@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 class DeconvolutionAlgorithmBase(object):
 
@@ -46,7 +47,7 @@ class DeconvolutionAlgorithmBase(object):
         self.model_map = self.initial_model_map
 
         stop_iteration = False
-        for i_iteration in range(1, self.iteration_max + 1):
+        for i_iteration in tqdm(range(1, self.iteration_max + 1)):
             if stop_iteration:
                 break
 
