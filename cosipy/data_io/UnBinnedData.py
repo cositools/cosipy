@@ -58,6 +58,7 @@ class UnBinnedData(DataIO):
         """
         start = time.time()
         # Make print statement:
+        print("Germany!")
         print("reading tra file...")
         
         # Initialise empty lists:
@@ -189,7 +190,8 @@ class UnBinnedData(DataIO):
                                 np.rad2deg(lonZ),np.rad2deg(latZ))
         lonY = np.deg2rad(lonlatY[0])
         latY = np.deg2rad(lonlatY[1])
-   
+        self.lonY_new = lonY
+
         # Convert dg vector from 3D cartesian coordinates 
         # to spherical polar coordinates, and then extract distance 
         # b/n first two interactions (in cm), psi (rad), and chi (rad).
@@ -433,7 +435,6 @@ class UnBinnedData(DataIO):
 
         # Change azimuth angle to 0..360 deg
         chi_loc[chi_loc < 0] += 2*np.pi
-        self.compare(self.chi_loc_old,self.chi_loc_new,"chi_loc")
 
         psi_loc = np.array(psi_loc)
     
@@ -447,7 +448,9 @@ class UnBinnedData(DataIO):
                                 np.rad2deg(lonZ),np.rad2deg(latZ))
         lonY = np.deg2rad(lonlatY[0])
         latY = np.deg2rad(lonlatY[1])
-        
+        self.lonY_old = lonY
+        self.compare(self.lonY_old,self.lonY_new,"lonY")
+
         # Avoid negative zeros
         chi_loc[np.where(chi_loc == 0.0)] = np.abs(chi_loc[np.where(chi_loc == 0.0)])
         
