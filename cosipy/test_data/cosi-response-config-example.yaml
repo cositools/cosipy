@@ -3,14 +3,40 @@ exposure:
   time_i: '2023-01-10 15:00:00.00' 
   time_f: '2023-01-10 15:00:01.00'
 
-source:
-  spectrum:
-    class: PowerLawSpectralModel
-    kwargs:
-      index: 2.2
-      amplitude: '1e-3 / (cm2 s keV)'
-      reference: '100 keV'
-  location:
-    ra: '83.6330 deg'
-    dec: '22.0144 deg'
+sources:
+    source (point source):
+      position:
+        ra:
+          value: 83.6330
+          desc: Right Ascension
+          unit: deg
+          is_normalization: false
+          free: false
+        dec:
+          value: 22.0144
+          desc: Declination
+          unit: deg
+          is_normalization: false
+          free: false
+        equinox: J2000
+      spectrum:
+        main:
+          Powerlaw:
+            K:
+              value: 1e-3
+              desc: Normalization (differential flux at the pivot value)
+              unit: keV-1 s-1 cm-2
+              is_normalization: true
+              free: true
+            piv:
+              value: 100
+              desc: Pivot value
+              unit: keV
+              is_normalization: false
+              free: false
+            index:
+              value: -2.2
+              desc: Photon index
+              is_normalization: false
+              free: true  
 
