@@ -90,7 +90,7 @@ class BinnedData(UnBinnedData):
         self.m[unique] = unique_counts
 
         # Save healpix map to file:
-        self.m.write_map("psichi_healpix_map.fits")
+        self.m.write_map("psichi_healpix_map.fits",overwrite=True)
 
         # Initialize histogram:
         self.binned_data = Histogram([time_bin_edges, energy_bin_edges, phi_bin_edges, PsiChi_bin_edges], labels = ['Time','Em','Phi','PsiChi'], sparse=True)
