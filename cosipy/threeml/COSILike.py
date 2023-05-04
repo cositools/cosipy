@@ -1,4 +1,8 @@
 from threeML import PluginPrototype
+from threeML.minimizer import minimization
+from threeML.config.config import threeML_config
+from threeML.exceptions.custom_exceptions import FitFailed
+from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.coordinates import SpacecraftFrame
@@ -14,7 +18,7 @@ from scipy.special import factorial
 import collections
 
 class COSILike(PluginPrototype):
-    def __init__(self, name, dr, data, bkg, sc_orientation, **kwargs):
+    def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, **kwargs):
         """
         COSI 3ML plugin
         
@@ -36,12 +40,13 @@ class COSILike(PluginPrototype):
         """
         
         # create the hash for the nuisance parameters. We have none for now.
-        nuisance_parameters = collections.OrderedDict()
+        self._nuisance_parameters = collections.OrderedDict()
 
         # call the prototype constructor. Boilerplate.
-        super(COSILike, self).__init__(name, nuisance_parameters)
+        super(COSILike, self).__init__(name, self._nuisance_parameters)
 
         # User inputs needed to compute the likelihood
+        self._name = name
         self._dr = FullDetectorResponse.open(dr)
         self._data = data
         self._bkg = bkg
@@ -52,6 +57,17 @@ class COSILike(PluginPrototype):
         self._source = None
         self._psr = None
         self._signal = None
+        
+        # Set to fit nuisance parameter if given by user
+        if nuisance_param == None:
+            self.set_inner_minimization(False)
+        elif isinstance(nuisance_param, Parameter):
+            self.set_inner_minimization(True)
+            self._bkg_par = nuisance_param
+            self._nuisance_parameters[self._bkg_par.name] = self._bkg_par
+            self._nuisance_parameters[self._bkg_par.name].free = self._fit_nuisance_params
+        else:
+            raise RuntimeError("Nuisance parameter must be astromodels.core.parameter.Parameter object")
         
     def set_model(self, model):
         """
@@ -102,15 +118,20 @@ class COSILike(PluginPrototype):
         self._model = model
 
     def get_log_like(self):
-
+        """
+        Return the value of the log-likelihood
+        """
+        
         # Recompute the expectation if any parameter in the model changed
         if self._model is None:
             log.error("You need to set the model first")
         
         self.set_model(self._model)
         
-        # Compute "lambda" in the equations above
-        expectation = self._signal.contents + self._bkg.contents
+        if self._fit_nuisance_params: # Compute expectation including free background parameter
+            expectation = self._signal.contents + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents     
+        else: # Compute expectation without background parameter
+            expectation = self._signal.contents + self._bkg.contents
         
         data = self._data.contents # Into an array
         
@@ -120,10 +141,10 @@ class COSILike(PluginPrototype):
                              factorial(data)))
         
         return log_like
-
+    
     def inner_fit(self):
         """
-        This fits nuisance parameters, but we have none for now.
+        This fits nuisance parameters.
         """
         
         return self.get_log_like()
@@ -153,3 +174,15 @@ class COSILike(PluginPrototype):
                 dwell_time_map[p] += w*duration.to(u.s)
                 
         return dwell_time_map
+ 
+    def set_inner_minimization(self, flag: bool):
+        """
+        Turn on the minimization of the internal COSI parameters
+        :param flag: turning on and off the minimization  of the internal parameters
+        :type flag: bool
+        :returns:
+        """
+        self._fit_nuisance_params: bool = bool(flag)
+
+        for parameter in self._nuisance_parameters:
+            self._nuisance_parameters[parameter].free = self._fit_nuisance_params
