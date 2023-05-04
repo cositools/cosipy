@@ -7,7 +7,7 @@ from mhealpy import HealpixMap
 
 from astropy.coordinates import SkyCoord
 from cosipy.coordinates import SpacecraftFrame, Attitude
-from cosipy.response import FullDetectorResponse, HealpixAxis
+from cosipy.response import FullDetectorResponse
 
 from .modelmap import ModelMap
 from .RichardsonLucy import RichardsonLucy 
