@@ -11,9 +11,9 @@ class Orientation_file:
         #defines the file that needs to be parsed
 
         self._file = file
-        self._load_time = np.loadtxt(self._file, usecols = 1, delimiter = ' ')
-        self._x_direction = np.loadtxt(self._file, usecols = (2,3), delimiter = ' ')
-        self._z_direction = np.loadtxt(self._file, usecols = (4,5), delimiter = ' ')
+        self._load_time = np.loadtxt(self._file, usecols = 1, delimiter = ' ', skiprows = 1)
+        self._x_direction = np.loadtxt(self._file, usecols = (2,3), delimiter = ' ', skiprows = 1)
+        self._z_direction = np.loadtxt(self._file, usecols = (4,5), delimiter = ' ', skiprows = 1)
 
 
     def get_time(self):
