@@ -187,6 +187,14 @@ class BinnedData(UnBinnedData):
         
         return
 
+    def load_binned_data_from_hdf5(self,binned_data):
+
+        """Loads binned histogram from hdf5 file."""
+        
+        self.binned_data = Histogram.open(binned_data)    
+
+        return
+
     def plot_binned_data(self, binned_data=None):
 
         """
@@ -197,7 +205,7 @@ class BinnedData(UnBinnedData):
         
         # Option to read in binned data from hdf5 file:
         if binned_data:
-            self.binned_data = Histogram.open(binned_data)
+            self.load_binned_data_from_hdf5(binned_data)
     
         # Define plot dictionaries:
         time_energy_plot = {"projection":["Time","Em"],"xlabel":"Time [s]",\
