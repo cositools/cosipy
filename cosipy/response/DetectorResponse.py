@@ -1,3 +1,8 @@
+import logging
+logger = logging.getLogger(__name__)
+
+import numpy as np
+
 from copy import deepcopy
 
 from histpy import Histogram, Axes, Axis
@@ -107,6 +112,12 @@ class DetectorResponse(Histogram):
         norm[0] = 1*norm.unit if norm[0] == 0 else norm[0]
         norm[-1] = 1*norm.unit if norm[-1] == 0 else norm[-1]
 
+        # Avoid another 0/0 is the effective area is null for some bins
+        if np.any(norm == 0):
+            norm[norm == 0] = 1*norm.unit
+
+            logger.warn("Null effective area, cannot properly compute dispersion matrix.")
+        
         # "Broadcast" such that it has the compatible dimensions with the 2D matrix
         norm = spec.expand_dims(norm, 'Ei')
         
