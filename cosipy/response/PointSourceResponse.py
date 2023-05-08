@@ -41,7 +41,7 @@ class PointSourceResponse(Histogram):
         """
         
         return self.axes['Ei']
-        
+       
     def get_expectation(self, spectrum):
         """
         Convolve the response with a spectral hypothesis to obtain the expected
@@ -59,23 +59,30 @@ class PointSourceResponse(Histogram):
         """
         
         eaxis = self.photon_energy_axis
-        
-        if (isinstance(spectrum, Blackbody) or isinstance(spectrum, ModifiedBlackbody) or isinstance(spectrum, NonDissipativePhotosphere) or 
-            isinstance(spectrum, NonDissipativePhotosphere_Deep) or isinstance(spectrum, Sin) or isinstance(spectrum, Log_parabola) or 
-            isinstance(spectrum, Exponential_cutoff) or isinstance(spectrum, Powerlaw) or isinstance(spectrum, Cutoff_powerlaw) or 
-            isinstance(spectrum, Cutoff_powerlaw_Ep) or isinstance(spectrum, Inverse_cutoff_powerlaw) or isinstance(spectrum, Super_cutoff_powerlaw) or
-            isinstance(spectrum, SmoothlyBrokenPowerLaw) or isinstance(spectrum, Broken_powerlaw) or isinstance(spectrum, Band) or 
-            isinstance(spectrum, Band_grbm) or isinstance(spectrum, Cauchy)):
-            spectrum_unit = spectrum.K.unit
-        elif isinstance(spectrum, Constant):
+        # Dirty workaround for inconsistent naming conventions in astromodels (only until someone implements something more clever). 
+        # Idea: Since most spectral functions allow axes to the spectrum unit via spectrum.K.unit, only check for the non-default cases.
+        # Then assume that you are in the default case and throw a RuntimeError when something goes wrong. 
+        #
+        #
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Attention !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # When using a 'new' spectral function, make sure that K.unit gets you the information you need to calculate the flux!
+        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        #
+        #
+
+        if isinstance(spectrum, Constant):
             spectrum_unit = spectrum.k.unit
         elif isinstance(spectrum, Line) or isinstance(spectrum, Quadratic) or isinstance(spectrum, Cubic) or isinstance(spectrum, Quartic):
             spectrum_unit = spectrum.a.unit
         elif isinstance(spectrum, Powerlaw_Eflux) or isinstance(spectrum, Log_normal):
             spectrum_unit = spectrum.F.unit
         else:
-            raise RuntimeError("Spectrum not yet supported")
-        
+            try:
+                spectrum_unit = spectrum.K.unit
+            except:
+                raise RuntimeError("Spectrum not yet supported")
+            
+    
         flux = Quantity([integrate.quad(spectrum, lo_lim/lo_lim.unit, hi_lim/hi_lim.unit)[0] * spectrum_unit * lo_lim.unit
                          for lo_lim,hi_lim
                          in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
@@ -86,4 +93,5 @@ class PointSourceResponse(Histogram):
         
         return expectation
 
+    
     

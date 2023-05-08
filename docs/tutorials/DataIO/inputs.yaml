@@ -1,0 +1,11 @@
+#----------#
+# Data I/O:
+
+data_file: "GalacticScan.inc1.id1.crab2hr.extracted.tra.gz" # full path
+unbinned_output: 'hdf5' # 'fits' or 'hdf5'
+time_bins: 60 # time bin size in seconds. Takes int or list of bin edges. 
+energy_bins: [100.,  200.,  500., 1000., 2000., 5000.] # Takes list. Needs to match response.
+phi_pix_size: 6 # binning of Compton scattering anlge [deg]
+nside: 8 # healpix binning of psi chi local
+scheme: 'ring' # healpix binning of psi chi local
+#----------#
