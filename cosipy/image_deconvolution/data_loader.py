@@ -9,7 +9,7 @@ from histpy import Histogram, Axes, HealpixAxis
 from mhealpy import HealpixMap
 
 from cosipy.response import FullDetectorResponse
-from cosipy.coordinates import SpacecraftFrame, Attitude
+from scoords import SpacecraftFrame, Attitude
 from cosipy.coordinates.orientation import Orientation_file
 from cosipy.spacecraftpositionattitude import SpacecraftPositionAttitude
 from cosipy.data_io import BinnedData
@@ -172,7 +172,7 @@ class DataLoader(object):
             print("Please the axes of the input files!")
             return 
 
-        print("... (DataLoader) calculating a response at each sky location / time bin ...")
+        print("... (DataLoader) calculating a point source response at each sky location and each time bin ...")
         
         # make an empty histogram for the response calculation
         axis_model_map = HealpixAxis(nside = self.full_detector_response.axes["NuLambda"].nside, 
@@ -182,83 +182,54 @@ class DataLoader(object):
                                self.event_dense.axes["Time"], self.full_detector_response.axes["Em"], 
                                self.full_detector_response.axes["Phi"], self.full_detector_response.axes["PsiChi"]]
 
-        self.image_response = Histogram(axes_image_response, 
-                                        unit = self.response.unit * u.s, sparse = False)
+        self.image_response_dense = Histogram(axes_image_response, 
+                                              unit = self.full_detector_response.unit * u.s, sparse = False)
 
         # calculate a dwell time map at each time bin and sky location
 
-        nside = self.response.axes["lb"].nside
-        npix = self.response.axes["lb"].npix 
+        nside = self.full_detector_response.axes["NuLambda"].nside
+        npix = self.full_detector_response.axes["NuLambda"].npix 
         # they need to be the same as npix of the skymodel. Need to a functionality to check it in the future.
 
-        sc_attitude = data_loader.orientation.get_attitude()
-        sc_time = data_loader.orientation.get_time()
+        sc_attitude = self.orientation.get_attitude()
+        sc_time = self.orientation.get_time()
         
         for ipix in tqdm(range(npix)):
             theta, phi = hp.pix2ang(nside, ipix)
-            ra, dec = phi, np.pi/2 - theta
+            l, b = phi, np.pi/2 - theta
 
-            pixel_coord = SkyCoord(ra = ra * u.rad, dec = dec * u.rad, frame = 'galactic')
-            obj = SpacecraftPositionAttitude.SourceSpacecraft(f"pixel_{ipix}", pixel_coord)
+            pixel_coord = SkyCoord(l, b, unit = u.rad, frame = 'galactic')
+            pixel_obj = SpacecraftPositionAttitude.SourceSpacecraft(f"pixel_{ipix}", pixel_coord)
 
-            for init_time, end_time in self.image_response["Time"].bounds:
+            for i_time, [init_time, end_time] in enumerate(self.image_response_dense.axes["Time"].bounds):
                 init_time = Time(init_time, format = 'unix')
                 end_time = Time(end_time, format = 'unix')
     
                 _ = (init_time <= sc_time) & (sc_time <= end_time)
     
-#                filtered_sc_attitude = sc_attitude[_]
-#                filtered_sc_time = sc_time[_] 
-                
+                filtered_sc_attitude = sc_attitude[_]
+                filtered_sc_time = sc_time[_] 
+
+                time_diff = np.diff(filtered_sc_time.value)
+                filtered_sc_time_delta = Time(0.5*(np.insert(time_diff, 0, 0) + np.append(time_diff, 0)), format = 'unix')
+
                 x,y,z = self.orientation.get_attitude().as_axes()
-                src_movement = obj.sc_frame(x_pointings = x[1:], z_pointings = z[1:])
+                pixel_movement = pixel_obj.sc_frame(x_pointings = x[_], z_pointings = z[_])
 
-                filtered_sc_time_delta = np.diff(filtered_sc_time)
+                dwell_time_map = pixel_obj.get_dwell_map(response = self._rsp_filepath,
+                                                         dts = filtered_sc_time_delta, 
+                                                         src_path = pixel_movement)
 
+                point_source_rsp = self.full_detector_response.get_point_source_response(dwell_time_map).project(['Ei', 'Em', 'Phi', 'PsiChi']).todense()
 
+                for i_Ei in range(self.image_response_dense.axes["Ei"].nbins):
+                    self.image_response_dense[ipix, i_Ei:i_Ei+1, i_time:i_time+1] = point_source_rsp[i_Ei]
 
+        print("... (DataLoader) calculating the projected response ...")
+        self.image_response_dense_projected = self.image_response_dense.project("lb", "Ei")
 
+        print("... (DataLoader) dense to sparse ...")
+        self.image_response_sparse = self.image_response_dense.to_sparse()
 
-
-
-
-
-            dwell_time_map = self._get_dwell_time_map(coord)
-
-            response_single_pixel = self.response.get_point_source_response(dwell_time_map).project(["Ei", 'Em', 'Phi' ,'PsiChi']).todense()
-            self.image_response_mul_time_dense[ipix] = response_single_pixel.contents
-
-        print("... (DataIOdummy) calculating projected response ...")
-        self.image_response_mul_time_dense_projected = self.image_response_mul_time_dense.project("NuLambda", "Ei")
-
-        print("... (DataIOdummy) dense to sparse ...")
-        self.image_response_mul_time = self.image_response_mul_time_dense.to_sparse()
-
-        print("... (DataIOdummy) calculating projected response (sparse) ...")
-        self.image_response_mul_time_projected = self.image_response_mul_time.project("NuLambda", "Ei")
-
-    def _get_dwell_time_map(self, coord): #copied from COSILike.py
-        """
-        This will be eventually be provided by another module
-        """
-        
-        # The dwell time map has the same pixelation (base) as the detector response.
-        # We start with an empty map
-        dwell_time_map = HealpixMap(base = self.response, 
-                                    unit = u.s, 
-                                    coordsys = SpacecraftFrame())
-
-        # Get timestamps and attitude values
-        timestamps, attitudes = zip(*self._sc_orientation)
-            
-        for attitude,duration in zip(attitudes[:-1], np.diff(timestamps)):
-
-            local_coord = coord.transform_to(SpacecraftFrame(attitude = attitude))
-
-            # Here we add duration in between timestamps using interpolations
-            pixels, weights = dwell_time_map.get_interp_weights(local_coord)
-
-            for p,w in zip(pixels, weights):
-                dwell_time_map[p] += w*duration.to(u.s)
-                
-        return dwell_time_map
+        print("... (DataLoader) calculating the projected response (sparse) ...")
+        self.image_response_sparse_projected = self.image_response_sparse.project("lb", "Ei")
