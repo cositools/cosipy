@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 import astropy.units as u
-from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
 

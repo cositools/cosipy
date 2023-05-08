@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import array_equal as arr_eq
 
-from cosipy.coordinates import SpacecraftFrame
+from scoords import SpacecraftFrame
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
