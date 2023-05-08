@@ -1,6 +1,5 @@
 import astropy.units as u
 import numpy as np
-import yaml
 
 from histpy import Histogram, Axes
 from mhealpy import HealpixMap
@@ -8,6 +7,7 @@ from mhealpy import HealpixMap
 from astropy.coordinates import SkyCoord
 from scoords import SpacecraftFrame, Attitude
 from cosipy.response import FullDetectorResponse
+from cosipy.config import Configurator
 
 from .modelmap import ModelMap
 from .RichardsonLucy import RichardsonLucy 
@@ -26,8 +26,7 @@ class ImageDeconvolution:
 
     def read_parameterfile(self, parameter_filepath):
 
-        with open(parameter_filepath, "r") as f:
-            self._parameter = yaml.safe_load(f)
+        self._parameter = Configurator.open(parameter_filepath)
 
         print("parameter file for image deconvolution was set -> ", parameter_filepath)
 
@@ -38,6 +37,9 @@ class ImageDeconvolution:
     @property
     def parameter(self):
         return self._parameter
+
+    def override_parameter(self, *args):
+        self._parameter.override(args)
 
     @property
     def initial_model_map(self):
@@ -58,25 +60,25 @@ class ImageDeconvolution:
         print("#### Initialization ####")
         
         print("1. generating a model map") 
-        parameter_model_property = self._parameter['model_property']
+        parameter_model_property = Configurator(self._parameter['model_property'])
         self._initial_model_map = ModelMap(self._data, parameter_model_property)
 
         print("---- parameters ----")
-        print(yaml.dump(parameter_model_property))
+        print(parameter_model_property.dump())
         
         print("2. initializing the model map ...")
-        parameter_model_initialization = self._parameter['model_initialization']
+        parameter_model_initialization = Configurator(self._parameter['model_initialization'])
         self._initial_model_map.initialize(self._data, parameter_model_initialization)
 
         print("---- parameters ----")
-        print(yaml.dump(parameter_model_initialization))
+        print(parameter_model_initialization.dump())
 
         print("3. resistering the deconvolution algorithm ...")
-        parameter_deconvolution = self._parameter['deconvolution']
+        parameter_deconvolution = Configurator(self._parameter['deconvolution'])
         self._deconvolution = self.resister_deconvolution_algorithm(parameter_deconvolution)
 
         print("---- parameters ----")
-        print(yaml.dump(parameter_deconvolution))
+        print(parameter_deconvolution.dump())
 
         print("#### Done ####")
         print("")
@@ -86,7 +88,7 @@ class ImageDeconvolution:
         algorithm_name = parameter_deconvolution['algorithm']
 
         if algorithm_name == 'RL':
-            parameter_RL = parameter_deconvolution['parameter_RL']
+            parameter_RL = Configurator(parameter_deconvolution['parameter_RL'])
             _deconvolution = RichardsonLucy(self._initial_model_map, self._data, parameter_RL)
 #        elif algorithm_name == 'MaxEnt':
 #            parameter = self.parameter['deconvolution']['parameter_MaxEnt']
