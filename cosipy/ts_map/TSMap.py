@@ -1,4 +1,4 @@
-from .COSILikeForTSMap import COSILikeForTSMap
+from cosipy.threeml.COSILike import COSILike
 
 from threeML import DataList, Powerlaw, PointSource, Model, JointLikelihood
 
@@ -56,11 +56,11 @@ class TSMap:
     def instantiate_plugin(self):
         
         if self.other_plugins == None:
-            self.cosi_plugin = COSILikeForTSMap("cosi",
-                                                dr = self.dr,
-                                                data = self.data, 
-                                                bkg = self.bkg, 
-                                                sc_orientation = self.sc_orientation)
+            self.cosi_plugin = COSILike("cosi",
+                                        dr = self.dr,
+                                        data = self.data, 
+                                        bkg = self.bkg, 
+                                        sc_orientation = self.sc_orientation)
         else:
             raise RuntimeError("Only COSI plugin for now")
             
