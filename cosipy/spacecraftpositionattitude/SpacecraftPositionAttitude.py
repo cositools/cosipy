@@ -8,9 +8,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import cm, colors
 
-from cosipy.coordinates import Attitude
+from scoords import Attitude, SpacecraftFrame
 from cosipy.response import FullDetectorResponse
-from cosipy.coordinates import SpacecraftFrame
 
 class SourceSpacecraft(object):
     
