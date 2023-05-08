@@ -5,7 +5,7 @@ from threeML.exceptions.custom_exceptions import FitFailed
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
-from cosipy.coordinates import SpacecraftFrame
+from scoords import SpacecraftFrame
 
 from mhealpy import HealpixMap
 

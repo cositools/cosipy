@@ -8,7 +8,7 @@ import h5py as h5
 
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
-from cosipy.coordinates import SpacecraftFrame
+from scoords import SpacecraftFrame
 from cosipy.config import Configurator
 
 from mhealpy import HealpixBase, HealpixMap
