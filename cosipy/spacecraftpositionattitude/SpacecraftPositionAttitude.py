@@ -7,6 +7,7 @@ from mhealpy import HealpixMap
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import cm, colors
+from astropy.time import Time
 
 from scoords import Attitude, SpacecraftFrame
 from cosipy.response import FullDetectorResponse
@@ -55,7 +56,7 @@ class SourceSpacecraft(object):
         
         if isinstance(var, str):
             loaded = np.load(var)
-        elif isinstance(var, np.ndarray):
+        elif isinstance(var, Time):
             loaded = var
         return loaded
     
@@ -166,7 +167,7 @@ class SourceSpacecraft(object):
                     pixels, weights = self.dwell_map.get_interp_weights(coord)
                     
                     for p, w, dt in zip(pixels, weights, self.dts):
-                        self.dwell_map[p] += w*(dt*u.s)
+                        self.dwell_map[p] += w*(dt.unix*u.s)
         
         self.dwell_map.write_map(self.out_name + "_DwellMap.fits", overwrite=True)
         
@@ -222,7 +223,7 @@ class SourceSpacecraft(object):
             
          # get the effective area and matrix
         print("Getting the effective area ...")
-        self.areas = np.float32(np.array(self.psr.project('Ei').to_dense().contents))/self.dts.sum()
+        self.areas = np.float32(np.array(self.psr.project('Ei').to_dense().contents))/self.dts.unix.sum()
         spectral_response = np.float32(np.array(self.psr.project(['Ei','Em']).to_dense().contents))
         self.matrix = np.float32(np.zeros((self.Ei_lo.size,self.Em_lo.size))) # initate the matrix
         
