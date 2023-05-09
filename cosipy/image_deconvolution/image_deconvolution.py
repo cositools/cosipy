@@ -18,7 +18,7 @@ class ImageDeconvolution:
     def __init__(self):
         self._use_sparse = False #not sure whether this implementation is good. Maybe it should be written in the parameter file?
 
-    def set_data(self, data): # to be replaced after the dataIO library is created.
+    def set_data(self, data):
 
         self._data = data
 
