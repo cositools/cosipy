@@ -17,6 +17,8 @@ from scipy.special import factorial
 
 import collections
 
+import copy
+
 class COSILike(PluginPrototype):
     def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, **kwargs):
         """
@@ -89,10 +91,10 @@ class COSILike(PluginPrototype):
             raise RuntimeError("Only one for now")
         
         # Get expectation
-        for name,source in sources.items():
+        for name, source in sources.items():
 
             if self._source is None:
-                self._source = source
+                self._source = copy.deepcopy(source) # to avoid same memory issue
                      
             # Compute point source response for source position
             # See also the Detector Response and Source Injector tutorials
@@ -103,10 +105,21 @@ class COSILike(PluginPrototype):
                 dwell_time_map = self._get_dwell_time_map(coord)
             
                 self._psr = self._dr.get_point_source_response(dwell_time_map)
-            
-            elif source.position != self._source.position:
                 
-                raise RuntimeError("No change in position for now")
+            elif (source.position.ra._internal_value != self._source.position.ra._internal_value) or\
+            (source.position.dec._internal_value != self._source.position.dec._internal_value):
+                
+                print('position change!')
+                
+                coord = source.position.sky_coord
+            
+                dwell_time_map = self._get_dwell_time_map(coord)
+            
+                self._psr = self._dr.get_point_source_response(dwell_time_map)
+            
+            # Caching source to self._source after position judgment
+            if self._source is not None:
+                self._source = copy.deepcopy(source)
 
             # Convolve with spectrum
             # See also the Detector Response and Source Injector tutorials
@@ -115,7 +128,8 @@ class COSILike(PluginPrototype):
             self._signal = self._psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
             
         # Cache
-        self._model = model
+        self._model = model # They share the same memory!
+        
 
     def get_log_like(self):
         """
