@@ -101,5 +101,8 @@ class DeconvolutionAlgorithmBase(object):
 
     def calc_loglikelihood(self, data, model_map, use_sparse = False):
         expectation = self.calc_expectation(model_map, data, use_sparse)
-        loglikelood = (np.sum( data.event * np.log(expectation) ) - np.sum(expectation)).value
+        if use_sparse:
+            loglikelood = (np.sum( data.event_sparse * np.log(expectation) ) - np.sum(expectation)).value
+        else:
+            loglikelood = (np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)).value
         return loglikelood
