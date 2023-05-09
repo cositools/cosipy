@@ -13,7 +13,9 @@ from scoords import Attitude
 from scoords import SpacecraftFrame
 import logging
 import sys
+import math
 from tqdm import tqdm
+import subprocess
 logger = logging.getLogger(__name__)
 
 class UnBinnedData(DataIO):
@@ -43,10 +45,7 @@ class UnBinnedData(DataIO):
               It will need to be modified to handle single site and pair. 
             
         """
-        
-        # Make print statement:
-        print("reading tra file...")
-        
+    
         # Initialise empty lists:
             
         # Total photon energy
@@ -82,22 +81,43 @@ class UnBinnedData(DataIO):
         # of Compton scattering angle.
         c_E0 = 510.9989500015 # keV
 
-        # Open tra file:
+
+        print("Preparing to read file...")
+
+        # Open .tra.gz file:
         if self.data_file.endswith(".gz"):
             f = gzip.open(self.data_file,"rt")
             
-            # Get number of lines for progress bar:
-            g = gzip.open(self.data_file,"rt")
-            num_lines = sum(1 for line in g)
-            g.close()
+            # Need to get number of lines for progress bar.
+            # First try fast method for unix-based systems:
+            try:
+                proc=subprocess.Popen('gunzip -c %s | wc -l' %self.data_file, \
+                        shell=True, stdout=subprocess.PIPE)
+                num_lines = float(proc.communicate()[0])
 
+            # If fast method fails, use long method, which should work in all cases.
+            except:
+                print("Initial attempt failed.")
+                print("Using long method...")
+                g = gzip.open(self.data_file,"rt")
+                num_lines = sum(1 for line in g)
+                g.close()
+
+        # Open .tra file:
         elif self.data_file.endswith(".tra"):
             f = open(self.data_file,"r")
 
-            # Get number of lines for progress bar:
-            g = open(self.data_file,"rt")
-            num_lines = sum(1 for line in g)
-            g.close()
+            try:
+                proc=subprocess.Popen('wc -l < %s' %self.data_file, \
+                        shell=True, stdout=subprocess.PIPE)
+                num_lines = float(proc.communicate()[0])
+                
+            except:
+                print("Initial attempt failed.")
+                print("Using long method...")
+                g = open(self.data_file,"rt")
+                num_lines = sum(1 for line in g)
+                g.close()
 
         else: 
             print()
@@ -106,6 +126,7 @@ class UnBinnedData(DataIO):
             sys.exit()
         
         # Read tra file line by line:
+        print("Reading file...")
         pbar = tqdm(total=num_lines) # start progress bar
         for line in f:
          
@@ -168,9 +189,10 @@ class UnBinnedData(DataIO):
                     dg_x.append(dg[0])
                     dg_y.append(dg[1])
                     dg_z.append(dg[2])
-       
+                
         # Close progress bar:
         pbar.close()
+        print("Making COSI data set...")
 
         # Initialize arrays:
         erg = np.array(erg)
@@ -220,43 +242,64 @@ class UnBinnedData(DataIO):
         chi_loc[index2] = chi_loc[index2] - np.pi
          
         # chi and psi in Galactic:
-        #print("#####TEST#####")
 
-        # Define attitude:
-        #xcoords = SkyCoord(lonX*u.deg, latX*u.deg, frame = 'galactic')
-        #zcoords = SkyCoord(lonZ*u.deg, latZ*u.deg, frame = 'galactic')
-        #attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame= 'galactic')
-        #print()
-        #print("attitude:")
-        #print(attitude)
-        #print("attitude matrix:")
-        #print(attitude.rot.as_matrix().shape)
-        #print(attitude.rot.as_matrix())
-        #print(attitude.rot.as_matrix()[0])
+        #num_events = len(tt)
+        #for i in range(0,num_events):
+        #    xcoord = SkyCoord(lonX[i]*u.deg, latX[i]*u.deg, frame = 'galactic')
+        #    zcoord = SkyCoord(lonZ[i]*u.deg, latZ[i]*u.deg, frame = 'galactic')
+        #    attitude = Attitude.from_axes(x=xcoord, z=zcoord, frame = 'galactic')
+        #    c = SkyCoord(lon = 0*u.deg, lat = 0*u.deg, frame = SpacecraftFrame(attitude = attitude))
+                
 
-        # Define skycoord object for psi and chi local in Cartesian coordinates:
-        #psichi = SkyCoord(np.array(dg_x), np.array(dg_y), np.array(dg_z), \
-        #        representation_type = 'cartesian', frame = SpacecraftFrame())
-        #print()
-        #print("psichi skycoord object:")
-        #print(psichi.cartesian.xyz.value.shape)
-        #print(psichi.cartesian.xyz.value)
-        #print(psichi.cartesian.xyz.value[0])
+        #num_events = len(tt)
+        #chunk_size = 10000
+        #num_iters = math.ceil(num_events/chunk_size)
+        #print("num iters: " + str(num_iters))
+        #for i in range(0,num_iters):
+        #    print("iteration: " + str(i))
+        #    low =  chunk_size*i
+        #    high = chunk_size*(i+1)
+            
+            # Define attitude:
+       #     xcoords = SkyCoord(lonX[low:high]*u.deg, latX[low:high]*u.deg, frame = 'galactic')
+       #     zcoords = SkyCoord(lonZ[low:high]*u.deg, latZ[low:high]*u.deg, frame = 'galactic')
+       #     attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame= 'galactic')
+        
+            #print()
+            #print("attitude:")
+            #print(attitude)
+            #print("attitude matrix:")
+            #print(attitude.rot.as_matrix().shape)
+            #print(attitude.rot.as_matrix())
+            #print(attitude.rot.as_matrix()[0])
 
-        # Make rotation:
-        #rotation = np.dot(attitude.rot.as_matrix(), psichi.cartesian.xyz.value)
-        #print()
-        #print("rotation:")
-        #print(rotation)
+            # Define skycoord object for psi and chi local in Cartesian coordinates:
+            #psichi = SkyCoord(np.array(dg_x)[low:high], np.array(dg_y)[low:high], np.array(dg_z)[low:high], \
+            #    representation_type = 'cartesian', frame = SpacecraftFrame())
+            #print()
+            #print("psichi skycoord object:")
+            #print(psichi.cartesian.xyz.value.shape)
+            #print(psichi.cartesian.xyz.value)
+            #print(psichi.cartesian.xyz.value[0])
 
-        # Convert from Cartesion to spherical:
-        #conv = astro_co.cartesian_to_spherical(np.array(dg_x), np.array(dg_y), np.array(dg_z))
-        #dist_gal = conv[0].value 
-        #psi_gal = conv[1].value 
-        #chi_gal = conv[2].value    
+            # Make rotation:
+            #rotation = np.dot(attitude.rot.as_matrix(), psichi.cartesian.xyz.value)
+            #print()
+            #print("rotation:")
+            #print(rotation)
+
+            #psichi_gal_cart = SkyCoord(rotation,representation_type = 'cartesian', frame = 'galactic')
+            #psichi_gal = astro_co.cartesian_to_spherical(psichi_gal_cart)
+            
+            # Convert from Cartesion to spherical:
+            #conv = astro_co.cartesian_to_spherical(np.array(dg_x), np.array(dg_y), np.array(dg_z))
+            #dist_gal = conv[0].value 
+            #psi_gal = conv[1].value 
+            #chi_gal = conv[2].value    
         chi_gal = np.array([0]*len(tt))
         psi_gal = np.array([0]*len(tt))
-          
+        
+
         # Make observation dictionary
         cosi_dataset = {'Energies':erg,
                         'TimeTags':tt,
@@ -272,10 +315,11 @@ class UnBinnedData(DataIO):
         self.cosi_dataset = cosi_dataset
 
         # Write unbinned data to file (either fits or hdf5):
+        print("Saving file...")
         self.write_unbinned_output(output_name=output_name) 
         
         return 
-
+ 
     def construct_scy(self, scx_l, scx_b, scz_l, scz_b):
     
         """
