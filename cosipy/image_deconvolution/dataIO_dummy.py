@@ -8,7 +8,7 @@ from histpy import Histogram, Axes
 from mhealpy import HealpixMap
 
 from cosipy.response import FullDetectorResponse
-from cosipy.coordinates import SpacecraftFrame, Attitude
+from scoords import SpacecraftFrame, Attitude
 
 class dataIO(object):
     def __init__(self):
