@@ -11,13 +11,6 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
     def __init__(self, initial_model_map, data, parameter):
         DeconvolutionAlgorithmBase.__init__(self, initial_model_map, data, parameter)
 
-        spherical_axis = initial_model_map.axes['NuLambda']
-        self.nside = spherical_axis.nside
-        self.npix = spherical_axis.npix
-        self.pixelarea = 4 * np.pi / self.npix * u.sr
-        energy_axis = initial_model_map.axes['Ei']
-        self.nbands = len(energy_axis) - 1
-
         self.loglikelihood = None
 
         self.alpha_max = parameter['alpha_max']
@@ -30,20 +23,20 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
     def Mstep(self):
         if self.use_sparse:
-            diff = self.data.event / self.expectation - 1
+            diff = self.data.event_sparse / self.expectation - 1
             diff = diff.to_dense()
         else:
             diff = self.data.event_dense / self.expectation - 1
 
-        diff = self.data.image_response_mul_time.expand_dims(diff, ["Em", "Phi", "PsiChi"])
+        diff = self.data.image_response_dense.expand_dims(diff, ["Time", "Em", "Phi", "PsiChi"])
 
         if self.use_sparse:
-            delta_map_part1 = self.model_map / self.data.image_response_mul_time_projected
-            delta_map_part2 = (self.data.image_response_mul_time * diff).project("NuLambda", "Ei")
+            delta_map_part1 = self.model_map / self.data.image_response_sparse_projected
+            delta_map_part2 = (self.data.image_response_sparse * diff).project("lb", "Ei")
             self.delta_map  = delta_map_part1 * delta_map_part2
         else:
-            delta_map_part1 = self.model_map / self.data.image_response_mul_time_dense_projected
-            delta_map_part2 = (self.data.image_response_mul_time_dense * diff).project("NuLambda", "Ei")
+            delta_map_part1 = self.model_map / self.data.image_response_dense_projected
+            delta_map_part2 = (self.data.image_response_dense * diff).project("lb", "Ei")
             self.delta_map  = delta_map_part1 * delta_map_part2
 
     def post_processing(self):
@@ -69,6 +62,9 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         self.result = this_result
 
     def calc_alpha(self, delta, model_map):
-        alpha = -1.0 / np.min( delta / model_map ) * (1 - 1e-4) #1e-4 is to prevent the flux under zero
+        almost_zero = 1e-4 #it is to prevent the flux under zero
+        alpha = -1.0 / np.min( delta / model_map ) * (1 - almost_zero)
         alpha = min(alpha, self.alpha_max)
+        if alpha < 1.0:
+            alpha = 1.0
         return alpha
