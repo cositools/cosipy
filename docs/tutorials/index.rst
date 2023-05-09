@@ -7,6 +7,5 @@ notebooks that you can execute interactively.
 .. toctree::
    :maxdepth: 1
 
-   UnitsAndCoords.ipynb
    DetectorResponse.ipynb
    
