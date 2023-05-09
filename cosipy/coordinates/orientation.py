@@ -8,7 +8,7 @@ class Orientation_file:
 
     def __init__(self, time, axis_1, axis_2):
 
-        #defines the file that needs to be parsed
+        #stores the parsed contents
 
         self._load_time = time
         self._x_direction = axis_1
@@ -16,6 +16,9 @@ class Orientation_file:
 
     @classmethod
     def parse_from_file(cls, file):
+
+        #parses timestamps, axis positions from file and returns to __init__
+
         time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ')
         axis_1 = np.loadtxt(file, usecols = (2,3), delimiter = ' ')
         axis_2 = np.loadtxt(file, usecols = (4,5), delimiter = ' ')
@@ -52,6 +55,9 @@ class Orientation_file:
         return time_delta
 
     def interpolate_direction(self, trigger, idx, direction):
+
+        #linearly interpolates position at a given time between two timestamps
+
         new_direction_lat = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 0])
         if (direction[idx, 1] > direction[idx + 1, 1]):
             new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], [direction[idx, 1], 360 + direction[idx + 1, 1]])
@@ -64,6 +70,10 @@ class Orientation_file:
     def source_interval(self, start, stop):
 
         #returns the Orientation file class object for the source time
+        
+        if(start.format != 'unix' or stop.format != 'unix'):
+            start = Time(start.unix, format='unix')
+            stop = Time(stop.unix, format='unix')
 
         if(start > stop):
             raise ValueError("start time cannot be after stop time.")
