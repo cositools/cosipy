@@ -106,6 +106,4 @@ class Orientation_file:
             new_z_direction = new_z_direction[:-1]
             new_z_direction = np.append(new_z_direction, [z_direction_stop], axis = 0)
 
-            stop_idx = stop_idx + 1
-
         return Orientation_file(new_times, new_x_direction, new_z_direction)
