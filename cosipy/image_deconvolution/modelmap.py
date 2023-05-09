@@ -1,14 +1,17 @@
 import astropy.units as u
 import numpy as np
 
-from histpy import Histogram, Axes
+from histpy import Histogram, Axes, Axis, HealpixAxis
 
 class ModelMap(Histogram):
     def __init__(self, data, parameter):
-        spherical_axis = data.image_response_mul_time.axes["NuLambda"]
-        energy_axis = data.image_response_mul_time.axes["Ei"]
+        image_axis = HealpixAxis(nside = parameter["nside"],
+                                     scheme = parameter["scheme"],
+                                     coordsys = parameter["coordinate"],
+                                     label = "lb")
+        energy_axis = Axis(edges = parameter["energy_edges"], label = "Ei")
 
-        axes = Axes([spherical_axis, energy_axis])
+        axes = Axes([image_axis, energy_axis])
 
         Histogram.__init__(self, axes, unit = 1 / u.s / u.cm / u.cm / u.sr) # unit might be specified in the input parameter.
 
@@ -16,6 +19,7 @@ class ModelMap(Histogram):
         algorithm_name = parameter['algorithm']
 
         if algorithm_name == "flat":
-            self[:] = parameter['parameter_flat']['value'] * self.unit
+            for idx, value in enumerate(parameter['parameter_flat']['values']):
+                self[:,idx:idx+1] = value * self.unit
     #    elif algorithm_name == ... 
     #       ...
