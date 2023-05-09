@@ -38,8 +38,10 @@ class BinnedData(UnBinnedData):
                 self.cosi_dataset = self.get_dict_from_hdf5(unbinned_data)
 
         # Get time bins:
-        min_time = np.amin(self.cosi_dataset['TimeTags'])
-        max_time = np.amax(self.cosi_dataset['TimeTags']) 
+        #min_time = np.amin(self.cosi_dataset['TimeTags'])
+        #max_time = np.amax(self.cosi_dataset['TimeTags']) 
+        min_time = self.tmin
+        max_time = self.tmax
         delta_t = max_time - min_time
         num_bins = round(delta_t / self.time_bins)
         new_bin_size = delta_t / num_bins
