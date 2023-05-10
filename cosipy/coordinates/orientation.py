@@ -19,9 +19,9 @@ class Orientation_file:
 
         #parses timestamps, axis positions from file and returns to __init__
 
-        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ')
-        axis_1 = np.loadtxt(file, usecols = (2,3), delimiter = ' ')
-        axis_2 = np.loadtxt(file, usecols = (4,5), delimiter = ' ')
+        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1)
+        axis_1 = np.loadtxt(file, usecols = (2,3), delimiter = ' ', skiprows = 1)
+        axis_2 = np.loadtxt(file, usecols = (4,5), delimiter = ' ', skiprows = 1)
 
         return cls(time_stamps, axis_1, axis_2)
 
