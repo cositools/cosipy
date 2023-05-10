@@ -160,14 +160,27 @@ class ReadTraTest(UnBinnedData):
 
         chi_gal = np.array(chi_gal)
         psi_gal = np.array(psi_gal)
+        self.chi_gal_old = chi_gal
+        self.psi_gal_old = psi_gal
+        print()
+        print("chi gal:")
+        print("max: " + str(np.amax(chi_gal)))
+        print("min: " + str(np.amin(chi_gal)))
+        print(chi_gal)
+        print()
+        print("psi gal:")
+        print("max: " + str(np.amax(psi_gal)))
+        print("min: " + str(np.amin(psi_gal)))
+        print(psi_gal)
         
+        
+        self.compare(self.psi_gal_old,self.chi_gal_new,"chi_gal")
+
         # Construct Y direction from X and Z direction
         lonlatY = self.construct_scy(np.rad2deg(lonX),np.rad2deg(latX),
                                 np.rad2deg(lonZ),np.rad2deg(latZ))
         lonY = np.deg2rad(lonlatY[0])
         latY = np.deg2rad(lonlatY[1])
-        self.latY_old = latY
-        self.compare(self.latY_old,self.latY_new,"latY")
 
         # Avoid negative zeros
         chi_loc[np.where(chi_loc == 0.0)] = np.abs(chi_loc[np.where(chi_loc == 0.0)])
