@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class BinnedData(UnBinnedData):
    
-    def get_binned_data(self, unbinned_data=None, make_binning_plots=False):
+    def get_binned_data(self, unbinned_data=None, output_name="binned_data", make_binning_plots=False):
 
         """ 
         Bin the data using histpy and mhealpy.
@@ -23,7 +23,8 @@ class BinnedData(UnBinnedData):
           Input file is either .fits or .hdf5 as specified in
           the unbinned_output parameter in inputs.yaml.     
         - make_binning_plots: Option to make basic plots of the binning.
-          The default is False. 
+          The default is False.
+        - output_name: prefix of output file. 
         """
         
         # Make print statement:
@@ -36,9 +37,9 @@ class BinnedData(UnBinnedData):
             if self.unbinned_output == 'hdf5':
                 self.cosi_dataset = self.get_dict_from_hdf5(unbinned_data)
 
-        # Get time bins:
-        min_time = np.amin(self.cosi_dataset['TimeTags'])
-        max_time = np.amax(self.cosi_dataset['TimeTags']) 
+        # Get time bins: 
+        min_time = self.tmin
+        max_time = self.tmax
         delta_t = max_time - min_time
         num_bins = round(delta_t / self.time_bins)
         new_bin_size = delta_t / num_bins
@@ -48,9 +49,9 @@ class BinnedData(UnBinnedData):
         print("Using time bin size [s]: " + str(new_bin_size))
         print()
 
-        if type(self.time_bins).__name__ == 'int':
-            time_bin_edges = np.linspace(min_time,max_time,num_bins)
-        
+        if type(self.time_bins).__name__ in ['int','float']:
+            time_bin_edges = np.linspace(min_time,max_time,num_bins+1)
+
         if type(self.time_bins).__name__ == 'list':
             # Check that bins correspond to min and max time:
             if (self.time_bins[0] > min_time) | (self.time_bins[-1] < max_time):
@@ -99,7 +100,7 @@ class BinnedData(UnBinnedData):
         self.binned_data.fill(self.cosi_dataset['TimeTags'], self.cosi_dataset['Energies'], np.rad2deg(self.cosi_dataset['Phi']), PsiChi_pixs)
  
         # Save binned data to hdf5 file:
-        self.binned_data.write('binned_data.hdf5',overwrite=True)
+        self.binned_data.write('%s.hdf5' %output_name, overwrite=True)
 
         # Get binning information:
         self.get_binning_info()
@@ -111,38 +112,13 @@ class BinnedData(UnBinnedData):
 
         return
 
-    def get_dict_from_fits(self,input_fits):
+    def load_binned_data_from_hdf5(self,binned_data):
 
-        """Constructs dictionary from input fits file"""
-
-        # Initialize dictionary:
-        this_dict = {}
+        """Loads binned histogram from hdf5 file."""
         
-        # Fill dictionary from input fits file:
-        hdu = fits.open(input_fits,memmap=True)
-        cols = hdu[1].columns
-        data = hdu[1].data
-        for i in range(0,len(cols)):
-            this_key = cols[i].name
-            this_data = data[this_key]
-            this_dict[this_key] = this_data
+        self.binned_data = Histogram.open(binned_data)    
 
-        return this_dict
-
-    def get_dict_from_hdf5(self,input_hdf5):
-        
-        """Constructs dictionary from input hdf5 file"""
-
-        # Initialize dictionary:
-        this_dict = {}
-        
-        # Fill dictionary from input h5fy file:
-        hf = h5py.File(input_hdf5,"r")
-        keys = list(hf.keys())
-        for each in keys:
-            this_dict[each] = hf[each][:]
-
-        return this_dict
+        return
 
     def get_binning_info(self, binned_data=None):
 
@@ -154,7 +130,7 @@ class BinnedData(UnBinnedData):
         
         # Option to read in binned data from hdf5 file:
         if binned_data:
-            self.binned_data = Histogram.open(binned_data)
+            self.load_binned_data_from_hdf5(binned_data)
         
         # Get time binning information:
         self.time_hist = self.binned_data.project('Time').contents.todense()
@@ -185,14 +161,6 @@ class BinnedData(UnBinnedData):
         self.psichi_bin_edges = self.binned_data.axes['PsiChi'].edges
         self.psichi_bin_widths = self.binned_data.axes['PsiChi'].widths
         
-        return
-
-    def load_binned_data_from_hdf5(self,binned_data):
-
-        """Loads binned histogram from hdf5 file."""
-        
-        self.binned_data = Histogram.open(binned_data)    
-
         return
 
     def plot_binned_data(self, binned_data=None):
@@ -264,13 +232,14 @@ class BinnedData(UnBinnedData):
     
         return
  
-    def get_raw_spectrum(self, binned_data=None, time_rate=False):
+    def get_raw_spectrum(self, binned_data=None, time_rate=False, output_name="raw_spectrum"):
 
         """
         Calculates raw spectrum of binned data, plots, and writes to file. 
         
         Inputs (all optional):
         binned_data: Binnned data file (hdf5).
+        output_name: Prefix of output files. 
         time_rate: If True calculates ct/keV/s. The defualt is ct/keV. 
         """
 
@@ -279,7 +248,7 @@ class BinnedData(UnBinnedData):
 
         # Option to read in binned data from hdf5 file:
         if binned_data:
-            self.binned_data = Histogram.open(binned_data)
+            self.load_binned_data_from_hdf5(binned_data)
             self.get_binning_info() 
 
         # Option to normalize by total time:
@@ -296,17 +265,17 @@ class BinnedData(UnBinnedData):
         plot_kwargs = {"label":"raw spectrum", "ls":"", "marker":"o", "color":"black"}
         fig_kwargs = {"xlabel":"Energy [keV]", "ylabel":ylabel}
         MakePlots().make_basic_plot(self.energy_bin_centers, raw_rate,\
-            x_error=self.energy_bin_widths/2.0, savefig="raw_spectrum.pdf",\
+            x_error=self.energy_bin_widths/2.0, savefig="%s.pdf" %output_name,\
             plot_kwargs=plot_kwargs, fig_kwargs=fig_kwargs)
 
         # Write data:
         d = {"Energy[keV]":self.energy_bin_centers,data_label:raw_rate}
         df = pd.DataFrame(data=d)
-        df.to_csv("raw_spectrum.dat",float_format='%10.5e',index=False,sep="\t",columns=["Energy[keV]",data_label])
+        df.to_csv("%s.dat" %output_name,float_format='%10.5e',index=False,sep="\t",columns=["Energy[keV]",data_label])
         
         return
 
-    def get_raw_lightcurve(self, binned_data=None):
+    def get_raw_lightcurve(self, binned_data=None, output_name="raw_lc"):
 
         """
         Calculates raw lightcurve of binned data, plots, and writes data to file.
@@ -320,7 +289,7 @@ class BinnedData(UnBinnedData):
 
         # Option to read in binned data from hdf5 file:
         if binned_data:
-            self.binned_data = Histogram.open(binned_data)
+            self.load_binned_data_from_hdf5(binned_data)
             self.get_binning_info() 
         
         # Calculate raw light curve:
@@ -329,12 +298,12 @@ class BinnedData(UnBinnedData):
         # Plot:
         plot_kwargs = {"ls":"-", "marker":"", "color":"black", "label":"raw lightcurve"}
         fig_kwargs = {"xlabel":"Time [s]", "ylabel":"Rate [$\mathrm{ct \ s^{-1}}$]"}
-        MakePlots().make_basic_plot(self.time_bin_centers, raw_lc,\
-            savefig="raw_lighcurve.pdf", plot_kwargs=plot_kwargs, fig_kwargs=fig_kwargs)
+        MakePlots().make_basic_plot(self.time_bin_centers - self.time_bin_centers[0], raw_lc,\
+            savefig="%s.pdf" %output_name, plt_scale="semilogy", plot_kwargs=plot_kwargs, fig_kwargs=fig_kwargs)
             
         # Write data:
         d = {"Time[UTC]":self.time_bin_centers,"Rate[ct/s]":self.time_hist/self.time_bin_widths}
         df = pd.DataFrame(data=d)
-        df.to_csv("raw_LC.dat",float_format='%10.5e',index=False,sep="\t",columns=["Time[UTC]","Rate[ct/s]"])
+        df.to_csv("%s.dat" %output_name,index=False,sep="\t",columns=["Time[UTC]","Rate[ct/s]"])
 
         return

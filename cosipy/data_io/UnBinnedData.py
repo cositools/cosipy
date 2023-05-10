@@ -13,17 +13,19 @@ from scoords import Attitude
 from scoords import SpacecraftFrame
 import logging
 import sys
+import math
+from tqdm import tqdm
+import subprocess
 logger = logging.getLogger(__name__)
 
 class UnBinnedData(DataIO):
  
-    def read_tra(self):
+    def read_tra(self, output_name="unbinned_data"):
         
         """
         Reads in MEGAlib .tra (or .tra.gz) file.
         Returns COSI dataset as a dictionary of the form:
-        cosi_dataset = {'Full filename':self.data_file,
-                        'Energies':erg,
+        cosi_dataset = {'Energies':erg,
                         'TimeTags':tt,
                         'Xpointings':np.array([lonX,latX]).T,
                         'Ypointings':np.array([lonY,latY]).T,
@@ -35,12 +37,15 @@ class UnBinnedData(DataIO):
                         'Chi galactic':chi_gal,
                         'Psi galactic':psi_gal}
         
-        Arrays contain unbinned data. 
+        Arrays contain unbinned data.
+        
+        output_name: prefix of output file. 
+
+        Note: The current code is only able to handle data with Compton events.
+              It will need to be modified to handle single site and pair. 
+            
         """
-        
-        # Make print statement:
-        print("reading tra file...")
-        
+    
         # Initialise empty lists:
             
         # Total photon energy
@@ -76,11 +81,44 @@ class UnBinnedData(DataIO):
         # of Compton scattering angle.
         c_E0 = 510.9989500015 # keV
 
-        # Open tra file:
+
+        print("Preparing to read file...")
+
+        # Open .tra.gz file:
         if self.data_file.endswith(".gz"):
             f = gzip.open(self.data_file,"rt")
+            
+            # Need to get number of lines for progress bar.
+            # First try fast method for unix-based systems:
+            try:
+                proc=subprocess.Popen('gunzip -c %s | wc -l' %self.data_file, \
+                        shell=True, stdout=subprocess.PIPE)
+                num_lines = float(proc.communicate()[0])
+
+            # If fast method fails, use long method, which should work in all cases.
+            except:
+                print("Initial attempt failed.")
+                print("Using long method...")
+                g = gzip.open(self.data_file,"rt")
+                num_lines = sum(1 for line in g)
+                g.close()
+
+        # Open .tra file:
         elif self.data_file.endswith(".tra"):
             f = open(self.data_file,"r")
+
+            try:
+                proc=subprocess.Popen('wc -l < %s' %self.data_file, \
+                        shell=True, stdout=subprocess.PIPE)
+                num_lines = float(proc.communicate()[0])
+                
+            except:
+                print("Initial attempt failed.")
+                print("Using long method...")
+                g = open(self.data_file,"rt")
+                num_lines = sum(1 for line in g)
+                g.close()
+
         else: 
             print()
             print("ERROR: Input data file must have '.tra' or '.gz' extenstion.")
@@ -88,10 +126,13 @@ class UnBinnedData(DataIO):
             sys.exit()
         
         # Read tra file line by line:
+        print("Reading file...")
+        pbar = tqdm(total=num_lines) # start progress bar
         for line in f:
          
             this_line = line.strip().split()
-            
+            pbar.update(1) # update progress bar
+
             # Total photon energy and Compton angle: 
             if this_line[0] == "CE":
 
@@ -148,29 +189,16 @@ class UnBinnedData(DataIO):
                     dg_x.append(dg[0])
                     dg_y.append(dg[1])
                     dg_z.append(dg[2])
-        
+                
+        # Close progress bar:
+        pbar.close()
+        print("Making COSI data set...")
+
         # Initialize arrays:
         erg = np.array(erg)
         phi = np.array(phi)
         tt = np.array(tt)
         et = np.array(et)
-    
-        latX = np.array(latX)
-        lonX = np.array(lonX)
-        # Change longitudes from 0..360 deg to -180..180 deg
-        lonX[lonX > np.pi] -= 2*np.pi
-
-        latZ = np.array(latZ)
-        lonZ = np.array(lonZ)
-        # Change longitudes from 0..360 deg to -180..180 deg
-        lonZ[lonZ > np.pi] -= 2*np.pi 
-
-        # Construct Y direction from X and Z direction
-        lonlatY = self.construct_scy(np.rad2deg(lonX),np.rad2deg(latX),
-                                np.rad2deg(lonZ),np.rad2deg(latZ))
-        lonY = np.deg2rad(lonlatY[0])
-        latY = np.deg2rad(lonlatY[1])
-        self.latY_new = latY
 
         # Convert dg vector from 3D cartesian coordinates 
         # to spherical polar coordinates, and then extract distance 
@@ -181,7 +209,36 @@ class UnBinnedData(DataIO):
         dist = conv[0].value 
         psi_loc = conv[1].value 
         chi_loc = conv[2].value
-    
+
+        # Attitude vectors:
+        latX = np.array(latX)
+        lonX = np.array(lonX)
+        
+        latZ = np.array(latZ)
+        lonZ = np.array(lonZ)
+
+        # Calculate chi_gal and psi_gal from chi_loc and psi_loc::
+        xcoords = SkyCoord(lonX*u.rad, latX*u.rad, frame = 'galactic')
+        zcoords = SkyCoord(lonZ*u.rad, latZ*u.rad, frame = 'galactic')
+        attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame = 'galactic')
+        c = SkyCoord(lon = chi_loc*u.rad, lat = psi_loc*u.rad, frame = SpacecraftFrame(attitude = attitude))
+        c.transform_to('galactic')
+        chi_gal = np.array(c.lon.rad)
+        psi_gal = np.array(c.lat.rad)
+        #self.chi_gal_new = chi_gal
+
+        # Change longitudes from 0..360 deg to -180..180 deg
+        lonX[lonX > np.pi] -= 2*np.pi
+        
+        # Change longitudes from 0..360 deg to -180..180 deg
+        lonZ[lonZ > np.pi] -= 2*np.pi 
+
+        # Construct Y direction from X and Z direction
+        lonlatY = self.construct_scy(np.rad2deg(lonX),np.rad2deg(latX),
+                                np.rad2deg(lonZ),np.rad2deg(latZ))
+        lonY = np.deg2rad(lonlatY[0])
+        latY = np.deg2rad(lonlatY[1])
+ 
         # Rotate psi_loc to colatitude, 
         # measured from the negative z direction. 
         # Note: the detector is placed at z<0 in the local frame.
@@ -195,16 +252,6 @@ class UnBinnedData(DataIO):
         index2 = (chi_loc >= np.pi)
         chi_loc[index1] = chi_loc[index1] + np.pi
         chi_loc[index2] = chi_loc[index2] - np.pi
-         
-        # chi and psi in Galactic:
-        
-        # Define attitude:
-        xcoords = SkyCoord(lonX*u.deg, latX*u.deg, frame = 'galactic')
-        zcoords = SkyCoord(lonZ*u.deg, latZ*u.deg, frame = 'galactic')
-        att = Attitude.from_axes(x=xcoords, z=zcoords, frame= 'galactic')
- 
-        chi_gal = np.array(chi_gal)
-        psi_gal = np.array(psi_gal)
           
         # Make observation dictionary
         cosi_dataset = {'Energies':erg,
@@ -221,10 +268,11 @@ class UnBinnedData(DataIO):
         self.cosi_dataset = cosi_dataset
 
         # Write unbinned data to file (either fits or hdf5):
-        self.write_unbinned_output() 
+        print("Saving file...")
+        self.write_unbinned_output(output_name=output_name) 
         
         return 
-
+ 
     def construct_scy(self, scx_l, scx_b, scz_l, scz_b):
     
         """
@@ -268,7 +316,13 @@ class UnBinnedData(DataIO):
     
         return np.rad2deg(ra), np.rad2deg(dec)
 
-    def write_unbinned_output(self):
+    def write_unbinned_output(self, output_name="unbinned_data"):
+
+        """
+        Writes unbinned data file to either fits or hdf5.
+        
+        output_name: Option to specify name of output file. 
+        """
 
         # Data units:
         units=['keV','s','rad:[glon,glat]','rad:[glon,glat]',
@@ -280,13 +334,124 @@ class UnBinnedData(DataIO):
                     names=list(self.cosi_dataset.keys()), \
                     units=units, \
                     meta={'data file':ntpath.basename(self.data_file)})
-            table.write("unbinned_data.fits", overwrite=True)
-            os.system('gzip -f unbinned_data.fits')
+            table.write("%s.fits" %output_name, overwrite=True)
+            os.system('gzip -f %s.fits' %output_name)
 
         # For hdf5 output:
         if self.unbinned_output == 'hdf5':
-            with h5py.File('unbinned_data.hdf5', 'w') as hf:
+            with h5py.File('%s.hdf5' %output_name, 'w') as hf:
                 for each in list(self.cosi_dataset.keys()):
                     dset = hf.create_dataset(each, data=self.cosi_dataset[each], compression='gzip')        
     
         return
+
+    def get_dict_from_fits(self,input_fits):
+
+        """Constructs dictionary from input fits file"""
+
+        # Initialize dictionary:
+        this_dict = {}
+        
+        # Fill dictionary from input fits file:
+        hdu = fits.open(input_fits,memmap=True)
+        cols = hdu[1].columns
+        data = hdu[1].data
+        for i in range(0,len(cols)):
+            this_key = cols[i].name
+            this_data = data[this_key]
+            this_dict[this_key] = this_data
+
+        return this_dict
+
+    def get_dict_from_hdf5(self,input_hdf5):
+
+        """
+        Constructs dictionary from input hdf5 file
+        
+        input_hdf5: Name of input hdf5 file. 
+        """
+
+        # Initialize dictionary:
+        this_dict = {}
+
+        # Fill dictionary from input h5fy file:
+        hf = h5py.File(input_hdf5,"r")
+        keys = list(hf.keys())
+        for each in keys:
+            this_dict[each] = hf[each][:]
+
+        return this_dict
+
+    def select_data(self, unbinned_data=None, output_name="selected_unbinned_data"):
+
+        """
+        Applies cuts to unbinnned data dictionary. 
+        Only cuts in time are allowed for now. 
+        
+        unbinned_data: Unbinned dictionary file. 
+        output_name: Prefix of output file. 
+        """
+        
+        print("Making data selections...")
+
+        # Option to read in unbinned data file:
+        if unbinned_data:
+            if self.unbinned_output == 'fits':
+                self.cosi_dataset = self.get_dict_from_fits(unbinned_data)
+            if self.unbinned_output == 'hdf5':
+                self.cosi_dataset = self.get_dict_from_hdf5(unbinned_data)
+
+        # Get time cut index:
+        time_array = self.cosi_dataset["TimeTags"]
+        time_cut_index = (time_array >= self.tmin) & (time_array <= self.tmax)
+    
+        # Apply cuts to dictionary:
+        for key in self.cosi_dataset:
+
+            self.cosi_dataset[key] = self.cosi_dataset[key][time_cut_index]
+
+        # Write unbinned data to file (either fits or hdf5):
+        self.write_unbinned_output(output_name=output_name)
+
+        return
+
+    def combine_unbinned_data(self, input_files, output_name="combined_unbinned_data"):
+
+        """
+        Combines input unbinned data files.
+        
+        Inputs:
+        input_files: List of file names to combine.
+        output_name: prefix of output file. 
+        """
+
+        self.cosi_dataset = {}
+        counter = 0
+        for each in input_files:
+
+            print()
+            print("adding %s..." %each)
+            print()
+    
+            # Read dict from hdf5 or fits:
+            if self.unbinned_output == 'hdf5':
+                this_dict = self.get_dict_from_hdf5(each)
+            if self.unbinned_output == 'fits':
+                this_dict = get_dict_from_fits(each)
+
+            # Combine dictionaries:
+            if counter == 0:
+                for key in this_dict:
+                    self.cosi_dataset[key] = this_dict[key]
+            
+            if counter > 0:
+                for key in this_dict:
+                    self.cosi_dataset[key] = np.concatenate((self.cosi_dataset[key],this_dict[key]))
+                    
+            counter =+ 1
+        
+        # Write unbinned data to file (either fits or hdf5):
+        self.write_unbinned_output(output_name=output_name)
+
+        return
+
