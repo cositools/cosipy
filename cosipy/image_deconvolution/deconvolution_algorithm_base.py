@@ -53,6 +53,9 @@ class DeconvolutionAlgorithmBase(object):
         this_result = {"iteration": self.i_iteration + 1}
         self.result = this_result
 
+    def save_result(self, i_iteration):
+        pass
+
     def iteration(self):
         self.model_map = self.initial_model_map
 
@@ -81,6 +84,11 @@ class DeconvolutionAlgorithmBase(object):
 
             print("--> registering results")
             self.register_result(i_iteration)
+            
+            if self.parameter["save_results_each_iteration"] == True:
+                print("--> saving results")
+                self.save_result(i_iteration)
+
             yield self.result
     
     #replaced with a function in other COSIpy libaray in the future?

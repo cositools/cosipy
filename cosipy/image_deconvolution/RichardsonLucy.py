@@ -61,6 +61,15 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
         self.result = this_result
 
+    def save_result(self, i_iteration):
+        self.result["model_map"].write(f"model_map_itr{i_iteration}.hdf5", overwrite = True)
+        self.result["delta_map"].write(f"delta_map_itr{i_iteration}.hdf5", overwrite = True)
+        self.result["processed_delta_map"].write(f"processed_delta_map_itr{i_iteration}.hdf5", overwrite = True)
+
+        with open(f"result_itr{i_iteration}.dat", "w") as f:
+            f.write(f'alpha: {self.result["alpha"]}\n')
+            f.write(f'loglikelihood: {self.result["loglikelihood"]}\n')
+
     def calc_alpha(self, delta, model_map):
         almost_zero = 1e-4 #it is to prevent the flux under zero
         alpha = -1.0 / np.min( delta / model_map ) * (1 - almost_zero)
