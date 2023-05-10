@@ -141,7 +141,7 @@ class COSILike(PluginPrototype):
         self.set_model(self._model)
         
         if self._fit_nuisance_params: # Compute expectation including free background parameter
-            expectation = self._signal.contents.todense() + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
+            expectation = self._signal.contents + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents
         else: # Compute expectation without background parameter
             expectation = self._signal.contents.todense() + self._bkg.contents.todense()
         
