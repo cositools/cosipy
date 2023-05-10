@@ -6,6 +6,7 @@ from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.coordinates.orientation import Orientation_file
+
 from scoords import SpacecraftFrame, Attitude
 
 from mhealpy import HealpixMap
@@ -17,8 +18,6 @@ import numpy as np
 from scipy.special import factorial
 
 import collections
-
-import copy
 
 class COSILike(PluginPrototype):
     def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, **kwargs):
@@ -92,10 +91,10 @@ class COSILike(PluginPrototype):
             raise RuntimeError("Only one for now")
         
         # Get expectation
-        for name, source in sources.items():
+        for name,source in sources.items():
 
             if self._source is None:
-                self._source = copy.deepcopy(source) # to avoid same memory issue
+                self._source = source
                      
             # Compute point source response for source position
             # See also the Detector Response and Source Injector tutorials
@@ -106,21 +105,10 @@ class COSILike(PluginPrototype):
                 dwell_time_map = self._get_dwell_time_map(coord)
             
                 self._psr = self._dr.get_point_source_response(dwell_time_map)
-                
-            elif (source.position.ra._internal_value != self._source.position.ra._internal_value) or\
-            (source.position.dec._internal_value != self._source.position.dec._internal_value):
-                
-                print('position change!')
-                
-                coord = source.position.sky_coord
             
-                dwell_time_map = self._get_dwell_time_map(coord)
-            
-                self._psr = self._dr.get_point_source_response(dwell_time_map)
-            
-            # Caching source to self._source after position judgment
-            if self._source is not None:
-                self._source = copy.deepcopy(source)
+            elif source.position != self._source.position:
+                
+                raise RuntimeError("No change in position for now")
 
             # Convolve with spectrum
             # See also the Detector Response and Source Injector tutorials
@@ -129,8 +117,7 @@ class COSILike(PluginPrototype):
             self._signal = self._psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
             
         # Cache
-        self._model = model # They share the same memory!
-        
+        self._model = model
 
     def get_log_like(self):
         """
@@ -144,16 +131,18 @@ class COSILike(PluginPrototype):
         self.set_model(self._model)
         
         if self._fit_nuisance_params: # Compute expectation including free background parameter
-            expectation = self._signal.contents + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents     
+            expectation = self._signal.contents.todense() + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
         else: # Compute expectation without background parameter
-            expectation = self._signal.contents + self._bkg.contents
+            expectation = self._signal.contents.todense() + self._bkg.contents.todense()
         
         data = self._data.contents # Into an array
         
         # Compute the log-likelihood from the equations above
-        log_like = np.sum(np.log(np.power(expectation, data) * 
-                             np.exp(-expectation) / 
-                             factorial(data)))
+        #log_like = np.sum(np.log(np.power(expectation, data) * 
+        #                         np.exp(-expectation) / 
+        #                         factorial(data)))
+        
+        log_like = np.nansum(data*np.log(expectation) - expectation)
         
         return log_like
     
@@ -180,9 +169,9 @@ class COSILike(PluginPrototype):
         attitudes = self._sc_orientation.get_attitude().as_matrix()
 
         for attitude,duration in zip(attitudes[:-1], np.diff(timestamps.unix)):
-
+            
             local_coord = coord.transform_to(SpacecraftFrame(attitude = Attitude.from_matrix(attitude)))
-
+            
             # Here we add duration in between timestamps using interpolations
             pixels, weights = dwell_time_map.get_interp_weights(local_coord)
 
