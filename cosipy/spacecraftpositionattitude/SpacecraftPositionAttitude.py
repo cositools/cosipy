@@ -162,13 +162,11 @@ class SourceSpacecraft(object):
                                    coordsys = SpacecraftFrame())
             
             if len(self.dts) != 1:
-                print("Using true dts")
-                for coord in path:
+                for duration,coord in zip(dts,path):
                     pixels, weights = self.dwell_map.get_interp_weights(coord)
-                    
-                    for p, w, dt in zip(pixels, weights, self.dts):
-                        self.dwell_map[p] += w*(dt.unix*u.s)
-        
+                    for p,w in zip(pixels, weights):
+                        self.dwell_map[p] += w*(duration.unix*u.s)
+
         self.dwell_map.write_map(self.out_name + "_DwellMap.fits", overwrite=True)
         
         return self.dwell_map
