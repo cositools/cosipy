@@ -19,6 +19,8 @@ from scipy.special import factorial
 
 import collections
 
+import copy
+
 class COSILike(PluginPrototype):
     def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, **kwargs):
         """
@@ -94,7 +96,7 @@ class COSILike(PluginPrototype):
         for name,source in sources.items():
 
             if self._source is None:
-                self._source = source
+                self._source = copy.deepcopy(source) # to avoid same memory issue
                      
             # Compute point source response for source position
             # See also the Detector Response and Source Injector tutorials
@@ -105,10 +107,18 @@ class COSILike(PluginPrototype):
                 dwell_time_map = self._get_dwell_time_map(coord)
             
                 self._psr = self._dr.get_point_source_response(dwell_time_map)
-            
-            elif source.position != self._source.position:
                 
-                raise RuntimeError("No change in position for now")
+            elif (source.position.sky_coord != self._source.position.sky_coord):
+                
+                coord = source.position.sky_coord
+                
+                dwell_time_map = self._get_dwell_time_map(coord)
+                
+                self._psr = self._dr.get_point_source_response(dwell_time_map)
+                
+            # Caching source to self._source after position judgment
+            if self._source is not None:
+                self._source = copy.deepcopy(source)
 
             # Convolve with spectrum
             # See also the Detector Response and Source Injector tutorials
