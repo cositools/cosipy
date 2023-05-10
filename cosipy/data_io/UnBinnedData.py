@@ -199,23 +199,6 @@ class UnBinnedData(DataIO):
         phi = np.array(phi)
         tt = np.array(tt)
         et = np.array(et)
-    
-        latX = np.array(latX)
-        lonX = np.array(lonX)
-        # Change longitudes from 0..360 deg to -180..180 deg
-        lonX[lonX > np.pi] -= 2*np.pi
-
-        latZ = np.array(latZ)
-        lonZ = np.array(lonZ)
-        # Change longitudes from 0..360 deg to -180..180 deg
-        lonZ[lonZ > np.pi] -= 2*np.pi 
-
-        # Construct Y direction from X and Z direction
-        lonlatY = self.construct_scy(np.rad2deg(lonX),np.rad2deg(latX),
-                                np.rad2deg(lonZ),np.rad2deg(latZ))
-        lonY = np.deg2rad(lonlatY[0])
-        latY = np.deg2rad(lonlatY[1])
-        self.latY_new = latY
 
         # Convert dg vector from 3D cartesian coordinates 
         # to spherical polar coordinates, and then extract distance 
@@ -226,7 +209,36 @@ class UnBinnedData(DataIO):
         dist = conv[0].value 
         psi_loc = conv[1].value 
         chi_loc = conv[2].value
-    
+
+        # Attitude vectors:
+        latX = np.array(latX)
+        lonX = np.array(lonX)
+        
+        latZ = np.array(latZ)
+        lonZ = np.array(lonZ)
+
+        # Calculate chi_gal and psi_gal from chi_loc and psi_loc::
+        xcoords = SkyCoord(lonX*u.rad, latX*u.rad, frame = 'galactic')
+        zcoords = SkyCoord(lonZ*u.rad, latZ*u.rad, frame = 'galactic')
+        attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame = 'galactic')
+        c = SkyCoord(lon = chi_loc*u.rad, lat = psi_loc*u.rad, frame = SpacecraftFrame(attitude = attitude))
+        c.transform_to('galactic')
+        chi_gal = np.array(c.lon.rad)
+        psi_gal = np.array(c.lat.rad)
+        #self.chi_gal_new = chi_gal
+
+        # Change longitudes from 0..360 deg to -180..180 deg
+        lonX[lonX > np.pi] -= 2*np.pi
+        
+        # Change longitudes from 0..360 deg to -180..180 deg
+        lonZ[lonZ > np.pi] -= 2*np.pi 
+
+        # Construct Y direction from X and Z direction
+        lonlatY = self.construct_scy(np.rad2deg(lonX),np.rad2deg(latX),
+                                np.rad2deg(lonZ),np.rad2deg(latZ))
+        lonY = np.deg2rad(lonlatY[0])
+        latY = np.deg2rad(lonlatY[1])
+ 
         # Rotate psi_loc to colatitude, 
         # measured from the negative z direction. 
         # Note: the detector is placed at z<0 in the local frame.
@@ -240,66 +252,7 @@ class UnBinnedData(DataIO):
         index2 = (chi_loc >= np.pi)
         chi_loc[index1] = chi_loc[index1] + np.pi
         chi_loc[index2] = chi_loc[index2] - np.pi
-         
-        # chi and psi in Galactic:
-
-        #num_events = len(tt)
-        #for i in range(0,num_events):
-        #    xcoord = SkyCoord(lonX[i]*u.deg, latX[i]*u.deg, frame = 'galactic')
-        #    zcoord = SkyCoord(lonZ[i]*u.deg, latZ[i]*u.deg, frame = 'galactic')
-        #    attitude = Attitude.from_axes(x=xcoord, z=zcoord, frame = 'galactic')
-        #    c = SkyCoord(lon = 0*u.deg, lat = 0*u.deg, frame = SpacecraftFrame(attitude = attitude))
-                
-
-        #num_events = len(tt)
-        #chunk_size = 10000
-        #num_iters = math.ceil(num_events/chunk_size)
-        #print("num iters: " + str(num_iters))
-        #for i in range(0,num_iters):
-        #    print("iteration: " + str(i))
-        #    low =  chunk_size*i
-        #    high = chunk_size*(i+1)
-            
-            # Define attitude:
-       #     xcoords = SkyCoord(lonX[low:high]*u.deg, latX[low:high]*u.deg, frame = 'galactic')
-       #     zcoords = SkyCoord(lonZ[low:high]*u.deg, latZ[low:high]*u.deg, frame = 'galactic')
-       #     attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame= 'galactic')
-        
-            #print()
-            #print("attitude:")
-            #print(attitude)
-            #print("attitude matrix:")
-            #print(attitude.rot.as_matrix().shape)
-            #print(attitude.rot.as_matrix())
-            #print(attitude.rot.as_matrix()[0])
-
-            # Define skycoord object for psi and chi local in Cartesian coordinates:
-            #psichi = SkyCoord(np.array(dg_x)[low:high], np.array(dg_y)[low:high], np.array(dg_z)[low:high], \
-            #    representation_type = 'cartesian', frame = SpacecraftFrame())
-            #print()
-            #print("psichi skycoord object:")
-            #print(psichi.cartesian.xyz.value.shape)
-            #print(psichi.cartesian.xyz.value)
-            #print(psichi.cartesian.xyz.value[0])
-
-            # Make rotation:
-            #rotation = np.dot(attitude.rot.as_matrix(), psichi.cartesian.xyz.value)
-            #print()
-            #print("rotation:")
-            #print(rotation)
-
-            #psichi_gal_cart = SkyCoord(rotation,representation_type = 'cartesian', frame = 'galactic')
-            #psichi_gal = astro_co.cartesian_to_spherical(psichi_gal_cart)
-            
-            # Convert from Cartesion to spherical:
-            #conv = astro_co.cartesian_to_spherical(np.array(dg_x), np.array(dg_y), np.array(dg_z))
-            #dist_gal = conv[0].value 
-            #psi_gal = conv[1].value 
-            #chi_gal = conv[2].value    
-        chi_gal = np.array([0]*len(tt))
-        psi_gal = np.array([0]*len(tt))
-        
-
+          
         # Make observation dictionary
         cosi_dataset = {'Energies':erg,
                         'TimeTags':tt,
@@ -438,7 +391,9 @@ class UnBinnedData(DataIO):
         unbinned_data: Unbinned dictionary file. 
         output_name: Prefix of output file. 
         """
-         
+        
+        print("Making data selections...")
+
         # Option to read in unbinned data file:
         if unbinned_data:
             if self.unbinned_output == 'fits':
