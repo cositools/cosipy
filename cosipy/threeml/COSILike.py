@@ -5,8 +5,7 @@ from threeML.exceptions.custom_exceptions import FitFailed
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
-from cosipy.coordinates.orientation import Orientation_file
-from scoords import SpacecraftFrame, Attitude
+from scoords import SpacecraftFrame
 
 from mhealpy import HealpixMap
 
@@ -176,18 +175,17 @@ class COSILike(PluginPrototype):
                                     coordsys = SpacecraftFrame())
 
         # Get timestamps and attitude values
-        timestamps = self._sc_orientation.get_time()
-        attitudes = self._sc_orientation.get_attitude().as_matrix()
+        timestamps, attitudes = zip(*self._sc_orientation)
+            
+        for attitude,duration in zip(attitudes[:-1], np.diff(timestamps)):
 
-        for attitude,duration in zip(attitudes[:-1], np.diff(timestamps.unix)):
-
-            local_coord = coord.transform_to(SpacecraftFrame(attitude = Attitude.from_matrix(attitude)))
+            local_coord = coord.transform_to(SpacecraftFrame(attitude = attitude))
 
             # Here we add duration in between timestamps using interpolations
             pixels, weights = dwell_time_map.get_interp_weights(local_coord)
 
             for p,w in zip(pixels, weights):
-                dwell_time_map[p] += w*(duration*u.s)
+                dwell_time_map[p] += w*duration.to(u.s)
                 
         return dwell_time_map
  
