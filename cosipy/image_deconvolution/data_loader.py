@@ -191,9 +191,6 @@ class DataLoader(object):
         npix = self.full_detector_response.axes["NuLambda"].npix 
         # they need to be the same as npix of the skymodel. Need to a functionality to check it in the future.
 
-        #sc_attitude = self.orientation.get_attitude()
-        #sc_time = self.orientation.get_time()
-        
         for ipix in tqdm(range(npix)):
             theta, phi = hp.pix2ang(nside, ipix)
             l, b = phi, np.pi/2 - theta
@@ -205,21 +202,6 @@ class DataLoader(object):
                 init_time = Time(init_time, format = 'unix')
                 end_time = Time(end_time, format = 'unix')
     
-                #_ = (init_time <= sc_time) & (sc_time <= end_time)
-    
-                #filtered_sc_attitude = sc_attitude[_]
-                #filtered_sc_time = sc_time[_] 
-
-                #time_diff = np.diff(filtered_sc_time.value)
-                #filtered_sc_time_delta = Time(0.5*(np.insert(time_diff, 0, 0) + np.append(time_diff, 0)), format = 'unix')
-
-                #x,y,z = self.orientation.get_attitude().as_axes()
-                #pixel_movement = pixel_obj.sc_frame(x_pointings = x[_], z_pointings = z[_])
-
-#                dwell_time_map = pixel_obj.get_dwell_map(response = self._rsp_filepath,
-#                                                         dts = filtered_sc_time_delta, 
-#                                                         src_path = pixel_movement)
-
                 filtered_orientation = self.orientation.source_interval(init_time, end_time)
                 x,y,z = filtered_orientation.get_attitude().as_axes()
                 pixel_movement = pixel_obj.sc_frame(x_pointings = x, z_pointings = z)
