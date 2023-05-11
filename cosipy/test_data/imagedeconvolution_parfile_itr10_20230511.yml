@@ -1,0 +1,24 @@
+version: 0.0.3
+author: Hiroki Yoneda 
+date: 2023-05-11
+model_property:
+  coordinate: "galactic"
+  nside: 8
+  scheme: "ring"
+  energy_edges: [100.,  200.,  500., 1000., 2000., 5000.] #keV, shoud be the same as the response matrix
+model_initialization:
+  algorithm: "flat" # more methods, e.g., simple-backprojection, user-defined, would be implemented.
+  parameter_flat:
+    values: [1.0e-2, 1.0e-2, 1.0e-2, 1.0e-2, 1.0e-2] #cm-2 s-1 sr-1, the number of these values should be the same as "the number of energy_edges - 1".
+deconvolution:
+  algorithm: "RL"
+  parameter_RL:
+    iteration: 10
+    acceleration: True
+    alpha_max: 10.0
+    save_results_each_iteration: True
+      #    smoothing: False
+      #    smoothing_size: 0.0 #deg
+      #    stopping_criterion: "TBD"
+background:
+  normalization_free: False #to be implemented
