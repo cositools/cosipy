@@ -16,33 +16,52 @@ from cosipy.data_io import BinnedData
 
 class DataLoader(object):
 
-    def __init__(self, event_hdf5_filepath = None, event_yaml_filepath = None, 
-                       bkg_hdf5_filepath = None, bkg_yaml_filepath = None, 
-                       rsp_filepath = None, sc_orientation_filepath = None):
-
+    def __init__(self):
         self.event_dense, self.event_sparse = None, None
         self.bkg_dense, self.bkg_sparse = None, None
         self.full_detector_response = None
         self.orientation = None
 
-        if event_hdf5_filepath and event_yaml_filepath:
-            self.set_event(event_hdf5_filepath, event_yaml_filepath)
+    @classmethod
+    def load(cls, event_binned_data, bkg_binned_data, rsp, sc_orientation):
 
-        if bkg_hdf5_filepath and bkg_yaml_filepath:
-            self.set_bkg(bkg_hdf5_filepath, bkg_yaml_filepath)
+        new = cls()
+
+        new.event_dense = event_binned_data.to_dense()
+        new.event_sparse = event_binned_data.to_sparse()
+
+        new.bkg_dense = bkg_binned_data.to_dense()
+        new.bkg_sparse = bkg_binned_data.to_sparse()
+
+        new.full_detector_response = rsp
+
+        new.orientation = sc_orientation
+
+        return new
+    
+    @classmethod
+    def load_from_filepath(cls, event_hdf5_filepath = None, event_yaml_filepath = None, 
+                           bkg_hdf5_filepath = None, bkg_yaml_filepath = None, 
+                           rsp_filepath = None, sc_orientation_filepath = None):
+
+        new = cls()
+
+        new.set_event_from_filepath(event_hdf5_filepath, event_yaml_filepath)
+
+        new.set_bkg_from_filepath(bkg_hdf5_filepath, bkg_yaml_filepath)
         
-        if rsp_filepath:
-            self.set_rsp(rsp_filepath)
+        new.set_rsp_from_filepath(rsp_filepath)
 
-        if sc_orientation_filepath:
-            self.set_sc_orientation(sc_orientation_filepath)
+        new.set_sc_orientation_from_filepath(sc_orientation_filepath)
 
-    def set_event(self, hdf5_filepath, yaml_filepath):
+        return new
+
+    def set_event_from_filepath(self, hdf5_filepath, yaml_filepath):
 
         self._event_hdf5_filepath = hdf5_filepath
         self._event_yaml_filepath = yaml_filepath
 
-        print("... (DataLoader) loading event ...")
+        print(f'... loading event from {hdf5_filepath} and {yaml_filepath}')
 
         event = BinnedData(self._event_yaml_filepath)
         event.load_binned_data_from_hdf5(self._event_hdf5_filepath)
@@ -52,12 +71,12 @@ class DataLoader(object):
 
         print("... Done ...")
 
-    def set_bkg(self, hdf5_filepath, yaml_filepath):
+    def set_bkg_from_filepath(self, hdf5_filepath, yaml_filepath):
 
         self._bkg_hdf5_filepath = hdf5_filepath
         self._bkg_yaml_filepath = yaml_filepath
 
-        print("... (DataLoader) loading background ...")
+        print(f'... loading background from {hdf5_filepath} and {yaml_filepath}')
 
         bkg = BinnedData(self._bkg_yaml_filepath)
         bkg.load_binned_data_from_hdf5(self._bkg_hdf5_filepath)
@@ -67,31 +86,25 @@ class DataLoader(object):
 
         print("... Done ...")
 
-    def set_rsp(self, filepath):
+    def set_rsp_from_filepath(self, filepath):
 
         self._rsp_filepath = filepath
 
-        print("... (DataLoader) loading full detector response ...")
+        print(f'... loading full detector response from {filepath}')
 
         self.full_detector_response = FullDetectorResponse.open(self._rsp_filepath) 
 
         print("... Done ...")
 
-    def set_sc_orientation(self, filepath):
+    def set_sc_orientation_from_filepath(self, filepath):
 
         self._sc_orientation_filepath = filepath
         
-        print("... (DataLoader) loading orientation file ...")
+        print(f'... loading orientation from {filepath}')
 
         self.orientation = Orientation_file.parse_from_file(self._sc_orientation_filepath)
 
         print("... Done ...")
-
-    def show_registered_files(self):
-        print(f"event       : {self._event_hdf5_filepath}, {self._event_yaml_filepath}")
-        print(f"background  : {self._bkg_hdf5_filepath}, {self._bkg_yaml_filepath}")
-        print(f"response    : {self._rsp_filepath}")
-        print(f"orientation : {self._sc_orientation_filepath}")
 
     def _check_file_registration(self):
         if self.event_dense and self.event_sparse \
@@ -209,7 +222,7 @@ class DataLoader(object):
                 time_diff = filtered_orientation.get_time_delta()
                 time_diff = Time(0.5*(np.insert(time_diff.value, 0, 0) + np.append(time_diff.value, 0)), format = 'unix')
 
-                dwell_time_map = pixel_obj.get_dwell_map(response = self._rsp_filepath,
+                dwell_time_map = pixel_obj.get_dwell_map(response = self.full_detector_response.filename,
                                                          dts = time_diff,
                                                          src_path = pixel_movement)
 
