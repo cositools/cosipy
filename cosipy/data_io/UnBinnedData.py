@@ -42,8 +42,7 @@ class UnBinnedData(DataIO):
         output_name: prefix of output file. 
 
         Note: The current code is only able to handle data with Compton events.
-              It will need to be modified to handle single site and pair. 
-            
+              It will need to be modified to handle single-site and pair.    
         """
     
         # Initialise empty lists:
@@ -80,7 +79,6 @@ class UnBinnedData(DataIO):
         # Define electron rest energy, which is used in calculation
         # of Compton scattering angle.
         c_E0 = 510.9989500015 # keV
-
 
         print("Preparing to read file...")
 
@@ -185,7 +183,7 @@ class UnBinnedData(DataIO):
                         float(this_line[3]), float(this_line[4])))
                 
                     # Compute position vector between first two interactions:
-                    dg = v2 - v1
+                    dg = v1 - v2
                     dg_x.append(dg[0])
                     dg_y.append(dg[1])
                     dg_z.append(dg[2])
@@ -203,8 +201,7 @@ class UnBinnedData(DataIO):
         # Convert dg vector from 3D cartesian coordinates 
         # to spherical polar coordinates, and then extract distance 
         # b/n first two interactions (in cm), psi (rad), and chi (rad).
-        # Note: the resulting angles are latitude/longitude (or elevation/azimuthal), 
-        # i.e. the origin is along the equator rather than at the north pole.
+        # Note: the resulting angles are latitude/longitude (or elevation/azimuthal).
         conv = astro_co.cartesian_to_spherical(np.array(dg_x), np.array(dg_y), np.array(dg_z))
         dist = conv[0].value 
         psi_loc = conv[1].value 
@@ -217,42 +214,48 @@ class UnBinnedData(DataIO):
         latZ = np.array(latZ)
         lonZ = np.array(lonZ)
 
-        # Calculate chi_gal and psi_gal from chi_loc and psi_loc::
+        # Calculate chi_gal and psi_gal from x,y,z coordinates of events:
         xcoords = SkyCoord(lonX*u.rad, latX*u.rad, frame = 'galactic')
         zcoords = SkyCoord(lonZ*u.rad, latZ*u.rad, frame = 'galactic')
         attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame = 'galactic')
-        c = SkyCoord(lon = chi_loc*u.rad, lat = psi_loc*u.rad, frame = SpacecraftFrame(attitude = attitude))
-        c.transform_to('galactic')
-        chi_gal = np.array(c.lon.rad)
-        psi_gal = np.array(c.lat.rad)
-        #self.chi_gal_new = chi_gal
+        c = SkyCoord(np.array(dg_x), np.array(dg_y), np.array(dg_z), representation_type='cartesian', frame = SpacecraftFrame(attitude = attitude))   
+        c_rotated = c.transform_to('galactic')
+        chi_gal = np.array(c_rotated.l.deg)
+        psi_gal = np.array(c_rotated.b.deg)
 
         # Change longitudes from 0..360 deg to -180..180 deg
         lonX[lonX > np.pi] -= 2*np.pi
-        
-        # Change longitudes from 0..360 deg to -180..180 deg
-        lonZ[lonZ > np.pi] -= 2*np.pi 
+        lonZ[lonZ > np.pi] -= 2*np.pi
 
         # Construct Y direction from X and Z direction
         lonlatY = self.construct_scy(np.rad2deg(lonX),np.rad2deg(latX),
                                 np.rad2deg(lonZ),np.rad2deg(latZ))
         lonY = np.deg2rad(lonlatY[0])
         latY = np.deg2rad(lonlatY[1])
- 
-        # Rotate psi_loc to colatitude, 
-        # measured from the negative z direction. 
-        # Note: the detector is placed at z<0 in the local frame.
-        # Note: the rotation is done to match the historical 
-        # definition of COMPTEL.
-        psi_loc += (np.pi/2.0)  
+    
+        # Rotate psi_loc to colatitude, measured from positive z direction.
+        # This is requred for mhealpy input.
+        psi_loc = (np.pi/2.0) - psi_loc 
+        
+        # Define test values for psi and chi local;
+        # this is only for comparing to MEGAlib:
+        self.psi_loc_test = psi_loc
+        self.chi_loc_test = chi_loc
 
-        # Rotate chi_loc to be defined relative to negative x-axis.
-        # Note: this is done to match the historical definition of COMPTEL.
-        index1 = (chi_loc < np.pi) 
-        index2 = (chi_loc >= np.pi)
-        chi_loc[index1] = chi_loc[index1] + np.pi
-        chi_loc[index2] = chi_loc[index2] - np.pi
-          
+        # Do the same for psi and chi galactic.
+        # First need to convert to radians:
+        chi_gal_rad = np.array(c_rotated.l.rad)
+        psi_gal_rad = np.array(c_rotated.b.rad)
+        
+        # Rotate psi_gal_rad to colatitude, measured from positive 
+        # z direction:
+        psi_gal_rad = (np.pi/2.0) - psi_gal_rad
+        self.psi_gal_test = psi_gal_rad
+        
+        # Rotate chi_gal_test by pi, defined with respect to 
+        # the negative x-axis:
+        self.chi_gal_test = chi_gal_rad - np.pi
+
         # Make observation dictionary
         cosi_dataset = {'Energies':erg,
                         'TimeTags':tt,
@@ -326,7 +329,7 @@ class UnBinnedData(DataIO):
 
         # Data units:
         units=['keV','s','rad:[glon,glat]','rad:[glon,glat]',
-                'rad:[glon,glat]','rad','rad','rad','cm','rad','rad']
+                'rad:[glon,glat]','rad','rad','rad','cm','deg','deg']
             
         # For fits output: 
         if self.unbinned_output == 'fits':

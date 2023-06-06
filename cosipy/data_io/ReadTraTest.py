@@ -2,32 +2,38 @@
 from cosipy.data_io import UnBinnedData 
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
-# Load MEGAlib into ROOT
-import ROOT as M
-M.gSystem.Load("$(MEGAlib)/lib/libMEGAlib.so")
+try:
+    # Load MEGAlib into ROOT
+    import ROOT as M
+    M.gSystem.Load("$(MEGAlib)/lib/libMEGAlib.so")
 
-# Initialize MEGAlib
-G = M.MGlobal()
-G.Initialize()
+    # Initialize MEGAlib
+    G = M.MGlobal()
+    G.Initialize()
     
+except:
+    pass
 
 class ReadTraTest(UnBinnedData):
 
-    def compare(self,original,new,title):
+    def compare(self,original,new,title,make_plots):
        
         diff = (original - new) 
-        plt.plot(diff,ls="",marker='o')
-        plt.xlabel("Event")
-        plt.ylabel("original - new")
-        plt.title(title)
-        plt.savefig("Images/%s.pdf" %title)
-        plt.show()
-        plt.close()
+        
+        if make_plots == True:
+            plt.plot(diff,ls="",marker='o')
+            plt.xlabel("Event")
+            plt.ylabel("original - new")
+            plt.title(title)
+            plt.savefig("%s.pdf" %title)
+            plt.show()
+            plt.close()
 
-        return
+        return diff
 
-    def read_tra_old(self):
+    def read_tra_old(self,make_plots=True):
         
         """
         Reads in MEGAlib .tra (or .tra.gz) file.
@@ -150,32 +156,25 @@ class ReadTraTest(UnBinnedData):
         phi = np.array(phi)
 
         chi_loc = np.array(chi_loc)
+        self.chi_loc_old = chi_loc
 
         # Change azimuth angle to 0..360 deg
         chi_loc[chi_loc < 0] += 2*np.pi
 
         psi_loc = np.array(psi_loc)
-    
+        self.psi_loc_old = psi_loc
+        
+        # For comparing chi_loc, psi_loc=0 values are arbitrary,
+        # so we exclude them from the comparison. 
+        psi_zero_index = psi_loc == 0
+
         dist = np.array(dist)
 
         chi_gal = np.array(chi_gal)
         psi_gal = np.array(psi_gal)
         self.chi_gal_old = chi_gal
         self.psi_gal_old = psi_gal
-        print()
-        print("chi gal:")
-        print("max: " + str(np.amax(chi_gal)))
-        print("min: " + str(np.amin(chi_gal)))
-        print(chi_gal)
-        print()
-        print("psi gal:")
-        print("max: " + str(np.amax(psi_gal)))
-        print("min: " + str(np.amin(psi_gal)))
-        print(psi_gal)
-        
-        
-        self.compare(self.psi_gal_old,self.chi_gal_new,"chi_gal")
-
+         
         # Construct Y direction from X and Z direction
         lonlatY = self.construct_scy(np.rad2deg(lonX),np.rad2deg(latX),
                                 np.rad2deg(lonZ),np.rad2deg(latZ))
@@ -185,6 +184,21 @@ class ReadTraTest(UnBinnedData):
         # Avoid negative zeros
         chi_loc[np.where(chi_loc == 0.0)] = np.abs(chi_loc[np.where(chi_loc == 0.0)])
         
+        # Compare old to new:
+        chi_loc_dict = {"old":self.chi_loc_old[~psi_zero_index],"new":self.chi_loc_test[~psi_zero_index],"name":"chi_loc"}
+        psi_loc_dict = {"old":self.psi_loc_old,"new":self.psi_loc_test,"name":"psi_loc"}
+        chi_gal_dict = {"old":self.chi_gal_old,"new":self.chi_gal_test,"name":"chi_gal"}
+        psi_gal_dict = {"old":self.psi_gal_old,"new":self.psi_gal_test,"name":"psi_gal"}
+
+        test_list = [chi_loc_dict,psi_loc_dict,chi_gal_dict,psi_gal_dict]
+        for each in test_list:
+            diff = self.compare(each["old"],each["new"],each["name"],make_plots)
+            if np.amax(diff) > 1e-12:
+                print("ERROR: Definition does not match MEGAlib: %s" %each["name"])
+                sys.exit()
+            else:
+                print("Passed: %s" %each["name"])
+
         # Make observation dictionary
         cosi_dataset = {'Energies':erg,
                         'TimeTags':tt,
