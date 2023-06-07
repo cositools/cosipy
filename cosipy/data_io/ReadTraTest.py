@@ -3,6 +3,7 @@ from cosipy.data_io import UnBinnedData
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import pandas as pd
 
 try:
     # Load MEGAlib into ROOT
@@ -17,21 +18,6 @@ except:
     pass
 
 class ReadTraTest(UnBinnedData):
-
-    def compare(self,original,new,title,make_plots):
-       
-        diff = (original - new) 
-        
-        if make_plots == True:
-            plt.plot(diff,ls="",marker='o')
-            plt.xlabel("Event")
-            plt.ylabel("original - new")
-            plt.title(title)
-            plt.savefig("%s.pdf" %title)
-            plt.show()
-            plt.close()
-
-        return diff
 
     def read_tra_old(self,make_plots=True):
         
@@ -60,7 +46,7 @@ class ReadTraTest(UnBinnedData):
 
         # Make print statement:
         print()
-        print("Read tra test: comparing to MEGAlib...")
+        print("Read tra test...")
         print()
          
         # Check if file exists:
@@ -183,22 +169,7 @@ class ReadTraTest(UnBinnedData):
 
         # Avoid negative zeros
         chi_loc[np.where(chi_loc == 0.0)] = np.abs(chi_loc[np.where(chi_loc == 0.0)])
-        
-        # Compare old to new:
-        chi_loc_dict = {"old":self.chi_loc_old[~psi_zero_index],"new":self.chi_loc_test[~psi_zero_index],"name":"chi_loc"}
-        psi_loc_dict = {"old":self.psi_loc_old,"new":self.psi_loc_test,"name":"psi_loc"}
-        chi_gal_dict = {"old":self.chi_gal_old,"new":self.chi_gal_test,"name":"chi_gal"}
-        psi_gal_dict = {"old":self.psi_gal_old,"new":self.psi_gal_test,"name":"psi_gal"}
-
-        test_list = [chi_loc_dict,psi_loc_dict,chi_gal_dict,psi_gal_dict]
-        for each in test_list:
-            diff = self.compare(each["old"],each["new"],each["name"],make_plots)
-            if np.amax(diff) > 1e-12:
-                print("ERROR: Definition does not match MEGAlib: %s" %each["name"])
-                sys.exit()
-            else:
-                print("Passed: %s" %each["name"])
-
+       
         # Make observation dictionary
         cosi_dataset = {'Energies':erg,
                         'TimeTags':tt,
@@ -206,11 +177,11 @@ class ReadTraTest(UnBinnedData):
                         'Ypointings':np.array([lonY,latY]).T,
                         'Zpointings':np.array([lonZ,latZ]).T,
                         'Phi':phi,
-                        'Chi local':chi_loc,
-                        'Psi local':psi_loc,
+                        'Chi local':self.chi_loc_old,
+                        'Psi local':self.psi_loc_old,
                         'Distance':dist,
-                        'Chi galactic':chi_gal,
-                        'Psi galactic':psi_gal} 
+                        'Chi galactic':self.chi_gal_old,
+                        'Psi galactic':self.psi_gal_old} 
         self.cosi_dataset = cosi_dataset
 
         # Write unbinned data to file (either fits or hdf5):

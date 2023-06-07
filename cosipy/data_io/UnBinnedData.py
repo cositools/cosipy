@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class UnBinnedData(DataIO):
  
-    def read_tra(self, output_name="unbinned_data"):
+    def read_tra(self, output_name="unbinned_data", run_test=False):
         
         """
         Reads in MEGAlib .tra (or .tra.gz) file.
@@ -39,7 +39,12 @@ class UnBinnedData(DataIO):
         
         Arrays contain unbinned data.
         
+        Inputs:
+        
         output_name: prefix of output file. 
+        
+        run_test: This is for unit testing only! Keep False
+        unless comparing to MEGAlib calculations. 
 
         Note: The current code is only able to handle data with Compton events.
               It will need to be modified to handle single-site and pair.    
@@ -79,6 +84,11 @@ class UnBinnedData(DataIO):
         # Define electron rest energy, which is used in calculation
         # of Compton scattering angle.
         c_E0 = 510.9989500015 # keV
+
+        # This is for unit testing purposes only.
+        # Use same value as MEGAlib for direct comparison: 
+        if run_test == True:
+            c_E0 = 510.999
 
         print("Preparing to read file...")
 
