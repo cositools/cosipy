@@ -2,7 +2,6 @@
 from cosipy import UnBinnedData
 from cosipy import test_data
 import os
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
