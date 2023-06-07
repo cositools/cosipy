@@ -22,14 +22,15 @@ def compare(original,new,title,make_plots=False):
 
     return diff
 
-# Calculate psi and chi with dataIO class:
+# Read tra file with dataIO class.
+# Note: this is the GRB sim from mini-DC2. 
 yaml = os.path.join(test_data.path,"inputs_GRB.yaml")
 analysis = UnBinnedData(yaml)
 analysis.data_file = os.path.join(test_data.path,analysis.data_file)
 analysis.read_tra(output_name="GRB_unbinned_data",run_test=True)
 os.system("rm GRB_unbinned_data.hdf5")
 
-# Read in MEGAlib data:
+# Read in MEGAlib's calculations from its event reader:
 mega_data = os.path.join(test_data.path,"unbinned_data_MEGAlib_calc.hdf5")
 dict_old = analysis.get_dict_from_hdf5(mega_data)
 energy_old = dict_old["Energies"]
@@ -51,6 +52,7 @@ psi_gal_old = dict_old['Psi galactic']
 # so we exclude them from the comparison.
 psi_zero_index = psi_loc_old == 0
 
+# Define dictionaries for comparing:
 energies_dict = {"old":energy_old,"new":analysis.cosi_dataset["Energies"],"name":"Energies"}
 time_dict = {"old":time_old,"new":analysis.cosi_dataset["TimeTags"],"name":"TimeTags"}
 phi_dict = {"old":phi_old,"new":analysis.cosi_dataset["Phi"],"name":"Phi"}
@@ -66,6 +68,7 @@ psi_loc_dict = {"old":psi_loc_old,"new":analysis.psi_loc_test,"name":"psi_loc"}
 chi_gal_dict = {"old":chi_gal_old,"new":analysis.chi_gal_test,"name":"chi_gal"}
 psi_gal_dict = {"old":psi_gal_old,"new":analysis.psi_gal_test,"name":"psi_gal"}
 
+# Make comparison:
 print("Comparing to MEGAlib calculation:")
 test_list = [energies_dict,time_dict,phi_dict,\
         dist_dict,lonX_dict,latX_dict,lonZ_dict,latZ_dict,lonY_dict,latY_dict,\
