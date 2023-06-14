@@ -1,8 +1,9 @@
 # Imports:
+import sys
 import numpy as np
 import h5py
 from histpy import Histogram
-from mhealpy import HealpixMap
+from mhealpy import HealpixMap, HealpixBase
 import healpy as hp
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,9 +12,11 @@ from cosipy.data_io import UnBinnedData
 import logging
 logger = logging.getLogger(__name__)
 
+
 class BinnedData(UnBinnedData):
    
-    def get_binned_data(self, unbinned_data=None, output_name="binned_data", make_binning_plots=False):
+    def get_binned_data(self, unbinned_data=None, output_name="binned_data", \
+            make_binning_plots=False, psichi_binning="galactic"):
 
         """ 
         Bin the data using histpy and mhealpy.
@@ -22,9 +25,11 @@ class BinnedData(UnBinnedData):
         - unbinned_data: read in unbinned data from file. 
           Input file is either .fits or .hdf5 as specified in
           the unbinned_output parameter in inputs.yaml.     
+        - output_name: prefix of output file.
         - make_binning_plots: Option to make basic plots of the binning.
-          The default is False.
-        - output_name: prefix of output file. 
+          Default is False.
+        - psichi_binning: 'galactic' for binning psichi in Galactic coordinates,
+          or 'local' for binning in local coordinates. Default is Galactic. 
         """
         
         # Make print statement:
@@ -37,19 +42,18 @@ class BinnedData(UnBinnedData):
             if self.unbinned_output == 'hdf5':
                 self.cosi_dataset = self.get_dict_from_hdf5(unbinned_data)
 
-        # Get time bins: 
-        min_time = self.tmin
-        max_time = self.tmax
-        delta_t = max_time - min_time
-        num_bins = round(delta_t / self.time_bins)
-        new_bin_size = delta_t / num_bins
-
-        print()
-        print("Note: time bins must be equally spaced between min and max time.")
-        print("Using time bin size [s]: " + str(new_bin_size))
-        print()
-
         if type(self.time_bins).__name__ in ['int','float']:
+            # Get time bins: 
+            min_time = self.tmin
+            max_time = self.tmax
+            delta_t = max_time - min_time
+            num_bins = round(delta_t / self.time_bins)
+            new_bin_size = delta_t / num_bins
+            if self.time_bins != new_bin_size:
+                print()
+                print("Note: time bins must be equally spaced between min and max time.")
+                print("Using time bin size [s]: " + str(new_bin_size))
+                print()
             time_bin_edges = np.linspace(min_time,max_time,num_bins+1)
 
         if type(self.time_bins).__name__ == 'list':
@@ -79,11 +83,13 @@ class BinnedData(UnBinnedData):
         self.m = HealpixMap(nside = self.nside, scheme = self.scheme, dtype = int)
 
         # Bin psi and chi data:
-        # Note: psi and chi correspond to the default colatitude and longitude definitions in healpy, respectively.
-        # Note: In healpy, colatitude is also called 'theta' and 'longitude' is also called 'phi'.
-        # Note: 'Psi local' is measured from the positive x-axis in detector coordinates,
-        #       and 'Chi local' is measured from the positive z-axis in detector coordinates. 
-        PsiChi_pixs = self.m.ang2pix(self.cosi_dataset['Psi local'],self.cosi_dataset['Chi local'])
+        if psichi_binning not in ['galactic','local']:
+            print("ERROR: psichi_binning must be either 'galactic' or 'local'")
+            sys.exit()
+        if psichi_binning == 'galactic':
+            PsiChi_pixs = self.m.ang2pix(self.cosi_dataset['Chi galactic'],self.cosi_dataset['Psi galactic'],lonlat=True)
+        if psichi_binning == 'local':
+            PsiChi_pixs = self.m.ang2pix(self.cosi_dataset['Psi local'],self.cosi_dataset['Chi local'])
         PsiChi_bin_edges = np.arange(0,npix+1,1)
     
         # Fill healpix map:
@@ -231,7 +237,53 @@ class BinnedData(UnBinnedData):
         plt.close()
     
         return
- 
+
+    def plot_psichi_map_slices(self, Em, phi, output, binned_data=None, coords=None):
+
+        """
+        Plot psichi map in slices of Em and phi.
+        Inputs:
+        Em: Bin of energy slice.
+        phi: Bin of phi slice.
+        output: Name of output plot. 
+        binned_data (optional): Histogram object (hdf5).
+        coords (optional; list): Coordinates of source position. 
+            - Galactic longitude and latidude for Galactic coordinates.
+            - Azimuthal and latitude for local coordinates. 
+        """
+
+        # Option to read in binned data from hdf5 file:
+        if binned_data:
+            self.load_binned_data_from_hdf5(binned_data)
+
+        # Make healpix map with binned data slice:
+        h = self.binned_data.project('Em', 'Phi', 'PsiChi').slice[{'Em':Em, 'Phi':phi}].project('PsiChi')
+        m = HealpixMap(base = HealpixBase(npix = h.nbins), data = h.contents.todense())
+        
+        # Plot standard view:
+        plot,ax = m.plot('mollview')
+        if coords:
+            ax.scatter(coords[0], coords[1], s=9, transform=ax.get_transform('world'), color = 'red')
+        ax.coords.grid(True, color='grey', ls='dotted')
+        ax.get_figure().set_figwidth(6)
+        ax.get_figure().set_figheight(3)
+        plt.savefig("%s.pdf" %output,bbox_inches='tight')
+        plt.show()
+        plt.close()
+
+        # Plot rotated view:
+        if coords:
+            plot,ax = m.plot('orthview', ax_kw = {'rot':[coords[0],coords[1],0]})
+            ax.scatter(coords[0], coords[1], s=9, transform=ax.get_transform('world'), color = 'red')
+            ax.coords.grid(True, color='grey', ls='dotted')
+            ax.get_figure().set_figwidth(6)
+            ax.get_figure().set_figheight(3)
+            plt.savefig("%s_rotated.pdf" %output,bbox_inches='tight')
+            plt.show()
+            plt.close()
+
+        return
+
     def get_raw_spectrum(self, binned_data=None, time_rate=False, output_name="raw_spectrum"):
 
         """

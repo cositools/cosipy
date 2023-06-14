@@ -1,0 +1,14 @@
+#----------#
+# Data I/O:
+
+# data files available on the COSI Sharepoint: https://drive.google.com/drive/folders/1UdLfuLp9Fyk4dNussn1wt7WEOsTWrlQ6
+data_file: "protoGRB.inc2.id1_fixedtime.extracted.tra.gz"
+unbinned_output: 'hdf5' # 'fits' or 'hdf5'
+time_bins: 0.5 # time bin size in seconds. Takes int or list of bin edges. 
+energy_bins: [100.,  200.,  500., 1000., 2000., 5000.] # Takes list. Needs to match response.
+phi_pix_size: 6 # binning of Compton scattering anlge [deg]
+nside: 8 # healpix binning of psi chi local
+scheme: 'ring' # healpix binning of psi chi local
+tmin: 1835481433.0 # Min time cut in seconds.
+tmax: 1835481435.0 # Max time cut in seconds.
+#----------#
