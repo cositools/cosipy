@@ -105,8 +105,31 @@ class FullDetectorResponse(HealpixBase):
         return new
 
     @classmethod
-    def _open_rsp(cls, filename, Spectrumfile=None,norm="flat" ,single_pixel = False):
+    def _open_rsp(cls, filename, Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0):
+        """
+        
+         Open a detector response rsp file.
 
+         Parameters
+         ----------
+         filename : str, :py:class:`~pathlib.Path`
+             Path to rsp file
+
+         SpectrumFile : str, 
+             path to the input spectrum file used
+             for the simulation (optional).
+
+         norm : str, 
+             type of normalisation : file (then specify also SpectrumFile)
+             ,powerlaw or flat
+         
+         alpha : int,
+             if the normalisation is "powerlaw", value of the spectral index.
+
+         single_pixel : bool,
+             True if there is only one pixel and not full-sky
+         
+        """
         labels = ("Ei", "NuLambda", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
 
         axes_edges = []
@@ -217,7 +240,6 @@ class FullDetectorResponse(HealpixBase):
             # From powerlaw
             emin = 10
             emax = 10000
-            alpha = 0
 
             if alpha == 1:
                 K = 1 / np.log(emax/emin)
