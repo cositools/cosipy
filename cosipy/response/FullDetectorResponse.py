@@ -238,7 +238,7 @@ class FullDetectorResponse(HealpixBase):
 
         elif norm=="powerlaw":
             # From powerlaw
-            emin = 10
+            emin = 90
             emax = 10000
 
             if alpha == 1:
