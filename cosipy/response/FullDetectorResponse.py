@@ -20,7 +20,7 @@ import textwrap
 import argparse
 import logging
 logger = logging.getLogger(__name__)
-
+import gzip
 
 class FullDetectorResponse(HealpixBase):
     """
@@ -49,11 +49,11 @@ class FullDetectorResponse(HealpixBase):
 
         if filename.endswith('.h5'):
             return cls._open_h5(filename)
-        elif filename.endswith('.rsp'):
+        elif filename.endswith('.rsp.gz'):
             return cls._open_rsp(filename,Spectrumfile=None,norm="flat" ,single_pixel = False)
         else:
             raise ValueError(
-                "Unsupported file format. Only .h5 and .rsp extensions are supported.")
+                "Unsupported file format. Only .h5 and .rsp.gz extensions are supported.")
 
     @classmethod
     def _open_h5(cls, filename):
@@ -136,7 +136,7 @@ class FullDetectorResponse(HealpixBase):
         axes_types = []
 
         # get the header infos of the rsp file (nsim,area,bin_edges,etc...)
-        with open(filename, "r") as file:
+        with gzip.open(filename, "rt") as file:
             for n, line in enumerate(file):
     
                 line = line.split()
@@ -181,7 +181,7 @@ class FullDetectorResponse(HealpixBase):
         axes = Axes(edges, labels=labels)
 
         # Preallocate arrays
-        nlines = sum(1 for _ in open(filename))
+        nlines = sum(1 for _ in gzip.open(filename,"rt"))
         coords = np.empty([axes.ndim, nlines], dtype=int)
         data = np.empty(nlines, dtype=int)
 
@@ -189,9 +189,10 @@ class FullDetectorResponse(HealpixBase):
         sbin = 0
 
         # read the rsp file and get the bin number and counts
-        with open(filename, "r") as file:
+        with gzip.open(filename, "rt") as file:
             for n, line in enumerate(file):
 
+                
                 line = line.split()
 
                 if len(line) == 0:
