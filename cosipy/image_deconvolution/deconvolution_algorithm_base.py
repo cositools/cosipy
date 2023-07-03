@@ -1,6 +1,9 @@
+import gc
 import numpy as np
 import astropy.units as u
 from tqdm.autonotebook import tqdm
+
+from histpy import Histogram
 
 class DeconvolutionAlgorithmBase(object):
 
@@ -61,6 +64,8 @@ class DeconvolutionAlgorithmBase(object):
 
         stop_iteration = False
         for i_iteration in tqdm(range(1, self.iteration_max + 1)):
+            gc.collect()
+
             if stop_iteration:
                 break
 
@@ -71,9 +76,11 @@ class DeconvolutionAlgorithmBase(object):
 
             print("--> E-step")
             self.Estep()
+            gc.collect()
 
             print("--> M-step")
             self.Mstep()
+            gc.collect()
             
             print("--> post-processing")
             self.post_processing()
@@ -88,6 +95,8 @@ class DeconvolutionAlgorithmBase(object):
             if self.parameter["save_results_each_iteration"] == True:
                 print("--> saving results")
                 self.save_result(i_iteration)
+
+            gc.collect()
 
             yield self.result
     
@@ -107,10 +116,13 @@ class DeconvolutionAlgorithmBase(object):
         
         return expectation
 
-    def calc_loglikelihood(self, data, model_map, use_sparse = False):
-        expectation = self.calc_expectation(model_map, data, use_sparse)
+    def calc_loglikelihood(self, data, model_map, expectation = None, use_sparse = False): # expectation will be a required parameter soon.
+        if expectation is None:
+            expectation = self.calc_expectation(model_map, data, use_sparse)
+
         if use_sparse:
-            loglikelood = (np.sum( data.event_sparse * np.log(expectation) ) - np.sum(expectation)).value
+            loglikelood = np.sum( data.event_sparse * np.log(expectation) ) - np.sum(expectation)
         else:
-            loglikelood = (np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)).value
+            loglikelood = np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)
+
         return loglikelood
