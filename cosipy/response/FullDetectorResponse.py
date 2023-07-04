@@ -276,13 +276,13 @@ class FullDetectorResponse(HealpixBase):
 
         # remove the .h5 file if it already exist
         try:
-            os.remove(filename.replace(".rsp", "_nside{0}.area.h5".format(nside)))
+            os.remove(filename.replace(".rsp.gz", "_nside{0}.area.h5".format(nside)))
         except:
             pass
 
         # create a .h5 file with the good structure
         filename = filename.replace(
-        ".rsp", "_nside{0}.area.h5".format(nside))
+        ".rsp.gz", "_nside{0}.area.h5".format(nside))
         
         f = h5.File(filename, mode='w')
 
