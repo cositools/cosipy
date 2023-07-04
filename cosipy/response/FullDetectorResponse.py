@@ -37,7 +37,7 @@ class FullDetectorResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename,Spectrumfile=None,norm="flat" ,single_pixel = False):
+    def open(cls, filename,Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0):
         """
         Open a detector response file.
 
@@ -50,7 +50,7 @@ class FullDetectorResponse(HealpixBase):
         if filename.endswith('.h5'):
             return cls._open_h5(filename)
         elif filename.endswith('.rsp.gz'):
-            return cls._open_rsp(filename,Spectrumfile=None,norm="flat" ,single_pixel = False)
+            return cls._open_rsp(filename,Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0)
         else:
             raise ValueError(
                 "Unsupported file format. Only .h5 and .rsp.gz extensions are supported.")
