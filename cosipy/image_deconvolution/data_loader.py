@@ -280,7 +280,7 @@ class DataLoader(object):
         axis_model_map = HealpixAxis(nside = self.full_detector_response.axes["NuLambda"].nside, 
                                      coordsys = "galactic", label = "lb")
 
-        axis_coordsys_conv_matrix = [ axis_model_map, self.event_dense.axes["Time"], self.full_detector_response.axes["NuLambda"] ]
+        axis_coordsys_conv_matrix = [ axis_model_map, self.event_dense.axes["Time"], self.full_detector_response.axes["NuLambda"] ] #lb, Time, NuLambda
 
         self.coordsys_conv_matrix = Histogram(axis_coordsys_conv_matrix, unit = u.s, sparse = True)
 
