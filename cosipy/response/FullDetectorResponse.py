@@ -21,6 +21,8 @@ import argparse
 import logging
 logger = logging.getLogger(__name__)
 import gzip
+from tqdm import tqdm
+
 
 class FullDetectorResponse(HealpixBase):
     """
@@ -37,7 +39,7 @@ class FullDetectorResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename,Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0):
+    def open(cls, filename,Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0,emin=90,emax=10000):
         """
         Open a detector response file.
 
@@ -50,7 +52,7 @@ class FullDetectorResponse(HealpixBase):
         if filename.endswith('.h5'):
             return cls._open_h5(filename)
         elif filename.endswith('.rsp.gz'):
-            return cls._open_rsp(filename,Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0)
+            return cls._open_rsp(filename,Spectrumfile,norm ,single_pixel,alpha,emin,emax)
         else:
             raise ValueError(
                 "Unsupported file format. Only .h5 and .rsp.gz extensions are supported.")
@@ -105,7 +107,7 @@ class FullDetectorResponse(HealpixBase):
         return new
 
     @classmethod
-    def _open_rsp(cls, filename, Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0):
+    def _open_rsp(cls, filename, Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0,emin=90,emax=10000):
         """
         
          Open a detector response rsp file.
@@ -190,7 +192,10 @@ class FullDetectorResponse(HealpixBase):
 
         # read the rsp file and get the bin number and counts
         with gzip.open(filename, "rt") as file:
-            for n, line in enumerate(file):
+             
+            progress_bar = tqdm(file, total=nlines, desc="Progress", unit="line")
+
+            for line in progress_bar:
 
                 
                 line = line.split()
@@ -209,9 +214,14 @@ class FullDetectorResponse(HealpixBase):
                     data[sbin] = c
 
                     sbin += 1
-
+                    
+                progress_bar.update(1)
+        
+        progress_bar.close()
         nbins_sparse = sbin
 
+        print("response file read ! Now we create the histogram and weight in order to "+ 
+                "get the effective area")
         # create histpy histogram
         dr = Histogram(axes, contents=COO(coords=coords[:, :nbins_sparse], data= data[:nbins_sparse], shape = tuple(axes.nbins)))
 
@@ -223,7 +233,7 @@ class FullDetectorResponse(HealpixBase):
         ecenters = dr.axes['Ei'].centers
 
         if Spectrumfile is not None and norm=="file":
-
+            print("normalisation : spectrum file")
             # From spectrum file
             spec = pd.read_csv(Spectrumfile, sep=" ")
             spec = spec.iloc[:-1]
@@ -238,9 +248,9 @@ class FullDetectorResponse(HealpixBase):
             nperchannel_norm = hspec[:]
 
         elif norm=="powerlaw":
+            print("normalisation : powerlaw with index {0}".format(alpha))
             # From powerlaw
-            emin = 90
-            emax = 10000
+            
 
             if alpha == 1:
                 K = 1 / np.log(emax/emin)
@@ -253,10 +263,11 @@ class FullDetectorResponse(HealpixBase):
             nperchannel_norm[ecenters > emax] = 0
 
 
-        elif norm =="flat" :
-            emin = 90
-            emax = 10000
+        elif norm =="flat" or norm=="line" :
+            print("normalisation : flat or line")
             nperchannel_norm = ewidth / (emax-emin)
+            
+
             
         nperchannel = nperchannel_norm * nevents_sim
 
@@ -346,6 +357,7 @@ class FullDetectorResponse(HealpixBase):
                               dtype=h5.vlen_dtype(float),
                               compression="gzip")
         
+        progress_bar = tqdm(total=npix, desc="Progress", unit="nbpixel")
         for b in range(npix):
         
             #print(f"{b}/{npix}")
@@ -354,7 +366,9 @@ class FullDetectorResponse(HealpixBase):
         
             coords[b] = pix_slice.coords.flatten()
             data[b] = pix_slice.data
-        
+            progress_bar.update(1)
+
+        progress_bar.close()
         
         #close the .h5 file in write mode in order to reopen it in read mode after
         f.close()
