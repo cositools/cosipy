@@ -47,6 +47,24 @@ class FullDetectorResponse(HealpixBase):
         ----------
         filename : str, :py:class:`~pathlib.Path`
         Path to the response file (.h5 or .rsp)
+
+        Spectrumfile : str, 
+             path to the input spectrum file used
+             for the simulation (optional).
+
+         norm : str, 
+             type of normalisation : file (then specify also SpectrumFile)
+             ,powerlaw or flat
+         
+         alpha : int,
+             if the normalisation is "powerlaw", value of the spectral index.
+
+         single_pixel : bool,
+             True if there is only one pixel and not full-sky.
+
+         emin,emax : float
+             emin/emax used in the simulation source file.  
+        
         """
 
         if filename.endswith('.h5'):
@@ -117,7 +135,7 @@ class FullDetectorResponse(HealpixBase):
          filename : str, :py:class:`~pathlib.Path`
              Path to rsp file
 
-         SpectrumFile : str, 
+         Spectrumfile : str, 
              path to the input spectrum file used
              for the simulation (optional).
 
@@ -129,7 +147,10 @@ class FullDetectorResponse(HealpixBase):
              if the normalisation is "powerlaw", value of the spectral index.
 
          single_pixel : bool,
-             True if there is only one pixel and not full-sky
+             True if there is only one pixel and not full-sky.
+
+         emin,emax : float
+             emin/emax used in the simulation source file.
          
         """
         labels = ("Ei", "NuLambda", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
