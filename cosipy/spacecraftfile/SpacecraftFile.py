@@ -2,175 +2,332 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.io import fits
-from astropy.coordinates import SkyCoord, cartesian_to_spherical
+from astropy.time import Time
+from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
 from mhealpy import HealpixMap
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import cm, colors
-from astropy.time import Time
 
 from scoords import Attitude, SpacecraftFrame
 from cosipy.response import FullDetectorResponse
 
-class SourceSpacecraft(object):
-    
-    def __init__(self, src_name, src_coord, out_name = None, instrument = "COSI", frame = "galactic"):
-        
+class SpacecraftFile():
+
+    def __init__(self, time, x_pointings = None, y_pointings = None, z_pointings = None, 
+                 instrument = "COSI", frame = "galactic"):
+
         """
-        Defines the source information you want to work with.
+        Define the inputs to calculate the orbits and point source response.
+        Will finish later
+        """
+
+        self._load_time = time
+        self._x_direction = x_pointings  # this is nump.ndarray
+        self._z_direction = z_pointings  # this is numpy.ndarray
+        self.frame = frame
+
+        if x_pointings is not None:
+            self.x_pointings = SkyCoord(l = x_pointings[:,0], b = x_pointings[:,1], unit = "deg", frame = self.frame)
+        else:
+            self.x_pointings = x_pointings
+
+        if y_pointings is not None:
+            self.y_pointings = SkyCoord(l = y_pointings[:,0], b = y_pointings[:,1], unit = "deg", frame = self.frame)
+        else:
+            self.y_pointings = x_pointings
+
+        if z_pointings is not None:
+            self.z_pointings = SkyCoord(l = z_pointings[:,0], b = z_pointings[:,1], unit = "deg", frame = self.frame)
+        else:
+            self.z_pointings = z_pointings
         
+
+    @classmethod
+    def parse_from_file(cls, file):
+
+        #parses timestamps, axis positions from file and returns to __init__
+
+        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1)
+        axis_1 = np.loadtxt(file, usecols = (2,3), delimiter = ' ', skiprows = 1)
+        axis_2 = np.loadtxt(file, usecols = (4,5), delimiter = ' ', skiprows = 1)
+
+        return cls(time_stamps, axis_1, axis_2)
+        
+
+    def get_time(self, time_array = None):
+
+        """
+        Return the arrary pf pointing times as a astropy.Time object.
+
         Parameters
         ----------
-        src_name : str; the name of the target source
-        src_coord: SkyCoord object; the coordiate of the targe source
-        out_name : str; the name of the outputs (saved numpy arrays, fits files, ...). 
-                   If not defined, it will be synced with the src_name
-        instrument : str; default COSI
-        frame : str; default galactic
-        """
-        
-        self.src_name = src_name
-        self.src_coord = src_coord
-        self.instrument = instrument
-        self.frame = frame 
-        if out_name is None:
-            self.out_name = self.src_name
-            
-        # check inputs
-        if type(self.src_coord) != SkyCoord:
-            raise ValueError("The targe source coordiate must be a SkyCoord object")
-    
-    def __str_or_array(self, var):
-        
-        """
-        Takes the numpy array object or the directtory to the save nunmy array (.npy).
-        
-        Parameters
-        ----------
-        var: str or numpy array object
-        
+        time_array: None or np.array; If None, the time array will be taken from the instance
+
         Returns
         -------
-        Numpy array object
+        astropy.Time
+        """
+
+        if time_array == None:
+            self._time = Time(self._load_time, format = "unix")
+        else:
+            self._time = Time(time_array, format = "unix")
+
+        return self._time
+
+    def get_time_delta(self, time_array = None):
+
+        """
+        Return an array of the time period between neighbouring time points
+
+        Parameters
+        ----------
+        time_array: None or np.array; If None, the time array will be taken from the instance
+
+        Returns
+        -------
+        astropy.Time
+        """
+
+        if time_array == None:
+            self._time_delta = np.diff(self._load_time)
+        else:
+            self._time_delta = np.diff(time_array)
+            
+        time_delta = Time(self._time_delta, format='unix')
+
+        return time_delta
+
+    def interpolate_direction(self, trigger, idx, direction):
+
+        """
+        Linearly interpolates position at a given time between two timestamps
+
+        Parameters
+        ----------
+        trigger:
+        idx:
+        direction
+
+        Returns
+        -------
+        numpy.ndarray
+        """
+
+        new_direction_lat = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 0])
+        if (direction[idx, 1] > direction[idx + 1, 1]):
+            new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], [direction[idx, 1], 360 + direction[idx + 1, 1]])
+            new_direction_long = new_direction_long - 360
+        else:
+            new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 1])
+
+        return np.array([new_direction_lat, new_direction_long])
+
+    def source_interval(self, start, stop):
+
+        """
+        Returns the Orientation file class object for the source time
+
+        Parameters
+        ----------
+        start:
+        stop:
+
+        Returns
+        -------
+        cosipy.Orientation
         """
         
-        if isinstance(var, str):
-            loaded = np.load(var)
-        elif isinstance(var, Time):
-            loaded = var
-        return loaded
-    
-    def sc_frame(self, x_pointings = None, y_pointings = None, z_pointings = None):
-        
+        if(start.format != 'unix' or stop.format != 'unix'):
+            start = Time(start.unix, format='unix')
+            stop = Time(stop.unix, format='unix')
+
+        if(start > stop):
+            raise ValueError("start time cannot be after stop time.")
+
+        stop_idx = self._load_time.searchsorted(stop.value)
+
+        if (start.value % 1 == 0):
+            start_idx = self._load_time.searchsorted(start.value)
+            new_times = self._load_time[start_idx : stop_idx + 1]
+            new_x_direction = self._x_direction[start_idx : stop_idx + 1]
+            new_z_direction = self._z_direction[start_idx : stop_idx + 1]
+        else:
+            start_idx = self._load_time.searchsorted(start.value) - 1
+
+            x_direction_start = self.interpolate_direction(start, start_idx, self._x_direction)
+            z_direction_start = self.interpolate_direction(start, start_idx, self._z_direction)
+
+            new_times = self._load_time[start_idx + 1 : stop_idx + 1]
+            new_times = np.insert(new_times, 0, start.value)
+
+            new_x_direction = self._x_direction[start_idx + 1 : stop_idx + 1]
+            new_x_direction = np.insert(new_x_direction, 0, x_direction_start, axis = 0)
+
+            new_z_direction = self._z_direction[start_idx + 1 : stop_idx + 1]
+            new_z_direction = np.insert(new_z_direction, 0, z_direction_start, axis = 0)
+
+
+        if (stop.value % 1 != 0):
+            stop_idx = self._load_time.searchsorted(stop.value) - 1
+
+            x_direction_stop = self.interpolate_direction(stop, stop_idx, self._x_direction)
+            z_direction_stop = self.interpolate_direction(stop, stop_idx, self._z_direction)
+
+            new_times = np.delete(new_times, -1)
+            new_times = np.append(new_times, stop.value)
+
+            new_x_direction = new_x_direction[:-1]
+            new_x_direction = np.append(new_x_direction, [x_direction_stop], axis = 0)
+
+            new_z_direction = new_z_direction[:-1]
+            new_z_direction = np.append(new_z_direction, [z_direction_stop], axis = 0)
+
+        return Orientation_file(new_times, new_x_direction, new_z_direction)
+
+    def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
+
         """
-        Converts the x, y and z pointings of the spacescraft axes to the path of the source 
-        in the spacecraft frame
-        
-        Specify the pointings of at least two axes.
-        
+        Converts the x, y and z pointings to the attitude of the telescope.
+
         Parameters
         ----------
         x_pointings : SkyCoord object; the pointings of the x axis of the spacecraft.
         y_pointings : SkyCoord object; the pointings of the y axis of the spacecraft.
         z_pointings : SkyCoord object; the pointings of the z axis of the spacecraft.
-        frame : :py:class:`astropy.coordinates.BaseCoordinateFrame`
-                Inertial reference frame
-                
+        frame : :py:class:`astropy.coordinates.BaseCoordinateFrame`; Inertial reference frame
+
         Returns
         -------
-        SkyCoord object
+        cosipy.attitude
         """
-        
-        self.x_pointings = x_pointings
-        self.y_pointings = y_pointings
-        self.z_pointings = z_pointings
-        
+
+        if x_pointings is not None:
+            self.x_pointings = x_pointings
+        if y_pointings is not None:
+            self.y_pointings = y_pointings
+        if z_pointings is not None:
+            self.z_pointings = z_pointings
+
         list_ = [self.x_pointings, self.y_pointings, self.z_pointings]
         coord_list_of_path = [x for x in list_ if x!=None]  # check how many pointings the user input
-        
+
         # Check if the user input pointings from at least two axes
         if len(coord_list_of_path) <= 1:
             raise ValueError("You must input pointings of at least two axes")
-        
+
         # Check if the inputs are SkyCoord objects
         for i in coord_list_of_path:
             if type(i) != SkyCoord:
                 raise ValueError("The coordiates must be a SkyCoord object")
-            
-        print("Now converting to the Spacecraft frame...")
-        
+
         self.attitude = Attitude.from_axes(x=self.x_pointings, 
                                            y=self.y_pointings, 
                                            z=self.z_pointings, 
                                            frame = self.frame)
-        
-        self.src_path_cartesian = SkyCoord(np.dot(self.attitude.rot.inv().as_matrix(), self.src_coord.cartesian.xyz.value),
-                          representation_type = 'cartesian',
-                          frame = SpacecraftFrame())
+
+        return self.attitude
+
+    def get_target_in_sc_frame(self, target_name, target_coord, attitude = None):
+
+        """
+        Convert the x, y and z pointings of the spacescraft axes to the path of the source in the spacecraft frame.
+        Specify the pointings of at least two axes.
+
+        Parameters
+        ----------
+        target_name: str; the name of the target object
+        target_coord: astropy.Skycoord; the coordinates of the target object
+        attitude: None or cosipy.Attitude; If not, the attitude will be taken from the instance
+
+        Returns
+        -------
+        SkyCoord object
+        """
+
+        if attitude != None:
+            self.attitude = attitude
+        else:
+            self.attitude = self.get_attitude()
+
+        self.target_name = target_name
+        print("Now converting to the Spacecraft frame...")
+        self.src_path_cartesian = SkyCoord(np.dot(self.attitude.rot.inv().as_matrix(), target_coord.cartesian.xyz.value),
+                                           representation_type = 'cartesian',
+                                           frame = SpacecraftFrame())
         
         # The conversion above is in Cartesian frame, so we have to convert them to the spherical one.
+
         self.src_path_spherical = cartesian_to_spherical(self.src_path_cartesian.x, 
                                                          self.src_path_cartesian.y, 
                                                          self.src_path_cartesian.z)
+
         print(f"Conversion completed!")
-        
-        # new generate the numpy array of l and b to save to a npy file
+
+        # generate the numpy array of l and b to save to a npy file
         l = np.array(self.src_path_spherical[2].deg)  # note that 0 is Quanty, 1 is latitude and 2 is longitude and they are in rad not deg
         b = np.array(self.src_path_spherical[1].deg)
         self.src_path_lb = np.stack((l,b), axis=-1)
-        np.save(self.out_name+"_source_path_in_SC_frame", self.src_path_lb)
-        
+        np.save(self.target_name+"_source_path_in_SC_frame", self.src_path_lb)
+
         # convert to SkyCoord objects to get the output object of this method
         self.src_path_skycoord = SkyCoord(self.src_path_lb[:,0], self.src_path_lb[:,1], unit = "deg", frame = SpacecraftFrame())
-        
+
         return self.src_path_skycoord
-    
-    
-    def get_dwell_map(self, response, dts, src_path = None):
-        
+
+    def get_dwell_map(self, response, dts = None, src_path = None):
+
         """
-        Generates the dwell time map for the source
-        
+        Generates the dwell time map for the source.
+
         Parameters
         ----------
-        response : .h5 file; the response for the observation,
-        dts : numpy array or str; the elapsed time for each pointing. It must has the same size as the pointings
+        response : str; .h5 file, the response for the observation
+        dts : None or numpy.ndarray; the elapsed time for each pointing. It must has the same size as the pointings
         src_path : SkyCoord object; the movement of source in the detector frame.
-        
+
         Returns
         -------
-        dwell time map
+        mhealpy.containers.healpix_map.HealpixMap
         """
-        
-        self.response_file = response
-        
-        self.dts = self.__str_or_array(dts)
-        
-        if src_path != None:
-            path = src_path
-            if type(path) != SkyCoord:
-                raise TypeError("The coordiates of the source movement in the Spacecraft frame must be a SkyCoord object")
-        else:
-            path = self.src_path_skycoord
-            
-        if path.shape[0] != self.dts.shape[0]:
-            raise ValueError("The dimension of the dts and source coordinates are not the same. Please check your inputs.")
-        
-        with FullDetectorResponse.open(self.response_file) as response:
-            self.dwell_map = HealpixMap(base = response,
-                                   unit = u.s,
-                                   coordsys = SpacecraftFrame())
-            
-            if len(self.dts) != 1:
-                for duration,coord in zip(dts,path):
-                    pixels, weights = self.dwell_map.get_interp_weights(coord)
-                    for p,w in zip(pixels, weights):
-                        self.dwell_map[p] += w*(duration.unix*u.s)
 
-        self.dwell_map.write_map(self.out_name + "_DwellMap.fits", overwrite=True)
+        # Define the response
+        self.response_file = response
+
+        # Define the dts
+        if dts == None:
+            self.dts = self.get_time_delta()
+        else:
+            self.dts = Time(dts, format = "unix")
+
+        # define the target source path in the SC frame
+        if src_path == None:
+            path = self.src_path_skycoord
+        else:
+            path = src_path
+        # check if the target source path is astropy.Skycoord object
+        if type(path) != SkyCoord:
+            raise TypeError("The coordiates of the source movement in the Spacecraft frame must be a SkyCoord object")
+
+        if path.shape[0] != self.dts.shape[0]:
+            raise ValueError("The dimensions of the dts and source coordinates are not the same. Please check your inputs.")
+            
+        with FullDetectorResponse.open(self.response_file) as response:
+            self.dwell_map = HealpixMap(base = response, 
+                                        unit = u.s, 
+                                        coordsys = SpacecraftFrame())
+
+            for duration, coord in zip(self.dts, path):
+                pixels, weights = self.dwell_map.get_interp_weights(coord)
+                for p, w in zip(pixels, weights):
+                    self.dwell_map[p] += w*(duration.unix*u.s)
+
+
+        self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True) 
         
-        return self.dwell_map
-        
+        return self.dwell_map     
+            
     def get_psr_rsp(self, response = None, dwell_map = None, dts = None):
         
         """
@@ -180,7 +337,7 @@ class SourceSpacecraft(object):
         Parameters
         ----------
         response : .h5 file; the response for the observation
-        dwell_map : fits file; the time dwell map for the source, you can load saved dwell time map 
+        dwell_map : None or str; the time dwell map for the source, you can load saved dwell time map 
                     using this parameterif you've saved it before
         dts : numpy array or the file path; the elapsed time for each pointing. It must has the same 
               size as the pointings. If you have saved this array, you can load it using this parameter
@@ -197,14 +354,20 @@ class SourceSpacecraft(object):
         matrix : numpy.array; the energy dispersion matrix
         """
         
-        if response != None:
+        if response == None:
+            pass # will use the response defined in the previous steps
+        else:
             self.response_file = response
 
-        if dwell_map is not None:
-            pass # will read the saved dwell_map
+        if dwell_map is None:  # must use is None, or it throws error!
+            pass # will use the dwelltime map calculated in the previous steps
+        else:
+            self.dwell_map = HealpixMap.read_map(dwell_map)
         
-        if dts != None:
-            self.dts = self.__str_or_array(dts)
+        if dts == None:
+            self.dts = self.get_time_delta()
+        else:
+            self.dts = Time(dts, format = "unix")
         
         with FullDetectorResponse.open(self.response_file) as response:
             
@@ -234,18 +397,24 @@ class SourceSpacecraft(object):
         return self.Ei_edges, self.Ei_lo, self.Ei_hi, self.Em_edges, self.Em_lo, self.Em_hi, self.areas, self.matrix
         
         
-    def get_arf(self):
+    def get_arf(self, out_name = None):
         
         """
         Converts the point source response to an arf file that can be read by XSPEC
         
         Parameters
         ----------
+        out_name: str; the name of the arf file to save
         
         Returns
         -------
         None
         """
+        
+        if out_name == None:
+            self.out_name = self.target_name
+        else:
+            self.out_name = out_name
         
         # blow write the arf file
         copyright_string="  FITS (Flexible Image Transport System) format is defined in 'Astronomy and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H "
@@ -285,19 +454,25 @@ class SourceSpacecraft(object):
         
         return
     
-    def get_rmf(self):
+    def get_rmf(self, out_name = None):
         
         """
         Converts the point source response to an rmf file that can be read by XSPEC
         
         Parameters
         ----------
+        out_name: str; the name of the rmf file to save
         
         Returns
         -------
         None
         """
-        
+
+        if out_name == None:
+            self.out_name = self.target_name
+        else:
+            self.out_name = out_name
+            
         # blow write the arf file
         copyright_string="  FITS (Flexible Image Transport System) format is defined in 'Astronomy and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H "
 
@@ -573,7 +748,7 @@ class SourceSpacecraft(object):
         ax.set_xlabel("Energy[$keV$]")
         ax.set_ylabel(r"Effective area [$cm^2$]")
         ax.set_xscale("log")
-        fig.savefig(f"Effective area for {self.save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=self.dpi)
+        fig.savefig(f"Effective_area_for_{self.save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=self.dpi)
         #fig.show()
         
         return
@@ -666,7 +841,13 @@ class SourceSpacecraft(object):
         #plt.xlim([70,10000])
         #plt.ylim([70,10000])
         plt.colorbar(norm=LogNorm())
-        plt.savefig(f"Redistribution matrix for {self.save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=300)
+        plt.savefig(f"Redistribution_matrix_for_{self.save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=300)
         #plt.show()
         
         return
+
+        
+
+        
+            
+    

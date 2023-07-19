@@ -10,4 +10,4 @@ from .make_plots import MakePlots
 
 from .threeml import COSILike
 
-from .spacecraftpositionattitude import SpacecraftPositionAttitude
+from .spacecraftfile import SpacecraftFile
