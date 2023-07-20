@@ -39,7 +39,7 @@ class FullDetectorResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename,Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0,emin=90,emax=10000):
+    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000):
         """
         Open a detector response file.
 
@@ -54,7 +54,7 @@ class FullDetectorResponse(HealpixBase):
 
          norm : str, 
              type of normalisation : file (then specify also SpectrumFile)
-             ,powerlaw or flat
+             ,powerlaw, Mono or Linear
          
          alpha : int,
              if the normalisation is "powerlaw", value of the spectral index.
@@ -125,7 +125,7 @@ class FullDetectorResponse(HealpixBase):
         return new
 
     @classmethod
-    def _open_rsp(cls, filename, Spectrumfile=None,norm="flat" ,single_pixel = False,alpha=0,emin=90,emax=10000):
+    def _open_rsp(cls, filename, Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000):
         """
         
          Open a detector response rsp file.
@@ -141,7 +141,7 @@ class FullDetectorResponse(HealpixBase):
 
          norm : str, 
              type of normalisation : file (then specify also SpectrumFile)
-             ,powerlaw or flat
+             ,powerlaw, Mono or Linear
          
          alpha : int,
              if the normalisation is "powerlaw", value of the spectral index.
@@ -174,6 +174,14 @@ class FullDetectorResponse(HealpixBase):
 
                 elif key == 'SA':
                     area_sim = float(line[1])
+                    
+                elif key == "SP" and line[1]!="true" and line[1]!="false" :
+                    norm = str(line[1])
+                    
+                    if norm =="Linear" :
+                        emin = int(line[2])
+                        emax = int(line[3])
+                            
 
                 elif key == 'AD':
                     if line[2] == "RING":
@@ -190,6 +198,7 @@ class FullDetectorResponse(HealpixBase):
                 elif key == 'RD':
                     break
 
+        print("normalisation is {0}".format(norm))
         edges = ()
         #print(axes_edges)
 
@@ -269,7 +278,7 @@ class FullDetectorResponse(HealpixBase):
             nperchannel_norm = hspec[:]
 
         elif norm=="powerlaw":
-            print("normalisation : powerlaw with index {0}".format(alpha))
+            print("normalisation : powerlaw with index {0} with energy range [{1}-{2}]keV".format(alpha,emin,emax))
             # From powerlaw
             
 
@@ -284,11 +293,13 @@ class FullDetectorResponse(HealpixBase):
             nperchannel_norm[ecenters > emax] = 0
 
 
-        elif norm =="flat" or norm=="line" :
-            print("normalisation : flat or line")
+        elif norm =="Linear" :
+            print("normalisation : linear with energy range [{0}-{1}]".format(emin,emax))
             nperchannel_norm = ewidth / (emax-emin)
             
-
+        elif norm=="Mono" :
+            print("normalisation : mono")
+            nperchannel_norm = 1.
             
         nperchannel = nperchannel_norm * nevents_sim
 
