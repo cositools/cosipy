@@ -14,7 +14,7 @@ from cosipy.response import FullDetectorResponse
 
 class SpacecraftFile():
 
-    def __init__(self, time, x_pointings = None, y_pointings = None, z_pointings = None, 
+    def __init__(self, time, x_pointings = None, y_pointings = None, z_pointings = None,
                  instrument = "COSI", frame = "galactic"):
 
         """
@@ -35,13 +35,13 @@ class SpacecraftFile():
         if y_pointings is not None:
             self.y_pointings = SkyCoord(l = y_pointings[:,0], b = y_pointings[:,1], unit = "deg", frame = self.frame)
         else:
-            self.y_pointings = x_pointings
+            self.y_pointings = y_pointings
 
         if z_pointings is not None:
             self.z_pointings = SkyCoord(l = z_pointings[:,0], b = z_pointings[:,1], unit = "deg", frame = self.frame)
         else:
             self.z_pointings = z_pointings
-        
+
 
     @classmethod
     def parse_from_file(cls, file):
@@ -52,8 +52,8 @@ class SpacecraftFile():
         axis_1 = np.loadtxt(file, usecols = (2,3), delimiter = ' ', skiprows = 1)
         axis_2 = np.loadtxt(file, usecols = (4,5), delimiter = ' ', skiprows = 1)
 
-        return cls(time_stamps, axis_1, axis_2)
-        
+        return cls(time_stamps, x_pointings = axis_1, z_pointings = axis_2)
+
 
     def get_time(self, time_array = None):
 
@@ -94,7 +94,7 @@ class SpacecraftFile():
             self._time_delta = np.diff(self._load_time)
         else:
             self._time_delta = np.diff(time_array)
-            
+
         time_delta = Time(self._time_delta, format='unix')
 
         return time_delta
@@ -138,7 +138,7 @@ class SpacecraftFile():
         -------
         cosipy.Orientation
         """
-        
+
         if(start.format != 'unix' or stop.format != 'unix'):
             start = Time(start.unix, format='unix')
             stop = Time(stop.unix, format='unix')
@@ -222,9 +222,9 @@ class SpacecraftFile():
             if type(i) != SkyCoord:
                 raise ValueError("The coordiates must be a SkyCoord object")
 
-        self.attitude = Attitude.from_axes(x=self.x_pointings, 
-                                           y=self.y_pointings, 
-                                           z=self.z_pointings, 
+        self.attitude = Attitude.from_axes(x=self.x_pointings,
+                                           y=self.y_pointings,
+                                           z=self.z_pointings,
                                            frame = self.frame)
 
         return self.attitude
@@ -256,11 +256,11 @@ class SpacecraftFile():
         self.src_path_cartesian = SkyCoord(np.dot(self.attitude.rot.inv().as_matrix(), target_coord.cartesian.xyz.value),
                                            representation_type = 'cartesian',
                                            frame = SpacecraftFrame())
-        
+
         # The conversion above is in Cartesian frame, so we have to convert them to the spherical one.
 
-        self.src_path_spherical = cartesian_to_spherical(self.src_path_cartesian.x, 
-                                                         self.src_path_cartesian.y, 
+        self.src_path_spherical = cartesian_to_spherical(self.src_path_cartesian.x,
+                                                         self.src_path_cartesian.y,
                                                          self.src_path_cartesian.z)
 
         print(f"Conversion completed!")
@@ -312,10 +312,10 @@ class SpacecraftFile():
 
         if path.shape[0] != self.dts.shape[0]:
             raise ValueError("The dimensions of the dts and source coordinates are not the same. Please check your inputs.")
-            
+
         with FullDetectorResponse.open(self.response_file) as response:
-            self.dwell_map = HealpixMap(base = response, 
-                                        unit = u.s, 
+            self.dwell_map = HealpixMap(base = response,
+                                        unit = u.s,
                                         coordsys = SpacecraftFrame())
 
             for duration, coord in zip(self.dts, path):
@@ -324,24 +324,24 @@ class SpacecraftFile():
                     self.dwell_map[p] += w*(duration.unix*u.s)
 
 
-        self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True) 
-        
-        return self.dwell_map     
-            
+        self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)
+
+        return self.dwell_map
+
     def get_psr_rsp(self, response = None, dwell_map = None, dts = None):
-        
+
         """
         Generates the point source response based on the response file and dwell time map.
         dts is used to find the exposure time for this observation.
-        
+
         Parameters
         ----------
         response : .h5 file; the response for the observation
-        dwell_map : None or str; the time dwell map for the source, you can load saved dwell time map 
+        dwell_map : None or str; the time dwell map for the source, you can load saved dwell time map
                     using this parameterif you've saved it before
-        dts : numpy array or the file path; the elapsed time for each pointing. It must has the same 
+        dts : numpy array or the file path; the elapsed time for each pointing. It must has the same
               size as the pointings. If you have saved this array, you can load it using this parameter
-        
+
         Returns
         -------
         Ei_edges : numpy array; the edges of the incident energy
@@ -353,7 +353,7 @@ class SpacecraftFile():
         areas " numpy array; the effective area of each energy bin
         matrix : numpy.array; the energy dispersion matrix
         """
-        
+
         if response == None:
             pass # will use the response defined in the previous steps
         else:
@@ -363,59 +363,59 @@ class SpacecraftFile():
             pass # will use the dwelltime map calculated in the previous steps
         else:
             self.dwell_map = HealpixMap.read_map(dwell_map)
-        
+
         if dts == None:
             self.dts = self.get_time_delta()
         else:
             self.dts = Time(dts, format = "unix")
-        
+
         with FullDetectorResponse.open(self.response_file) as response:
-            
+
             # get point source response
             self.psr = response.get_point_source_response(self.dwell_map)
-            
+
             self.Ei_edges = np.array(response.axes['Ei'].edges)
             self.Ei_lo = np.float32(self.Ei_edges[:-1])  # use float32 to match the requirement of the data type
             self.Ei_hi = np.float32(self.Ei_edges[1:])
-            
+
             self.Em_edges = np.array(response.axes['Em'].edges)
-            self.Em_lo = np.float32(self.Em_edges[:-1])  
+            self.Em_lo = np.float32(self.Em_edges[:-1])
             self.Em_hi = np.float32(self.Em_edges[1:])
-            
+
          # get the effective area and matrix
         print("Getting the effective area ...")
         self.areas = np.float32(np.array(self.psr.project('Ei').to_dense().contents))/self.dts.unix.sum()
         spectral_response = np.float32(np.array(self.psr.project(['Ei','Em']).to_dense().contents))
         self.matrix = np.float32(np.zeros((self.Ei_lo.size,self.Em_lo.size))) # initate the matrix
-        
+
         print("Getting the energy redistribution matrix ...")
         for i in np.arange(self.Ei_lo.size):
             new_raw = spectral_response[i,:]/spectral_response[i,:].sum()
             self.matrix[i,:] = new_raw
         self.matrix = self.matrix.T
-        
+
         return self.Ei_edges, self.Ei_lo, self.Ei_hi, self.Em_edges, self.Em_lo, self.Em_hi, self.areas, self.matrix
-        
-        
+
+
     def get_arf(self, out_name = None):
-        
+
         """
         Converts the point source response to an arf file that can be read by XSPEC
-        
+
         Parameters
         ----------
         out_name: str; the name of the arf file to save
-        
+
         Returns
         -------
         None
         """
-        
+
         if out_name == None:
             self.out_name = self.target_name
         else:
             self.out_name = out_name
-        
+
         # blow write the arf file
         copyright_string="  FITS (Flexible Image Transport System) format is defined in 'Astronomy and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H "
 
@@ -451,18 +451,18 @@ class SpacecraftFile():
 
         new_arfhdus = fits.HDUList([primaryhdu, specresp_bintablehdu])
         new_arfhdus.writeto(f'{self.out_name}.arf', overwrite=True)
-        
+
         return
-    
+
     def get_rmf(self, out_name = None):
-        
+
         """
         Converts the point source response to an rmf file that can be read by XSPEC
-        
+
         Parameters
         ----------
         out_name: str; the name of the rmf file to save
-        
+
         Returns
         -------
         None
@@ -472,7 +472,7 @@ class SpacecraftFile():
             self.out_name = self.target_name
         else:
             self.out_name = out_name
-            
+
         # blow write the arf file
         copyright_string="  FITS (Flexible Image Transport System) format is defined in 'Astronomy and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H "
 
@@ -557,7 +557,7 @@ class SpacecraftFile():
         matrix_bintablehdu.header["HDUCLAS2"] = ("RSP_MATRIX","dataset is a spectral response matrix")
         matrix_bintablehdu.header["HDUVERS"] = ("1.3.0","version of format")
         matrix_bintablehdu.header["TLMIN4"] = (0,"minimum value legally allowed in column 4")
-        
+
         ## Create binary table HDU for EBOUNDS
         channels = np.int16(np.arange(len(self.Em_lo)))
         e_min = np.float32(self.Em_lo)
@@ -588,17 +588,17 @@ class SpacecraftFile():
         ebounds_bintablehdu.header["HDUCLAS1"] = ("RESPONSE","dataset relates to spectral response")
         ebounds_bintablehdu.header["HDUCLAS2"] = ("EBOUNDS","dataset is a spectral response matrix")
         ebounds_bintablehdu.header["HDUVERS"] = ("1.2.0","version of format")
-        
+
         new_rmfhdus = fits.HDUList([primaryhdu, matrix_bintablehdu,ebounds_bintablehdu])
         new_rmfhdus.writeto(f'{self.out_name}.rmf', overwrite=True)
-        
+
         return
-    
+
     def get_pha(self, src_counts, errors, rmf_file = None, arf_file = None, bkg_file = "None", exposure_time = None, dts = None, telescope="COSI", instrument="COSI"):
-        
+
         """
         Generate the pha file that can be read by XSPEC. This file stores the counts info of the source
-        
+
         Parameters
         ----------
         src_counts : np.array; the counts in each energy band. If you have src_counts with unit counts/kev/s, you must
@@ -608,25 +608,25 @@ class SpacecraftFile():
         arf_file : str; the arf file name
         bkg_file : str; the background file name. If the src_counts is source counts only, you don't need to edit this parameter
         exposure_time : number; the exposure time for this source observation
-        dts : numpy array or str; it's used to calculate the exposure time. It has the same effect as exposure_time. If both 
+        dts : numpy array or str; it's used to calculate the exposure time. It has the same effect as exposure_time. If both
               exposure_time and dts are given, dts will write over the exposure_time
         telescope : str; the name of the telecope. Default is COSI.
         instrument : str; the name of the instrument. Default is COSI.
-        
+
         Returns
         -------
         None
         """
-        
+
         self.src_counts = src_counts
         self.errors = errors
         self.bkg_file = bkg_file
-        
+
         if rmf_file != None:
             self.rmf_file = rmf_file
         else:
             self.rmf_file = f'{self.out_name}.rmf'
-            
+
         if arf_file != None:
             self.arf_file = arf_file
         else:
@@ -640,11 +640,11 @@ class SpacecraftFile():
         self.telescope = telescope
         self.instrument = instrument
         self.channel_number = len(self.src_counts)
-        
+
         # define other hardcoded inputs
         copyright_string="  FITS (Flexible Image Transport System) format is defined in 'Astronomy and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H "
         channels = np.arange(self.channel_number)
-        
+
         # Create PrimaryHDU
         primaryhdu = fits.PrimaryHDU() # create an empty primary HDU
         primaryhdu.header["BITPIX"] = -32 # since it's an empty HDU, I can just change the data type by resetting the BIPTIX value
@@ -652,7 +652,7 @@ class SpacecraftFile():
         primaryhdu.header["TELESCOP"] = telescope # add telescope keyword valie
         primaryhdu.header["INSTRUME"] = instrument # add instrument keyword valie
         primaryhdu.header # print headers and their values
-        
+
         # Create binary table HDU
         a1 = np.array(channels,dtype="int32") # I guess I need to convert the dtype to match the format J
         a2 = np.array(self.src_counts,dtype="int64")  # int32 is not enough for counts
@@ -694,109 +694,109 @@ class SpacecraftFile():
         bintablehdu.header["POISSERR"] = (False,"Poissonian errors to be assumed, T as True")
         bintablehdu.header["CHANTYPE"] = ("PI","channel type (PHA or PI)")
         bintablehdu.header["DETCHANS"] = (self.channel_number,"total number of detector channels")
-        
+
         new_phahdus = fits.HDUList([primaryhdu, bintablehdu])
         new_phahdus.writeto(f'{self.out_name}.pha', overwrite=True)
-        
+
         return
-    
+
 
     def plot_arf(self, file_name = None, save_name = None, dpi = 300):
-        
+
         """
         Read the arf fits file, plot and save it.
-        
+
         Parameters
         ----------
-        file_name: str; the directory if the arf fits file. 
+        file_name: str; the directory if the arf fits file.
         save_name: str; the name of the saved image of effective area
         dpi: int; the dpi of the saved image
-        
+
         Returns
         -------
         None
         """
-        
+
         if file_name != None:
             self.file_name = file_name
         else:
             self.file_name = f'{self.out_name}.arf'
-            
+
         if save_name != None:
             self.save_name = save_name
         else:
             self.save_name = self.out_name
-            
+
         self.dpi = dpi
-            
+
         self.arf = fits.open(self.file_name) # read file
-        
+
         # SPECRESP HDU
         self.specresp_hdu = self.arf["SPECRESP"]
-        
+
         self.areas = np.array(self.specresp_hdu.data["SPECRESP"])
         self.Em_lo = np.array(self.specresp_hdu.data["ENERG_LO"])
         self.Em_hi = np.array(self.specresp_hdu.data["ENERG_HI"])
-        
+
         E_center = (self.Em_lo+self.Em_hi)/2
         E_edges = np.append(self.Em_lo,self.Em_hi[-1])
-        
+
         fig, ax = plt.subplots()
         ax.hist(E_center,E_edges,weights=self.areas,histtype='step')
-        
+
         ax.set_title("Effective area")
         ax.set_xlabel("Energy[$keV$]")
         ax.set_ylabel(r"Effective area [$cm^2$]")
         ax.set_xscale("log")
         fig.savefig(f"Effective_area_for_{self.save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=self.dpi)
         #fig.show()
-        
+
         return
-        
-    
+
+
     def plot_rmf(self, file_name = None, save_name = None, dpi = 300):
-        
+
         """
         Read the rmf fits file, plot and save it.
-        
+
         Parameters
         ----------
-        file_name: str; the directory if the rmf fits file. 
+        file_name: str; the directory if the rmf fits file.
         save_name: str; the name of the saved image of effective area
         dpi: int; the dpi of the saved image
-        
+
         Returns
         -------
         None
         """
-        
+
         if file_name != None:
             self.file_name = file_name
         else:
             self.file_name = f'{self.out_name}.rmf'
-            
+
         if save_name != None:
             self.save_name = save_name
         else:
             self.save_name = self.out_name
-            
+
         self.dpi = dpi
-        
+
         # Read rmf file
         self.rmf = fits.open(self.file_name) # read file
-        
+
         # Read the ENOUNDS information
         ebounds_ext = self.rmf["EBOUNDS"]
         channel_low = ebounds_ext.data["E_MIN"] # energy bin lower edges for channels (channels are just incident energy bins)
         channel_high = ebounds_ext.data["E_MAX"] # energy bin higher edges for channels (channels are just incident energy bins)
-        
+
         # Read the MATRIX extension
         matrix_ext = self.rmf['MATRIX']
         #print(repr(matrix_hdu.header[:60]))
         energy_low = matrix_ext.data["ENERG_LO"] # energy bin lower edges for measured energies
         energy_high = matrix_ext.data["ENERG_HI"] # energy bin higher edges for measured energies
         data = matrix_ext.data
-        
+
         # Create a 2-d numpy array and store probability data into the redistribution matrix
         rmf_matrix = np.zeros((len(energy_low),len(channel_low))) # create an empty matrix
         for i in np.arange(data.shape[0]): # i is the measured energy index, examine the matrix_ext.data rows by rows
@@ -815,8 +815,8 @@ class SpacecraftFile():
                 indices = np.array(indices)
                 for m in indices:
                     rmf_matrix[i][m] = matrix[np.argwhere(indices == m)[0][0]] # write the probabilities into the empty matrix
-                    
-                    
+
+
         # plot the redistribution matrix
         xcenter = np.divide(energy_low+energy_high,2)
         x_center_coords = np.repeat(xcenter, 10)
@@ -843,11 +843,5 @@ class SpacecraftFile():
         plt.colorbar(norm=LogNorm())
         plt.savefig(f"Redistribution_matrix_for_{self.save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=300)
         #plt.show()
-        
+
         return
-
-        
-
-        
-            
-    
