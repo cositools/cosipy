@@ -28,17 +28,17 @@ class SpacecraftFile():
         self.frame = frame
 
         if x_pointings is not None:
-            self.x_pointings = SkyCoord(l = x_pointings[:,0], b = x_pointings[:,1], unit = "deg", frame = self.frame)
+            self.x_pointings = SkyCoord(l = x_pointings[:,1], b = x_pointings[:,0], unit = "deg", frame = self.frame)
         else:
             self.x_pointings = x_pointings
 
         if y_pointings is not None:
-            self.y_pointings = SkyCoord(l = y_pointings[:,0], b = y_pointings[:,1], unit = "deg", frame = self.frame)
+            self.y_pointings = SkyCoord(l = y_pointings[:,1], b = y_pointings[:,0], unit = "deg", frame = self.frame)
         else:
             self.y_pointings = y_pointings
 
         if z_pointings is not None:
-            self.z_pointings = SkyCoord(l = z_pointings[:,0], b = z_pointings[:,1], unit = "deg", frame = self.frame)
+            self.z_pointings = SkyCoord(l = z_pointings[:,1], b = z_pointings[:,0], unit = "deg", frame = self.frame)
         else:
             self.z_pointings = z_pointings
 
