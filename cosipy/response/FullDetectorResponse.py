@@ -299,7 +299,7 @@ class FullDetectorResponse(HealpixBase):
             
         elif norm=="Mono" :
             print("normalisation : mono")
-            nperchannel_norm = 1.
+            nperchannel_norm = [1.]
             
         nperchannel = nperchannel_norm * nevents_sim
 
