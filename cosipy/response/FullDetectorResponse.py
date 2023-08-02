@@ -22,6 +22,7 @@ import logging
 logger = logging.getLogger(__name__)
 import gzip
 from tqdm import tqdm
+import subprocess
 
 
 class FullDetectorResponse(HealpixBase):
@@ -212,8 +213,21 @@ class FullDetectorResponse(HealpixBase):
         #print(edges)
         axes = Axes(edges, labels=labels)
 
+        # Need to get number of lines for progress bar.
+        # First try fast method for unix-based systems:
+        try:
+            proc=subprocess.Popen('gunzip -c %s | wc -l' %filename, \
+                        shell=True, stdout=subprocess.PIPE)
+            nlines = int(proc.communicate()[0])
+
+
+        # If fast method fails, use long method, which should work in all cases.
+        except:
+            print("Initial attempt failed.")
+            print("Using long method...")
+            nlines = sum(1 for _ in gzip.open(filename,"rt"))
+            
         # Preallocate arrays
-        nlines = sum(1 for _ in gzip.open(filename,"rt"))
         coords = np.empty([axes.ndim, nlines], dtype=int)
         data = np.empty(nlines, dtype=int)
 
@@ -246,6 +260,9 @@ class FullDetectorResponse(HealpixBase):
                     sbin += 1
                     
                 progress_bar.update(1)
+
+                
+                
         
         progress_bar.close()
         nbins_sparse = sbin
@@ -261,6 +278,9 @@ class FullDetectorResponse(HealpixBase):
 
         ewidth = dr.axes['Ei'].widths
         ecenters = dr.axes['Ei'].centers
+        
+        print(ewidth)
+        print(ecenters)
 
         if Spectrumfile is not None and norm=="file":
             print("normalisation : spectrum file")
@@ -299,7 +319,8 @@ class FullDetectorResponse(HealpixBase):
             
         elif norm=="Mono" :
             print("normalisation : mono")
-            nperchannel_norm = [1.]
+
+            nperchannel_norm = np.array([1.])
             
         nperchannel = nperchannel_norm * nevents_sim
 
