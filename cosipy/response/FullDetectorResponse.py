@@ -279,8 +279,8 @@ class FullDetectorResponse(HealpixBase):
         ewidth = dr.axes['Ei'].widths
         ecenters = dr.axes['Ei'].centers
         
-        print(ewidth)
-        print(ecenters)
+        #print(ewidth)
+        #print(ecenters)
 
         if Spectrumfile is not None and norm=="file":
             print("normalisation : spectrum file")
