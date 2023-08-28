@@ -2,8 +2,9 @@ import gc
 import numpy as np
 import astropy.units as u
 from tqdm.autonotebook import tqdm
+import healpy as hp
 
-from histpy import Histogram
+from histpy import Histogram, Axes, Axis
 
 class DeconvolutionAlgorithmBase(object):
 
@@ -27,6 +28,8 @@ class DeconvolutionAlgorithmBase(object):
         self.processed_delta_map = None
 
         self.expectation = None
+
+        self.bkg_norm = 1.0
 
         self.iteration_max = parameter['iteration']
 
@@ -107,11 +110,11 @@ class DeconvolutionAlgorithmBase(object):
         model_map_expanded = data.image_response_dense.expand_dims(model_map, ["lb", "Ei"])
         if use_sparse:
             expectation = (data.image_response_sparse * model_map_expanded).project(["Time", "Em", "Phi", "PsiChi"]) * model_map.unit * self.pixelarea
-            expectation += data.bkg_sparse
+            expectation += data.bkg_sparse * self.bkg_norm
             expectation += almost_zero
         else:
             expectation = (data.image_response_dense * model_map_expanded).project(["Time", "Em", "Phi", "PsiChi"]) * model_map.unit * self.pixelarea
-            expectation += data.bkg_dense 
+            expectation += data.bkg_dense * self.bkg_norm
             expectation += almost_zero
         
         return expectation
@@ -126,3 +129,28 @@ class DeconvolutionAlgorithmBase(object):
             loglikelood = np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)
 
         return loglikelood
+
+    def calc_gaussian_filter(self, sigma, max_sigma):
+        gaussian_filter = Histogram( Axes( [Axis(edges = np.arange(self.npix+1)), Axis(edges = np.arange(self.npix+1))] ), sparse = False)
+
+        for ipix in tqdm(range(self.npix)):
+            vec_i = hp.pix2vec(self.nside, ipix, nest = False)
+    
+            for jpix in range(self.npix):
+                vec_j = hp.pix2vec(self.nside, jpix, nest = False)
+                
+                delta_cos = vec_i[0] * vec_j[0] + vec_i[1] * vec_j[1] + vec_i[2] * vec_j[2]
+
+                if delta_cos > 1.0:
+                    delta_cos = 1.0
+                elif delta_cos < -1.0:
+                    delta_cos = -1.0
+                    
+                delta_ang = np.arccos(delta_cos) * 180.0 / np.pi
+                
+                if delta_ang / sigma < max_sigma:
+                    gaussian_filter[ipix,jpix] = np.exp( - 0.5 * delta_ang**2 / sigma**2)
+    
+            gaussian_filter[ipix,:] /= np.sum(gaussian_filter[ipix,:])
+    
+        return gaussian_filter

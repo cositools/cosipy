@@ -318,20 +318,21 @@ class DataLoader(object):
     def save_coordsys_conv_matrix(self, filename = "coordsys_conv_matrix.hdf5"): 
         self.coordsys_conv_matrix.write(filename, overwrite = True)
 
-    def load_coordsys_conv_matrix_from_filepath(self, filepath):
-        self._modify_axes() # Here I just fix the current discrepancy between response and event/bkg files. I remove this line soon.
+    def load_coordsys_conv_matrix_from_filepath(self, filepath, modify_axis = True):
+        if modify_axis:
+            self._modify_axes() # Here I just fix the current discrepancy between response and event/bkg files. I remove this line soon.
 
         if not self._check_file_registration():
             print("Please load all files!")
-            return 
+#            return 
     
         if not self._check_axis_consistency():
             print("Please the axes of the input files!")
-            return 
+#            return 
 
         if not self._check_sc_orientation_coverage():
             print("Please the axes of the input files!")
-            return 
+#            return 
 
         print("... (DataLoader) loading a coordinate conversion matrix...")
 
@@ -369,6 +370,8 @@ class DataLoader(object):
                                                                 axes = ([1], [0]) ) * self.full_detector_response.unit * self.coordsys_conv_matrix.unit #lb, Ei
 
         else:
+            npix = self.full_detector_response.axes["NuLambda"].npix 
+
             for ipix in tqdm(range(npix)):
                 full_detector_response_projected_Ei = np.sum(self.full_detector_response[ipix].to_dense(), axis = (1,2,3,4,5)) #Ei
                 # when np.sum is applied to a dense histogram, the unit is restored. when it is a sparse histogram, the unit is not restored. 

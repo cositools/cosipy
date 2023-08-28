@@ -16,10 +16,36 @@ class RichardsonLucy_memorysave(DeconvolutionAlgorithmBase):
 
         self.loglikelihood = None
 
-        self.alpha_max = parameter['alpha_max']
-        
+        self.alpha_max = parameter.get('alpha_max', 1.0)
+
+        self.do_response_weighting = parameter.get('response_weighting', False)
+
+        self.do_smoothing = parameter.get('smoothing', False)
+
+        self.do_bkg_norm_fitting = parameter.get('background_normalization_fitting', False)
+
+        if self.do_bkg_norm_fitting:
+            self.bkg_norm_range = parameter.get('background_normalization_range', [0.5, 1.5])
+
         print("... calculating the expected events with the initial model map ...")
         self.expectation = self.calc_expectation(self.initial_model_map, self.data, self.use_sparse)
+
+        if self.do_response_weighting:
+            print("... calculating the response weighting filter...")
+
+            response_weighting_index = parameter.get('response_weighting_index', 0.5)
+
+            self.response_weighting_filter = data.image_response_dense_projected.contents / np.max(data.image_response_dense_projected.contents) 
+
+            self.response_weighting_filter = self.response_weighting_filter**response_weighting_index
+
+        if self.do_smoothing:
+            print("... calculating the gaussian filter...")
+
+            self.smoothing_sigma = parameter['smoothing_FWHM'] / 2.354820 # degree
+
+            self.smoothing_max_sigma = parameter.get('smoothing_max_sigma', default = 5.0)
+            self.gaussian_filter = self.calc_gaussian_filter(self.smoothing_sigma, self.smoothing_max_sigma)
 
     def pre_processing(self):
         pass
@@ -50,9 +76,28 @@ class RichardsonLucy_memorysave(DeconvolutionAlgorithmBase):
 
         self.delta_map = delta_map_part1 * delta_map_part2
 
+        if self.do_bkg_norm_fitting:
+            self.bkg_norm += self.bkg_norm * np.sum(diff * self.data.bkg_dense) / np.sum(self.data.bkg_dense)
+
+            if self.bkg_norm < self.bkg_norm_range[0]:
+                self.bkg_norm = self.bkg_norm_range[0]
+            elif self.bkg_norm > self.bkg_norm_range[1]:
+                self.bkg_norm = self.bkg_norm_range[1]
+
+            print("bkg_norm : ", self.bkg_norm)
+
     def post_processing(self):
+
+        if self.do_response_weighting:
+            self.delta_map[:,:] *= self.response_weighting_filter
+
+        if self.do_smoothing:
+            self.delta_map[:,:] = np.tensordot(self.gaussian_filter.contents, self.delta_map.contents, axes = [[0], [0]])
+
         self.alpha = self.calc_alpha(self.delta_map, self.model_map)
+
         self.processed_delta_map = self.delta_map * self.alpha
+
         self.model_map += self.processed_delta_map 
 
         print("... calculating the expected events with the updated model map ...")
@@ -71,6 +116,7 @@ class RichardsonLucy_memorysave(DeconvolutionAlgorithmBase):
                        "delta_map": copy.deepcopy(self.delta_map),
                        "processed_delta_map": copy.copy(self.processed_delta_map),
                        "alpha": self.alpha, 
+                       "background_normalization": self.bkg_norm,
                        "loglikelihood": loglikelihood}
 
         self.result = this_result
@@ -83,6 +129,7 @@ class RichardsonLucy_memorysave(DeconvolutionAlgorithmBase):
         with open(f"result_itr{i_iteration}.dat", "w") as f:
             f.write(f'alpha: {self.result["alpha"]}\n')
             f.write(f'loglikelihood: {self.result["loglikelihood"]}\n')
+            f.write(f'background_normalization: {self.result["background_normalization"]}\n')
 
     def calc_alpha(self, delta, model_map):
         almost_zero = 1e-4 #it is to prevent the flux under zero
@@ -108,7 +155,7 @@ class RichardsonLucy_memorysave(DeconvolutionAlgorithmBase):
                 response_this_pix = np.sum(data.full_detector_response[ipix].to_dense(), axis = (4,5)) # 'Ei', 'Em', 'Phi', 'PsiChi'
                 expectation += np.tensordot(map_rotated[:,ipix,:], response_this_pix, axes = ([1], [0])) * self.pixelarea
 
-        expectation += data.bkg_dense 
+        expectation += data.bkg_dense * self.bkg_norm
         expectation += almost_zero
         
         return expectation
