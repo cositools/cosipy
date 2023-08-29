@@ -110,16 +110,24 @@ class DataLoader(object):
         print("... Done ...")
 
     def _check_file_registration(self):
+
+        print(f"... checking the file registration ...")
+
         if self.event_dense and self.event_sparse \
         and self.bkg_dense and self.bkg_sparse \
         and self.full_detector_response and self.orientation:
+
+            print(f"    --> pass")
             return True
         
         return False
 
     def _check_axis_consistency(self):
+        
+        print(f"... checking the axis consistency ...")
+
         # check the axes of the event/background files
-        axis_name = ['Time', 'Em', 'Phi', 'PsiChi']
+        axis_name = ['Time', 'Em', 'Phi', 'PsiChi'] # 'Time' should be changed if one uses the scat binning.
 
         for name in axis_name:
             if not self.event_dense.axes[name] == self.bkg_dense.axes[name]:
@@ -131,13 +139,64 @@ class DataLoader(object):
         
         for name in axis_name:
             if not self.event_dense.axes[name] == self.full_detector_response.axes[name]:
-                print(f"Warning: the axis {name} is not consistent with the event and response!")
+                print(f"Warning: the axis {name} is not consistent between the event and response!")
                 return False
 
+        print(f"    --> pass")
         return True
 
     def _modify_axes(self): # this is a tentetive function
-        self.event_dense.axes['Time']._unit = u.s
+
+        print(f"Note that this function is tentetive. It should be removed in the future!")
+        print(f"Please run this function only once!")
+
+        axis_name = ['Time', 'Em', 'Phi', 'PsiChi'] # 'Time' should be changed if one uses the scat binning.
+
+        for name in axis_name:
+
+            print(f"... checking the axis {name} of the event and background files...")
+            
+            event_edges, event_unit = self.event_dense.axes[name].edges, self.event_dense.axes[name].unit
+            bkg_edges, bkg_unit = self.bkg_dense.axes[name].edges, self.bkg_dense.axes[name].unit
+
+            if np.all(event_edges == bkg_edges):
+                print(f"    --> pass (edges)") 
+            else:
+                print(f"Warning: the edges of the axis {name} are not consistent between the event and background!")
+                print(f"        event      : {event_edges}")
+                print(f"        background : {bkg_edges}")
+                return False
+
+            if event_unit == bkg_unit:
+                print(f"    --> pass (unit)") 
+            else:
+                print(f"Warning: the unit of the axis {name} are not consistent between the event and background!")
+                print(f"        event      : {event_unit}")
+                print(f"        background : {bkg_unit}")
+                return False
+
+        # check the axes of the event/response files. 
+        # Note that currently (2023-08-29) no unit is stored in the binned data. So only the edges are compared. This should be modified in the future.
+
+        axis_name = ['Em', 'Phi', 'PsiChi']
+        
+        for name in axis_name:
+
+            print(f"...checking the axis {name} of the event and response files...")
+
+            event_edges, event_unit = self.event_dense.axes[name].edges, self.event_dense.axes[name].unit
+            response_edges, response_unit = self.full_detector_response.axes[name].edges, self.full_detector_response.axes[name].unit
+            
+            if type(response_edges) == u.quantity.Quantity:
+                response_edges = response_edges.value
+
+            if np.all(event_edges == response_edges):
+                print(f"    --> pass (edges)") 
+            else:
+                print(f"Warning: the edges of the axis {name} are not consistent between the event and background!")
+                print(f"        event      : {event_edges}")
+                print(f"        background : {response_edges}")
+                return False
 
         axes_cds = Axes([self.event_dense.axes["Time"], \
                          self.full_detector_response.axes["Em"], \
@@ -150,6 +209,9 @@ class DataLoader(object):
         self.bkg_dense = Histogram(axes_cds, unit = self.bkg_dense.unit, contents = self.bkg_dense.contents)
         self.bkg_sparse = self.bkg_dense.to_sparse()
 
+        print(f"The axes in the event and background files are redefined. Now they are consistent with those of the response file.")
+
+    '''
     def _check_sc_orientation_coverage(self):
 
         init_time_orientation = self.orientation.get_time()[0]
@@ -171,10 +233,9 @@ class DataLoader(object):
             return False
 
         return True
+    '''
 
     def calc_image_response(self): 
-
-        self._modify_axes() # Here I just fix the current discrepancy between response and event/bkg files. I remove this line soon.
 
         if not self._check_file_registration():
             print("Please load all files!")
@@ -184,9 +245,9 @@ class DataLoader(object):
             print("Please the axes of the input files!")
             return 
 
-        if not self._check_sc_orientation_coverage():
-            print("Please the axes of the input files!")
-            return 
+#        if not self._check_sc_orientation_coverage():
+#            print("Please the axes of the input files!")
+#            return 
 
         print("... (DataLoader) calculating a flat source response at each sky location and each time bin ...")
         
@@ -260,8 +321,6 @@ class DataLoader(object):
 
     def calc_coordsys_conv_matrix(self): 
 
-        self._modify_axes() # Here I just fix the current discrepancy between response and event/bkg files. I remove this line soon.
-
         if not self._check_file_registration():
             print("Please load all files!")
             return 
@@ -270,9 +329,9 @@ class DataLoader(object):
             print("Please the axes of the input files!")
             return 
 
-        if not self._check_sc_orientation_coverage():
-            print("Please the axes of the input files!")
-            return 
+#        if not self._check_sc_orientation_coverage():
+#            print("Please the axes of the input files!")
+#            return 
 
         print("... (DataLoader) calculating a coordinate conversion matrix...")
         
@@ -318,40 +377,55 @@ class DataLoader(object):
     def save_coordsys_conv_matrix(self, filename = "coordsys_conv_matrix.hdf5"): 
         self.coordsys_conv_matrix.write(filename, overwrite = True)
 
-    def load_coordsys_conv_matrix_from_filepath(self, filepath, modify_axis = True):
-        if modify_axis:
-            self._modify_axes() # Here I just fix the current discrepancy between response and event/bkg files. I remove this line soon.
+    def load_coordsys_conv_matrix_from_filepath(self, filepath):
 
         if not self._check_file_registration():
             print("Please load all files!")
-#            return 
+            return 
     
         if not self._check_axis_consistency():
             print("Please the axes of the input files!")
-#            return 
+            return 
 
-        if not self._check_sc_orientation_coverage():
-            print("Please the axes of the input files!")
+#        if not self._check_sc_orientation_coverage():
+#            print("Please the axes of the input files!")
 #            return 
 
         print("... (DataLoader) loading a coordinate conversion matrix...")
 
-        _coordsys_conv_matrix = Histogram.open(filepath)
-        
+        self.coordsys_conv_matrix = Histogram.open(filepath)
+
+        if not self.coordsys_conv_matrix.is_sparse:
+            self.coordsys_conv_matrix = self.coordsys_conv_matrix.to_sparse()
+
+        print(f"... checking the axes of the coordinate conversion matrix ...")
+
+        if self.coordsys_conv_matrix.unit == u.s:
+            print(f"    --> pass (unit)")
+        else:
+            print(f"Warning: the unit is wrong {self.coordsys_conv_matrix.unit}")
+            return False
+
         axis_model_map = HealpixAxis(nside = self.full_detector_response.axes["NuLambda"].nside, 
                                      coordsys = "galactic", label = "lb")
 
-        axis_coordsys_conv_matrix = [ axis_model_map, self.event_dense.axes["Time"], self.full_detector_response.axes["NuLambda"] ]
-        
-        if np.any(_coordsys_conv_matrix.axes['lb'].edges != axis_coordsys_conv_matrix[0].edges) \
-        or np.any(_coordsys_conv_matrix.axes['Time'].edges != axis_coordsys_conv_matrix[1].edges) \
-        or np.any(_coordsys_conv_matrix.axes['NuLambda'].edges != axis_coordsys_conv_matrix[2].edges) \
-        or _coordsys_conv_matrix.unit != u.s:
-
-            print(f"Warning: The input file is not appropriate for the coordinate system conversion matrix.")
+        if self.coordsys_conv_matrix.axes['lb'] == axis_model_map:
+            print(f"    --> pass (axis lb)")
+        else:
+            print(f"Warning: the axis of lb is inconsistent")
             return False
 
-        self.coordsys_conv_matrix = Histogram(axis_coordsys_conv_matrix, unit = u.s, contents = _coordsys_conv_matrix.contents, sparse = True)
+        if self.coordsys_conv_matrix.axes['Time'] == self.event_dense.axes["Time"]:
+            print(f"    --> pass (axis Time)")
+        else:
+            print(f"Warning: the axis of Time is inconsistent")
+            return False
+
+        if self.coordsys_conv_matrix.axes['NuLambda'] == self.full_detector_response.axes['NuLambda']:
+            print(f"    --> pass (axis NuLambda)")
+        else:
+            print(f"Warning: the axis of NuLambda is inconsistent")
+            return False
 
         self.calc_image_response_projected()
 
