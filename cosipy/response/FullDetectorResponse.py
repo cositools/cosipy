@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 import gzip
 from tqdm import tqdm
 import subprocess
-
+import sys
 
 class FullDetectorResponse(HealpixBase):
     """
@@ -93,6 +93,8 @@ class FullDetectorResponse(HealpixBase):
         new._drm = new._file['DRM']
 
         new._unit = u.Unit(new._drm.attrs['UNIT'])
+        
+        new._sparse = new._drm.attrs['SPARSE']
 
         # Axes
         axes = []
@@ -182,7 +184,12 @@ class FullDetectorResponse(HealpixBase):
                     if norm =="Linear" :
                         emin = int(line[2])
                         emax = int(line[3])
-                            
+                        
+                elif key == "SP" and line[1]=="true" :
+                    sparse = True
+                    
+                elif key == "SP" and line[1]=="false" :
+                    sparse = False                    
 
                 elif key == 'AD':
                     if line[2] == "RING":
@@ -198,8 +205,19 @@ class FullDetectorResponse(HealpixBase):
 
                 elif key == 'RD':
                     break
+                
+                elif key == "StartStream":
+                    nbins = int(line[1])
+                    break
+        
+        #check if the type of spectrum is known
+        assert norm=="powerlaw" or norm=="Mono" or norm=="Linear","unknown normalisation !" 
+         
 
+        
+        
         print("normalisation is {0}".format(norm))
+        print("Sparse matrice ? {0}".format(sparse))
         edges = ()
         #print(axes_edges)
 
@@ -211,25 +229,49 @@ class FullDetectorResponse(HealpixBase):
                 edges += (axis_edges,)
 
         #print(edges)
-        axes = Axes(edges, labels=labels)
+        
+        if sparse :
+            axes = Axes(edges, labels=labels)
+        
+        else :
+            axes = Axes(edges[:-2], labels=labels[:-2])            
 
-        # Need to get number of lines for progress bar.
-        # First try fast method for unix-based systems:
-        try:
-            proc=subprocess.Popen('gunzip -c %s | wc -l' %filename, \
+
+        if sparse :
+            # Need to get number of lines for progress bar.
+            # First try fast method for unix-based systems:
+            try:
+                proc=subprocess.Popen('gunzip -c %s | wc -l' %filename, \
                         shell=True, stdout=subprocess.PIPE)
-            nlines = int(proc.communicate()[0])
+                nlines = int(proc.communicate()[0])
 
 
-        # If fast method fails, use long method, which should work in all cases.
-        except:
-            print("Initial attempt failed.")
-            print("Using long method...")
-            nlines = sum(1 for _ in gzip.open(filename,"rt"))
+            # If fast method fails, use long method, which should work in all cases.
+            except:
+                print("Initial attempt failed.")
+                print("Using long method...")
+                nlines = sum(1 for _ in gzip.open(filename,"rt"))
+                
+            # Preallocate arrays
+            coords = np.empty([axes.ndim, nlines], dtype=int)
+            data = np.empty(nlines, dtype=int)
+
+            # Calculate the memory usage in Gigabytes
+            memory_size = ((nlines * data.itemsize)+(axes.ndim*nlines*coords.itemsize))/(1024*1024*1024)
+            print(f"Estimated RAM you need to read the file : {memory_size} GB")
+
+    
+                
+        else :
+            nlines = nbins        
             
-        # Preallocate arrays
-        coords = np.empty([axes.ndim, nlines], dtype=int)
-        data = np.empty(nlines, dtype=int)
+            # Preallocate arrays    
+            data = np.empty(nlines, dtype=int)
+
+            # Calculate the memory usage in Gigabytes
+            memory_size = (nlines * data.itemsize)/(1024*1024*1024)
+            print(f"Estimated RAM you need to read the file : {memory_size} GB")
+
 
         # Loop
         sbin = 0
@@ -237,43 +279,86 @@ class FullDetectorResponse(HealpixBase):
         # read the rsp file and get the bin number and counts
         with gzip.open(filename, "rt") as file:
              
-            progress_bar = tqdm(file, total=nlines, desc="Progress", unit="line")
 
-            for line in progress_bar:
+
+            #sparse case
+            if sparse :
+            
+                progress_bar = tqdm(file, total=nlines, desc="Progress", unit="line")
+                
+                for line in progress_bar:
 
                 
-                line = line.split()
+                    line = line.split()
 
-                if len(line) == 0:
-                    continue
+                    if len(line) == 0:
+                        continue
 
-                key = line[0]
+                    key = line[0]
 
-                if key == 'RD':
+                    if key == 'RD':
 
-                    b = np.array(line[1:-1], dtype=int)
-                    c = int(line[-1])
+                        b = np.array(line[1:-1], dtype=int)
+                        c = int(line[-1])
 
-                    coords[:, sbin] = b
-                    data[sbin] = c
+                        coords[:, sbin] = b
+                        data[sbin] = c
 
-                    sbin += 1
+                        sbin += 1
                     
-                progress_bar.update(1)
+                    progress_bar.update(1)
+            
+                progress_bar.close()
+                nbins_sparse = sbin
 
+            #non sparse case
+            else :
                 
+
+                 
+                binLine = False 
+                         
+                for line in file:
+                    line = line.split()
+                    
+                    if len(line) == 0:
+                        continue
+                    
+                    if line[0] == "StartStream" :
+                        binLine = True
+                        continue
+                        
+                    if binLine :
+                        #check we have same number of bin than values read
+                        if len(line)!=nbins :
+                            print("nb of bin content read ({0}) != nb of bins {1}".format(len(line),nbins))
+                            sys.exit()
+                        
+                        for i in tqdm(range(nbins), desc="Processing", unit="bin"):
+                            data[i] = line[i]  
                 
+                        # we reshape the bincontent to the response matrice dimension
+                        # note that for non sparse matrice SigmaTau and Dist are not used
+                        data = np.reshape(data,tuple(axes.nbins),order="F")
+
+                        break
         
-        progress_bar.close()
-        nbins_sparse = sbin
-
         print("response file read ! Now we create the histogram and weight in order to "+ 
                 "get the effective area")
         # create histpy histogram
-        dr = Histogram(axes, contents=COO(coords=coords[:, :nbins_sparse], data= data[:nbins_sparse], shape = tuple(axes.nbins)))
 
         
+        if sparse :
+            dr = Histogram(axes, contents=COO(coords=coords[:, :nbins_sparse], data= data[:nbins_sparse], shape = tuple(axes.nbins)))
 
+        else :
+        
+            dr = Histogram(axes, contents=data)
+        
+        
+        
+	
+	
         # Weight to get effective area
 
         ewidth = dr.axes['Ei'].widths
@@ -323,7 +408,6 @@ class FullDetectorResponse(HealpixBase):
             nperchannel_norm = np.array([1.])
             
         nperchannel = nperchannel_norm * nevents_sim
-
         # Full-sky?
         if not single_pixel:
 
@@ -333,6 +417,12 @@ class FullDetectorResponse(HealpixBase):
         # Area
         counts2area = area_sim / nperchannel
         dr_area = dr * dr.expand_dims(counts2area, 'Ei')
+
+        
+
+        #delete the array of data in order to release some memory
+        del data 
+
 
         # end of weight now we create the .h5 structure
 
@@ -355,73 +445,155 @@ class FullDetectorResponse(HealpixBase):
         # Header
         drm.attrs['UNIT'] = 'cm2'
 
-        # Axes
-        axes = drm.create_group('AXES', track_order=True)
+        #sparse
+        if sparse :
+            drm.attrs['SPARSE'] = True
+            
+             # Axes
+            axes = drm.create_group('AXES', track_order=True)
 
-        for axis in dr.axes[['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi', 'SigmaTau', 'Dist']]:
+            for axis in dr.axes[['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi','SigmaTau','Dist']]:
 
-            axis_dataset = axes.create_dataset(axis.label,
+                axis_dataset = axes.create_dataset(axis.label,
                                            data=axis.edges)
+                                           
 
-            if axis.label in ['NuLambda', 'PsiChi', 'SigmaTau']:
+                if axis.label in ['NuLambda', 'PsiChi','SigmaTau']:
 
-                # HEALPix
-                axis_dataset.attrs['TYPE'] = 'healpix'
+                    # HEALPix
+                    axis_dataset.attrs['TYPE'] = 'healpix'
 
-                axis_dataset.attrs['NSIDE'] = nside
+                    axis_dataset.attrs['NSIDE'] = nside
 
-                axis_dataset.attrs['SCHEME'] = 'ring'
+                    axis_dataset.attrs['SCHEME'] = 'ring'
 
-            else:
-
-                # 1D
-                axis_dataset.attrs['TYPE'] = axis.axis_scale
-
-                if axis.label in ['Ei', 'Em']:
-                    axis_dataset.attrs['UNIT'] = 'keV'
-                    axis_dataset.attrs['TYPE'] = 'log'
-                elif axis.label in ['Phi']:
-                    axis_dataset.attrs['UNIT'] = 'deg'
-                    axis_dataset.attrs['TYPE'] = 'linear'
-                elif axis.label in ['Dist']:
-                    axis_dataset.attrs['UNIT'] = 'cm'
-                    axis_dataset.attrs['TYPE'] = 'linear'
                 else:
-                    raise ValueError("Shouldn't happend")
 
-            axis_description = {'Ei': "Initial simulated energy",
+                    # 1D
+                    axis_dataset.attrs['TYPE'] = axis.axis_scale
+
+                    if axis.label in ['Ei', 'Em']:
+                        axis_dataset.attrs['UNIT'] = 'keV'
+                        axis_dataset.attrs['TYPE'] = 'log'
+                    elif axis.label in ['Phi']:
+                        axis_dataset.attrs['UNIT'] = 'deg'
+                        axis_dataset.attrs['TYPE'] = 'linear'
+                    elif axis.label in ['Dist']:
+                        axis_dataset.attrs['UNIT'] = 'cm'
+                        axis_dataset.attrs['TYPE'] = 'linear'
+                    else:
+                        raise ValueError("Shouldn't happend")
+
+                axis_description = {'Ei': "Initial simulated energy",
                             'NuLambda': "Location of the simulated source in the spacecraft coordinates",
                             'Em': "Measured energy",
                             'Phi': "Compton angle",
                             'PsiChi': "Location in the Compton Data Space",
                             'SigmaTau': "Electron recoil angle",
-                            'Dist': "Distance from first interaction"}
+                            'Dist': "Distance from first interaction"
+                            }
 
-            axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
+                axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
+    
+        #non sparse    
+        else :
+            drm.attrs['SPARSE'] = False            
 
-        # Contents. Sparse arrays
-        coords = drm.create_dataset('BIN_NUMBERS',
+            # Axes
+            axes = drm.create_group('AXES', track_order=True)
+
+            #keep the same dimension order of the data
+            for axis in dr.axes[['NuLambda','Ei', 'Em', 'Phi', 'PsiChi']]:#'SigmaTau','Dist']]:
+
+                axis_dataset = axes.create_dataset(axis.label,
+                                           data=axis.edges)
+                                           
+
+                if axis.label in ['NuLambda', 'PsiChi']:#,'SigmaTau']:
+
+                    # HEALPix
+                    axis_dataset.attrs['TYPE'] = 'healpix'
+
+                    axis_dataset.attrs['NSIDE'] = nside
+
+                    axis_dataset.attrs['SCHEME'] = 'ring'
+    
+                else:
+
+                    # 1D
+                    axis_dataset.attrs['TYPE'] = axis.axis_scale
+
+                    if axis.label in ['Ei', 'Em']:
+                        axis_dataset.attrs['UNIT'] = 'keV'
+                        axis_dataset.attrs['TYPE'] = 'log'
+                    elif axis.label in ['Phi']:
+                        axis_dataset.attrs['UNIT'] = 'deg'
+                        axis_dataset.attrs['TYPE'] = 'linear'
+                        #elif axis.label in ['Dist']:
+                        #    axis_dataset.attrs['UNIT'] = 'cm'
+                        #    axis_dataset.attrs['TYPE'] = 'linear'
+                    else:
+                        raise ValueError("Shouldn't happend")
+
+                axis_description = {'Ei': "Initial simulated energy",
+                            'NuLambda': "Location of the simulated source in the spacecraft coordinates",
+                            'Em': "Measured energy",
+                            'Phi': "Compton angle",
+                            'PsiChi': "Location in the Compton Data Space",
+                            #'SigmaTau': "Electron recoil angle",
+                            #'Dist': "Distance from first interaction"
+                            }
+
+                axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
+       
+
+
+        #sparse matrice
+        if sparse :
+        
+            progress_bar = tqdm(total=npix, desc="Progress", unit="nbpixel")
+            # Contents. Sparse arrays
+            coords = drm.create_dataset('BIN_NUMBERS',
                                 (npix,),
                                 dtype=h5.vlen_dtype(int),
                                 compression="gzip")
 
-        data = drm.create_dataset('CONTENTS',
+            data = drm.create_dataset('CONTENTS',
                               (npix,),
                               dtype=h5.vlen_dtype(float),
                               compression="gzip")
         
-        progress_bar = tqdm(total=npix, desc="Progress", unit="nbpixel")
-        for b in range(npix):
-        
-            #print(f"{b}/{npix}")
-        
-            pix_slice = dr_area[{'NuLambda':b}]
-        
-            coords[b] = pix_slice.coords.flatten()
-            data[b] = pix_slice.data
-            progress_bar.update(1)
 
-        progress_bar.close()
+        
+
+
+            for b in range(npix):
+        
+                #print(f"{b}/{npix}")
+        
+                pix_slice = dr_area[{'NuLambda':b}]
+                
+        
+                coords[b] = pix_slice.coords.flatten()
+                data[b] = pix_slice.data
+                progress_bar.update(1)
+            
+            progress_bar.close()
+
+        #non sparse
+        else :
+           
+     
+            data = drm.create_dataset('CONTENTS',
+                              data=np.transpose(dr_area.contents, axes = [1,0,2,3,4]),
+                              
+                              compression="gzip")
+        
+            
+                
+                
+        
+
         
         #close the .h5 file in write mode in order to reopen it in read mode after
         f.close()
@@ -432,6 +604,8 @@ class FullDetectorResponse(HealpixBase):
         new._drm = new._file['DRM']
 
         new._unit = u.Unit(new._drm.attrs['UNIT'])
+        new._sparse = new._drm.attrs['SPARSE']
+        
 
         # Axes
         axes = []
@@ -509,15 +683,23 @@ class FullDetectorResponse(HealpixBase):
         if not isinstance(pix, (int, np.integer)) or pix < 0 or not pix < self.npix:
             raise IndexError("Pixel number out of range, or not an integer")
 
-        coords = np.reshape(
-            self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim-1, -1))
-        data = np.array(self._file['DRM']['CONTENTS'][pix])
+        #check if we have sparse matrice or not
 
-        return DetectorResponse(self.axes[1:],
+        if self._sparse:
+            coords = np.reshape(
+                self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim-1, -1))
+            data = np.array(self._file['DRM']['CONTENTS'][pix])
+
+            return DetectorResponse(self.axes[1:],
                                 contents=COO(coords=coords,
                                              data=data,
                                              shape=tuple(self.axes.nbins[1:])),
                                 unit=self.unit)
+                                
+        else :
+            data = self._file['DRM']['CONTENTS'][pix]
+            return DetectorResponse(self.axes[1:],
+                                contents=data, unit=self.unit)                 
 
     def close(self):
         """
@@ -568,10 +750,13 @@ class FullDetectorResponse(HealpixBase):
 
         pixels, weights = self.get_interp_weights(coord)
 
-        dr = DetectorResponse(self.axes[1:],
-                              sparse=True,
-                              unit=self.unit)
+        
 
+        dr = DetectorResponse(self.axes[1:],
+                              sparse=self._sparse,
+                              unit=self.unit)
+        
+        
         for p, w in zip(pixels, weights):
 
             dr += self[p]*w
@@ -598,7 +783,7 @@ class FullDetectorResponse(HealpixBase):
                 "Exposure map has a different grid than the detector response")
 
         psr = PointSourceResponse(self.axes[1:],
-                                  sparse=True,
+                                  sparse=self._sparse,
                                   unit=u.cm*u.cm*u.s)
 
         for p in range(self.npix):
