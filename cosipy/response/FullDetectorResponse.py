@@ -392,18 +392,25 @@ class FullDetectorResponse(HealpixBase):
         elif norm=="powerlaw":
             print("normalisation : powerlaw with index {0} with energy range [{1}-{2}]keV".format(alpha,emin,emax))
             # From powerlaw
-            
+
+            e_lo = dr.axes['Ei'].lower_bounds
+            e_hi = dr.axes['Ei'].upper_bounds
+
+            e_lo = np.minimum(emax, e_lo)
+            e_hi = np.minimum(emax, e_hi)
+
+            e_lo = np.maximum(emin, e_lo)
+            e_hi = np.maximum(emin, e_hi)
 
             if alpha == 1:
-                K = 1 / np.log(emax/emin)
+
+                nperchannel_norm = np.log(e_hi/e_low) / np.log(emax/emin)
+                
             else:
-                K = (1-alpha) / (emax**(1-alpha) - emin**(1-alpha))
 
-            nperchannel_norm = K * ecenters**(-alpha) * ewidth
-
-            nperchannel_norm[ecenters < emin] = 0
-            nperchannel_norm[ecenters > emax] = 0
-
+                a = 1 - alpha
+                
+                nperchannel_norm = (e_hi**a - e_lo**a) / (emax**a - emin**a)            
 
         elif norm =="Linear" :
             print("normalisation : linear with energy range [{0}-{1}]".format(emin,emax))
