@@ -195,12 +195,26 @@ class FullDetectorResponse(HealpixBase):
                     sparse = bool(line[1])	
 
                 elif key == 'AD':
-                    if line[2] == "RING":
-                        if int(line[1])!=-1:
+
+                    if axes_types[-1] == "FISBEL":
+
+                        raise RuntimeError("FISBEL binning not currently supported")
+                        
+                    elif axes_types[-1] == "HEALPix":
+
+                        if line[2] != "RING":
+                            raise RuntimeError(f"Scheme {line[2]} not supported")
+
+                        if line[1] == '-1':
+                            # Single bin axis --i.e. all-sky
+                            axes_edges.append(-1)
+                        else:
                             nside = int(2**int(line[1]))
-                        # nb healpix pixel = 12*nside^2
-                        axes_edges.append(int(12*nside**2))
+                            axes_edges.append(int(12*nside**2))
+                        
+                        
                     else:
+                        
                         axes_edges.append(np.array(line[1:], dtype='float'))
 
                 elif key == 'AT':
@@ -231,7 +245,15 @@ class FullDetectorResponse(HealpixBase):
         for axis_edges, axis_type in zip(axes_edges, axes_types):
 
             if axis_type == 'HEALPix':
-                edges += (np.arange(axis_edges+1),)
+
+                if axis_edges == -1:
+                    # Single bin axis --i.e. all-sky
+                    edges += ([0,1],)
+                else:
+                    edges += (np.arange(axis_edges+1),)
+
+            elif axis_type == "FISBEL":
+                raise RuntimeError("FISBEL binning not currently supported")
             else:
                 edges += (axis_edges,)
 
