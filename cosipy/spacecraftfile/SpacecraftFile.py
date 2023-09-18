@@ -127,7 +127,7 @@ class SpacecraftFile():
     def source_interval(self, start, stop):
 
         """
-        Returns the Orientation file class object for the source time
+        Returns the SpacecraftFile file class object for the source time
 
         Parameters
         ----------
@@ -136,7 +136,7 @@ class SpacecraftFile():
 
         Returns
         -------
-        cosipy.Orientation
+        cosipy.SpacecraftFile
         """
 
         if(start.format != 'unix' or stop.format != 'unix'):
@@ -184,7 +184,7 @@ class SpacecraftFile():
             new_z_direction = new_z_direction[:-1]
             new_z_direction = np.append(new_z_direction, [z_direction_stop], axis = 0)
 
-        return Orientation_file(new_times, new_x_direction, new_z_direction)
+        return self.__class__(new_times, new_x_direction, new_z_direction)
 
     def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
 
