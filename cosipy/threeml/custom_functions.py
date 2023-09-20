@@ -15,7 +15,7 @@ class Band_Eflux(Function1D, metaclass=FunctionMeta):
     latex : $ A \begin{cases} x^{\alpha} \exp{(-\frac{x}{E0})} & x \leq (\alpha-\beta) E0 \\ x^{\beta} \exp (\beta-\alpha)\left[(\alpha-\beta) E0\right]^{\alpha-\beta} & x>(\alpha-\beta) E0 \end{cases} $
     parameters :
         K :
-            desc : Normalization (energy flux between a and b)
+            desc : Normalization (flux between a and b)
             initial value : 1.e-5
             min : 1e-50
             is_normalization : True
