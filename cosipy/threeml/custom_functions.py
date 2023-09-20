@@ -11,7 +11,7 @@ import math
 class Band_Eflux(Function1D, metaclass=FunctionMeta):
     r"""
     description :
-        Band model from Band et al., 1993 where the normalization is the energy flux defined between a and b
+        Band model from Band et al., 1993 where the normalization is the flux defined between a and b
     latex : $ A \begin{cases} x^{\alpha} \exp{(-\frac{x}{E0})} & x \leq (\alpha-\beta) E0 \\ x^{\beta} \exp (\beta-\alpha)\left[(\alpha-\beta) E0\right]^{\alpha-\beta} & x>(\alpha-\beta) E0 \end{cases} $
     parameters :
         K :
