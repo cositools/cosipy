@@ -11,6 +11,7 @@ from cosipy.config import Configurator
 
 from .modelmap import ModelMap
 from .RichardsonLucy import RichardsonLucy 
+from .RichardsonLucy_memorysave import RichardsonLucy_memorysave
 
 class ImageDeconvolution:
     _initial_model_map = None
@@ -18,7 +19,7 @@ class ImageDeconvolution:
     def __init__(self):
         self._use_sparse = False #not sure whether this implementation is good. Maybe it should be written in the parameter file?
 
-    def set_data(self, data): # to be replaced after the dataIO library is created.
+    def set_data(self, data):
 
         self._data = data
 
@@ -56,6 +57,15 @@ class ImageDeconvolution:
     def use_sparse(self, use_sparse):
         self._use_sparse = use_sparse
 
+    def _check_model_response_consistency(self):
+#        self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense.axes["Ei"].axis_scale
+        self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense_projected.axes["Ei"].axis_scale
+
+#        return self._initial_model_map.axes["lb"] == self._data.image_response_dense.axes["lb"] \
+#               and self._initial_model_map.axes["Ei"] == self._data.image_response_dense.axes["Ei"]
+        return self._initial_model_map.axes["lb"] == self._data.image_response_dense_projected.axes["lb"] \
+               and self._initial_model_map.axes["Ei"] == self._data.image_response_dense_projected.axes["Ei"]
+
     def initialize(self):
         print("#### Initialization ####")
         
@@ -69,6 +79,9 @@ class ImageDeconvolution:
         print("2. initializing the model map ...")
         parameter_model_initialization = Configurator(self._parameter['model_initialization'])
         self._initial_model_map.initialize(self._data, parameter_model_initialization)
+
+        if not self._check_model_response_consistency():
+            return
 
         print("---- parameters ----")
         print(parameter_model_initialization.dump())
@@ -93,6 +106,9 @@ class ImageDeconvolution:
 #        elif algorithm_name == 'MaxEnt':
 #            parameter = self.parameter['deconvolution']['parameter_MaxEnt']
 #            self.deconvolution == ...
+        elif algorithm_name == 'RL_memsave':
+            parameter_RL = Configurator(parameter_deconvolution['parameter_RL_memsave'])
+            _deconvolution = RichardsonLucy_memorysave(self._initial_model_map, self._data, parameter_RL)
 
         _deconvolution.use_sparse = self._use_sparse #not sure whether this implementation is good. Maybe it should be written in the parameter file?
 

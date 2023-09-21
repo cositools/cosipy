@@ -11,4 +11,4 @@ from .make_plots import MakePlots
 from .threeml import COSILike
 from .threeml import Band_Eflux
 
-from .spacecraftpositionattitude import SpacecraftPositionAttitude
+from .spacecraftfile import SpacecraftFile
