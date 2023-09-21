@@ -74,19 +74,27 @@ class PointSourceResponse(Histogram):
             spectrum_unit = spectrum.k.unit
         elif isinstance(spectrum, Line) or isinstance(spectrum, Quadratic) or isinstance(spectrum, Cubic) or isinstance(spectrum, Quartic):
             spectrum_unit = spectrum.a.unit
-        elif isinstance(spectrum, Powerlaw_Eflux) or isinstance(spectrum, Log_normal):
+        elif isinstance(spectrum, Powerlaw_flux) or isinstance(spectrum, Powerlaw_Eflux) or isinstance(spectrum, Log_normal) or isinstance(spectrum, Band_Calderone)\
+        or isinstance(spectrum, Gaussian) or isinstance(spectrum, Truncated_gaussian):
             spectrum_unit = spectrum.F.unit
+        elif isinstance(spectrum, StepFunction) or isinstance(spectrum, StepFunctionUpper) or isinstance(spectrum, Cosine_Prior) or isinstance(spectrum, Uniform_prior): 
+            spectrum_unit = spectrum.value.unit
+        elif isinstance(spectrum, PhAbs) or isinstance(spectrum, TbAbs) or isinstance(spectrum, WAbs):
+            spectrum_unit = u.dimensionless_unscaled
+        elif isinstance(spectrum, ZDust):
+            spectrum_unit = spectrum.e_bmv.unit
+        elif isinstance(spectrum, DiracDelta) or isinstance(spectrum, DMFitFunction) or isinstance(spectrum, DMSpectra):
+            raise RuntimeError("Spectrum not yet supported")
         else:
             try:
                 spectrum_unit = spectrum.K.unit
             except:
                 raise RuntimeError("Spectrum not yet supported")
             
-    
         flux = Quantity([integrate.quad(spectrum, lo_lim/lo_lim.unit, hi_lim/hi_lim.unit)[0] * spectrum_unit * lo_lim.unit
                          for lo_lim,hi_lim
                          in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
-
+        
         flux = self.expand_dims(flux.value, 'Ei') * flux.unit
 
         expectation = self * flux

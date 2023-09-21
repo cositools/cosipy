@@ -5,7 +5,6 @@ from threeML.exceptions.custom_exceptions import FitFailed
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
-from cosipy.coordinates.orientation import Orientation_file
 
 from scoords import SpacecraftFrame, Attitude
 
@@ -141,16 +140,13 @@ class COSILike(PluginPrototype):
         self.set_model(self._model)
         
         if self._fit_nuisance_params: # Compute expectation including free background parameter
-            expectation = self._signal.contents + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents
+            expectation = self._signal.contents.todense() + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
         else: # Compute expectation without background parameter
             expectation = self._signal.contents.todense() + self._bkg.contents.todense()
         
         data = self._data.contents # Into an array
         
-        # Compute the log-likelihood from the equations above
-        #log_like = np.sum(np.log(np.power(expectation, data) * 
-        #                         np.exp(-expectation) / 
-        #                         factorial(data)))
+        # Compute the log-likelihood
         
         log_like = np.nansum(data*np.log(expectation) - expectation)
         
