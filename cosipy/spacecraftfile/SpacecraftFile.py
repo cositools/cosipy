@@ -28,17 +28,17 @@ class SpacecraftFile():
         self.frame = frame
 
         if x_pointings is not None:
-            self.x_pointings = SkyCoord(l = x_pointings[:,1], b = x_pointings[:,0], unit = "deg", frame = self.frame)
+            self.x_pointings = SkyCoord(l = x_pointings[:,0], b = x_pointings[:,1], unit = "deg", frame = self.frame)
         else:
             self.x_pointings = x_pointings
 
         if y_pointings is not None:
-            self.y_pointings = SkyCoord(l = y_pointings[:,1], b = y_pointings[:,0], unit = "deg", frame = self.frame)
+            self.y_pointings = SkyCoord(l = y_pointings[:,0], b = y_pointings[:,1], unit = "deg", frame = self.frame)
         else:
             self.y_pointings = y_pointings
 
         if z_pointings is not None:
-            self.z_pointings = SkyCoord(l = z_pointings[:,1], b = z_pointings[:,0], unit = "deg", frame = self.frame)
+            self.z_pointings = SkyCoord(l = z_pointings[:,0], b = z_pointings[:,1], unit = "deg", frame = self.frame)
         else:
             self.z_pointings = z_pointings
 
@@ -49,8 +49,8 @@ class SpacecraftFile():
         #parses timestamps, axis positions from file and returns to __init__
 
         time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1)
-        axis_1 = np.loadtxt(file, usecols = (2,3), delimiter = ' ', skiprows = 1)
-        axis_2 = np.loadtxt(file, usecols = (4,5), delimiter = ' ', skiprows = 1)
+        axis_1 = np.loadtxt(file, usecols = (3,2), delimiter = ' ', skiprows = 1)
+        axis_2 = np.loadtxt(file, usecols = (5,4), delimiter = ' ', skiprows = 1)
 
         return cls(time_stamps, x_pointings = axis_1, z_pointings = axis_2)
 
@@ -115,14 +115,14 @@ class SpacecraftFile():
         numpy.ndarray
         """
 
-        new_direction_lat = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 0])
+        new_direction_lat = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 1])
         if (direction[idx, 1] > direction[idx + 1, 1]):
-            new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], [direction[idx, 1], 360 + direction[idx + 1, 1]])
+            new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], [direction[idx, 0], 360 + direction[idx + 1, 0]])
             new_direction_long = new_direction_long - 360
         else:
-            new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 1])
+            new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 0])
 
-        return np.array([new_direction_lat, new_direction_long])
+        return np.array([new_direction_long, new_direction_lat])
 
     def source_interval(self, start, stop):
 
@@ -184,7 +184,7 @@ class SpacecraftFile():
             new_z_direction = new_z_direction[:-1]
             new_z_direction = np.append(new_z_direction, [z_direction_stop], axis = 0)
 
-        return self.__class__(new_times, new_x_direction, new_z_direction)
+        return self.__class__(new_times, x_pointings = new_x_direction, z_pointings = new_z_direction)
 
     def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
 
