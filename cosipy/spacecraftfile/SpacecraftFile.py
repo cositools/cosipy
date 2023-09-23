@@ -28,17 +28,23 @@ class SpacecraftFile():
         self.frame = frame
 
         if x_pointings is not None:
-            self.x_pointings = SkyCoord(l = x_pointings[:,0], b = x_pointings[:,1], unit = "deg", frame = self.frame)
+            self.x_pointings = SkyCoord(l = self.get_l_b(x_pointings,"l"), 
+                                        b = self.get_l_b(x_pointings,"b"), 
+                                        unit = "deg", frame = self.frame)
         else:
-            self.x_pointings = x_pointings
+            self.x_pointings = x_pointings  # simply return self.x_pointing as the default None value of x_pointings
 
         if y_pointings is not None:
-            self.y_pointings = SkyCoord(l = y_pointings[:,0], b = y_pointings[:,1], unit = "deg", frame = self.frame)
+            self.y_pointings = SkyCoord(l = self.get_l_b(y_pointings, "l"), 
+                                        b = self.get_l_b(y_pointings, "b"), 
+                                        unit = "deg", frame = self.frame)
         else:
             self.y_pointings = y_pointings
 
         if z_pointings is not None:
-            self.z_pointings = SkyCoord(l = z_pointings[:,0], b = z_pointings[:,1], unit = "deg", frame = self.frame)
+            self.z_pointings = SkyCoord(l = self.get_l_b(z_pointings, "l"), 
+                                        b = self.get_l_b(z_pointings, "b"), 
+                                        unit = "deg", frame = self.frame)
         else:
             self.z_pointings = z_pointings
 
@@ -53,7 +59,64 @@ class SpacecraftFile():
         axis_2 = np.loadtxt(file, usecols = (5,4), delimiter = ' ', skiprows = 1)
 
         return cls(time_stamps, x_pointings = axis_1, z_pointings = axis_2)
-
+    
+    def get_l_b(self, pointing, which):
+        
+        """
+        Get the longtitude(l, 0-360 deg or any angle) or latitude(b, -90 to 90 deg). 
+        The default order is: the 1st column is longtitude and the 2nd column is latitude.
+        
+        Parameters
+        -----------
+        pointing: numpy.ndarray; the array with (N, 2) shape.
+        which: string; l for longitude, b for latitude
+        
+        Returns
+        -------
+        output: numpy.ndarray; the output array corresponds to longtitude(l) or latitude(b) with shape (N,1)
+        
+        """
+        
+        # first check the shape of inputs
+        if pointing.shape[1] != 2:
+            raise ValueError("The dimension of the pointing should be (N, 2)")
+            
+        if pointing[:,0].min() <= -90 or pointing[:,0].max() >= 90:
+            # it means the first column is longitude, check if the second column is latitude
+            if pointing[:,1].min() >= -90 and pointing[:,1].max() <= 90:
+                # it means the first columns is latitude
+                if which == "l":
+                    output = pointing[:,0]
+                elif which == "b":
+                    output = pointing[:,1]
+                else:
+                    raise ValueError("Only l and b are suppoerted!")
+            else:
+                raise ValueError("None of your coordinate columns is latitude(-90 deg <= angle <= 90 deg), please check your inputs!")
+                
+        elif pointing[:,1].min() <= -90 or pointing[:,1].max() >= 90:
+            # it means the second column is longitude, check if the first column is latitude
+            if pointing[:,0].min() >= -90 and pointing[:,0].max() <= 90:
+                # it means that the first column is latitude
+                if which == "l":
+                    output = pointing[:,1]
+                elif which == "b":
+                    output = pointing[:,0]
+                else:
+                    raise ValueError("Only l and b are suppoerted!")
+            else:
+                raise ValueError("None of your coordinate columns is latitude(-90 deg <= angle <= 90 deg), please check your inputs!")
+                
+        else:
+            # it means that both column has -90 deg <= angle <= 90 deg, we take the first column to be longtitude and second one to be latitude, following the convention of astropy.Skycoord.
+            if which == "l":
+                output = pointing[:,0]
+            elif which == "b":
+                output = pointing[:,1]
+            else:
+                raise ValueError("Only l and b are suppoerted!")
+        
+        return output
 
     def get_time(self, time_array = None):
 

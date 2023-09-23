@@ -5,7 +5,7 @@ from threeML.exceptions.custom_exceptions import FitFailed
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
-from cosipy.coordinates.orientation import Orientation_file
+#from cosipy.coordinates.orientation import Orientation_file
 
 from scoords import SpacecraftFrame, Attitude
 
