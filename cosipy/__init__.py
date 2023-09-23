@@ -9,5 +9,6 @@ from .data_io import BinnedData
 from .make_plots import MakePlots
 
 from .threeml import COSILike
+from .threeml import Band_Eflux
 
 from .spacecraftfile import SpacecraftFile

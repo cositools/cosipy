@@ -21,6 +21,9 @@ class DataLoader(object):
         self.bkg_dense, self.bkg_sparse = None, None
         self.full_detector_response = None
         self.orientation = None
+        self.coordsys_conv_matrix = None
+
+        self.response_on_memory = False
 
     @classmethod
     def load(cls, event_binned_data, bkg_binned_data, rsp, sc_orientation):
@@ -107,16 +110,24 @@ class DataLoader(object):
         print("... Done ...")
 
     def _check_file_registration(self):
+
+        print(f"... checking the file registration ...")
+
         if self.event_dense and self.event_sparse \
         and self.bkg_dense and self.bkg_sparse \
         and self.full_detector_response and self.orientation:
+
+            print(f"    --> pass")
             return True
         
         return False
 
     def _check_axis_consistency(self):
+        
+        print(f"... checking the axis consistency ...")
+
         # check the axes of the event/background files
-        axis_name = ['Time', 'Em', 'Phi', 'PsiChi']
+        axis_name = ['Time', 'Em', 'Phi', 'PsiChi'] # 'Time' should be changed if one uses the scat binning.
 
         for name in axis_name:
             if not self.event_dense.axes[name] == self.bkg_dense.axes[name]:
@@ -128,13 +139,64 @@ class DataLoader(object):
         
         for name in axis_name:
             if not self.event_dense.axes[name] == self.full_detector_response.axes[name]:
-                print(f"Warning: the axis {name} is not consistent with the event and response!")
+                print(f"Warning: the axis {name} is not consistent between the event and response!")
                 return False
 
+        print(f"    --> pass")
         return True
 
     def _modify_axes(self): # this is a tentetive function
-        self.event_dense.axes['Time']._unit = u.s
+
+        print(f"Note that this function is tentetive. It should be removed in the future!")
+        print(f"Please run this function only once!")
+
+        axis_name = ['Time', 'Em', 'Phi', 'PsiChi'] # 'Time' should be changed if one uses the scat binning.
+
+        for name in axis_name:
+
+            print(f"... checking the axis {name} of the event and background files...")
+            
+            event_edges, event_unit = self.event_dense.axes[name].edges, self.event_dense.axes[name].unit
+            bkg_edges, bkg_unit = self.bkg_dense.axes[name].edges, self.bkg_dense.axes[name].unit
+
+            if np.all(event_edges == bkg_edges):
+                print(f"    --> pass (edges)") 
+            else:
+                print(f"Warning: the edges of the axis {name} are not consistent between the event and background!")
+                print(f"        event      : {event_edges}")
+                print(f"        background : {bkg_edges}")
+                return False
+
+            if event_unit == bkg_unit:
+                print(f"    --> pass (unit)") 
+            else:
+                print(f"Warning: the unit of the axis {name} are not consistent between the event and background!")
+                print(f"        event      : {event_unit}")
+                print(f"        background : {bkg_unit}")
+                return False
+
+        # check the axes of the event/response files. 
+        # Note that currently (2023-08-29) no unit is stored in the binned data. So only the edges are compared. This should be modified in the future.
+
+        axis_name = ['Em', 'Phi', 'PsiChi']
+        
+        for name in axis_name:
+
+            print(f"...checking the axis {name} of the event and response files...")
+
+            event_edges, event_unit = self.event_dense.axes[name].edges, self.event_dense.axes[name].unit
+            response_edges, response_unit = self.full_detector_response.axes[name].edges, self.full_detector_response.axes[name].unit
+            
+            if type(response_edges) == u.quantity.Quantity:
+                response_edges = response_edges.value
+
+            if np.all(event_edges == response_edges):
+                print(f"    --> pass (edges)") 
+            else:
+                print(f"Warning: the edges of the axis {name} are not consistent between the event and background!")
+                print(f"        event      : {event_edges}")
+                print(f"        background : {response_edges}")
+                return False
 
         axes_cds = Axes([self.event_dense.axes["Time"], \
                          self.full_detector_response.axes["Em"], \
@@ -147,6 +209,9 @@ class DataLoader(object):
         self.bkg_dense = Histogram(axes_cds, unit = self.bkg_dense.unit, contents = self.bkg_dense.contents)
         self.bkg_sparse = self.bkg_dense.to_sparse()
 
+        print(f"The axes in the event and background files are redefined. Now they are consistent with those of the response file.")
+
+    '''
     def _check_sc_orientation_coverage(self):
 
         init_time_orientation = self.orientation.get_time()[0]
@@ -168,10 +233,9 @@ class DataLoader(object):
             return False
 
         return True
+    '''
 
     def calc_image_response(self): 
-
-        self._modify_axes() # Here I just fix the current discrepancy between response and event/bkg files. I remove this line soon.
 
         if not self._check_file_registration():
             print("Please load all files!")
@@ -181,11 +245,11 @@ class DataLoader(object):
             print("Please the axes of the input files!")
             return 
 
-        if not self._check_sc_orientation_coverage():
-            print("Please the axes of the input files!")
-            return 
+#        if not self._check_sc_orientation_coverage():
+#            print("Please the axes of the input files!")
+#            return 
 
-        print("... (DataLoader) calculating a point source response at each sky location and each time bin ...")
+        print("... (DataLoader) calculating a flat source response at each sky location and each time bin ...")
         
         # make an empty histogram for the response calculation
         axis_model_map = HealpixAxis(nside = self.full_detector_response.axes["NuLambda"].nside, 
@@ -239,3 +303,153 @@ class DataLoader(object):
 
         print("... (DataLoader) calculating the projected response (sparse) ...")
         self.image_response_sparse_projected = self.image_response_sparse.project("lb", "Ei")
+
+    def load_full_detector_response_on_memory(self):
+
+        axes_image_response = [self.full_detector_response.axes["NuLambda"], self.full_detector_response.axes["Ei"],
+                               self.full_detector_response.axes["Em"], self.full_detector_response.axes["Phi"], self.full_detector_response.axes["PsiChi"]]
+
+        self.image_response_dense = Histogram(axes_image_response, unit = self.full_detector_response.unit)
+
+        nside = self.full_detector_response.axes["NuLambda"].nside
+        npix = self.full_detector_response.axes["NuLambda"].npix 
+
+        for ipix in tqdm(range(npix)):
+            self.image_response_dense[ipix] = np.sum(self.full_detector_response[ipix].to_dense(), axis = (4,5)) #Ei, Em, Phi, ChiPsi
+
+        self.response_on_memory = True
+
+    def calc_coordsys_conv_matrix(self): 
+
+        if not self._check_file_registration():
+            print("Please load all files!")
+            return 
+    
+        if not self._check_axis_consistency():
+            print("Please the axes of the input files!")
+            return 
+
+#        if not self._check_sc_orientation_coverage():
+#            print("Please the axes of the input files!")
+#            return 
+
+        print("... (DataLoader) calculating a coordinate conversion matrix...")
+        
+        # make an empty histogram for the response calculation
+        axis_model_map = HealpixAxis(nside = self.full_detector_response.axes["NuLambda"].nside, 
+                                     coordsys = "galactic", label = "lb")
+
+        axis_coordsys_conv_matrix = [ axis_model_map, self.event_dense.axes["Time"], self.full_detector_response.axes["NuLambda"] ] #lb, Time, NuLambda
+
+        self.coordsys_conv_matrix = Histogram(axis_coordsys_conv_matrix, unit = u.s, sparse = True)
+
+        # calculate a dwell time map at each time bin and sky location
+        nside = self.full_detector_response.axes["NuLambda"].nside
+        npix = self.full_detector_response.axes["NuLambda"].npix 
+
+        for ipix in tqdm(range(npix)):
+            theta, phi = hp.pix2ang(nside, ipix)
+            l, b = phi, np.pi/2 - theta
+
+            pixel_coord = SkyCoord(l, b, unit = u.rad, frame = 'galactic')
+            pixel_obj = SpacecraftPositionAttitude.SourceSpacecraft(f"pixel_{ipix}", pixel_coord)
+
+            for i_time, [init_time, end_time] in enumerate(self.coordsys_conv_matrix.axes["Time"].bounds):
+                init_time = Time(init_time, format = 'unix')
+                end_time = Time(end_time, format = 'unix')
+    
+                filtered_orientation = self.orientation.source_interval(init_time, end_time)
+                x,y,z = filtered_orientation.get_attitude().as_axes()
+                pixel_movement = pixel_obj.sc_frame(x_pointings = x, z_pointings = z)
+
+                time_diff = filtered_orientation.get_time_delta()
+                time_diff = Time(0.5*(np.insert(time_diff.value, 0, 0) + np.append(time_diff.value, 0)), format = 'unix')
+
+                dwell_time_map = pixel_obj.get_dwell_map(response = self.full_detector_response.filename,
+                                                         dts = time_diff,
+                                                         src_path = pixel_movement)
+
+                self.coordsys_conv_matrix[ipix,i_time] = dwell_time_map.data * dwell_time_map.unit
+                # (HealpixMap).data returns the numpy array without its unit.
+
+        self.calc_image_response_projected()
+
+    def save_coordsys_conv_matrix(self, filename = "coordsys_conv_matrix.hdf5"): 
+        self.coordsys_conv_matrix.write(filename, overwrite = True)
+
+    def load_coordsys_conv_matrix_from_filepath(self, filepath):
+
+        if not self._check_file_registration():
+            print("Please load all files!")
+            return 
+    
+        if not self._check_axis_consistency():
+            print("Please the axes of the input files!")
+            return 
+
+#        if not self._check_sc_orientation_coverage():
+#            print("Please the axes of the input files!")
+#            return 
+
+        print("... (DataLoader) loading a coordinate conversion matrix...")
+
+        self.coordsys_conv_matrix = Histogram.open(filepath)
+
+        if not self.coordsys_conv_matrix.is_sparse:
+            self.coordsys_conv_matrix = self.coordsys_conv_matrix.to_sparse()
+
+        print(f"... checking the axes of the coordinate conversion matrix ...")
+
+        if self.coordsys_conv_matrix.unit == u.s:
+            print(f"    --> pass (unit)")
+        else:
+            print(f"Warning: the unit is wrong {self.coordsys_conv_matrix.unit}")
+            return False
+
+        axis_model_map = HealpixAxis(nside = self.full_detector_response.axes["NuLambda"].nside, 
+                                     coordsys = "galactic", label = "lb")
+
+        if self.coordsys_conv_matrix.axes['lb'] == axis_model_map:
+            print(f"    --> pass (axis lb)")
+        else:
+            print(f"Warning: the axis of lb is inconsistent")
+            return False
+
+        if self.coordsys_conv_matrix.axes['Time'] == self.event_dense.axes["Time"]:
+            print(f"    --> pass (axis Time)")
+        else:
+            print(f"Warning: the axis of Time is inconsistent")
+            return False
+
+        if self.coordsys_conv_matrix.axes['NuLambda'] == self.full_detector_response.axes['NuLambda']:
+            print(f"    --> pass (axis NuLambda)")
+        else:
+            print(f"Warning: the axis of NuLambda is inconsistent")
+            return False
+
+        self.calc_image_response_projected()
+
+    def calc_image_response_projected(self):
+        # calculate the image_response_dense_projected
+
+        print("... (DataLoader) calculating a projected image response ...")
+
+        self.image_response_dense_projected = Histogram([ self.coordsys_conv_matrix.axes["lb"], self.full_detector_response.axes["Ei"] ],
+                                                        unit = self.full_detector_response.unit * self.coordsys_conv_matrix.unit)
+
+        if self.response_on_memory:
+
+            self.image_response_dense_projected[:] = np.tensordot( np.sum(self.coordsys_conv_matrix, axis = (1)), 
+                                                                np.sum(self.image_response_dense, axis = (2,3,4)),
+                                                                axes = ([1], [0]) ) * self.full_detector_response.unit * self.coordsys_conv_matrix.unit #lb, Ei
+
+        else:
+            npix = self.full_detector_response.axes["NuLambda"].npix 
+
+            for ipix in tqdm(range(npix)):
+                full_detector_response_projected_Ei = np.sum(self.full_detector_response[ipix].to_dense(), axis = (1,2,3,4,5)) #Ei
+                # when np.sum is applied to a dense histogram, the unit is restored. when it is a sparse histogram, the unit is not restored. 
+    
+                coordsys_conv_matrix_projected_lb = np.sum(self.coordsys_conv_matrix[:,:,ipix], axis = (1)).todense() * self.coordsys_conv_matrix.unit #lb
+    
+                self.image_response_dense_projected += np.outer(coordsys_conv_matrix_projected_lb, full_detector_response_projected_Ei)
