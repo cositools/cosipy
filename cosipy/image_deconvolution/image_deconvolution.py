@@ -11,6 +11,7 @@ from cosipy.config import Configurator
 
 from .modelmap import ModelMap
 from .RichardsonLucy import RichardsonLucy 
+from .RichardsonLucy_memorysave import RichardsonLucy_memorysave
 
 class ImageDeconvolution:
     _initial_model_map = None
@@ -57,10 +58,13 @@ class ImageDeconvolution:
         self._use_sparse = use_sparse
 
     def _check_model_response_consistency(self):
-        self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense.axes["Ei"].axis_scale
+#        self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense.axes["Ei"].axis_scale
+        self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense_projected.axes["Ei"].axis_scale
 
-        return self._initial_model_map.axes["lb"] == self._data.image_response_dense.axes["lb"] \
-               and self._initial_model_map.axes["Ei"] == self._data.image_response_dense.axes["Ei"]
+#        return self._initial_model_map.axes["lb"] == self._data.image_response_dense.axes["lb"] \
+#               and self._initial_model_map.axes["Ei"] == self._data.image_response_dense.axes["Ei"]
+        return self._initial_model_map.axes["lb"] == self._data.image_response_dense_projected.axes["lb"] \
+               and self._initial_model_map.axes["Ei"] == self._data.image_response_dense_projected.axes["Ei"]
 
     def initialize(self):
         print("#### Initialization ####")
@@ -102,6 +106,9 @@ class ImageDeconvolution:
 #        elif algorithm_name == 'MaxEnt':
 #            parameter = self.parameter['deconvolution']['parameter_MaxEnt']
 #            self.deconvolution == ...
+        elif algorithm_name == 'RL_memsave':
+            parameter_RL = Configurator(parameter_deconvolution['parameter_RL_memsave'])
+            _deconvolution = RichardsonLucy_memorysave(self._initial_model_map, self._data, parameter_RL)
 
         _deconvolution.use_sparse = self._use_sparse #not sure whether this implementation is good. Maybe it should be written in the parameter file?
 
