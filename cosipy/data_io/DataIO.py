@@ -33,8 +33,8 @@ class DataIO:
         self.phi_pix_size = inputs['phi_pix_size'] # Binning of Compton scattering angle [deg]
         self.nside = inputs['nside'] # Healpix binning of psi chi local
         self.scheme = inputs['scheme'] # Healpix binning of psi chi local
-        self.tmin = inputs['tmin'] # Min time cut in seconds. Default is None.
-        self.tmax = inputs['tmax'] # Max time cut in seconds. Default is None. 
+        self.tmin = inputs['tmin'] # Min time in seconds. 
+        self.tmax = inputs['tmax'] # Max time in seconds. 
 
     def parse_args(self, argv=None):
         parser = argparse.ArgumentParser()

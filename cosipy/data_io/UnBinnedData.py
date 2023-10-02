@@ -19,7 +19,7 @@ import subprocess
 logger = logging.getLogger(__name__)
 
 class UnBinnedData(DataIO):
- 
+
     def read_tra(self, output_name="unbinned_data", run_test=False):
         
         """
@@ -75,7 +75,7 @@ class UnBinnedData(DataIO):
         # Measured gal angle chi (lon direction)
         chi_gal = []
         # Measured gal angle psi (lat direction)
-        psi_gal = [] 
+        psi_gal = []
         # Components of dg (position vector from 1st interaion to 2nd)
         dg_x = []
         dg_y = []
@@ -197,7 +197,7 @@ class UnBinnedData(DataIO):
                     dg_x.append(dg[0])
                     dg_y.append(dg[1])
                     dg_z.append(dg[2])
-                
+          
         # Close progress bar:
         pbar.close()
         print("Making COSI data set...")
@@ -228,7 +228,8 @@ class UnBinnedData(DataIO):
         xcoords = SkyCoord(lonX*u.rad, latX*u.rad, frame = 'galactic')
         zcoords = SkyCoord(lonZ*u.rad, latZ*u.rad, frame = 'galactic')
         attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame = 'galactic')
-        c = SkyCoord(np.array(dg_x), np.array(dg_y), np.array(dg_z), representation_type='cartesian', frame = SpacecraftFrame(attitude = attitude))   
+        c = SkyCoord(np.array(dg_x), np.array(dg_y), np.array(dg_z), \
+            representation_type='cartesian', frame = SpacecraftFrame(attitude = attitude))   
         c_rotated = c.transform_to('galactic')
         chi_gal = np.array(c_rotated.l.deg)
         psi_gal = np.array(c_rotated.b.deg)
@@ -285,7 +286,7 @@ class UnBinnedData(DataIO):
         self.write_unbinned_output(output_name=output_name) 
         
         return 
- 
+
     def construct_scy(self, scx_l, scx_b, scz_l, scz_b):
     
         """
