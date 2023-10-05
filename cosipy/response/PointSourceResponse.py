@@ -57,15 +57,37 @@ class PointSourceResponse(Histogram):
         """
         
         eaxis = self.photon_energy_axis
+        
+        spectrum_unit = None
 
         for item in spectrum.parameters:
             if getattr(spectrum, item).is_normalization == True:
                 spectrum_unit = getattr(spectrum, item).unit
                 break
-            
-        flux = Quantity([integrate.quad(spectrum, lo_lim/lo_lim.unit, hi_lim/hi_lim.unit)[0] * spectrum_unit * lo_lim.unit
-                         for lo_lim,hi_lim
-                         in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
+                
+        if spectrum_unit == None:
+            if isinstance(spectrum, Constant):
+                spectrum_unit = spectrum.k.unit
+            elif isinstance(spectrum, Line) or isinstance(spectrum, Quadratic) or isinstance(spectrum, Cubic) or isinstance(spectrum, Quartic):
+                spectrum_unit = spectrum.a.unit
+            elif isinstance(spectrum, StepFunction) or isinstance(spectrum, StepFunctionUpper) or isinstance(spectrum, Cosine_Prior) or isinstance(spectrum, Uniform_prior) or isinstance(spectrum, DiracDelta): 
+                spectrum_unit = spectrum.value.unit
+            elif isinstance(spectrum, PhAbs):
+                spectrum_unit = u.dimensionless_unscaled
+            else:
+                try:
+                    spectrum_unit = spectrum.K.unit
+                except:
+                    raise RuntimeError("Spectrum not yet supported because units of spectrum are unknown.")
+                    
+        if isinstance(spectrum, DiracDelta):
+            flux = Quantity([spectrum.value.value * spectrum_unit * lo_lim.unit if spectrum.zero_point.value >= lo_lim/lo_lim.unit and spectrum.zero_point.value <= hi_lim/hi_lim.unit else 0 * spectrum_unit * lo_lim.unit
+                             for lo_lim,hi_lim
+                             in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
+        else:
+            flux = Quantity([integrate.quad(spectrum, lo_lim/lo_lim.unit, hi_lim/hi_lim.unit)[0] * spectrum_unit * lo_lim.unit
+                             for lo_lim,hi_lim
+                             in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
         
         flux = self.expand_dims(flux.value, 'Ei') * flux.unit
 
