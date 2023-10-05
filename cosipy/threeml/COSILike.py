@@ -148,7 +148,7 @@ class COSILike(PluginPrototype):
         
         # Compute the log-likelihood
         
-        log_like = np.nansum(np.ma.masked_invalid(data*np.log(expectation) - expectation))
+        log_like = np.nansum(data*np.log(expectation) - expectation)
         
         return log_like
     
