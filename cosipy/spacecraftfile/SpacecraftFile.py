@@ -184,7 +184,7 @@ class SpacecraftFile():
             new_z_direction = new_z_direction[:-1]
             new_z_direction = np.append(new_z_direction, [z_direction_stop], axis = 0)
 
-        return self.__class__(new_times, new_x_direction, new_z_direction)
+        return self.__class__(new_times, x_pointings = new_x_direction, z_pointings = new_z_direction)
 
     def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
 
