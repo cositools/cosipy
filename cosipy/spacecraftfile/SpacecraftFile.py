@@ -8,45 +8,68 @@ from mhealpy import HealpixMap
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import cm, colors
+from types import NoneType
 
 from scoords import Attitude, SpacecraftFrame
 from cosipy.response import FullDetectorResponse
 
 class SpacecraftFile():
 
-    def __init__(self, time, x_pointings = None, y_pointings = None, z_pointings = None,
+    def __init__(self, time, x_pointings = None, y_pointings = None, z_pointings = None, attitude = None,
                  instrument = "COSI", frame = "galactic"):
 
         """
-        Define the inputs to calculate the orbits and point source response.
-        Will finish later
+        Time: astropy.Time; The time stamp for each pointings. Note this is NOT the time duration.
+        x_pointings: astropy.coordinates.SkyCoord; The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft.
+        y_pointings: astropy.coordinates.SkyCoord; The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft.
+        z_pointings: astropy.coordinates.SkyCoord; The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft.
+        attitude: numpy.ndarray: the attitude of the spacecraft.
+        instrument: string; the instrument name.
+        frame: string; the frame on which the analysis will be based.
         """
 
-        self._load_time = time
-        self._x_direction = x_pointings  # this is nump.ndarray
-        self._z_direction = z_pointings  # this is numpy.ndarray
-        self.frame = frame
-
-        if x_pointings is not None:
-            self.x_pointings = SkyCoord(l = self.get_l_b(x_pointings,"l"), 
-                                        b = self.get_l_b(x_pointings,"b"), 
-                                        unit = "deg", frame = self.frame)
+        # check if the inputs are valid
+        # Time
+        if isinstance(time, Time):
+            self._time = time
         else:
-            self.x_pointings = x_pointings  # simply return self.x_pointing as the default None value of x_pointings
-
-        if y_pointings is not None:
-            self.y_pointings = SkyCoord(l = self.get_l_b(y_pointings, "l"), 
-                                        b = self.get_l_b(y_pointings, "b"), 
-                                        unit = "deg", frame = self.frame)
+            raise TypeError("The time should be a astropy.time.Time object")
+            
+        # x pointings
+        if isinstance(x_pointings, (SkyCoord, NoneType)):
+            self.x_pointings = x_pointings
         else:
+            raise TypeError("The x_pointing should be a NoneType or SkyCoord object!")
+
+        # y pointings
+        if isinstance(y_pointings, (SkyCoord, NoneType)):
             self.y_pointings = y_pointings
-
-        if z_pointings is not None:
-            self.z_pointings = SkyCoord(l = self.get_l_b(z_pointings, "l"), 
-                                        b = self.get_l_b(z_pointings, "b"), 
-                                        unit = "deg", frame = self.frame)
         else:
+            raise TypeError("The y_pointing should be a NoneType or SkyCoord object!")
+
+        # z pointings
+        if isinstance(z_pointings, (SkyCoord, NoneType)):
             self.z_pointings = z_pointings
+        else:
+            raise TypeError("The z_pointing should be a NoneType or SkyCoord object!")
+            
+        # check if the x, y and z pointings are all None (no inputs). If all None, tt will try to read from attitude parameter
+        if self.x_pointings is None and self.y_pointings is None and self.z_pointings is None:
+            if attitude != None:
+                if type(attitude) is Attitude:
+                    self.attitude = attitude
+                else:
+                    raise TypeError("The attitude must be `scoords.attitude.Attitude` object")
+            else:
+                raise ValueError("Please input the pointings of as least two axes or attitude!")
+                
+        else:
+            self.attitude = None  # if you have the inputs of x, y and z pointings, the attitude will be overwritten by a None value regardless of the input for the attitude variable.
+            
+        self._load_time = self._time.to_value(format = "unix")  # this is not necessary, but just to make sure evething works fine...
+        self._x_direction = np.array([x_pointings.l.deg, x_pointings.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
+        self._z_direction = np.array([z_pointings.l.deg, z_pointings.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
+        self.frame = frame
 
 
     @classmethod
@@ -59,64 +82,6 @@ class SpacecraftFile():
         axis_2 = np.loadtxt(file, usecols = (5,4), delimiter = ' ', skiprows = 1)
 
         return cls(time_stamps, x_pointings = axis_1, z_pointings = axis_2)
-    
-    def get_l_b(self, pointing, which):
-        
-        """
-        Get the longtitude(l, 0-360 deg or any angle) or latitude(b, -90 to 90 deg). 
-        The default order is: the 1st column is longtitude and the 2nd column is latitude.
-        
-        Parameters
-        -----------
-        pointing: numpy.ndarray; the array with (N, 2) shape.
-        which: string; l for longitude, b for latitude
-        
-        Returns
-        -------
-        output: numpy.ndarray; the output array corresponds to longtitude(l) or latitude(b) with shape (N,1)
-        
-        """
-        
-        # first check the shape of inputs
-        if pointing.shape[1] != 2:
-            raise ValueError("The dimension of the pointing should be (N, 2)")
-            
-        if pointing[:,0].min() <= -90 or pointing[:,0].max() >= 90:
-            # it means the first column is longitude, check if the second column is latitude
-            if pointing[:,1].min() >= -90 and pointing[:,1].max() <= 90:
-                # it means the first columns is latitude
-                if which == "l":
-                    output = pointing[:,0]
-                elif which == "b":
-                    output = pointing[:,1]
-                else:
-                    raise ValueError("Only l and b are suppoerted!")
-            else:
-                raise ValueError("None of your coordinate columns is latitude(-90 deg <= angle <= 90 deg), please check your inputs!")
-                
-        elif pointing[:,1].min() <= -90 or pointing[:,1].max() >= 90:
-            # it means the second column is longitude, check if the first column is latitude
-            if pointing[:,0].min() >= -90 and pointing[:,0].max() <= 90:
-                # it means that the first column is latitude
-                if which == "l":
-                    output = pointing[:,1]
-                elif which == "b":
-                    output = pointing[:,0]
-                else:
-                    raise ValueError("Only l and b are suppoerted!")
-            else:
-                raise ValueError("None of your coordinate columns is latitude(-90 deg <= angle <= 90 deg), please check your inputs!")
-                
-        else:
-            # it means that both column has -90 deg <= angle <= 90 deg, we take the first column to be longtitude and second one to be latitude, following the convention of astropy.Skycoord.
-            if which == "l":
-                output = pointing[:,0]
-            elif which == "b":
-                output = pointing[:,1]
-            else:
-                raise ValueError("Only l and b are suppoerted!")
-        
-        return output
 
     def get_time(self, time_array = None):
 
@@ -265,34 +230,35 @@ class SpacecraftFile():
         -------
         cosipy.attitude
         """
+        if self.attitude is None:
+            # the attitude is None, we will calculate from the x, y and z pointings
+            if x_pointings is not None:
+                self.x_pointings = x_pointings
+            if y_pointings is not None:
+                self.y_pointings = y_pointings
+            if z_pointings is not None:
+                self.z_pointings = z_pointings
 
-        if x_pointings is not None:
-            self.x_pointings = x_pointings
-        if y_pointings is not None:
-            self.y_pointings = y_pointings
-        if z_pointings is not None:
-            self.z_pointings = z_pointings
+            list_ = [self.x_pointings, self.y_pointings, self.z_pointings]
+            coord_list_of_path = [x for x in list_ if x!=None]  # check how many pointings the user input
 
-        list_ = [self.x_pointings, self.y_pointings, self.z_pointings]
-        coord_list_of_path = [x for x in list_ if x!=None]  # check how many pointings the user input
+            # Check if the user input pointings from at least two axes
+            if len(coord_list_of_path) <= 1:
+                raise ValueError("You must input pointings of at least two axes")
 
-        # Check if the user input pointings from at least two axes
-        if len(coord_list_of_path) <= 1:
-            raise ValueError("You must input pointings of at least two axes")
+            # Check if the inputs are SkyCoord objects
+            for i in coord_list_of_path:
+                if type(i) != SkyCoord:
+                    raise ValueError("The coordiates must be a SkyCoord object")
 
-        # Check if the inputs are SkyCoord objects
-        for i in coord_list_of_path:
-            if type(i) != SkyCoord:
-                raise ValueError("The coordiates must be a SkyCoord object")
-
-        self.attitude = Attitude.from_axes(x=self.x_pointings,
-                                           y=self.y_pointings,
-                                           z=self.z_pointings,
-                                           frame = self.frame)
+            self.attitude = Attitude.from_axes(x=self.x_pointings,
+                                               y=self.y_pointings,
+                                               z=self.z_pointings,
+                                               frame = self.frame)
 
         return self.attitude
 
-    def get_target_in_sc_frame(self, target_name, target_coord, attitude = None):
+    def get_target_in_sc_frame(self, target_name, target_coord, attitude = None, quiet = False):
 
         """
         Convert the x, y and z pointings of the spacescraft axes to the path of the source in the spacecraft frame.
@@ -315,7 +281,8 @@ class SpacecraftFile():
             self.attitude = self.get_attitude()
 
         self.target_name = target_name
-        print("Now converting to the Spacecraft frame...")
+        if quiet == False:
+            print("Now converting to the Spacecraft frame...")
         self.src_path_cartesian = SkyCoord(np.dot(self.attitude.rot.inv().as_matrix(), target_coord.cartesian.xyz.value),
                                            representation_type = 'cartesian',
                                            frame = SpacecraftFrame())
@@ -325,8 +292,8 @@ class SpacecraftFile():
         self.src_path_spherical = cartesian_to_spherical(self.src_path_cartesian.x,
                                                          self.src_path_cartesian.y,
                                                          self.src_path_cartesian.z)
-
-        print(f"Conversion completed!")
+        if quiet == False:
+            print(f"Conversion completed!")
 
         # generate the numpy array of l and b to save to a npy file
         l = np.array(self.src_path_spherical[2].deg)  # note that 0 is Quanty, 1 is latitude and 2 is longitude and they are in rad not deg
@@ -339,7 +306,7 @@ class SpacecraftFile():
 
         return self.src_path_skycoord
 
-    def get_dwell_map(self, response, dts = None, src_path = None):
+    def get_dwell_map(self, response, dts = None, dt_format = None, src_path = None):
 
         """
         Generates the dwell time map for the source.
@@ -362,7 +329,7 @@ class SpacecraftFile():
         if dts == None:
             self.dts = self.get_time_delta()
         else:
-            self.dts = Time(dts, format = "unix")
+            self.dts = Time(dts, format = dt_format)
 
         # define the target source path in the SC frame
         if src_path == None:
@@ -373,8 +340,8 @@ class SpacecraftFile():
         if type(path) != SkyCoord:
             raise TypeError("The coordiates of the source movement in the Spacecraft frame must be a SkyCoord object")
 
-        if path.shape[0] != self.dts.shape[0]:
-            raise ValueError("The dimensions of the dts and source coordinates are not the same. Please check your inputs.")
+        if path.shape[0]-1 != self.dts.shape[0]:
+            raise ValueError("The dimensions of the dts or source coordinates are not correct. Please check your inputs.")
 
         with FullDetectorResponse.open(self.response_file) as response:
             self.dwell_map = HealpixMap(base = response,
