@@ -144,7 +144,7 @@ class SpacecraftFile():
         """
 
         new_direction_lat = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 1])
-        if (direction[idx, 1] > direction[idx + 1, 1]):
+        if (direction[idx, 0] > direction[idx + 1, 0]):
             new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], [direction[idx, 0], 360 + direction[idx + 1, 0]])
             new_direction_long = new_direction_long - 360
         else:
