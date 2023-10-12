@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import cm, colors
 
-
 from scoords import Attitude, SpacecraftFrame
 from cosipy.response import FullDetectorResponse
 
@@ -221,7 +220,7 @@ class SpacecraftFile():
         zpointings = SkyCoord(l = new_z_direction[:,0]*u.deg, b = new_z_direction[:,1]*u.deg, frame = "galactic")
 
         return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings)
-
+      
     def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
 
         """
