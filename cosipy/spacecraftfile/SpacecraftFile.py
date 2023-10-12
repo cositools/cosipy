@@ -8,7 +8,7 @@ from mhealpy import HealpixMap
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import cm, colors
-from types import NoneType
+
 
 from scoords import Attitude, SpacecraftFrame
 from cosipy.response import FullDetectorResponse
@@ -34,25 +34,25 @@ class SpacecraftFile():
             self._time = time
         else:
             raise TypeError("The time should be a astropy.time.Time object")
-            
+
         # x pointings
-        if isinstance(x_pointings, (SkyCoord, NoneType)):
+        if isinstance(x_pointings, (SkyCoord, type(None))):
             self.x_pointings = x_pointings
         else:
             raise TypeError("The x_pointing should be a NoneType or SkyCoord object!")
 
         # y pointings
-        if isinstance(y_pointings, (SkyCoord, NoneType)):
+        if isinstance(y_pointings, (SkyCoord, type(None))):
             self.y_pointings = y_pointings
         else:
             raise TypeError("The y_pointing should be a NoneType or SkyCoord object!")
 
         # z pointings
-        if isinstance(z_pointings, (SkyCoord, NoneType)):
+        if isinstance(z_pointings, (SkyCoord, type(None))):
             self.z_pointings = z_pointings
         else:
             raise TypeError("The z_pointing should be a NoneType or SkyCoord object!")
-            
+
         # check if the x, y and z pointings are all None (no inputs). If all None, tt will try to read from attitude parameter
         if self.x_pointings is None and self.y_pointings is None and self.z_pointings is None:
             if attitude != None:
@@ -62,10 +62,10 @@ class SpacecraftFile():
                     raise TypeError("The attitude must be `scoords.attitude.Attitude` object")
             else:
                 raise ValueError("Please input the pointings of as least two axes or attitude!")
-                
+
         else:
             self.attitude = None  # if you have the inputs of x, y and z pointings, the attitude will be overwritten by a None value regardless of the input for the attitude variable.
-            
+
         self._load_time = self._time.to_value(format = "unix")  # this is not necessary, but just to make sure evething works fine...
         self._x_direction = np.array([x_pointings.l.deg, x_pointings.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
         self._z_direction = np.array([z_pointings.l.deg, z_pointings.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
@@ -81,7 +81,11 @@ class SpacecraftFile():
         axis_1 = np.loadtxt(file, usecols = (3,2), delimiter = ' ', skiprows = 1)
         axis_2 = np.loadtxt(file, usecols = (5,4), delimiter = ' ', skiprows = 1)
 
-        return cls(time_stamps, x_pointings = axis_1, z_pointings = axis_2)
+        time = Time(time_stamps, format = "unix")
+        xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
+        zpointings = SkyCoord(l = axis_2[:,0]*u.deg, b = axis_2[:,1]*u.deg, frame = "galactic")
+
+        return cls(time, x_pointings = xpointings, z_pointings = zpointings)
 
     def get_time(self, time_array = None):
 
@@ -212,7 +216,11 @@ class SpacecraftFile():
             new_z_direction = new_z_direction[:-1]
             new_z_direction = np.append(new_z_direction, [z_direction_stop], axis = 0)
 
-        return self.__class__(new_times, x_pointings = new_x_direction, z_pointings = new_z_direction)
+        time = Time(new_times, format = "unix")
+        xpointings = SkyCoord(l = new_x_direction[:,0]*u.deg, b = new_x_direction[:,1]*u.deg, frame = "galactic")
+        zpointings = SkyCoord(l = new_z_direction[:,0]*u.deg, b = new_z_direction[:,1]*u.deg, frame = "galactic")
+
+        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings)
 
     def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
 
