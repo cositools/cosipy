@@ -10,8 +10,7 @@ from mhealpy import HealpixMap
 
 from cosipy.response import FullDetectorResponse
 from scoords import SpacecraftFrame, Attitude
-from cosipy.coordinates.orientation import Orientation_file
-from cosipy.spacecraftpositionattitude import SpacecraftPositionAttitude
+from cosipy.SpacecraftFile import SpacecraftFile
 from cosipy.data_io import BinnedData
 
 class DataLoader(object):
@@ -105,7 +104,7 @@ class DataLoader(object):
         
         print(f'... loading orientation from {filepath}')
 
-        self.orientation = Orientation_file.parse_from_file(self._sc_orientation_filepath)
+        self.orientation = SpacecraftFile.parse_from_file(self._sc_orientation_filepath)
 
         print("... Done ...")
 
@@ -352,22 +351,22 @@ class DataLoader(object):
             l, b = phi, np.pi/2 - theta
 
             pixel_coord = SkyCoord(l, b, unit = u.rad, frame = 'galactic')
-            pixel_obj = SpacecraftPositionAttitude.SourceSpacecraft(f"pixel_{ipix}", pixel_coord)
 
             for i_time, [init_time, end_time] in enumerate(self.coordsys_conv_matrix.axes["Time"].bounds):
                 init_time = Time(init_time, format = 'unix')
                 end_time = Time(end_time, format = 'unix')
     
                 filtered_orientation = self.orientation.source_interval(init_time, end_time)
-                x,y,z = filtered_orientation.get_attitude().as_axes()
-                pixel_movement = pixel_obj.sc_frame(x_pointings = x, z_pointings = z)
+                pixel_movement = filtered_orientation.get_target_in_sc_frame(target_name = f"pixel_{ipix}_{i_time}",
+                                                                             target_coord = pixel_coord,
+                                                                             quiet = True)
 
                 time_diff = filtered_orientation.get_time_delta()
-                time_diff = Time(0.5*(np.insert(time_diff.value, 0, 0) + np.append(time_diff.value, 0)), format = 'unix')
 
-                dwell_time_map = pixel_obj.get_dwell_map(response = self.full_detector_response.filename,
-                                                         dts = time_diff,
-                                                         src_path = pixel_movement)
+                dwell_time_map = filtered_orientation.get_dwell_map(response = self.full_detector_response.filename,
+                                                                    dts = time_diff,
+                                                                    src_path = pixel_movement,
+                                                                    quiet = True)
 
                 self.coordsys_conv_matrix[ipix,i_time] = dwell_time_map.data * dwell_time_map.unit
                 # (HealpixMap).data returns the numpy array without its unit.
