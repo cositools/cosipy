@@ -6,6 +6,8 @@ from astropy.units import Quantity
 
 from scipy import integrate
 
+from threeML import DiracDelta
+
 class PointSourceResponse(Histogram):
     """
     Handles the multi-dimensional matrix that describes the expected
