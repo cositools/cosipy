@@ -160,7 +160,7 @@ class FullDetectorResponse(HealpixBase):
 
         axes_edges = []
         axes_types = []
-
+        sparse = None
         # get the header infos of the rsp file (nsim,area,bin_edges,etc...)
         with gzip.open(filename, "rt") as file:
             for n, line in enumerate(file):
@@ -217,7 +217,11 @@ class FullDetectorResponse(HealpixBase):
         
         
         print("normalisation is {0}".format(norm))
-        print("Sparse matrice ? {0}".format(sparse))
+	if sparse == None :
+		print("Sparse paramater not found in the file : We assume this is a non sparse matrice !")
+		sparse = False
+        else :
+		print("Sparse matrice ? {0}".format(sparse))
         edges = ()
         #print(axes_edges)
 
