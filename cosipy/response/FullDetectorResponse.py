@@ -191,8 +191,8 @@ class FullDetectorResponse(HealpixBase):
                 elif key == "SP" and line[1]=="false" :
                     sparse = False
 		
-		elif key == "MS":
-		    sparse = bool(line[1])	
+                elif key == "MS":
+                    sparse = bool(line[1])	
 
                 elif key == 'AD':
                     if line[2] == "RING":
