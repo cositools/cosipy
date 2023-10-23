@@ -220,11 +220,11 @@ class FullDetectorResponse(HealpixBase):
         
         
         print("normalisation is {0}".format(norm))
-	if sparse == None :
-		print("Sparse paramater not found in the file : We assume this is a non sparse matrice !")
-		sparse = False
+        if sparse == None :
+            print("Sparse paramater not found in the file : We assume this is a non sparse matrice !")
+            sparse = False
         else :
-		print("Sparse matrice ? {0}".format(sparse))
+            print("Sparse matrice ? {0}".format(sparse))
         edges = ()
         #print(axes_edges)
 
