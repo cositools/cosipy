@@ -306,14 +306,15 @@ class SpacecraftFile():
         l = np.array(self.src_path_spherical[2].deg)  # note that 0 is Quanty, 1 is latitude and 2 is longitude and they are in rad not deg
         b = np.array(self.src_path_spherical[1].deg)
         self.src_path_lb = np.stack((l,b), axis=-1)
-        np.save(self.target_name+"_source_path_in_SC_frame", self.src_path_lb)
+        if quiet == False:
+            np.save(self.target_name+"_source_path_in_SC_frame", self.src_path_lb)
 
         # convert to SkyCoord objects to get the output object of this method
         self.src_path_skycoord = SkyCoord(self.src_path_lb[:,0], self.src_path_lb[:,1], unit = "deg", frame = SpacecraftFrame())
 
         return self.src_path_skycoord
 
-    def get_dwell_map(self, response, dts = None, dt_format = None, src_path = None):
+    def get_dwell_map(self, response, dts = None, dt_format = None, src_path = None, quiet = False):
 
         """
         Generates the dwell time map for the source.
@@ -360,8 +361,8 @@ class SpacecraftFile():
                 for p, w in zip(pixels, weights):
                     self.dwell_map[p] += w*(duration.unix*u.s)
 
-
-        self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)
+        if quiet == False:
+            self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)
 
         return self.dwell_map
 
