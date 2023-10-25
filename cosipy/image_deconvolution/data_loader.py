@@ -303,7 +303,7 @@ class DataLoader(object):
         print("... (DataLoader) calculating the projected response (sparse) ...")
         self.image_response_sparse_projected = self.image_response_sparse.project("lb", "Ei")
 
-    def load_full_detector_response_on_memory(self):
+    def load_full_detector_response_on_memory(self, is_miniDC2_format = False):
 
         axes_image_response = [self.full_detector_response.axes["NuLambda"], self.full_detector_response.axes["Ei"],
                                self.full_detector_response.axes["Em"], self.full_detector_response.axes["Phi"], self.full_detector_response.axes["PsiChi"]]
@@ -312,9 +312,13 @@ class DataLoader(object):
 
         nside = self.full_detector_response.axes["NuLambda"].nside
         npix = self.full_detector_response.axes["NuLambda"].npix 
-
-        for ipix in tqdm(range(npix)):
-            self.image_response_dense[ipix] = np.sum(self.full_detector_response[ipix].to_dense(), axis = (4,5)) #Ei, Em, Phi, ChiPsi
+    
+        if is_miniDC2_format:
+            for ipix in tqdm(range(npix)):
+                self.image_response_dense[ipix] = np.sum(self.full_detector_response[ipix].to_dense(), axis = (4,5)) #Ei, Em, Phi, ChiPsi
+        else:
+                contents = self.full_detector_response._file['DRM']['CONTENTS'][:]
+                self.image_response_dense[:] = contents * self.full_detector_response.unit
 
         self.response_on_memory = True
 
