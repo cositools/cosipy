@@ -5,7 +5,6 @@ from threeML.exceptions.custom_exceptions import FitFailed
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
-#from cosipy.coordinates.orientation import Orientation_file
 
 from scoords import SpacecraftFrame, Attitude
 
@@ -36,10 +35,9 @@ class COSILike(PluginPrototype):
             Binned data. Note: Eventually this should be a cosipy data class
         bkg: histpy.Histogram
             Binned background model. Note: Eventually this should be a cosipy data class
-        sc_orientation: array
-            Pair of timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
-            the orientation of the spacecraft for the duration of the data included in
-            the analysis. Note: this will eventually be handled by the SC location and
+        sc_orientation: cosipy.spacecraftfile.SpacecraftFile
+            It contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
+            the spacecraft for the duration of the data included in the analysis.
             orientation module
         """
         
@@ -51,6 +49,7 @@ class COSILike(PluginPrototype):
 
         # User inputs needed to compute the likelihood
         self._name = name
+        self._rsp_path = dr
         self._dr = FullDetectorResponse.open(dr)
         self._data = data
         self._bkg = bkg
@@ -141,16 +140,13 @@ class COSILike(PluginPrototype):
         self.set_model(self._model)
         
         if self._fit_nuisance_params: # Compute expectation including free background parameter
-            expectation = self._signal.contents + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents
+            expectation = self._signal.contents.todense() + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
         else: # Compute expectation without background parameter
             expectation = self._signal.contents.todense() + self._bkg.contents.todense()
         
         data = self._data.contents # Into an array
         
-        # Compute the log-likelihood from the equations above
-        #log_like = np.sum(np.log(np.power(expectation, data) * 
-        #                         np.exp(-expectation) / 
-        #                         factorial(data)))
+        # Compute the log-likelihood
         
         log_like = np.nansum(data*np.log(expectation) - expectation)
         
@@ -164,30 +160,20 @@ class COSILike(PluginPrototype):
         return self.get_log_like()
     
     def _get_dwell_time_map(self, coord):
-        """
-        This will be eventually be provided by another module
-        """
         
-        # The dwell time map has the same pixelation (base) as the detector response.
-        # We start with an empty map
-        dwell_time_map = HealpixMap(base = self._dr, 
-                                    unit = u.s, 
-                                    coordsys = SpacecraftFrame())
-
-        # Get timestamps and attitude values
-        timestamps = self._sc_orientation.get_time()
-        attitudes = self._sc_orientation.get_attitude().as_matrix()
-
-        for attitude,duration in zip(attitudes[:-1], np.diff(timestamps.unix)):
-            
-            local_coord = coord.transform_to(SpacecraftFrame(attitude = Attitude.from_matrix(attitude)))
-            
-            # Here we add duration in between timestamps using interpolations
-            pixels, weights = dwell_time_map.get_interp_weights(local_coord)
-
-            for p,w in zip(pixels, weights):
-                dwell_time_map[p] += w*(duration*u.s)
-                
+        """Get the dwell time map of the source in the spacecraft frame.
+        
+        Parameters
+        ----------
+        coord: astropy.coordinates.SkyCoord; the coordinate of the target source.
+        
+        Returns
+        -------
+        dwell_time_map: mhealpy.containers.healpix_map.HealpixMap
+        """
+        self._sc_orientation.get_target_in_sc_frame(target_name = self._name, target_coord = coord)
+        dwell_time_map = self._sc_orientation.get_dwell_map(response = self._rsp_path)
+        
         return dwell_time_map
  
     def set_inner_minimization(self, flag: bool):
