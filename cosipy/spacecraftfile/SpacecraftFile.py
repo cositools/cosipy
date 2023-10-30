@@ -48,9 +48,9 @@ class SpacecraftFile():
 
         #parses timestamps, axis positions from file and returns to __init__
 
-        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1)
-        axis_1 = np.loadtxt(file, usecols = (2,3), delimiter = ' ', skiprows = 1)
-        axis_2 = np.loadtxt(file, usecols = (4,5), delimiter = ' ', skiprows = 1)
+        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1, comments=("#","EN"))
+        axis_1 = np.loadtxt(file, usecols = (2,3), delimiter = ' ', skiprows = 1, comments=("#","EN"))
+        axis_2 = np.loadtxt(file, usecols = (4,5), delimiter = ' ', skiprows = 1, comments=("#","EN"))
 
         return cls(time_stamps, x_pointings = axis_1, z_pointings = axis_2)
 

@@ -12,3 +12,6 @@ from .threeml import COSILike
 from .threeml import Band_Eflux
 
 from .spacecraftfile import SpacecraftFile
+
+#from .coordinates import attitude
+#from .coordinates import spacecraft_frame

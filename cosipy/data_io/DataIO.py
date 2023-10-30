@@ -27,6 +27,7 @@ class DataIO:
         # Data I/O:
         inputs = Configurator().open(input_yaml)
         self.data_file = inputs['data_file'] # Full path to input data file.
+        self.ori_file = inputs['ori_file'] # Full path to ori file. 
         self.unbinned_output = inputs['unbinned_output'] # fits or hdf5
         self.time_bins = inputs['time_bins'] # Time bin size in seconds. Takes int, float, or list of bin edges.
         self.energy_bins = inputs['energy_bins'] # Needs to match response. Takes list. 
