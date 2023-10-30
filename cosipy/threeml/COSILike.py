@@ -21,7 +21,7 @@ import collections
 import copy
 
 class COSILike(PluginPrototype):
-    def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, **kwargs):
+    def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, alt_like=False, **kwargs):
         """
         COSI 3ML plugin
         
@@ -71,6 +71,9 @@ class COSILike(PluginPrototype):
             self._nuisance_parameters[self._bkg_par.name].free = self._fit_nuisance_params
         else:
             raise RuntimeError("Nuisance parameter must be astromodels.core.parameter.Parameter object")
+            
+        # Temporary fix for 511 line fitting (use alternate log likelihood function)
+        self.alt_like = alt_like
         
     def set_model(self, model):
         """
@@ -148,7 +151,10 @@ class COSILike(PluginPrototype):
         
         # Compute the log-likelihood
         
-        log_like = np.nansum(data*np.log(expectation) - expectation)
+        if self.alt_like:
+            log_like = np.nansum(np.ma.masked_invalid(data*np.log(expectation) - expectation)) # for 511 fitting
+        else:
+            log_like = np.nansum(data*np.log(expectation) - expectation)
         
         return log_like
     
@@ -171,8 +177,27 @@ class COSILike(PluginPrototype):
         -------
         dwell_time_map: mhealpy.containers.healpix_map.HealpixMap
         """
-        self._sc_orientation.get_target_in_sc_frame(target_name = self._name, target_coord = coord)
-        dwell_time_map = self._sc_orientation.get_dwell_map(response = self._rsp_path)
+        
+        #self._sc_orientation.get_target_in_sc_frame(target_name = self._name, target_coord = coord)
+        #dwell_time_map = self._sc_orientation.get_dwell_map(response = self._rsp_path)
+        
+        dwell_time_map = HealpixMap(base = self._dr, 
+                                    unit = u.s, 
+                                    coordsys = SpacecraftFrame())
+
+        # Get timestamps and attitude values
+        timestamps = self._sc_orientation.get_time()
+        attitudes = self._sc_orientation.get_attitude().as_matrix()
+
+        for attitude,duration in zip(attitudes[:-1], np.diff(timestamps.unix)):
+
+            local_coord = coord.transform_to(SpacecraftFrame(attitude = Attitude.from_matrix(attitude)))
+
+            # Here we add duration in between timestamps using interpolations
+            pixels, weights = dwell_time_map.get_interp_weights(local_coord)
+
+            for p,w in zip(pixels, weights):
+                dwell_time_map[p] += w*(duration*u.s)
         
         return dwell_time_map
  
