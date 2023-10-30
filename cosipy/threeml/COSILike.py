@@ -178,26 +178,8 @@ class COSILike(PluginPrototype):
         dwell_time_map: mhealpy.containers.healpix_map.HealpixMap
         """
         
-        #self._sc_orientation.get_target_in_sc_frame(target_name = self._name, target_coord = coord)
-        #dwell_time_map = self._sc_orientation.get_dwell_map(response = self._rsp_path)
-        
-        dwell_time_map = HealpixMap(base = self._dr, 
-                                    unit = u.s, 
-                                    coordsys = SpacecraftFrame())
-
-        # Get timestamps and attitude values
-        timestamps = self._sc_orientation.get_time()
-        attitudes = self._sc_orientation.get_attitude().as_matrix()
-
-        for attitude,duration in zip(attitudes[:-1], np.diff(timestamps.unix)):
-
-            local_coord = coord.transform_to(SpacecraftFrame(attitude = Attitude.from_matrix(attitude)))
-
-            # Here we add duration in between timestamps using interpolations
-            pixels, weights = dwell_time_map.get_interp_weights(local_coord)
-
-            for p,w in zip(pixels, weights):
-                dwell_time_map[p] += w*(duration*u.s)
+        self._sc_orientation.get_target_in_sc_frame(target_name = self._name, target_coord = coord)
+        dwell_time_map = self._sc_orientation.get_dwell_map(response = self._rsp_path)
         
         return dwell_time_map
  
