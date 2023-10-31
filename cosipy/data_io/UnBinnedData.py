@@ -248,8 +248,6 @@ class UnBinnedData(DataIO):
         gc.collect()
 
         # Initialize arrays:
-        # Note: May need to implement memory maps here
-        # if arrays are too large for common laptops. 
         print("Initializing arrays...")
         erg = np.array(erg)
         phi = np.array(phi)
