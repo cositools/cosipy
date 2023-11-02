@@ -20,8 +20,11 @@ import collections
 
 import copy
 
+import logging
+logger = logging.getLogger(__name__)
+
 class COSILike(PluginPrototype):
-    def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, alt_like=False, **kwargs):
+    def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, **kwargs):
         """
         COSI 3ML plugin
         
@@ -71,9 +74,6 @@ class COSILike(PluginPrototype):
             self._nuisance_parameters[self._bkg_par.name].free = self._fit_nuisance_params
         else:
             raise RuntimeError("Nuisance parameter must be astromodels.core.parameter.Parameter object")
-            
-        # Temporary fix for 511 line fitting (use alternate log likelihood function)
-        self.alt_like = alt_like
         
     def set_model(self, model):
         """
@@ -81,8 +81,8 @@ class COSILike(PluginPrototype):
         
         Parameters:
             model: LikelihoodModel
-                Any model supported by astromodel. However, this simple plugin only support single 
-                point-sources with a power law spectrum
+                Any model supported by astromodel. However, this simple plugin only supports single 
+                point-sources
         """
         
         # Check for limitations
@@ -151,10 +151,12 @@ class COSILike(PluginPrototype):
         
         # Compute the log-likelihood
         
-        if self.alt_like:
-            log_like = np.nansum(np.ma.masked_invalid(data*np.log(expectation) - expectation)) # for 511 fitting
-        else:
-            log_like = np.nansum(data*np.log(expectation) - expectation)
+        log_like = np.nansum(data*np.log(expectation) - expectation)
+        
+        if log_like == -np.inf:
+            logger.warning(f"There are bins in which the total expected counts = 0 but data != 0, making log-likelihood = -inf. "
+                           f"Masking these bins.")
+            log_like = np.nansum(np.ma.masked_invalid(data*np.log(expectation) - expectation))
         
         return log_like
     
