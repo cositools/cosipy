@@ -65,6 +65,12 @@ class UnBinnedData(DataIO):
         event_max: Maximum event number to process (non-inclusive).
             - All events at and above this will be skipped.
 
+        Note: Note: event_min and event_max correspond to the total 
+              number of events in the file, which is not necessarily 
+              the same as the event ID number. The purpose of this is
+              to allow the data to be read in chunks, in order to 
+              overcome memory limitations, depending on the user's system.
+
         Note: The current code is only able to handle data with Compton events.
               It will need to be modified to handle single-site and pair.    
         """
