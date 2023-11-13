@@ -12,7 +12,9 @@ import numpy as np
 import mhealpy as hp
 from mhealpy import HealpixBase, HealpixMap
 from cosipy.config import Configurator
-from scoords import SpacecraftFrame
+
+from scoords import SpacecraftFrame, Attitude
+
 from histpy import Histogram, Axes, Axis, HealpixAxis
 import h5py as h5
 import os
@@ -20,10 +22,13 @@ import textwrap
 import argparse
 import logging
 logger = logging.getLogger(__name__)
+
+from copy import copy, deepcopy
 import gzip
 from tqdm import tqdm
 import subprocess
 import sys
+import gc
 
 class FullDetectorResponse(HealpixBase):
     """
@@ -677,7 +682,10 @@ class FullDetectorResponse(HealpixBase):
                                  coordsys=SpacecraftFrame())
 
         return new
-    
+
+    @property
+    def is_sparse(self):
+        return self._sparse
 
     @property
     def ndim(self):
@@ -799,35 +807,150 @@ class FullDetectorResponse(HealpixBase):
 
         return dr
 
-    def get_point_source_response(self, exposure_map):
+    def get_point_source_response(self,
+                                  exposure_map = None,
+                                  coord = None,
+                                  scatt_map = None):
         """
         Convolve the all-sky detector response with exposure for a source at a given
         sky location.
+
+        Provide either a exposure map (aka dweel time map) or a combination of a 
+        sky coordinate and a spacecraft attitude map.
 
         Parameters
         ----------
         exposure_map : :py:class:`mhealpy.HealpixMap`
             Effective time spent by the source at each pixel location in spacecraft coordinates
-
+        coord : :py:class:`astropy.coordinates.SkyCoord`
+            Source coordinate
+        scatt_map : :py:cass:`SpacecraftAttitudeMap`
+            Spacecraft attitude map
+        
         Returns
         -------
         :py:class:`PointSourceResponse`
         """
 
-        if not self.conformable(exposure_map):
-            raise ValueError(
-                "Exposure map has a different grid than the detector response")
+        # TODO: deprecate exposure_map in favor of coords + scatt map for both local
+        # and interntial coords
+        
+        if exposure_map is not None:
+            if not self.conformable(exposure_map):
+                raise ValueError(
+                    "Exposure map has a different grid than the detector response")
 
-        psr = PointSourceResponse(self.axes[1:],
-                                  sparse=self._sparse,
-                                  unit=u.cm*u.cm*u.s)
+            psr = PointSourceResponse(self.axes[1:],
+                                      sparse=self._sparse,
+                                      unit=u.cm*u.cm*u.s)
 
-        for p in range(self.npix):
+            for p in range(self.npix):
 
-            if exposure_map[p] != 0:
-                psr += self[p]*exposure_map[p]
+                if exposure_map[p] != 0:
+                    psr += self[p]*exposure_map[p]
 
-        return psr
+            return psr
+
+        else:
+
+            # Rotate to inertial coordinates
+
+            if coord is None or scatt_map is None:
+                raise ValueError("Provide either exposure map or coord + scatt_map")
+            
+            if isinstance(coord.frame, SpacecraftFrame):
+                raise ValueError("Local coordinate + scatt_map not currently supported")
+
+            if self.is_sparse:
+                raise ValueError("Coord +  scatt_map currently only supported for dense responses")
+
+            axis = "PsiChi"
+
+            coords_axis = Axis(np.arange(coord.size+1), label = 'coords')
+
+            psr = Histogram([coords_axis] + list(deepcopy(self.axes[1:])), 
+                            unit = u.cm*u.cm)
+            
+            psr.axes[axis].coordsys = coord.frame
+
+            for i,(pixels, exposure) in \
+                enumerate(zip(scatt_map.contents.coords.transpose(),
+                              scatt_map.contents.data)):
+
+                #gc.collect() # HDF5 cache issues
+                
+                att = Attitude.from_axes(x = scatt_map.axes['x'].pix2skycoord(pixels[0]),
+                                         y = scatt_map.axes['y'].pix2skycoord(pixels[1]))
+
+                coord.attitude = att
+
+                #TODO: Change this to interpolation
+                loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord),
+                                               ndmin = 1)
+                
+                dr_pix = Histogram.concatenate(coords_axis, [self[i] for i in loc_nulambda_pixels])
+
+                dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
+
+                self._sum_rot_hist(dr_pix, psr, exposure)
+
+            # Convert to PSR
+            psr = tuple([PointSourceResponse(psr.axes[1:],
+                                             contents = data,
+                                             sparse = psr.is_sparse,
+                                             unit = psr.unit)
+                         for data in psr[:]])
+            
+            if coord.size == 1:
+                return psr[0]
+            else:
+                return psr
+            
+    @staticmethod
+    def _sum_rot_hist(h, h_new, exposure, axis = "PsiChi"):
+        """
+        Rotate a histogram with HealpixAxis h into the grid of h_new, and sum
+        it up with the weight of exposure.
+
+        Meant to rotate the PsiChi of a CDS from local to galactic
+        """
+        
+        axis_id = h.axes.label_to_index(axis)
+
+        old_axes = h.axes
+        new_axes = h_new.axes
+
+        old_axis = h.axes[axis_id]
+        new_axis = h_new.axes[axis_id]
+
+        # Convolve
+        # TODO: Change this to interpolation (pixels + weights)
+        old_pixels = old_axis.find_bin(new_axis.pix2skycoord(np.arange(new_axis.nbins)))
+        # NOTE: there are some pixels that are duplicated, since the center 2 pixels
+        # of the original grid can land within the boundaries of a single pixel
+        # of the target grid. The following commented code fixes this, but it's slow, and
+        # the effect is very small, so maybe not worth it
+        # nulambda_npix = h.axes['NuLamnda'].nbins    
+        # new_norm = np.zeros(shape = nulambda_npix)
+        # for p in old_pixels:
+        #     h_slice = h[{axis:p}]
+        #     norm_rot += np.sum(h_slice, axis = tuple(np.arange(1, h_slice.ndim)))
+        # old_norm = np.sum(h, axis = tuple(np.arange(1, h.ndim)))
+        # norm_corr = h.expand_dims(norm / norm_rot, "NuLambda")
+
+        for old_pix,new_pix in zip(old_pixels,range(new_axis.npix)):
+
+            #h_new[{axis:new_pix}] += exposure * h[{axis: old_pix}] # * norm_corr
+            # The following code does the same than the code above, but is faster
+            # However, it uses some internal functionality in histpy, which is bad practice
+            # TODO: change this in a future version. We might need to modify histpy so that
+            # this is not needed
+            
+            old_indices = tuple([slice(None)]*axis_id + [old_pix+1])
+            new_indices = tuple([slice(None)]*axis_id + [new_pix+1])
+
+            h_new._contents[new_indices] += exposure * h._contents[old_indices] # * norm_corr
+                        
 
     def __str__(self):
         return f"{self.__class__.__name__}(filename = '{self.filename.resolve()}')"
