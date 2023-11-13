@@ -367,7 +367,7 @@ class SpacecraftFile():
 
         return self.dwell_map
 
-    def get_scatt_hist(self,
+    def get_scatt_map(self,
                        nside,
                        scheme = 'ring',
                        coordsys = 'galactic',
