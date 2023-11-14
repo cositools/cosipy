@@ -76,9 +76,9 @@ class SpacecraftFile():
 
         #parses timestamps, axis positions from file and returns to __init__
 
-        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1)
-        axis_1 = np.loadtxt(file, usecols = (3,2), delimiter = ' ', skiprows = 1)
-        axis_2 = np.loadtxt(file, usecols = (5,4), delimiter = ' ', skiprows = 1)
+        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1, comments=("#","EN"))
+        axis_1 = np.loadtxt(file, usecols = (3,2), delimiter = ' ', skiprows = 1, comments=("#","EN"))
+        axis_2 = np.loadtxt(file, usecols = (5,4), delimiter = ' ', skiprows = 1, comments=("#","EN"))
 
         time = Time(time_stamps, format = "unix")
         xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
