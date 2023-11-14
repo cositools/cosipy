@@ -8,6 +8,7 @@ from scipy import integrate
 
 from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs
 
+
 class PointSourceResponse(Histogram):
     """
     Handles the multi-dimensional matrix that describes the expected
