@@ -552,7 +552,7 @@ class UnBinnedData(DataIO):
             if self.unbinned_output == 'hdf5':
                 this_dict = self.get_dict_from_hdf5(each)
             if self.unbinned_output == 'fits':
-                this_dict = get_dict_from_fits(each)
+                this_dict = self.get_dict_from_fits(each)
 
             # Combine dictionaries:
             if counter == 0:
