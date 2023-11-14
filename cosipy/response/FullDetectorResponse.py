@@ -94,7 +94,10 @@ class FullDetectorResponse(HealpixBase):
 
         new._unit = u.Unit(new._drm.attrs['UNIT'])
         
-        new._sparse = new._drm.attrs['SPARSE']
+        try:
+             new._sparse = new._drm.attrs['SPARSE']
+        except KeyError:
+             new._sparse = True
 
         # Axes
         axes = []
