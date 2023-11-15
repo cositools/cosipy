@@ -2,7 +2,8 @@
 import sys
 import numpy as np
 import h5py
-from histpy import Histogram
+from histpy import Histogram, HealpixAxis, Axis
+from scoords import SpacecraftFrame, Attitude
 from mhealpy import HealpixMap, HealpixBase
 import healpy as hp
 import pandas as pd
@@ -10,13 +11,15 @@ import matplotlib.pyplot as plt
 from cosipy.make_plots import MakePlots
 from cosipy.data_io import UnBinnedData
 import logging
+import astropy.units as u
+from astropy.coordinates import SkyCoord
 logger = logging.getLogger(__name__)
 
 
 class BinnedData(UnBinnedData):
    
-    def get_binned_data(self, unbinned_data=None, output_name="binned_data", \
-            make_binning_plots=False, psichi_binning="galactic"):
+    def get_binned_data(self, unbinned_data=None, output_name=None, \
+            make_binning_plots=False, psichi_binning="galactic", psichi_old=False):
 
         """ 
         Bin the data using histpy and mhealpy.
@@ -25,11 +28,13 @@ class BinnedData(UnBinnedData):
         - unbinned_data: read in unbinned data from file. 
           Input file is either .fits or .hdf5 as specified in
           the unbinned_output parameter in inputs.yaml.     
-        - output_name: prefix of output file.
+        - output_name: Prefix of output file.
         - make_binning_plots: Option to make basic plots of the binning.
           Default is False.
         - psichi_binning: 'galactic' for binning psichi in Galactic coordinates,
           or 'local' for binning in local coordinates. Default is Galactic. 
+        - psichi_old: use old binning definition for psichi.
+            - This is just here as a temporary sanity check, and will soon be removed. 
         """
         
         # Make print statement:
@@ -72,41 +77,63 @@ class BinnedData(UnBinnedData):
         number_phi_bins = int(180./self.phi_pix_size)
         phi_bin_edges = np.linspace(0,180,number_phi_bins+1)
 
-        # Get healpix binning for psi and chi local:
-        npix = hp.nside2npix(self.nside)
-        print()
-        print("PsiChi binning:")
-        print("Approximate resolution at NSIDE {} is {:.2} deg".format(self.nside, hp.nside2resol(self.nside, arcmin=True) / 60))
-        print()
+        # Get healpix binning for psi and chi:
+        if psichi_old == True:
+            print("using old psichi definition...")
+            npix = hp.nside2npix(self.nside)
+            print()
+            print("PsiChi binning:")
+            print("Approximate resolution at NSIDE {} is {:.2} deg".format(self.nside, hp.nside2resol(self.nside, arcmin=True) / 60))
+            print()
 
-        # Define the grid and initialize
-        self.m = HealpixMap(nside = self.nside, scheme = self.scheme, dtype = int)
+            # Define the grid and initialize
+            self.m = HealpixMap(nside = self.nside, scheme = self.scheme, dtype = int)
 
-        # Bin psi and chi data:
-        if psichi_binning not in ['galactic','local']:
-            print("ERROR: psichi_binning must be either 'galactic' or 'local'")
-            sys.exit()
-        if psichi_binning == 'galactic':
-            PsiChi_pixs = self.m.ang2pix(self.cosi_dataset['Chi galactic'],self.cosi_dataset['Psi galactic'],lonlat=True)
-        if psichi_binning == 'local':
-            PsiChi_pixs = self.m.ang2pix(self.cosi_dataset['Psi local'],self.cosi_dataset['Chi local'])
-        PsiChi_bin_edges = np.arange(0,npix+1,1)
+            # Bin psi and chi data:
+            if psichi_binning not in ['galactic','local']:
+                print("ERROR: psichi_binning must be either 'galactic' or 'local'")
+                sys.exit()
+            if psichi_binning == 'galactic':
+                PsiChi_pixs = self.m.ang2pix(self.cosi_dataset['Chi galactic'],self.cosi_dataset['Psi galactic'],lonlat=True)
+            if psichi_binning == 'local':
+                PsiChi_pixs = self.m.ang2pix(self.cosi_dataset['Psi local'],self.cosi_dataset['Chi local'])
+            PsiChi_bin_edges = np.arange(0,npix+1,1)
     
-        # Fill healpix map:
-        unique, unique_counts = np.unique(PsiChi_pixs, return_counts=True)
-        self.m[unique] = unique_counts
+            # Fill healpix map:
+            unique, unique_counts = np.unique(PsiChi_pixs, return_counts=True)
+            self.m[unique] = unique_counts
 
-        # Save healpix map to file:
-        self.m.write_map("psichi_healpix_map.fits",overwrite=True)
+            # Save healpix map to file:
+            self.m.write_map("psichi_healpix_map.fits",overwrite=True)
 
-        # Initialize histogram:
-        self.binned_data = Histogram([time_bin_edges, energy_bin_edges, phi_bin_edges, PsiChi_bin_edges], labels = ['Time','Em','Phi','PsiChi'], sparse=True)
+            # Initialize histogram:
+            self.binned_data = Histogram([time_bin_edges, energy_bin_edges, phi_bin_edges, PsiChi_bin_edges], labels = ['Time','Em','Phi','PsiChi'], sparse=True)
 
-        # Fill histogram:
-        self.binned_data.fill(self.cosi_dataset['TimeTags'], self.cosi_dataset['Energies'], np.rad2deg(self.cosi_dataset['Phi']), PsiChi_pixs)
+            # Fill histogram:
+            self.binned_data.fill(self.cosi_dataset['TimeTags'], self.cosi_dataset['Energies'], np.rad2deg(self.cosi_dataset['Phi']), PsiChi_pixs)
  
+        # Define psichi axis and data for binning:
+        if psichi_old == False:
+            if psichi_binning == 'galactic':
+                psichi_axis = HealpixAxis(nside = self.nside, scheme = self.scheme, coordsys = 'galactic', label='PsiChi')
+                coords = SkyCoord(l=self.cosi_dataset['Chi galactic']*u.deg, b=self.cosi_dataset['Psi galactic']*u.deg, frame = 'galactic')
+            if psichi_binning == 'local':
+                psichi_axis = HealpixAxis(nside = self.nside, scheme = self.scheme, coordsys = SpacecraftFrame(), label='PsiChi')
+                coords = SkyCoord(lon=self.cosi_dataset['Chi local']*u.rad, lat=((np.pi/2.0) - self.cosi_dataset['Psi local'])*u.rad, frame = SpacecraftFrame())
+
+            # Initialize histogram:
+            self.binned_data = Histogram([Axis(time_bin_edges*u.s, label='Time'), 
+                Axis(energy_bin_edges*u.keV, label='Em'), 
+                Axis(phi_bin_edges*u.deg, label='Phi'), 
+                psichi_axis], 
+                sparse=True)
+         
+            # Fill histogram:
+            self.binned_data.fill(self.cosi_dataset['TimeTags']*u.s, self.cosi_dataset['Energies']*u.keV, np.rad2deg(self.cosi_dataset['Phi'])*u.deg, coords)
+       
         # Save binned data to hdf5 file:
-        self.binned_data.write('%s.hdf5' %output_name, overwrite=True)
+        if output_name != None:
+            self.binned_data.write('%s.hdf5' %output_name, overwrite=True)
 
         # Get binning information:
         self.get_binning_info()
@@ -114,7 +141,10 @@ class BinnedData(UnBinnedData):
         # Plot the binned data:
         if make_binning_plots == True:
             self.plot_binned_data()  
-            self.plot_psichi_map()
+            if psichi_old == True:
+                self.plot_psichi_map()
+            if psichi_old == False:
+                self.plot_psichi_map_new()
 
         return
 
@@ -137,7 +167,11 @@ class BinnedData(UnBinnedData):
         # Option to read in binned data from hdf5 file:
         if binned_data:
             self.load_binned_data_from_hdf5(binned_data)
-        
+       
+        # Print units of axes:
+        for each in self.binned_data.axes:
+            print(each.label + " unit: " + str(each.unit))
+
         # Get time binning information:
         self.time_hist = self.binned_data.project('Time').contents.todense()
         self.num_time_bins = self.binned_data.axes['Time'].nbins
@@ -166,7 +200,7 @@ class BinnedData(UnBinnedData):
         self.psichi_bin_centers = self.binned_data.axes['PsiChi'].centers
         self.psichi_bin_edges = self.binned_data.axes['PsiChi'].edges
         self.psichi_bin_widths = self.binned_data.axes['PsiChi'].widths
-        
+         
         return
 
     def plot_binned_data(self, binned_data=None):
@@ -204,6 +238,23 @@ class BinnedData(UnBinnedData):
             plt.show()
             plt.close() 
  
+        return
+
+    def plot_psichi_map_new(self):
+        
+        """
+        Plot psichi healpix map.
+        """
+
+        print("plotting psichi in Galactic coordinates...")
+        plot, ax = self.binned_data.project('PsiChi').plot(ax_kw = {'coord':'G'})
+        ax.get_figure().set_figwidth(4)
+        ax.get_figure().set_figheight(3)
+        plt.title("PsiChi Binning (counts)")
+        plt.savefig("psichi_default.png",bbox_inches='tight')
+        plt.show()
+        plt.close()
+
         return
 
     def plot_psichi_map(self, healpix_map=None):
@@ -284,7 +335,7 @@ class BinnedData(UnBinnedData):
 
         return
 
-    def get_raw_spectrum(self, binned_data=None, time_rate=False, output_name="raw_spectrum"):
+    def get_raw_spectrum(self, binned_data=None, time_rate=False, output_name=None):
 
         """
         Calculates raw spectrum of binned data, plots, and writes to file. 
@@ -321,13 +372,14 @@ class BinnedData(UnBinnedData):
             plot_kwargs=plot_kwargs, fig_kwargs=fig_kwargs)
 
         # Write data:
-        d = {"Energy[keV]":self.energy_bin_centers,data_label:raw_rate}
-        df = pd.DataFrame(data=d)
-        df.to_csv("%s.dat" %output_name,float_format='%10.5e',index=False,sep="\t",columns=["Energy[keV]",data_label])
+        if output_name != None:
+            d = {"Energy[keV]":self.energy_bin_centers,data_label:raw_rate}
+            df = pd.DataFrame(data=d)
+            df.to_csv("%s.dat" %output_name,float_format='%10.5e',index=False,sep="\t",columns=["Energy[keV]",data_label])
         
         return
 
-    def get_raw_lightcurve(self, binned_data=None, output_name="raw_lc"):
+    def get_raw_lightcurve(self, binned_data=None, output_name=None):
 
         """
         Calculates raw lightcurve of binned data, plots, and writes data to file.
@@ -354,8 +406,9 @@ class BinnedData(UnBinnedData):
             savefig="%s.pdf" %output_name, plt_scale="semilogy", plot_kwargs=plot_kwargs, fig_kwargs=fig_kwargs)
             
         # Write data:
-        d = {"Time[UTC]":self.time_bin_centers,"Rate[ct/s]":self.time_hist/self.time_bin_widths}
-        df = pd.DataFrame(data=d)
-        df.to_csv("%s.dat" %output_name,index=False,sep="\t",columns=["Time[UTC]","Rate[ct/s]"])
+        if output_name != None:
+            d = {"Time[UTC]":self.time_bin_centers,"Rate[ct/s]":self.time_hist/self.time_bin_widths}
+            df = pd.DataFrame(data=d)
+            df.to_csv("%s.dat" %output_name,index=False,sep="\t",columns=["Time[UTC]","Rate[ct/s]"])
 
         return

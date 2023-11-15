@@ -94,7 +94,10 @@ class FullDetectorResponse(HealpixBase):
 
         new._unit = u.Unit(new._drm.attrs['UNIT'])
         
-        new._sparse = new._drm.attrs['SPARSE']
+        try:
+             new._sparse = new._drm.attrs['SPARSE']
+        except KeyError:
+             new._sparse = True
 
         # Axes
         axes = []
@@ -260,8 +263,8 @@ class FullDetectorResponse(HealpixBase):
                 nlines = sum(1 for _ in gzip.open(filename,"rt"))
                 
             # Preallocate arrays
-            coords = np.empty([axes.ndim, nlines], dtype=int)
-            data = np.empty(nlines, dtype=int)
+            coords = np.empty([axes.ndim, nlines], dtype=np.int16)
+            data = np.empty(nlines, dtype=np.int16)
 
             # Calculate the memory usage in Gigabytes
             memory_size = ((nlines * data.itemsize)+(axes.ndim*nlines*coords.itemsize))/(1024*1024*1024)
@@ -273,7 +276,7 @@ class FullDetectorResponse(HealpixBase):
             nlines = nbins        
             
             # Preallocate arrays    
-            data = np.empty(nlines, dtype=int)
+            data = np.empty(nlines, dtype=np.int16)
 
             # Calculate the memory usage in Gigabytes
             memory_size = (nlines * data.itemsize)/(1024*1024*1024)
@@ -305,15 +308,15 @@ class FullDetectorResponse(HealpixBase):
 
                     if key == 'RD':
 
-                        b = np.array(line[1:-1], dtype=int)
+                        b = np.array(line[1:-1], dtype=np.int16)
                         c = int(line[-1])
 
                         coords[:, sbin] = b
                         data[sbin] = c
 
                         sbin += 1
-                    
-                    progress_bar.update(1)
+                    if sbin%10e6 == 0 : 
+                        progress_bar.update(10e6)
             
                 progress_bar.close()
                 nbins_sparse = sbin

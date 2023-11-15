@@ -27,14 +27,15 @@ class DataIO:
         # Data I/O:
         inputs = Configurator().open(input_yaml)
         self.data_file = inputs['data_file'] # Full path to input data file.
+        self.ori_file = inputs['ori_file'] # Full path to ori file. 
         self.unbinned_output = inputs['unbinned_output'] # fits or hdf5
         self.time_bins = inputs['time_bins'] # Time bin size in seconds. Takes int, float, or list of bin edges.
         self.energy_bins = inputs['energy_bins'] # Needs to match response. Takes list. 
         self.phi_pix_size = inputs['phi_pix_size'] # Binning of Compton scattering angle [deg]
         self.nside = inputs['nside'] # Healpix binning of psi chi local
         self.scheme = inputs['scheme'] # Healpix binning of psi chi local
-        self.tmin = inputs['tmin'] # Min time cut in seconds. Default is None.
-        self.tmax = inputs['tmax'] # Max time cut in seconds. Default is None. 
+        self.tmin = inputs['tmin'] # Min time in seconds. 
+        self.tmax = inputs['tmax'] # Max time in seconds. 
 
     def parse_args(self, argv=None):
         parser = argparse.ArgumentParser()
