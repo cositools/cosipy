@@ -1,8 +1,8 @@
 #----------#
 # Data I/O:
 
-data_file: "" # full path
-ori_file: "" # full path to orientation file
+data_file: "/path/to/grb/data/file" # full path
+ori_file: "/path/to/ori/file" # full path to orientation file
 unbinned_output: 'hdf5' # 'fits' or 'hdf5'
 time_bins: 0.5 # time bin size in seconds. Takes int or list of bin edges. 
 energy_bins: [509.,  513.] # Takes list. Needs to match response.
