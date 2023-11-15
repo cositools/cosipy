@@ -10,7 +10,7 @@ from mhealpy import HealpixMap
 
 from cosipy.response import FullDetectorResponse
 from scoords import SpacecraftFrame, Attitude
-from cosipy.SpacecraftFile import SpacecraftFile
+from cosipy.spacecraftfile import SpacecraftFile
 from cosipy.data_io import BinnedData
 
 class DataLoader(object):
