@@ -872,7 +872,7 @@ class FullDetectorResponse(HealpixBase):
             coords_axis = Axis(np.arange(coord.size+1), label = 'coords')
 
             psr = Histogram([coords_axis] + list(deepcopy(self.axes[1:])), 
-                            unit = u.cm*u.cm)
+                            unit = self.unit * scatt_map.unit)
             
             psr.axes[axis].coordsys = coord.frame
 
