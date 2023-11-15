@@ -1,8 +1,8 @@
 #----------#
 # Data I/O:
 
-data_file: "" # full path
-ori_file: "" # full path to orientation file
+data_file: "/Users/eneights/work/COSI/data_challenge_2/cosipy_cositools/cosipy/test_data/GRB_511.inc3.id1_fixedtime.extracted.tra" # full path
+ori_file: "/Users/eneights/work/COSI/data_challenge_2/fork/cosipy/docs/tutorials/spectral_fits/line_fit/20280301_first_2hrs.ori" # full path to orientation file
 unbinned_output: 'hdf5' # 'fits' or 'hdf5'
 time_bins: 0.5 # time bin size in seconds. Takes int or list of bin edges. 
 energy_bins: [509.,  513.] # Takes list. Needs to match response.
