@@ -3,6 +3,7 @@ import numpy as np
 import astropy.units as u
 from tqdm.autonotebook import tqdm
 import healpy as hp
+from astropy.coordinates import angular_separation
 
 from histpy import Histogram, Axes, Axis
 
@@ -135,6 +136,24 @@ class DeconvolutionAlgorithmBase(object):
         return loglikelood
 
     def calc_gaussian_filter(self, sigma, max_sigma):
+
+        gaussian_filter = Histogram( Axes( [Axis(edges = np.arange(self.npix+1)), Axis(edges = np.arange(self.npix+1))] ), sparse = False)
+
+        for ipix in tqdm(range(self.npix)):
+
+            lon_ref, lat_ref = hp.pix2ang(self.nside, ipix, nest = False, lonlat = True)
+
+            lon, lat = hp.pix2ang(self.nside, np.arange(self.npix), nest = False, lonlat = True)
+
+            delta_ang = angular_separation(lon_ref * u.deg, lat_ref * u.deg, lon * u.deg, lat * u.deg).to('deg').value
+    
+            gaussian_filter[ipix,:] = np.exp( - 0.5 * delta_ang**2 / sigma**2)
+    
+            gaussian_filter[ipix,:] /= np.sum(gaussian_filter[ipix,:])  
+
+        return gaussian_filter
+
+    """
         gaussian_filter = Histogram( Axes( [Axis(edges = np.arange(self.npix+1)), Axis(edges = np.arange(self.npix+1))] ), sparse = False)
 
         for ipix in tqdm(range(self.npix)):
@@ -158,3 +177,4 @@ class DeconvolutionAlgorithmBase(object):
             gaussian_filter[ipix,:] /= np.sum(gaussian_filter[ipix,:])
     
         return gaussian_filter
+    """
