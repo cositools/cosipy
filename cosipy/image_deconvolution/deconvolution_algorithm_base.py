@@ -33,6 +33,8 @@ class DeconvolutionAlgorithmBase(object):
 
         self.iteration_max = parameter['iteration']
 
+        self.save_result = parameter.get("save_results_each_iteration", False)
+
         self.result = None
 
     def pre_processing(self):
@@ -95,7 +97,7 @@ class DeconvolutionAlgorithmBase(object):
             print("--> registering results")
             self.register_result(i_iteration)
             
-            if self.parameter["save_results_each_iteration"] == True:
+            if self.save_result == True:
                 print("--> saving results")
                 self.save_result(i_iteration)
 
