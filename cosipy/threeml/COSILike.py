@@ -20,6 +20,9 @@ import collections
 
 import copy
 
+import logging
+logger = logging.getLogger(__name__)
+
 class COSILike(PluginPrototype):
     def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, **kwargs):
         """
@@ -78,8 +81,8 @@ class COSILike(PluginPrototype):
         
         Parameters:
             model: LikelihoodModel
-                Any model supported by astromodel. However, this simple plugin only support single 
-                point-sources with a power law spectrum
+                Any model supported by astromodel. However, this simple plugin only supports single 
+                point-sources
         """
         
         # Check for limitations
@@ -150,6 +153,11 @@ class COSILike(PluginPrototype):
         
         log_like = np.nansum(data*np.log(expectation) - expectation)
         
+        if log_like == -np.inf:
+            logger.warning(f"There are bins in which the total expected counts = 0 but data != 0, making log-likelihood = -inf. "
+                           f"Masking these bins.")
+            log_like = np.nansum(np.ma.masked_invalid(data*np.log(expectation) - expectation))
+        
         return log_like
     
     def inner_fit(self):
@@ -171,6 +179,7 @@ class COSILike(PluginPrototype):
         -------
         dwell_time_map: mhealpy.containers.healpix_map.HealpixMap
         """
+        
         self._sc_orientation.get_target_in_sc_frame(target_name = self._name, target_coord = coord)
         dwell_time_map = self._sc_orientation.get_dwell_map(response = self._rsp_path)
         
