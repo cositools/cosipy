@@ -9,7 +9,7 @@ class ModelMap(Histogram):
                                      scheme = parameter["scheme"],
                                      coordsys = parameter["coordinate"],
                                      label = "lb")
-        energy_axis = Axis(edges = parameter["energy_edges"] * u.keV, label = "Ei")
+        energy_axis = Axis(edges = parameter["energy_edges"] * u.keV, label = "Ei", scale = "log")
 
         axes = Axes([image_axis, energy_axis])
 

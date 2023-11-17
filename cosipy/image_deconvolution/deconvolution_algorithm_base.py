@@ -111,14 +111,14 @@ class DeconvolutionAlgorithmBase(object):
 
         expectation = Histogram(data.event_dense.axes) 
 
-        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([0], [0])) # Time, NuLambda, Ei
+        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([0], [0])) # ['lb', 'Time/Scat', 'NuLambda'] x ['lb', 'Ei'] -> [Time/Scat, NuLambda, Ei]
         map_rotated *= data.coordsys_conv_matrix.unit * model_map.unit # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
 
         if data.response_on_memory == True:
             expectation[:] = np.tensordot( map_rotated, data.image_response_dense.contents, axes = ([1,2], [0,1])) * self.pixelarea
         else:
             for ipix in tqdm(range(self.npix)):
-                response_this_pix = np.sum(data.full_detector_response[ipix].to_dense(), axis = (4,5)) # 'Ei', 'Em', 'Phi', 'PsiChi'
+                response_this_pix = np.sum(data.full_detector_response[ipix].to_dense(), axis = (4,5)) # ['Ei', 'Em', 'Phi', 'PsiChi', 'SigmaTau', 'Dist'] -> ['Ei', 'Em', 'Phi', 'PsiChi']
                 expectation += np.tensordot(map_rotated[:,ipix,:], response_this_pix, axes = ([1], [0])) * self.pixelarea
 
         expectation += data.bkg_dense * self.bkg_norm

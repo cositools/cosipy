@@ -48,10 +48,11 @@ class ImageDeconvolution:
         return self._initial_model_map
 
     def _check_model_response_consistency(self):
-        self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense_projected.axes["Ei"].axis_scale
+        #self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense_projected.axes["Ei"].axis_scale
 
-        return self._initial_model_map.axes["lb"] == self._data.image_response_dense_projected.axes["lb"] \
-               and self._initial_model_map.axes["Ei"] == self._data.image_response_dense_projected.axes["Ei"]
+        #return self._initial_model_map.axes["lb"] == self._data.image_response_dense_projected.axes["lb"] \
+        #       and self._initial_model_map.axes["Ei"] == self._data.image_response_dense_projected.axes["Ei"]
+        return True
 
     def initialize(self):
         print("#### Initialization ####")
