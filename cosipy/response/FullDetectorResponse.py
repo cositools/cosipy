@@ -70,7 +70,7 @@ class FullDetectorResponse(HealpixBase):
         """
 
         if isinstance(filename, pathlib.PosixPath):
-            filename = filename.name
+            filename = str(filename)
 
         if filename.endswith('.h5'):
             return cls._open_h5(filename)

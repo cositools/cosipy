@@ -298,7 +298,7 @@ class DataLoader(object):
 
                 time_diff = filtered_orientation.get_time_delta()
 
-                dwell_time_map = filtered_orientation.get_dwell_map(response = self.full_detector_response.filename,
+                dwell_time_map = filtered_orientation.get_dwell_map(response = self.full_detector_response.filename.resolve(),
                                                                     dts = time_diff,
                                                                     src_path = pixel_movement,
                                                                     quiet = True)
