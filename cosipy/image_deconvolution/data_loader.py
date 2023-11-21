@@ -10,42 +10,44 @@ from mhealpy import HealpixMap
 
 from cosipy.response import FullDetectorResponse
 from scoords import SpacecraftFrame, Attitude
-from cosipy.coordinates.orientation import Orientation_file
-from cosipy.spacecraftpositionattitude import SpacecraftPositionAttitude
+from cosipy.spacecraftfile import SpacecraftFile
 from cosipy.data_io import BinnedData
 
 class DataLoader(object):
 
     def __init__(self):
-        self.event_dense, self.event_sparse = None, None
-        self.bkg_dense, self.bkg_sparse = None, None
+        self.event_dense = None
+        self.bkg_dense = None
         self.full_detector_response = None
         self.orientation = None
         self.coordsys_conv_matrix = None
 
         self.response_on_memory = False
 
+        self.is_miniDC2_format = False
+
     @classmethod
-    def load(cls, event_binned_data, bkg_binned_data, rsp, sc_orientation):
+    def load(cls, event_binned_data, bkg_binned_data, rsp, sc_orientation, is_miniDC2_format = False):
 
         new = cls()
 
         new.event_dense = event_binned_data.to_dense()
-        new.event_sparse = event_binned_data.to_sparse()
 
         new.bkg_dense = bkg_binned_data.to_dense()
-        new.bkg_sparse = bkg_binned_data.to_sparse()
 
         new.full_detector_response = rsp
 
         new.orientation = sc_orientation
+
+        new.is_miniDC2_format = is_miniDC2_format
 
         return new
     
     @classmethod
     def load_from_filepath(cls, event_hdf5_filepath = None, event_yaml_filepath = None, 
                            bkg_hdf5_filepath = None, bkg_yaml_filepath = None, 
-                           rsp_filepath = None, sc_orientation_filepath = None):
+                           rsp_filepath = None, sc_orientation_filepath = None,
+                           is_miniDC2_format = False):
 
         new = cls()
 
@@ -56,6 +58,8 @@ class DataLoader(object):
         new.set_rsp_from_filepath(rsp_filepath)
 
         new.set_sc_orientation_from_filepath(sc_orientation_filepath)
+
+        new.is_miniDC2_format = is_miniDC2_format
 
         return new
 
@@ -70,7 +74,6 @@ class DataLoader(object):
         event.load_binned_data_from_hdf5(self._event_hdf5_filepath)
 
         self.event_dense = event.binned_data.to_dense()
-        self.event_sparse = event.binned_data.to_sparse()
 
         print("... Done ...")
 
@@ -85,7 +88,6 @@ class DataLoader(object):
         bkg.load_binned_data_from_hdf5(self._bkg_hdf5_filepath)
 
         self.bkg_dense = bkg.binned_data.to_dense()
-        self.bkg_sparse = bkg.binned_data.to_sparse()
 
         print("... Done ...")
 
@@ -105,7 +107,7 @@ class DataLoader(object):
         
         print(f'... loading orientation from {filepath}')
 
-        self.orientation = Orientation_file.parse_from_file(self._sc_orientation_filepath)
+        self.orientation = SpacecraftFile.parse_from_file(self._sc_orientation_filepath)
 
         print("... Done ...")
 
@@ -113,8 +115,7 @@ class DataLoader(object):
 
         print(f"... checking the file registration ...")
 
-        if self.event_dense and self.event_sparse \
-        and self.bkg_dense and self.bkg_sparse \
+        if self.event_dense and self.bkg_dense \
         and self.full_detector_response and self.orientation:
 
             print(f"    --> pass")
@@ -204,10 +205,8 @@ class DataLoader(object):
                          self.full_detector_response.axes["PsiChi"]])
         
         self.event_dense = Histogram(axes_cds, unit = self.event_dense.unit, contents = self.event_dense.contents)
-        self.event_sparse = self.event_dense.to_sparse()
 
         self.bkg_dense = Histogram(axes_cds, unit = self.bkg_dense.unit, contents = self.bkg_dense.contents)
-        self.bkg_sparse = self.bkg_dense.to_sparse()
 
         print(f"The axes in the event and background files are redefined. Now they are consistent with those of the response file.")
 
@@ -235,75 +234,6 @@ class DataLoader(object):
         return True
     '''
 
-    def calc_image_response(self): 
-
-        if not self._check_file_registration():
-            print("Please load all files!")
-            return 
-    
-        if not self._check_axis_consistency():
-            print("Please the axes of the input files!")
-            return 
-
-#        if not self._check_sc_orientation_coverage():
-#            print("Please the axes of the input files!")
-#            return 
-
-        print("... (DataLoader) calculating a flat source response at each sky location and each time bin ...")
-        
-        # make an empty histogram for the response calculation
-        axis_model_map = HealpixAxis(nside = self.full_detector_response.axes["NuLambda"].nside, 
-                                     coordsys = "galactic", label = "lb")
-
-        axes_image_response = [axis_model_map, self.full_detector_response.axes["Ei"],
-                               self.event_dense.axes["Time"], self.full_detector_response.axes["Em"], 
-                               self.full_detector_response.axes["Phi"], self.full_detector_response.axes["PsiChi"]]
-
-        self.image_response_dense = Histogram(axes_image_response, 
-                                              unit = self.full_detector_response.unit * u.s, sparse = False)
-
-        # calculate a dwell time map at each time bin and sky location
-
-        nside = self.full_detector_response.axes["NuLambda"].nside
-        npix = self.full_detector_response.axes["NuLambda"].npix 
-        # they need to be the same as npix of the skymodel. Need to a functionality to check it in the future.
-
-        for ipix in tqdm(range(npix)):
-            theta, phi = hp.pix2ang(nside, ipix)
-            l, b = phi, np.pi/2 - theta
-
-            pixel_coord = SkyCoord(l, b, unit = u.rad, frame = 'galactic')
-            pixel_obj = SpacecraftPositionAttitude.SourceSpacecraft(f"pixel_{ipix}", pixel_coord)
-
-            for i_time, [init_time, end_time] in enumerate(self.image_response_dense.axes["Time"].bounds):
-                init_time = Time(init_time, format = 'unix')
-                end_time = Time(end_time, format = 'unix')
-    
-                filtered_orientation = self.orientation.source_interval(init_time, end_time)
-                x,y,z = filtered_orientation.get_attitude().as_axes()
-                pixel_movement = pixel_obj.sc_frame(x_pointings = x, z_pointings = z)
-
-                time_diff = filtered_orientation.get_time_delta()
-                time_diff = Time(0.5*(np.insert(time_diff.value, 0, 0) + np.append(time_diff.value, 0)), format = 'unix')
-
-                dwell_time_map = pixel_obj.get_dwell_map(response = self.full_detector_response.filename,
-                                                         dts = time_diff,
-                                                         src_path = pixel_movement)
-
-                point_source_rsp = self.full_detector_response.get_point_source_response(dwell_time_map).project(['Ei', 'Em', 'Phi', 'PsiChi']).todense()
-
-                for i_Ei in range(self.image_response_dense.axes["Ei"].nbins):
-                    self.image_response_dense[ipix, i_Ei:i_Ei+1, i_time:i_time+1] = point_source_rsp[i_Ei]
-
-        print("... (DataLoader) calculating the projected response ...")
-        self.image_response_dense_projected = self.image_response_dense.project("lb", "Ei")
-
-        print("... (DataLoader) dense to sparse ...")
-        self.image_response_sparse = self.image_response_dense.to_sparse()
-
-        print("... (DataLoader) calculating the projected response (sparse) ...")
-        self.image_response_sparse_projected = self.image_response_sparse.project("lb", "Ei")
-
     def load_full_detector_response_on_memory(self):
 
         axes_image_response = [self.full_detector_response.axes["NuLambda"], self.full_detector_response.axes["Ei"],
@@ -313,9 +243,13 @@ class DataLoader(object):
 
         nside = self.full_detector_response.axes["NuLambda"].nside
         npix = self.full_detector_response.axes["NuLambda"].npix 
-
-        for ipix in tqdm(range(npix)):
-            self.image_response_dense[ipix] = np.sum(self.full_detector_response[ipix].to_dense(), axis = (4,5)) #Ei, Em, Phi, ChiPsi
+    
+        if self.is_miniDC2_format:
+            for ipix in tqdm(range(npix)):
+                self.image_response_dense[ipix] = np.sum(self.full_detector_response[ipix].to_dense(), axis = (4,5)) #Ei, Em, Phi, ChiPsi
+        else:
+            contents = self.full_detector_response._file['DRM']['CONTENTS'][:]
+            self.image_response_dense[:] = contents * self.full_detector_response.unit
 
         self.response_on_memory = True
 
@@ -352,22 +286,22 @@ class DataLoader(object):
             l, b = phi, np.pi/2 - theta
 
             pixel_coord = SkyCoord(l, b, unit = u.rad, frame = 'galactic')
-            pixel_obj = SpacecraftPositionAttitude.SourceSpacecraft(f"pixel_{ipix}", pixel_coord)
 
             for i_time, [init_time, end_time] in enumerate(self.coordsys_conv_matrix.axes["Time"].bounds):
                 init_time = Time(init_time, format = 'unix')
                 end_time = Time(end_time, format = 'unix')
     
                 filtered_orientation = self.orientation.source_interval(init_time, end_time)
-                x,y,z = filtered_orientation.get_attitude().as_axes()
-                pixel_movement = pixel_obj.sc_frame(x_pointings = x, z_pointings = z)
+                pixel_movement = filtered_orientation.get_target_in_sc_frame(target_name = f"pixel_{ipix}_{i_time}",
+                                                                             target_coord = pixel_coord,
+                                                                             quiet = True)
 
                 time_diff = filtered_orientation.get_time_delta()
-                time_diff = Time(0.5*(np.insert(time_diff.value, 0, 0) + np.append(time_diff.value, 0)), format = 'unix')
 
-                dwell_time_map = pixel_obj.get_dwell_map(response = self.full_detector_response.filename,
-                                                         dts = time_diff,
-                                                         src_path = pixel_movement)
+                dwell_time_map = filtered_orientation.get_dwell_map(response = self.full_detector_response.filename.resolve(),
+                                                                    dts = time_diff,
+                                                                    src_path = pixel_movement,
+                                                                    quiet = True)
 
                 self.coordsys_conv_matrix[ipix,i_time] = dwell_time_map.data * dwell_time_map.unit
                 # (HealpixMap).data returns the numpy array without its unit.
@@ -447,8 +381,11 @@ class DataLoader(object):
             npix = self.full_detector_response.axes["NuLambda"].npix 
 
             for ipix in tqdm(range(npix)):
-                full_detector_response_projected_Ei = np.sum(self.full_detector_response[ipix].to_dense(), axis = (1,2,3,4,5)) #Ei
-                # when np.sum is applied to a dense histogram, the unit is restored. when it is a sparse histogram, the unit is not restored. 
+                if self.is_miniDC2_format:
+                    full_detector_response_projected_Ei = np.sum(self.full_detector_response[ipix].to_dense(), axis = (1,2,3,4,5)) #Ei
+                    # when np.sum is applied to a dense histogram, the unit is restored. when it is a sparse histogram, the unit is not restored. 
+                else:
+                    full_detector_response_projected_Ei = np.sum(self.full_detector_response[ipix].to_dense(), axis = (1,2,3)) #Ei
     
                 coordsys_conv_matrix_projected_lb = np.sum(self.coordsys_conv_matrix[:,:,ipix], axis = (1)).todense() * self.coordsys_conv_matrix.unit #lb
     

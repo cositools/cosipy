@@ -308,6 +308,7 @@ class SpacecraftFile():
         l = np.array(self.src_path_spherical[2].deg)  # note that 0 is Quanty, 1 is latitude and 2 is longitude and they are in rad not deg
         b = np.array(self.src_path_spherical[1].deg)
         self.src_path_lb = np.stack((l,b), axis=-1)
+
         if save == True:
             np.save(self.target_name+"_source_path_in_SC_frame", self.src_path_lb)
 
@@ -362,7 +363,6 @@ class SpacecraftFile():
                 pixels, weights = self.dwell_map.get_interp_weights(coord)
                 for p, w in zip(pixels, weights):
                     self.dwell_map[p] += w*(duration.unix*u.s)
-
 
         if save == True:
             self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)

@@ -33,6 +33,8 @@ class DeconvolutionAlgorithmBase(object):
 
         self.iteration_max = parameter['iteration']
 
+        self.save_result = parameter.get("save_results_each_iteration", False)
+
         self.result = None
 
     def pre_processing(self):
@@ -95,7 +97,7 @@ class DeconvolutionAlgorithmBase(object):
             print("--> registering results")
             self.register_result(i_iteration)
             
-            if self.parameter["save_results_each_iteration"] == True:
+            if self.save_result == True:
                 print("--> saving results")
                 self.save_result(i_iteration)
 
@@ -104,29 +106,31 @@ class DeconvolutionAlgorithmBase(object):
             yield self.result
     
     #replaced with a function in other COSIpy libaray in the future?
-    def calc_expectation(self, model_map, data, use_sparse = False):
+    def calc_expectation(self, model_map, data): ### test with separating the dwell time map
         almost_zero = 1e-6
 
-        model_map_expanded = data.image_response_dense.expand_dims(model_map, ["lb", "Ei"])
-        if use_sparse:
-            expectation = (data.image_response_sparse * model_map_expanded).project(["Time", "Em", "Phi", "PsiChi"]) * model_map.unit * self.pixelarea
-            expectation += data.bkg_sparse * self.bkg_norm
-            expectation += almost_zero
+        expectation = Histogram(data.event_dense.axes) 
+
+        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([0], [0])) # Time, NuLambda, Ei
+        map_rotated *= data.coordsys_conv_matrix.unit * model_map.unit # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
+
+        if data.response_on_memory == True:
+            expectation[:] = np.tensordot( map_rotated, data.image_response_dense.contents, axes = ([1,2], [0,1])) * self.pixelarea
         else:
-            expectation = (data.image_response_dense * model_map_expanded).project(["Time", "Em", "Phi", "PsiChi"]) * model_map.unit * self.pixelarea
-            expectation += data.bkg_dense * self.bkg_norm
-            expectation += almost_zero
+            for ipix in tqdm(range(self.npix)):
+                response_this_pix = np.sum(data.full_detector_response[ipix].to_dense(), axis = (4,5)) # 'Ei', 'Em', 'Phi', 'PsiChi'
+                expectation += np.tensordot(map_rotated[:,ipix,:], response_this_pix, axes = ([1], [0])) * self.pixelarea
+
+        expectation += data.bkg_dense * self.bkg_norm
+        expectation += almost_zero
         
         return expectation
 
-    def calc_loglikelihood(self, data, model_map, expectation = None, use_sparse = False): # expectation will be a required parameter soon.
+    def calc_loglikelihood(self, data, model_map, expectation = None): # expectation will be a mandatory parameter in the future.
         if expectation is None:
-            expectation = self.calc_expectation(model_map, data, use_sparse)
+            expectation = self.calc_expectation(model_map, data)
 
-        if use_sparse:
-            loglikelood = np.sum( data.event_sparse * np.log(expectation) ) - np.sum(expectation)
-        else:
-            loglikelood = np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)
+        loglikelood = np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)
 
         return loglikelood
 
