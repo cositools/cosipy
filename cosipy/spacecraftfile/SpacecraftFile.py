@@ -12,6 +12,8 @@ from matplotlib import cm, colors
 from scoords import Attitude, SpacecraftFrame
 from cosipy.response import FullDetectorResponse
 
+from .scatt_map import SpacecraftAttitudeMap
+
 class SpacecraftFile():
 
     def __init__(self, time, x_pointings = None, y_pointings = None, z_pointings = None, attitude = None,
@@ -366,6 +368,31 @@ class SpacecraftFile():
 
         return self.dwell_map
 
+    def get_scatt_map(self,
+                       nside,
+                       scheme = 'ring',
+                       coordsys = 'galactic',
+                       ):
+        """
+        Bin the spacecraft attitude history into a 4D histogram that contains the accumulated time the axes of the spacecraft where looking at a given direction. 
+        """
+        
+        # Get orientations
+        timestamps = self.get_time()
+        attitudes = self.get_attitude()
+
+        # Fill (only 2 axes needed to fully define the orientation)
+        h_ori = SpacecraftAttitudeMap(nside = nside,
+                                      scheme = scheme,
+                                      coordsys = coordsys)
+        
+        x,y,z = attitudes[:-1].as_axes()
+
+        h_ori.fill(x, y, weight = np.diff(timestamps.gps)*u.s)
+        
+        return h_ori
+
+    
     def get_psr_rsp(self, response = None, dwell_map = None, dts = None):
 
         """

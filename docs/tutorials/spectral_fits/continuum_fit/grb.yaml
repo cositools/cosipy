@@ -1,7 +1,8 @@
 #----------#
 # Data I/O:
 
-data_file: "data/protoGRB.inc2.id1_fixedtime.extracted.tra.gz" # full path
+data_file: "/path/to/grb/tra/file" # full path
+ori_file: "/path/to/ori/file" # full path to orientation file
 unbinned_output: 'hdf5' # 'fits' or 'hdf5'
 time_bins: 0.5 # time bin size in seconds. Takes int or list of bin edges. 
 energy_bins: [100.,  200.,  500., 1000., 2000., 5000.] # Takes list. Needs to match response.
