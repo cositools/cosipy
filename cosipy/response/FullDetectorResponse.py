@@ -28,6 +28,7 @@ import gzip
 from tqdm import tqdm
 import subprocess
 import sys
+import pathlib
 import gc
 
 class FullDetectorResponse(HealpixBase):
@@ -72,6 +73,9 @@ class FullDetectorResponse(HealpixBase):
              emin/emax used in the simulation source file.  
         
         """
+
+        if isinstance(filename, pathlib.PosixPath):
+            filename = str(filename)
 
         if filename.endswith('.h5'):
             return cls._open_h5(filename)
