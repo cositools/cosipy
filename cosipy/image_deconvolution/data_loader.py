@@ -131,8 +131,8 @@ class DataLoader(object):
         if self.coordsys_conv_matrix.binning_method == 'Time':
             axis_name = ['Time', 'Em', 'Phi', 'PsiChi']
 
-        elif self.coordsys_conv_matrix.binning_method == 'Scat':
-            axis_name = ['Scat', 'Em', 'Phi', 'PsiChi']
+        elif self.coordsys_conv_matrix.binning_method == 'ScAtt':
+            axis_name = ['ScAtt', 'Em', 'Phi', 'PsiChi']
 
         for name in axis_name:
             if not self.event_dense.axes[name] == self.bkg_dense.axes[name]:
@@ -158,8 +158,8 @@ class DataLoader(object):
         if self.coordsys_conv_matrix.binning_method == 'Time':
             axis_name = ['Time', 'Em', 'Phi', 'PsiChi']
 
-        elif self.coordsys_conv_matrix.binning_method == 'Scat':
-            axis_name = ['Scat', 'Em', 'Phi', 'PsiChi']
+        elif self.coordsys_conv_matrix.binning_method == 'ScAtt':
+            axis_name = ['ScAtt', 'Em', 'Phi', 'PsiChi']
 
         for name in axis_name:
 
@@ -196,8 +196,8 @@ class DataLoader(object):
             event_edges, event_unit = self.event_dense.axes[name].edges, self.event_dense.axes[name].unit
             response_edges, response_unit = self.full_detector_response.axes[name].edges, self.full_detector_response.axes[name].unit
             
-            if type(response_edges) == u.quantity.Quantity:
-                response_edges = response_edges.value
+#            if type(response_edges) == u.quantity.Quantity:
+#                response_edges = response_edges.value
 
             if np.all(event_edges == response_edges):
                 print(f"    --> pass (edges)") 

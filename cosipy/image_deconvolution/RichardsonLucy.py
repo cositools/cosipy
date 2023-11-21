@@ -61,10 +61,10 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
         if self.data.response_on_memory == True:
             diff_x_response_this_pix = np.tensordot(diff.contents, self.data.image_response_dense.contents, axes = ([1,2,3], [2,3,4])) 
-            # [Time/Scat, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/Scat, NuLambda, Ei]
+            # [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, NuLambda, Ei]
 
             delta_map_part2[:] = np.tensordot(self.data.coordsys_conv_matrix.contents, diff_x_response_this_pix, axes = ([1,2], [0,1])) * diff_x_response_this_pix.unit * self.data.coordsys_conv_matrix.unit #lb, Ei
-            # [lb, Time/Scat, NuLambda] x [Time/Scat, NuLambda, Ei] -> [lb, Ei]
+            # [lb, Time/ScAtt, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
             # note that coordsys_conv_matrix is the sparse, so the unit should be recovered.
 
         else:

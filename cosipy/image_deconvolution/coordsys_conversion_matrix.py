@@ -17,7 +17,7 @@ class CoordsysConversionMatrix(Histogram):
         super().__init__(edges, contents = contents, sumw2 = sumw2,
                          labels = labels, axis_scale = axis_scale, sparse = sparse, unit = unit)
 
-        self.binning_method = None #'Time' or 'Scat'
+        self.binning_method = None #'Time' or 'ScAtt'
 
     @classmethod
     def time_binning_ccm(cls, full_detector_response, orientation, time_intervals, nside_model = None, is_nest_model = False):
@@ -76,7 +76,7 @@ class CoordsysConversionMatrix(Histogram):
         return coordsys_conv_matrix
 
     @classmethod
-    def scat_binning_ccm(cls, full_detector_response, exposure_table, use_averaged_pointing = False):
+    def spacecraft_attitude_binning_ccm(cls, full_detector_response, exposure_table, use_averaged_pointing = False):
         """
         Parameters
         ----------
@@ -86,29 +86,29 @@ class CoordsysConversionMatrix(Histogram):
 
         Returns
         -------
-        coordsys_conv_matrix: Axes [ "lb", "Scat", "NuLambda" ]
+        coordsys_conv_matrix: Axes [ "lb", "ScAtt", "NuLambda" ]
         """
 
         nside_model = exposure_table.nside
         is_nest_model = True if exposure_table.scheme == 'nest' else False
         nside_local = full_detector_response.nside
         
-        n_scat_bins = len(exposure_table)
+        n_scatt_bins = len(exposure_table)
 
         axis_model_map = HealpixAxis(nside = nside_model, coordsys = "galactic", scheme = exposure_table.scheme, label = "lb")
-        axis_scat_binning_index = Axis(edges = np.arange(n_scat_bins+1), label = "Scat")
-        axis_coordsys_conv_matrix = [ axis_model_map, axis_scat_binning_index, full_detector_response.axes["NuLambda"] ] #lb, Scat, NuLambda
+        axis_scatt_binning_index = Axis(edges = np.arange(n_scatt_bins+1), label = "ScAtt")
+        axis_coordsys_conv_matrix = [ axis_model_map, axis_scatt_binning_index, full_detector_response.axes["NuLambda"] ] #lb, ScAtt, NuLambda
 
         coordsys_conv_matrix = cls(axis_coordsys_conv_matrix, unit = u.s, sparse = False)
 
-        coordsys_conv_matrix.binning_method = 'Scat'
+        coordsys_conv_matrix.binning_method = 'ScAtt'
 
         print('... start calculating the coordsys conversion matrix ...')
 
-        for idx in tqdm(range(n_scat_bins)):
+        for idx in tqdm(range(n_scatt_bins)):
             row = exposure_table.iloc[idx]
         
-            scat_binning_index = row['scat_binning_index']
+            scatt_binning_index = row['scatt_binning_index']
             num_pointings = row['num_pointings']
     #           healpix_index = row['healpix_index']
             zpointing = row['zpointing']
@@ -149,11 +149,11 @@ class CoordsysConversionMatrix(Histogram):
 
                 hist, bins = np.histogram(pixels, bins = coordsys_conv_matrix.axes['NuLambda'].edges, weights = weights)
                 
-                coordsys_conv_matrix[ipix,scat_binning_index,:] += hist
+                coordsys_conv_matrix[ipix,scatt_binning_index,:] += hist
             
-            print("scat_binning_index:", scat_binning_index)
+            print("scatt_binning_index:", scatt_binning_index)
             print("number of pointings:", num_pointings)
-            print("exposure:", np.sum(coordsys_conv_matrix[ipix][scat_binning_index]))
+            print("exposure:", np.sum(coordsys_conv_matrix[ipix][scatt_binning_index]))
             print("exposure in the table (s):", exposure)
             
         coordsys_conv_matrix = coordsys_conv_matrix.to_sparse()
@@ -190,7 +190,7 @@ class CoordsysConversionMatrix(Histogram):
 
         new = cls(new.axes, contents = new.contents, sumw2 = new.contents, unit = new.unit) 
 
-        new.binning_method = new.axes.labels[1]
+        new.binning_method = new.axes.labels[1] # 'Time' or 'ScAtt'
 
         return new
 

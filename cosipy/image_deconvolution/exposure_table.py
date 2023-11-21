@@ -7,9 +7,11 @@ from astropy.io import fits
 import astropy.units as u
 from tqdm.autonotebook import tqdm
 
-class ScatExposureTable(pd.DataFrame):
+from cosipy.spacecraftfile import SpacecraftAttitudeMap
+
+class SpacecraftAttitudeExposureTable(pd.DataFrame):
     """
-    scat_binning_index : 
+    scatt_binning_index : 
     healpix_index : list of tuple, (healpix_index_zpointing, healpix_index_xpointing)
     zpointing : np.array, [l, b] in degrees
     xpointing : np.array, [l, b] in degrees
@@ -34,7 +36,7 @@ class ScatExposureTable(pd.DataFrame):
             self.scheme = 'ring'
 
     def __eq__(self, other):
-        for name in ['scat_binning_index', 'healpix_index', 'exposure', 'num_pointings', 'bkg_group']:
+        for name in ['scatt_binning_index', 'healpix_index', 'exposure', 'num_pointings', 'bkg_group']:
             if not np.all(self[name] == other[name]):
                 return False
         
@@ -124,9 +126,9 @@ class ScatExposureTable(pd.DataFrame):
                 xpointings.append([[l_x[i], b_x[i]]])
                 zpointings.append([[l_z[i], b_z[i]]])
         
-        indices_scat_binning = [i for i in range(len(indices_healpix))] 
+        indices_scatt_binning = [i for i in range(len(indices_healpix))] 
         
-        df = pd.DataFrame(data = {'scat_binning_index': indices_scat_binning, 'healpix_index': indices_healpix, 
+        df = pd.DataFrame(data = {'scatt_binning_index': indices_scatt_binning, 'healpix_index': indices_healpix, 
                                   'zpointing': [ np.array(_) for _ in zpointings], 
                                   'xpointing': [ np.array(_) for _ in xpointings], 
                                   'delta_time': delta_times, 'exposure': [ np.sum(np.array(_)) for _ in delta_times],
@@ -140,7 +142,7 @@ class ScatExposureTable(pd.DataFrame):
             df = df[df['num_pointings'] >= min_num_pointings]
         
         if min_exposure is not None or min_num_pointings is not None:
-            df['scat_binning_index'] = [i for i in range(len(df))] 
+            df['scatt_binning_index'] = [i for i in range(len(df))] 
         
         return df 
 
@@ -153,7 +155,7 @@ class ScatExposureTable(pd.DataFrame):
             print("cannot find EXPOSURETABLE")
             return 0
     
-        indices_scat_binning = hdu.data['scat_binning_index']
+        indices_scatt_binning = hdu.data['scatt_binning_index']
         indices_healpix = [ (z, x) for (z, x) in zip(hdu.data['healpix_index_z_pointing'], hdu.data['healpix_index_x_pointing']) ]
         zpointings = [ [ [l, b] for (l, b) in zip(z_l, z_b) ] for (z_l, z_b) in zip(hdu.data['zpointing_l'], hdu.data['zpointing_b']) ]
         xpointings = [ [ [l, b] for (l, b) in zip(x_l, x_b) ] for (x_l, x_b) in zip(hdu.data['xpointing_l'], hdu.data['xpointing_b']) ]
@@ -162,7 +164,7 @@ class ScatExposureTable(pd.DataFrame):
         num_pointings = hdu.data['num_pointings']
         bkg_groups = hdu.data['bkg_group']
         
-        df = pd.DataFrame(data = {'scat_binning_index': indices_scat_binning, 'healpix_index': indices_healpix, 
+        df = pd.DataFrame(data = {'scatt_binning_index': indices_scatt_binning, 'healpix_index': indices_healpix, 
                                   'zpointing': [ np.array(_) for _ in zpointings], 
                                   'xpointing': [ np.array(_) for _ in xpointings], 
                                   'delta_time': delta_times, 'exposure': [ np.sum(np.array(_)) for _ in delta_times],
@@ -181,7 +183,7 @@ class ScatExposureTable(pd.DataFrame):
         primary_hdu = fits.PrimaryHDU()
     
         #exposure table
-        names = ['scat_binning_index', 'exposure', 'num_pointings', 'bkg_group']
+        names = ['scatt_binning_index', 'exposure', 'num_pointings', 'bkg_group']
         formats = ['K', 'D', 'K', 'K']
         units = ['', 's', '', '']
         
@@ -227,11 +229,8 @@ class ScatExposureTable(pd.DataFrame):
         hdul.writeto(filename, overwrite = overwrite)
 
     def calc_pointing_trajectory_map(self):
-        axes_z = HealpixAxis(nside = self.nside, scheme = self.scheme, label = "zpointing")
-        axes_x = HealpixAxis(nside = self.nside, scheme = self.scheme, label = "xpointing")
-        axes_zx = Axes([axes_z, axes_x])
     
-        map_pointing_zx = Histogram(axes_zx, unit = u.s, sparse = False)
+        map_pointing_zx = SpacecraftAttitudeMap(nside = self.nside, scheme = self.scheme, coordsys = 'galactic', labels = ['z', 'x'])
     
         for hp_index, exposure in zip(self['healpix_index'], self['exposure']):
             map_pointing_zx[hp_index[0], hp_index[1]] = exposure * u.s

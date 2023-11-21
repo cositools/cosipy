@@ -112,7 +112,7 @@ class DeconvolutionAlgorithmBase(object):
 
         expectation = Histogram(data.event_dense.axes) 
 
-        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([0], [0])) # ['lb', 'Time/Scat', 'NuLambda'] x ['lb', 'Ei'] -> [Time/Scat, NuLambda, Ei]
+        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([0], [0])) # ['lb', 'Time/ScAtt', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
         map_rotated *= data.coordsys_conv_matrix.unit * model_map.unit # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
 
         if data.response_on_memory == True:
