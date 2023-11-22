@@ -196,15 +196,15 @@ class DataLoader(object):
             event_edges, event_unit = self.event_dense.axes[name].edges, self.event_dense.axes[name].unit
             response_edges, response_unit = self.full_detector_response.axes[name].edges, self.full_detector_response.axes[name].unit
             
-#            if type(response_edges) == u.quantity.Quantity:
-#                response_edges = response_edges.value
+            if type(response_edges) == u.quantity.Quantity and self.is_miniDC2_format == True:
+                response_edges = response_edges.value
 
             if np.all(event_edges == response_edges):
                 print(f"    --> pass (edges)") 
             else:
                 print(f"Warning: the edges of the axis {name} are not consistent between the event and background!")
                 print(f"        event      : {event_edges}")
-                print(f"        background : {response_edges}")
+                print(f"        response : {response_edges}")
                 return False
 
         axes_cds = Axes([self.event_dense.axes[0], \
