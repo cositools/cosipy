@@ -13,8 +13,10 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
     """
     scatt_binning_index : 
     healpix_index : list of tuple, (healpix_index_zpointing, healpix_index_xpointing)
-    zpointing : np.array, [l, b] in degrees
-    xpointing : np.array, [l, b] in degrees
+    zpointing : np.array, [[l, b]] in degrees
+    xpointing : np.array, [[l, b]] in degrees
+    zpointing_averaged : np.array, [l, b] in degrees
+    xpointing_averaged : np.array, [l, b] in degrees
     delta_time : 
     exposure : 
     num_pointings :
@@ -40,7 +42,7 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
             if not np.all(self[name] == other[name]):
                 return False
         
-        for name in ['delta_time', 'zpointing', 'xpointing']:
+        for name in ['delta_time', 'zpointing', 'xpointing', 'zpointing_averaged', 'xpointing_averaged']:
             for self_, other_ in zip(self[name], other[name]):
                 if not np.all(self_ == other_):
                     return False
@@ -128,12 +130,26 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         
         indices_scatt_binning = [i for i in range(len(indices_healpix))] 
         
+        # to numpy
+        zpointings = [ np.array(_) for _ in zpointings]
+        xpointings = [ np.array(_) for _ in xpointings]
+
+        zpointings_averaged = [ cls._get_averaged_pointing(z, dt) for (z, dt) in zip(zpointings, delta_times) ]
+        xpointings_averaged = [ cls._get_averaged_pointing(x, dt) for (x, dt) in zip(xpointings, delta_times) ]
+
+        exposures = [ np.sum(np.array(_)) for _ in delta_times]
+        num_pointings = [ len(_) for _ in delta_times]
+        bkg_groups = [ 0 for i in delta_times]
+        
         df = pd.DataFrame(data = {'scatt_binning_index': indices_scatt_binning, 'healpix_index': indices_healpix, 
-                                  'zpointing': [ np.array(_) for _ in zpointings], 
-                                  'xpointing': [ np.array(_) for _ in xpointings], 
-                                  'delta_time': delta_times, 'exposure': [ np.sum(np.array(_)) for _ in delta_times],
-                                  'num_pointings': [ len(_) for _ in delta_times],
-                                  'bkg_group': [ 0 for i in delta_times]})
+                                  'zpointing': zpointings,
+                                  'xpointing': xpointings,
+                                  'zpointing_averaged': zpointings_averaged,
+                                  'xpointing_averaged': xpointings_averaged,
+                                  'delta_time': delta_times, 
+                                  'exposure': exposures,
+                                  'num_pointings': num_pointings,
+                                  'bkg_group': bkg_groups})
         
         if min_exposure is not None:
             df = df[df['exposure'] >= min_exposure]
@@ -157,19 +173,34 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
     
         indices_scatt_binning = hdu.data['scatt_binning_index']
         indices_healpix = [ (z, x) for (z, x) in zip(hdu.data['healpix_index_z_pointing'], hdu.data['healpix_index_x_pointing']) ]
+
         zpointings = [ [ [l, b] for (l, b) in zip(z_l, z_b) ] for (z_l, z_b) in zip(hdu.data['zpointing_l'], hdu.data['zpointing_b']) ]
+        zpointings = [ np.array(_) for _ in zpointings]
+
         xpointings = [ [ [l, b] for (l, b) in zip(x_l, x_b) ] for (x_l, x_b) in zip(hdu.data['xpointing_l'], hdu.data['xpointing_b']) ]
+        xpointings = [ np.array(_) for _ in xpointings]
+
+        zpointings_averaged = [ np.array([z_ave_l, z_ave_b]) for (z_ave_l, z_ave_b)  in zip(hdu.data['zpointing_averaged_l'], hdu.data['zpointing_averaged_b']) ]
+
+        xpointings_averaged = [ np.array([x_ave_l, x_ave_b]) for (x_ave_l, x_ave_b)  in zip(hdu.data['xpointing_averaged_l'], hdu.data['xpointing_averaged_b']) ]
+
         delta_times = np.array(hdu.data['delta_time'])
+
         exposures = hdu.data['exposure']
+
         num_pointings = hdu.data['num_pointings']
+
         bkg_groups = hdu.data['bkg_group']
         
         df = pd.DataFrame(data = {'scatt_binning_index': indices_scatt_binning, 'healpix_index': indices_healpix, 
-                                  'zpointing': [ np.array(_) for _ in zpointings], 
-                                  'xpointing': [ np.array(_) for _ in xpointings], 
-                                  'delta_time': delta_times, 'exposure': [ np.sum(np.array(_)) for _ in delta_times],
-                                  'num_pointings': [ len(_) for _ in delta_times],
-                                  'bkg_group': [ 0 for i in delta_times]})
+                                  'zpointing': zpointings,
+                                  'xpointing': xpointings,
+                                  'zpointing_averaged': zpointings_averaged,
+                                  'xpointing_averaged': xpointings_averaged,
+                                  'delta_time': delta_times, 
+                                  'exposure': exposures,
+                                  'num_pointings': num_pointings,
+                                  'bkg_group': bkg_groups})
 
         nside = hdu.header['NSIDE']
         scheme = hdu.header['SCHEME']
@@ -217,6 +248,22 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         column_xpointing_b = fits.Column(name='xpointing_b', format='PD()', unit = 'degree',
                                         array=np.array([[pointing[1] for pointing in pointings] for pointings in self['xpointing']], dtype=np.object_))
         columns.append(column_xpointing_b)  
+
+        column_zpointing_averaged_l = fits.Column(name='zpointing_averaged_l', format='D', unit = 'degree',
+                                                  array=np.array([_[0] for _ in self['zpointing_averaged']]))
+        columns.append(column_zpointing_averaged_l)    
+
+        column_zpointing_averaged_b = fits.Column(name='zpointing_averaged_b', format='D', unit = 'degree',
+                                                  array=np.array([_[1] for _ in self['zpointing_averaged']]))
+        columns.append(column_zpointing_averaged_b)    
+
+        column_xpointing_averaged_l = fits.Column(name='xpointing_averaged_l', format='D', unit = 'degree',
+                                                  array=np.array([_[0] for _ in self['xpointing_averaged']]))
+        columns.append(column_xpointing_averaged_l)    
+
+        column_xpointing_averaged_b = fits.Column(name='xpointing_averaged_b', format='D', unit = 'degree',
+                                                  array=np.array([_[1] for _ in self['xpointing_averaged']]))
+        columns.append(column_xpointing_averaged_b)    
         
         table_hdu = fits.BinTableHDU.from_columns(columns) 
         table_hdu.name = 'exposuretable'
@@ -227,6 +274,19 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         #save file    
         hdul = fits.HDUList([primary_hdu, table_hdu])    
         hdul.writeto(filename, overwrite = overwrite)
+
+    @classmethod
+    def _get_averaged_pointing(cls, pointing, delta_time):
+
+        averaged_vector = np.sum(hp.ang2vec(pointing.T[0], pointing.T[1], lonlat = True).T * delta_time, axis = (1))
+        averaged_vector /= np.linalg.norm(averaged_vector)
+
+        averaged_l = hp.vec2ang(averaged_vector, lonlat = True)[0][0]
+        averaged_b = hp.vec2ang(averaged_vector, lonlat = True)[1][0]
+    
+        averaged_pointing = np.array([averaged_l, averaged_b])
+
+        return averaged_pointing 
 
     def calc_pointing_trajectory_map(self):
     
