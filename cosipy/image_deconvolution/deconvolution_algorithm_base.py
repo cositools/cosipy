@@ -65,6 +65,9 @@ class DeconvolutionAlgorithmBase(object):
     def save_result(self, i_iteration):
         pass
 
+    def show_result(self, i_iteration):
+        pass
+
     def iteration(self):
         self.model_map = self.initial_model_map
 
@@ -97,6 +100,9 @@ class DeconvolutionAlgorithmBase(object):
 
             print("--> registering results")
             self.register_result(i_iteration)
+
+            print("--> showing results")
+            self.show_result(i_iteration)
             
             if self.save_result == True:
                 print("--> saving results")

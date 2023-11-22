@@ -85,8 +85,6 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             elif self.bkg_norm > self.bkg_norm_range[1]:
                 self.bkg_norm = self.bkg_norm_range[1]
 
-            print("bkg_norm : ", self.bkg_norm)
-
     def post_processing(self):
 
         if self.do_response_weighting:
@@ -131,6 +129,11 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             f.write(f'alpha: {self.result["alpha"]}\n')
             f.write(f'loglikelihood: {self.result["loglikelihood"]}\n')
             f.write(f'background_normalization: {self.result["background_normalization"]}\n')
+
+    def show_result(self, i_iteration):
+        print(f'    alpha: {self.result["alpha"]}')
+        print(f'    loglikelihood: {self.result["loglikelihood"]}')
+        print(f'    background_normalization: {self.result["background_normalization"]}')
 
     def calc_alpha(self, delta, model_map):
         almost_zero = 1e-4 #it is to prevent the flux under zero
