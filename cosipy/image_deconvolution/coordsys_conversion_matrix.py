@@ -83,7 +83,7 @@ class CoordsysConversionMatrix(Histogram):
         return coordsys_conv_matrix
 
     @classmethod
-    def spacecraft_attitude_binning_ccm(cls, full_detector_response, exposure_table, use_averaged_pointing = False):
+    def spacecraft_attitude_binning_ccm(cls, full_detector_response, exposure_table, nside_model = None, use_averaged_pointing = False):
         """
         Parameters
         ----------
@@ -96,7 +96,8 @@ class CoordsysConversionMatrix(Histogram):
         coordsys_conv_matrix: Axes [ "lb", "ScAtt", "NuLambda" ]
         """
 
-        nside_model = exposure_table.nside
+        if nside_model is None:
+            nside_model = full_detector_response.nside
         is_nest_model = True if exposure_table.scheme == 'nest' else False
         nside_local = full_detector_response.nside
         
