@@ -68,7 +68,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             # note that coordsys_conv_matrix is the sparse, so the unit should be recovered.
 
         else:
-            for ipix in tqdm(range(self.npix)):
+            for ipix in tqdm(range(self.npix_local)):
                 response_this_pix = np.sum(self.data.full_detector_response[ipix].to_dense(), axis = (4,5)) # may not work with the DC2 response format
 
                 diff_x_response_this_pix = np.tensordot(diff.contents, response_this_pix, axes = ([1,2,3], [1,2,3])) # Ti, Ei
