@@ -135,8 +135,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         print(f'    loglikelihood: {self.result["loglikelihood"]}')
         print(f'    background_normalization: {self.result["background_normalization"]}')
 
-    def calc_alpha(self, delta, model_map):
-        almost_zero = 1e-4 #it is to prevent the flux under zero
+    def calc_alpha(self, delta, model_map, almost_zero = 1e-5): #almost_zero is needed to prevent producing a flux below zero
         alpha = -1.0 / np.min( delta / model_map ) * (1 - almost_zero)
         alpha = min(alpha, self.alpha_max)
         if alpha < 1.0:

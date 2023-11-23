@@ -113,8 +113,7 @@ class DeconvolutionAlgorithmBase(object):
             yield self.result
     
     #replaced with a function in other COSIpy libaray in the future?
-    def calc_expectation(self, model_map, data): ### test with separating the dwell time map
-        almost_zero = 1e-6
+    def calc_expectation(self, model_map, data, almost_zero = 1e-12): ### test with separating the dwell time map
 
         expectation = Histogram(data.event_dense.axes) 
 
