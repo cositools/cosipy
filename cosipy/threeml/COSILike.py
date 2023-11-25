@@ -13,6 +13,7 @@ from mhealpy import HealpixMap
 import astropy.units as u
 
 import numpy as np
+import sparse
 
 from scipy.special import factorial
 
@@ -76,32 +77,66 @@ class COSILike(PluginPrototype):
             raise RuntimeError("Nuisance parameter must be astromodels.core.parameter.Parameter object")
         
     def set_model(self, model):
+        
         """
         Set the model to be used in the joint minimization.
         
         Parameters:
             model: LikelihoodModel
-                Any model supported by astromodel. However, this simple plugin only supports single 
-                point-sources
+                Any model supported by astromodel. 
+                Currently supports point sources or extended sources.
+                 - Can't yet do both simultaneously.
+                 - Only one point source allowed. 
+                 - Can fit multiple extended sources at once.
         """
         
-        # Check for limitations
-        if len(model.extended_sources) != 0 or len(model.particle_sources):
-            raise RuntimeError("Only point source models are supported")
+        # Get point sources and extended sources from model: 
+        point_sources = model.point_sources
+        extended_sources = model.extended_sources
+
+        # Source counter for models with multiple sources: 
+        # Note: Only for extended sources right now.
+        src_counter = 0
         
-        sources = model.point_sources
-        
-        if len(sources) != 1:
-            raise RuntimeError("Only one for now")
-        
-        # Get expectation
-        for name,source in sources.items():
+        # Get expectation for extended sources:
+        for name,source in extended_sources.items():
+            
+            # Set spectrum:
+            # Note: the spectral parameters are updated internally by 3ML
+            # during the likelihood scan. 
+            spectrum = source.spectrum.main.shape
+            
+            # Testing only:
+            #this_pix = self.grid[0]
+            #weight = self.skymap1[this_pix]*4*np.pi/self.skymap1.npix
+            #total_expectation = self.grid_response.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi']) * weight
+
+            # Get expectation:
+            for i in range(0,len(self.grid_response)):
+
+                # Get weight
+                this_pix = self.grid[i]
+                weight = self.skymap1[this_pix]*4*np.pi/self.skymap1.npix
+
+                if i == 0:
+                    total_expectation = self.grid_response[i].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi']) * weight
+                if i > 0:
+                    this_expectation = self.grid_response[i].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi']) * weight
+                    total_expectation += this_expectation
+            
+            if src_counter == 0:
+                self._signal = total_expectation
+            if src_counter != 0:
+                self._signal += total_expectation
+            src_counter += 1
+
+        # Get expectation for point sources:
+        for name,source in point_sources.items():
 
             if self._source is None:
                 self._source = copy.deepcopy(source) # to avoid same memory issue
                      
-            # Compute point source response for source position
-            # See also the Detector Response and Source Injector tutorials
+            # Compute point source response (for fixed position)
             if self._psr is None:
             
                 coord = self._source.position.sky_coord
@@ -109,7 +144,8 @@ class COSILike(PluginPrototype):
                 dwell_time_map = self._get_dwell_time_map(coord)
             
                 self._psr = self._dr.get_point_source_response(dwell_time_map)
-                
+            
+            # Option to also fit the position:
             elif (source.position.sky_coord != self._source.position.sky_coord):
                 
                 coord = source.position.sky_coord
@@ -123,15 +159,14 @@ class COSILike(PluginPrototype):
                 self._source = copy.deepcopy(source)
 
             # Convolve with spectrum
-            # See also the Detector Response and Source Injector tutorials
             spectrum = source.spectrum.main.shape
-                
             self._signal = self._psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
             
         # Cache
         self._model = model
 
     def get_log_like(self):
+        
         """
         Return the value of the log-likelihood
         """
@@ -139,20 +174,32 @@ class COSILike(PluginPrototype):
         # Recompute the expectation if any parameter in the model changed
         if self._model is None:
             log.error("You need to set the model first")
-        
         self.set_model(self._model)
         
-        if self._fit_nuisance_params: # Compute expectation including free background parameter
-            expectation = self._signal.contents.todense() + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
-        else: # Compute expectation without background parameter
-            expectation = self._signal.contents.todense() + self._bkg.contents.todense()
+        # Compute expectation including free background parameter.
+        # Note: Need to check if self._signal is dense (i.e. np.ndarray) or sparse (i.e. sparse._coo.core.COO). 
+        if self._fit_nuisance_params:
+            if type(self._signal.contents.value) is np.ndarray:
+                expectation = self._signal.contents + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
+            if type(self._signal.contents.value) is not np.ndarray:
+                expectation = self._signal.contents.todense() + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
         
-        data = self._data.contents # Into an array
+        # Compute expectation without background parameter
+        else:
+            if type(self._signal.contents.value) is np.ndarray:
+                expectation = self._signal.contents + self._bkg.contents.todense()
+
+            if type(self._signal.contents.value) is not np.ndarray:    
+                expectation = self._signal.contents.todense() + self._bkg.contents.todense()
+        
+        # Convert data into an arrary:
+        data = self._data.contents 
         
         # Compute the log-likelihood
-        
         log_like = np.nansum(data*np.log(expectation) - expectation)
         
+        # Need to mask zero-values pixels if obtaining infinite likelihood.
+        # Note: the mask function gives errors sometimes. This is a bug that needs to be fixed. 
         if log_like == -np.inf:
             logger.warning(f"There are bins in which the total expected counts = 0 but data != 0, making log-likelihood = -inf. "
                            f"Masking these bins.")
@@ -161,6 +208,7 @@ class COSILike(PluginPrototype):
         return log_like
     
     def inner_fit(self):
+        
         """
         This fits nuisance parameters.
         """
@@ -186,6 +234,7 @@ class COSILike(PluginPrototype):
         return dwell_time_map
  
     def set_inner_minimization(self, flag: bool):
+        
         """
         Turn on the minimization of the internal COSI parameters
         :param flag: turning on and off the minimization  of the internal parameters

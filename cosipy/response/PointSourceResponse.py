@@ -6,7 +6,7 @@ from astropy.units import Quantity
 
 from scipy import integrate
 
-from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs
+from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
 
 
 class PointSourceResponse(Histogram):
@@ -77,6 +77,8 @@ class PointSourceResponse(Histogram):
                 spectrum_unit = spectrum.value.unit
             elif isinstance(spectrum, PhAbs):
                 spectrum_unit = u.dimensionless_unscaled
+            elif isinstance(spectrum, Gaussian):
+                spectrum_unit = spectrum.F.unit / spectrum.sigma.unit 
             else:
                 try:
                     spectrum_unit = spectrum.K.unit

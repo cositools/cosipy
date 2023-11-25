@@ -130,7 +130,7 @@ class BinnedData(UnBinnedData):
          
             # Fill histogram:
             self.binned_data.fill(self.cosi_dataset['TimeTags']*u.s, self.cosi_dataset['Energies']*u.keV, np.rad2deg(self.cosi_dataset['Phi'])*u.deg, coords)
-       
+      
         # Save binned data to hdf5 file:
         if output_name != None:
             self.binned_data.write('%s.hdf5' %output_name, overwrite=True)
