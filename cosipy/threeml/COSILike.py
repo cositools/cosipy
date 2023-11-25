@@ -96,7 +96,7 @@ class COSILike(PluginPrototype):
 
         # Source counter for models with multiple sources: 
         # Note: Only for extended sources right now.
-        src_counter = 0
+        self.src_counter = 0
         
         # Get expectation for extended sources:
         for name,source in extended_sources.items():
@@ -125,11 +125,11 @@ class COSILike(PluginPrototype):
                     total_expectation += this_expectation
             
             # Add source to signal and update source counter:
-            if src_counter == 0:
+            if self.src_counter == 0:
                 self._signal = total_expectation
-            if src_counter != 0:
+            if self.src_counter != 0:
                 self._signal += total_expectation
-            src_counter += 1
+            self.src_counter += 1
 
         # Get expectation for point sources:
         for name,source in point_sources.items():
@@ -178,19 +178,20 @@ class COSILike(PluginPrototype):
         self.set_model(self._model)
         
         # Compute expectation including free background parameter.
-        # Note: Need to check if self._signal is dense (i.e. np.ndarray) or sparse (i.e. sparse._coo.core.COO). 
+        # Note: Need to check if self._signal is dense (i.e. np.ndarray) or sparse (i.e. sparse._coo.core.COO).
+        # Currently using a quick workaround, but need a better method. 
         if self._fit_nuisance_params:
-            if type(self._signal.contents.value) is np.ndarray:
+            if self.src_counter != 0:
                 expectation = self._signal.contents + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
-            if type(self._signal.contents.value) is not np.ndarray:
+            if self.src_counter == 0:
                 expectation = self._signal.contents.todense() + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
         
         # Compute expectation without background parameter
         else:
-            if type(self._signal.contents.value) is np.ndarray:
+            if self.src_counter != 0:
                 expectation = self._signal.contents + self._bkg.contents.todense()
 
-            if type(self._signal.contents.value) is not np.ndarray:    
+            if self.src_counter == 0:    
                 expectation = self._signal.contents.todense() + self._bkg.contents.todense()
         
         # Convert data into an arrary:
