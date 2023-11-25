@@ -124,6 +124,7 @@ class COSILike(PluginPrototype):
                     this_expectation = self.grid_response[i].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi']) * weight
                     total_expectation += this_expectation
             
+            # Add source to signal and update source counter:
             if src_counter == 0:
                 self._signal = total_expectation
             if src_counter != 0:
