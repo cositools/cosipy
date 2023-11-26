@@ -13,7 +13,7 @@ import time
 
 class FastTSMap():
     
-    def __init__(self, data, bkg_model, orientation, response_path, frame = "local", scheme = "RING"):
+    def __init__(self, data, bkg_model, orientation, response_path, cds_frame = "local", scheme = "RING"):
         
         """
         Initialize the instance
@@ -24,7 +24,7 @@ class FastTSMap():
         bkg_model: histpy.Histogram; background model, which includes the background counts to model the background in observed data
         orientation: cosipy.SpacecraftFile; the orientation of the spacecraft when data are collected
         response_path: pathlib.Path; the path to the response file
-        frame: str; "local" or "galactic", it's the frame of the data, bkg_model and the response
+        cds_frame: str; "local" or "galactic", it's the frame of the data, bkg_model and the response
         
         Returns
         -------
@@ -36,7 +36,7 @@ class FastTSMap():
             raise TypeError("The orientation must be a cosipy.SpacecraftFile object!")
         self._orientation = orientation
         self._response_path = Path(response_path)
-        self._frame = frame
+        self._cds_frame = cds_frame
         self._scheme = scheme
         
     @staticmethod
@@ -88,11 +88,11 @@ class FastTSMap():
     def get_cds_array(hist, energy_channel):
         
         """
-        Get the flattened cds array from data.
+        Get the flattened cds array from input Histogram.
         
         Parameters
         -----------
-        hist: histpy.Histogram; input data
+        hist: histpy.Histogram; input Histogram
         energy_channel: list; [lower_channel, upper_chanel]
         
         Returns
@@ -116,30 +116,78 @@ class FastTSMap():
         return cds_array
         
         
+    @staticmethod
+    def get_ei_cds_array(hypothesis_coord, energy_channel, orientation, response_path, spectrum, cds_frame):
+                         
+        """
+        Get the expected counts in CDS in local or galactic frame.
+        
+        Parameters
+        ----------
+        hypothesis_coord
+        energy_channel
+        orientation
+        response_path
+        spectrum
+        
+        Returns
+        -------
+        cds_array
+        """
+                         
+        # check inputs, will complete later
+                         
+        # the local and galactic frame works very differently, so we need to compuate the point source response (psr) accordingly 
+        if cds_frame == "local":
+            
+            # convert the hypothesis coord to the local frame (Spacecraft frame)
+            hypothesis_in_sc_frame = orientation.get_target_in_sc_frame(target_name = "Hypothesis", 
+                                                                        target_coord = hypothesis_coord, 
+                                                                        quiet = True)
+            # get the dwell time map: the map of the time spent on each pixel in the local frame
+            dwell_time_map = orientation.get_dwell_map(response = response_path)
+            
+            # convolve the response with the dwell_time_map to get the point source response
+            with FullDetectorResponse.open(response_path) as response:
+                psr = response.get_point_source_response(dwell_time_map)
+
+        elif cds_frame == "galactic":
+            
+            with FullDetectorResponse.open(response_path) as response:
+            
+                # get scatt_map, currently I have a shallow understanding of scatt_map
+                # play more with it when possible to deep the understanding
+                scatt_map = orientation.get_scatt_map(nside = response.nside * 2, coordsys = 'galactic')
+            
+                # convolve the response with the scatt_map to get the point source response in the galactic frame
+                psr = response.get_point_source_response(coord = hypothesis_coord, scatt_map = scatt_map)
+                
+        else:
+            raise ValueError("The point source response must be calculated in the local and galactic frame. Others are not supported (yet)!")
+            
+        # convolve the point source reponse with the spectrum to get the expected counts
+        expectation = psr.get_expectation(spectrum)
+
+        # slice energy channals and project it to CDS
+        ei_cds_array = FastTSMap.get_cds_array(expectation, energy_channel)
+        
+        return ei_cds_array
     
     @staticmethod
     def fast_ts_fit(hypothesis_coord, 
                     energy_channel, data_cds_array, bkg_model_cds_array, 
-                    orientation, response_path, spectrum, 
+                    orientation, response_path, spectrum, cds_frame,
                     ts_nside, ts_scheme):
         
-        # get the pix number
+        # get the pix number of the ts map
         data_array = np.zeros(hp.nside2npix(ts_nside))
         ts_temp = HealpixMap(data = data_array, scheme = ts_scheme, coordsys = "galactic")
         pix = ts_temp.ang2pix(hypothesis_coord)
         
-        # get the expected counts for the hypothesis_coord
-        hypothesis_in_sc_frame = orientation.get_target_in_sc_frame(target_name = "Hypothesis", 
-                                                                    target_coord = hypothesis_coord, 
-                                                                    quiet = True)
-        
-        dwell_time_map = orientation.get_dwell_map(response = response_path)
-        
-        with FullDetectorResponse.open(response_path) as response:
-            psr = response.get_point_source_response(dwell_time_map)
-            
-        expectation = psr.get_expectation(spectrum)
-        ei_cds_array = FastTSMap.get_cds_array(expectation, energy_channel)
+        # get the expected counts in the flattened cds array
+        ei_cds_array = FastTSMap.get_ei_cds_array(hypothesis_coord = hypothesis_coord, cds_frame = cds_frame,
+                                                  energy_channel = energy_channel, orientation = orientation, 
+                                                  response_path = response_path, spectrum = spectrum)
         
         # start the fit
         fit = fnf(max_iter=1000)
@@ -179,8 +227,9 @@ class FastTSMap():
         
         cores = multiprocessing.cpu_count()
         pool = multiprocessing.Pool(processes=cores)
-        results = pool.starmap(FastTSMap.fast_ts_fit, product(hypothesis_coords, [energy_channel], [data_cds_array], [bkg_model_cds_array],
-                                                             [self._orientation], [self._response_path], [spectrum], [ts_nside], [ts_scheme]))
+        results = pool.starmap(FastTSMap.fast_ts_fit, product(hypothesis_coords, [energy_channel], [data_cds_array], [bkg_model_cds_array], 
+                                                             [self._orientation], [self._response_path], [spectrum], [self._cds_frame], 
+                                                             [ts_nside], [ts_scheme]))
             
         pool.close()
         pool.join()
