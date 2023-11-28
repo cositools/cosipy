@@ -47,10 +47,11 @@ class BinnedData(UnBinnedData):
             if self.unbinned_output == 'hdf5':
                 self.cosi_dataset = self.get_dict_from_hdf5(unbinned_data)
 
+        # Get time bins:
+        min_time = self.tmin
+        max_time = self.tmax
         if type(self.time_bins).__name__ in ['int','float']:
             # Get time bins: 
-            min_time = self.tmin
-            max_time = self.tmax
             delta_t = max_time - min_time
             num_bins = round(delta_t / self.time_bins)
             new_bin_size = delta_t / num_bins
