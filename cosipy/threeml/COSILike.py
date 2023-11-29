@@ -11,6 +11,9 @@ from scoords import SpacecraftFrame, Attitude
 from mhealpy import HealpixMap
 
 import astropy.units as u
+import astropy.coordinates as coords
+
+from sparse import COO
 
 import numpy as np
 
@@ -24,7 +27,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 class COSILike(PluginPrototype):
-    def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, **kwargs):
+    
+    def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, coordsys=None, **kwargs):
+        
         """
         COSI 3ML plugin
         
@@ -57,7 +62,20 @@ class COSILike(PluginPrototype):
         self._data = data
         self._bkg = bkg
         self._sc_orientation = sc_orientation
-    
+        
+        try:
+            if data.axes["PsiChi"].coordsys.name != bkg.axes["PsiChi"].coordsys.name:
+                logger.warning("Data is binned in " + data.axes["PsiChi"].coordsys.name + " and background is binned in " 
+                               + bkg.axes["PsiChi"].coordsys.name + ". They should be binned in the same coordinate system.")
+            else:
+                self._coordsys = data.axes["PsiChi"].coordsys.name
+        except:
+            if coordsys == None:
+                raise RuntimeError(f"There is no coordinate system attached to the binned data. One must be provided by " 
+                                       f"specifiying coordsys='galactic' or 'spacecraftframe'")
+            else:
+                self._coordsys = coordsys
+            
         # Place-holder for cached data.
         self._model = None
         self._source = None
@@ -76,13 +94,13 @@ class COSILike(PluginPrototype):
             raise RuntimeError("Nuisance parameter must be astromodels.core.parameter.Parameter object")
         
     def set_model(self, model):
+        
         """
         Set the model to be used in the joint minimization.
         
-        Parameters:
-            model: LikelihoodModel
-                Any model supported by astromodel. However, this simple plugin only supports single 
-                point-sources
+        Parameters
+        ----------
+        model: astromodels.core.model.Model; any model supported by astromodels
         """
         
         # Check for limitations
@@ -105,18 +123,28 @@ class COSILike(PluginPrototype):
             if self._psr is None:
             
                 coord = self._source.position.sky_coord
-            
-                dwell_time_map = self._get_dwell_time_map(coord)
-            
-                self._psr = self._dr.get_point_source_response(dwell_time_map)
+                
+                if self._coordsys == 'spacecraftframe':
+                    dwell_time_map = self._get_dwell_time_map(coord)
+                    self._psr = self._dr.get_point_source_response(exposure_map=dwell_time_map)
+                elif self._coordsys == 'galactic':
+                    scatt_map = self._get_scatt_map()
+                    self._psr = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
+                else:
+                    raise RuntimeError("Unknown coordinate system")
                 
             elif (source.position.sky_coord != self._source.position.sky_coord):
                 
                 coord = source.position.sky_coord
                 
-                dwell_time_map = self._get_dwell_time_map(coord)
-                
-                self._psr = self._dr.get_point_source_response(dwell_time_map)
+                if self._coordsys == 'spacecraftframe':
+                    dwell_time_map = self._get_dwell_time_map(coord)
+                    self._psr = self._dr.get_point_source_response(exposure_map=dwell_time_map)
+                elif self._coordsys == 'galactic':
+                    scatt_map = self._get_scatt_map()
+                    self._psr = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
+                else:
+                    raise RuntimeError("Unknown coordinate system")
                 
             # Caching source to self._source after position judgment
             if self._source is not None:
@@ -132,8 +160,13 @@ class COSILike(PluginPrototype):
         self._model = model
 
     def get_log_like(self):
+        
         """
-        Return the value of the log-likelihood
+        Return the value of the log-likelihood.
+        
+        Returns
+        ----------
+        log_like: float
         """
         
         # Recompute the expectation if any parameter in the model changed
@@ -142,10 +175,17 @@ class COSILike(PluginPrototype):
         
         self.set_model(self._model)
         
+        if type(self._signal.contents) == u.quantity.Quantity:
+            signal = self._signal.contents.value
+        elif type(self._signal.contents) == COO:
+            signal = self._signal.contents.todense()
+        else:
+            raise RuntimeError("Expectation is an unknown object")
+            
         if self._fit_nuisance_params: # Compute expectation including free background parameter
-            expectation = self._signal.contents.todense() + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
+            expectation = signal + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
         else: # Compute expectation without background parameter
-            expectation = self._signal.contents.todense() + self._bkg.contents.todense()
+            expectation = signal + self._bkg.contents.todense()
         
         data = self._data.contents # Into an array
         
@@ -161,6 +201,7 @@ class COSILike(PluginPrototype):
         return log_like
     
     def inner_fit(self):
+        
         """
         This fits nuisance parameters.
         """
@@ -169,7 +210,8 @@ class COSILike(PluginPrototype):
     
     def _get_dwell_time_map(self, coord):
         
-        """Get the dwell time map of the source in the spacecraft frame.
+        """
+        Get the dwell time map of the source in the spacecraft frame.
         
         Parameters
         ----------
@@ -184,14 +226,36 @@ class COSILike(PluginPrototype):
         dwell_time_map = self._sc_orientation.get_dwell_map(response = self._rsp_path)
         
         return dwell_time_map
- 
+    
+    def _get_scatt_map(self):
+        
+        """
+        Get the spacecraft attitude map of the source in the inertial (spacecraft) frame.
+        
+        Parameters
+        ----------
+        nside: int; resolution of scatt map
+        coordsys: BaseFrameRepresentation or str; coordinate system of map
+        
+        Returns
+        -------
+        scatt_map: cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
+        """
+        
+        scatt_map = self._sc_orientation.get_scatt_map(nside = self._dr.nside * 2, coordsys = 'galactic')
+        
+        return scatt_map
+    
     def set_inner_minimization(self, flag: bool):
+       
         """
-        Turn on the minimization of the internal COSI parameters
-        :param flag: turning on and off the minimization  of the internal parameters
-        :type flag: bool
-        :returns:
+        Turn on the minimization of the internal COSI parameters.
+        
+        Parameters
+        ----------
+        flag: bool; turns on and off the minimization  of the internal parameters
         """
+        
         self._fit_nuisance_params: bool = bool(flag)
 
         for parameter in self._nuisance_parameters:
