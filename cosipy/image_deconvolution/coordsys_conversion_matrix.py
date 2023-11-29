@@ -19,7 +19,7 @@ class CoordsysConversionMatrix(Histogram):
         super().__init__(edges, contents = contents, sumw2 = sumw2,
                          labels = labels, axis_scale = axis_scale, sparse = sparse, unit = unit)
 
-        self.binning_method = None #'Time' or 'ScAtt'
+        self.binning_method = binning_method #'Time' or 'ScAtt'
 
     @classmethod
     def time_binning_ccm(cls, full_detector_response, orientation, time_intervals, nside_model = None, is_nest_model = False):
