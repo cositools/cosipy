@@ -3,37 +3,52 @@ import numpy as np
 import astropy.units as u
 from tqdm.autonotebook import tqdm
 import healpy as hp
+from astropy.coordinates import angular_separation
 
 from histpy import Histogram, Axes, Axis
 
 class DeconvolutionAlgorithmBase(object):
 
     def __init__(self, initial_model_map, data, parameter):
+
         self.data = data 
 
         self.parameter = parameter 
 
         self.initial_model_map = initial_model_map
 
+        # image axis (model space)
         image_axis = initial_model_map.axes['lb']
 
-        self.nside = image_axis.nside
-        self.npix = image_axis.npix
-        self.pixelarea = 4 * np.pi / self.npix * u.sr
-        energy_axis = initial_model_map.axes['Ei']
-        self.nbands = len(energy_axis) - 1
+        self.nside_model = image_axis.nside
+        self.npix_model = image_axis.npix
+        self.pixelarea_model = hp.nside2pixarea(self.nside_model) * u.sr
 
+        # energy axis (model space)
+        energy_axis = initial_model_map.axes['Ei']
+        self.n_energyband_model = energy_axis.nbins
+
+        # NuLambda axis (Compton data space)
+        response_axis = data.full_detector_response.axes['NuLambda']
+
+        self.nside_local = response_axis.nside
+        self.npix_local = response_axis.npix
+        self.pixelarea_local = hp.nside2pixarea(self.nside_local) * u.sr
+
+        # reconstructed image and related data
         self.model_map = None
         self.delta_map = None
         self.processed_delta_map = None
-
-        self.expectation = None
-
         self.bkg_norm = 1.0
 
+        self.result = None
+
+        self.expectation = None
+        
+        # parameters of the iteration
         self.iteration_max = parameter['iteration']
 
-        self.result = None
+        self.save_result = parameter.get("save_results_each_iteration", False)
 
     def pre_processing(self):
         pass
@@ -60,6 +75,9 @@ class DeconvolutionAlgorithmBase(object):
         self.result = this_result
 
     def save_result(self, i_iteration):
+        pass
+
+    def show_result(self, i_iteration):
         pass
 
     def iteration(self):
@@ -94,8 +112,11 @@ class DeconvolutionAlgorithmBase(object):
 
             print("--> registering results")
             self.register_result(i_iteration)
+
+            print("--> showing results")
+            self.show_result(i_iteration)
             
-            if self.parameter["save_results_each_iteration"] == True:
+            if self.save_result == True:
                 print("--> saving results")
                 self.save_result(i_iteration)
 
@@ -104,53 +125,50 @@ class DeconvolutionAlgorithmBase(object):
             yield self.result
     
     #replaced with a function in other COSIpy libaray in the future?
-    def calc_expectation(self, model_map, data, use_sparse = False):
-        almost_zero = 1e-6
+    def calc_expectation(self, model_map, data, almost_zero = 1e-12): ### test with separating the dwell time map
 
-        model_map_expanded = data.image_response_dense.expand_dims(model_map, ["lb", "Ei"])
-        if use_sparse:
-            expectation = (data.image_response_sparse * model_map_expanded).project(["Time", "Em", "Phi", "PsiChi"]) * model_map.unit * self.pixelarea
-            expectation += data.bkg_sparse * self.bkg_norm
-            expectation += almost_zero
+        expectation = Histogram(data.event_dense.axes) 
+
+        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([0], [0])) # ['lb', 'Time/ScAtt', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
+        map_rotated *= data.coordsys_conv_matrix.unit * model_map.unit
+        map_rotated *= self.pixelarea_model
+        # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
+        # the unit of map_rotated is 1/cm2 ( = s * 1/cm2/s/sr * sr)
+
+        if data.response_on_memory == True:
+            expectation[:] = np.tensordot( map_rotated, data.image_response_dense.contents, axes = ([1,2], [0,1]))
         else:
-            expectation = (data.image_response_dense * model_map_expanded).project(["Time", "Em", "Phi", "PsiChi"]) * model_map.unit * self.pixelarea
-            expectation += data.bkg_dense * self.bkg_norm
-            expectation += almost_zero
+            for ipix in tqdm(range(self.npix_local)):
+                response_this_pix = np.sum(data.full_detector_response[ipix].to_dense(), axis = (4,5)) # ['Ei', 'Em', 'Phi', 'PsiChi', 'SigmaTau', 'Dist'] -> ['Ei', 'Em', 'Phi', 'PsiChi']
+                expectation += np.tensordot(map_rotated[:,ipix,:], response_this_pix, axes = ([1], [0]))
+
+        expectation += data.bkg_dense * self.bkg_norm
+        expectation += almost_zero
         
         return expectation
 
-    def calc_loglikelihood(self, data, model_map, expectation = None, use_sparse = False): # expectation will be a required parameter soon.
+    def calc_loglikelihood(self, data, model_map, expectation = None): # expectation will be a mandatory parameter in the future.
         if expectation is None:
-            expectation = self.calc_expectation(model_map, data, use_sparse)
+            expectation = self.calc_expectation(model_map, data)
 
-        if use_sparse:
-            loglikelood = np.sum( data.event_sparse * np.log(expectation) ) - np.sum(expectation)
-        else:
-            loglikelood = np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)
+        loglikelood = np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)
 
         return loglikelood
 
     def calc_gaussian_filter(self, sigma, max_sigma):
-        gaussian_filter = Histogram( Axes( [Axis(edges = np.arange(self.npix+1)), Axis(edges = np.arange(self.npix+1))] ), sparse = False)
 
-        for ipix in tqdm(range(self.npix)):
-            vec_i = hp.pix2vec(self.nside, ipix, nest = False)
-    
-            for jpix in range(self.npix):
-                vec_j = hp.pix2vec(self.nside, jpix, nest = False)
-                
-                delta_cos = vec_i[0] * vec_j[0] + vec_i[1] * vec_j[1] + vec_i[2] * vec_j[2]
+        gaussian_filter = Histogram( Axes( [Axis(edges = np.arange(self.npix_model+1)), Axis(edges = np.arange(self.npix_model+1))] ), sparse = False)
 
-                if delta_cos > 1.0:
-                    delta_cos = 1.0
-                elif delta_cos < -1.0:
-                    delta_cos = -1.0
-                    
-                delta_ang = np.arccos(delta_cos) * 180.0 / np.pi
-                
-                if delta_ang / sigma < max_sigma:
-                    gaussian_filter[ipix,jpix] = np.exp( - 0.5 * delta_ang**2 / sigma**2)
+        for ipix in tqdm(range(self.npix_model)):
+
+            lon_ref, lat_ref = hp.pix2ang(self.nside_model, ipix, nest = False, lonlat = True)
+
+            lon, lat = hp.pix2ang(self.nside_model, np.arange(self.npix_model), nest = False, lonlat = True)
+
+            delta_ang = angular_separation(lon_ref * u.deg, lat_ref * u.deg, lon * u.deg, lat * u.deg).to('deg').value
     
-            gaussian_filter[ipix,:] /= np.sum(gaussian_filter[ipix,:])
+            gaussian_filter[ipix,:] = np.exp( - 0.5 * delta_ang**2 / sigma**2)
     
+            gaussian_filter[ipix,:] /= np.sum(gaussian_filter[ipix,:])  
+
         return gaussian_filter

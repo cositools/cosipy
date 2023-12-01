@@ -28,6 +28,7 @@ import gzip
 from tqdm import tqdm
 import subprocess
 import sys
+import pathlib
 import gc
 
 class FullDetectorResponse(HealpixBase):
@@ -74,6 +75,7 @@ class FullDetectorResponse(HealpixBase):
         """
         
         filename = Path(filename)
+
 
         if filename.suffix == ".h5":
             return cls._open_h5(filename)
