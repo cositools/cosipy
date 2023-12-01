@@ -73,13 +73,13 @@ class FullDetectorResponse(HealpixBase):
              emin/emax used in the simulation source file.  
         
         """
+        
+        filename = Path(filename)
 
-        if isinstance(filename, pathlib.PosixPath):
-            filename = str(filename)
 
-        if filename.endswith('.h5'):
+        if filename.suffix == ".h5":
             return cls._open_h5(filename)
-        elif filename.endswith('.rsp.gz'):
+        elif "".join(filename.suffixes[-2:]) == ".rsp.gz":
             return cls._open_rsp(filename,Spectrumfile,norm ,single_pixel,alpha,emin,emax)
         else:
             raise ValueError(
