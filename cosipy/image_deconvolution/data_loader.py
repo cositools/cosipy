@@ -12,6 +12,7 @@ from cosipy.response import FullDetectorResponse
 from scoords import SpacecraftFrame, Attitude
 from cosipy.spacecraftfile import SpacecraftFile
 from cosipy.data_io import BinnedData
+from .coordsys_conversion_matrix import CoordsysConversionMatrix
 
 class DataLoader(object):
 
@@ -19,15 +20,14 @@ class DataLoader(object):
         self.event_dense = None
         self.bkg_dense = None
         self.full_detector_response = None
-        self.orientation = None
         self.coordsys_conv_matrix = None
-
-        self.response_on_memory = False
 
         self.is_miniDC2_format = False
 
+        self.response_on_memory = False
+
     @classmethod
-    def load(cls, event_binned_data, bkg_binned_data, rsp, sc_orientation, is_miniDC2_format = False):
+    def load(cls, event_binned_data, bkg_binned_data, rsp, coordsys_conv_matrix, is_miniDC2_format = False):
 
         new = cls()
 
@@ -37,7 +37,7 @@ class DataLoader(object):
 
         new.full_detector_response = rsp
 
-        new.orientation = sc_orientation
+        new.coordsys_conv_matrix = coordsys_conv_matrix
 
         new.is_miniDC2_format = is_miniDC2_format
 
@@ -46,7 +46,7 @@ class DataLoader(object):
     @classmethod
     def load_from_filepath(cls, event_hdf5_filepath = None, event_yaml_filepath = None, 
                            bkg_hdf5_filepath = None, bkg_yaml_filepath = None, 
-                           rsp_filepath = None, sc_orientation_filepath = None,
+                           rsp_filepath = None, ccm_filepath = None,
                            is_miniDC2_format = False):
 
         new = cls()
@@ -57,7 +57,7 @@ class DataLoader(object):
         
         new.set_rsp_from_filepath(rsp_filepath)
 
-        new.set_sc_orientation_from_filepath(sc_orientation_filepath)
+        new.set_ccm_from_filepath(ccm_filepath)
 
         new.is_miniDC2_format = is_miniDC2_format
 
@@ -101,13 +101,13 @@ class DataLoader(object):
 
         print("... Done ...")
 
-    def set_sc_orientation_from_filepath(self, filepath):
+    def set_ccm_from_filepath(self, filepath):
 
-        self._sc_orientation_filepath = filepath
+        self._ccm_filepath = filepath
         
-        print(f'... loading orientation from {filepath}')
+        print(f'... loading coordsys conversion matrix from {filepath}')
 
-        self.orientation = SpacecraftFile.parse_from_file(self._sc_orientation_filepath)
+        self.coordsys_conv_matrix = CoordsysConversionMatrix.open(self._ccm_filepath)
 
         print("... Done ...")
 
@@ -116,7 +116,7 @@ class DataLoader(object):
         print(f"... checking the file registration ...")
 
         if self.event_dense and self.bkg_dense \
-        and self.full_detector_response and self.orientation:
+        and self.full_detector_response and self.coordsys_conv_matrix:
 
             print(f"    --> pass")
             return True
@@ -128,7 +128,11 @@ class DataLoader(object):
         print(f"... checking the axis consistency ...")
 
         # check the axes of the event/background files
-        axis_name = ['Time', 'Em', 'Phi', 'PsiChi'] # 'Time' should be changed if one uses the scat binning.
+        if self.coordsys_conv_matrix.binning_method == 'Time':
+            axis_name = ['Time', 'Em', 'Phi', 'PsiChi']
+
+        elif self.coordsys_conv_matrix.binning_method == 'ScAtt':
+            axis_name = ['ScAtt', 'Em', 'Phi', 'PsiChi']
 
         for name in axis_name:
             if not self.event_dense.axes[name] == self.bkg_dense.axes[name]:
@@ -151,7 +155,11 @@ class DataLoader(object):
         print(f"Note that this function is tentetive. It should be removed in the future!")
         print(f"Please run this function only once!")
 
-        axis_name = ['Time', 'Em', 'Phi', 'PsiChi'] # 'Time' should be changed if one uses the scat binning.
+        if self.coordsys_conv_matrix.binning_method == 'Time':
+            axis_name = ['Time', 'Em', 'Phi', 'PsiChi']
+
+        elif self.coordsys_conv_matrix.binning_method == 'ScAtt':
+            axis_name = ['ScAtt', 'Em', 'Phi', 'PsiChi']
 
         for name in axis_name:
 
@@ -188,7 +196,7 @@ class DataLoader(object):
             event_edges, event_unit = self.event_dense.axes[name].edges, self.event_dense.axes[name].unit
             response_edges, response_unit = self.full_detector_response.axes[name].edges, self.full_detector_response.axes[name].unit
             
-            if type(response_edges) == u.quantity.Quantity:
+            if type(response_edges) == u.quantity.Quantity and self.is_miniDC2_format == True:
                 response_edges = response_edges.value
 
             if np.all(event_edges == response_edges):
@@ -196,10 +204,10 @@ class DataLoader(object):
             else:
                 print(f"Warning: the edges of the axis {name} are not consistent between the event and background!")
                 print(f"        event      : {event_edges}")
-                print(f"        background : {response_edges}")
+                print(f"        response : {response_edges}")
                 return False
 
-        axes_cds = Axes([self.event_dense.axes["Time"], \
+        axes_cds = Axes([self.event_dense.axes[0], \
                          self.full_detector_response.axes["Em"], \
                          self.full_detector_response.axes["Phi"], \
                          self.full_detector_response.axes["PsiChi"]])
@@ -253,6 +261,7 @@ class DataLoader(object):
 
         self.response_on_memory = True
 
+    ''' 
     def calc_coordsys_conv_matrix(self): 
 
         if not self._check_file_registration():
@@ -362,6 +371,7 @@ class DataLoader(object):
             return False
 
         self.calc_image_response_projected()
+    '''
 
     def calc_image_response_projected(self):
         # calculate the image_response_dense_projected

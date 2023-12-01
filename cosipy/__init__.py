@@ -13,5 +13,7 @@ from .threeml import Band_Eflux
 
 from .spacecraftfile import SpacecraftFile
 
+from .ts_map import FastTSMap
+
 #from .coordinates import attitude
 #from .coordinates import spacecraft_frame

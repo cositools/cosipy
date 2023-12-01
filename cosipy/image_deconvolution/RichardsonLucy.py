@@ -60,14 +60,16 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         delta_map_part2 = Histogram(self.model_map.axes, unit = self.data.image_response_dense_projected.unit)
 
         if self.data.response_on_memory == True:
-            diff_x_response_this_pix = np.tensordot(diff.contents, self.data.image_response_dense.contents, axes = ([1,2,3], [2,3,4])) # Ti, NuLambda, Ei
+            diff_x_response_this_pix = np.tensordot(diff.contents, self.data.image_response_dense.contents, axes = ([1,2,3], [2,3,4])) 
+            # [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, NuLambda, Ei]
 
             delta_map_part2[:] = np.tensordot(self.data.coordsys_conv_matrix.contents, diff_x_response_this_pix, axes = ([1,2], [0,1])) * diff_x_response_this_pix.unit * self.data.coordsys_conv_matrix.unit #lb, Ei
+            # [lb, Time/ScAtt, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
             # note that coordsys_conv_matrix is the sparse, so the unit should be recovered.
 
         else:
-            for ipix in tqdm(range(self.npix)):
-                response_this_pix = np.sum(self.data.full_detector_response[ipix].to_dense(), axis = (4,5)) # 'Ei', 'Em', 'Phi', 'PsiChi'
+            for ipix in tqdm(range(self.npix_local)):
+                response_this_pix = np.sum(self.data.full_detector_response[ipix].to_dense(), axis = (4,5)) # may not work with the DC2 response format
 
                 diff_x_response_this_pix = np.tensordot(diff.contents, response_this_pix, axes = ([1,2,3], [1,2,3])) # Ti, Ei
 
@@ -82,8 +84,6 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
                 self.bkg_norm = self.bkg_norm_range[0]
             elif self.bkg_norm > self.bkg_norm_range[1]:
                 self.bkg_norm = self.bkg_norm_range[1]
-
-            print("bkg_norm : ", self.bkg_norm)
 
     def post_processing(self):
 
@@ -130,8 +130,12 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             f.write(f'loglikelihood: {self.result["loglikelihood"]}\n')
             f.write(f'background_normalization: {self.result["background_normalization"]}\n')
 
-    def calc_alpha(self, delta, model_map):
-        almost_zero = 1e-4 #it is to prevent the flux under zero
+    def show_result(self, i_iteration):
+        print(f'    alpha: {self.result["alpha"]}')
+        print(f'    loglikelihood: {self.result["loglikelihood"]}')
+        print(f'    background_normalization: {self.result["background_normalization"]}')
+
+    def calc_alpha(self, delta, model_map, almost_zero = 1e-5): #almost_zero is needed to prevent producing a flux below zero
         alpha = -1.0 / np.min( delta / model_map ) * (1 - almost_zero)
         alpha = min(alpha, self.alpha_max)
         if alpha < 1.0:
