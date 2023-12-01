@@ -8,6 +8,7 @@ class SpacecraftAttitudeMap(Histogram):
                  nside,
                  scheme = 'ring',
                  coordsys = 'galactic',
+                 labels = ['x', 'y']
                  ):
         """
         Bin the spacecraft attitude history into a 4D histogram that contains 
@@ -20,11 +21,11 @@ class SpacecraftAttitudeMap(Histogram):
         super().__init__([HealpixAxis(nside = nside,
                                       scheme = scheme,
                                       coordsys = coordsys,
-                                      label = 'x'), 
+                                      label = labels[0]), 
                           HealpixAxis(nside = nside,
                                       scheme = scheme,
                                       coordsys = coordsys,
-                                      label = 'y')],
+                                      label = labels[1])],
                          sparse = True,
                          unit = u.s)    
 

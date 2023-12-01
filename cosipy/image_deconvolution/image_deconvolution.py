@@ -48,24 +48,32 @@ class ImageDeconvolution:
         return self._initial_model_map
 
     def _check_model_response_consistency(self):
-        self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense_projected.axes["Ei"].axis_scale
+        #self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense_projected.axes["Ei"].axis_scale
 
-        return self._initial_model_map.axes["lb"] == self._data.image_response_dense_projected.axes["lb"] \
-               and self._initial_model_map.axes["Ei"] == self._data.image_response_dense_projected.axes["Ei"]
+        #return self._initial_model_map.axes["lb"] == self._data.image_response_dense_projected.axes["lb"] \
+        #       and self._initial_model_map.axes["Ei"] == self._data.image_response_dense_projected.axes["Ei"]
+        return True
 
     def initialize(self):
         print("#### Initialization ####")
         
         print("1. generating a model map") 
         parameter_model_property = Configurator(self._parameter['model_property'])
-        self._initial_model_map = ModelMap(self._data, parameter_model_property)
+        self._initial_model_map = ModelMap(nside = parameter_model_property['nside'],
+                                           energy_edges = parameter_model_property['energy_edges'] * u.keV, 
+                                           scheme = parameter_model_property['scheme'], 
+                                           coordsys = parameter_model_property['coordinate'])
 
         print("---- parameters ----")
         print(parameter_model_property.dump())
         
         print("2. initializing the model map ...")
         parameter_model_initialization = Configurator(self._parameter['model_initialization'])
-        self._initial_model_map.initialize(self._data, parameter_model_initialization)
+
+        algorithm_name = parameter_model_initialization['algorithm']
+
+        self._initial_model_map.set_values_from_parameters(algorithm_name, 
+                                                           parameter_model_initialization['parameter_'+algorithm_name])
 
         if not self._check_model_response_consistency():
             return
