@@ -10,6 +10,12 @@ from scoords import SpacecraftFrame, Attitude
 
 from mhealpy import HealpixMap
 
+from cosipy.response import PointSourceResponse
+from histpy import Histogram
+import h5py as h5
+from histpy import Axis, Axes
+import sys
+
 import astropy.units as u
 
 import numpy as np
@@ -111,19 +117,38 @@ class COSILike(PluginPrototype):
             #weight = self.skymap1[this_pix]*4*np.pi/self.skymap1.npix
             #total_expectation = self.grid_response.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi']) * weight
 
-            # Get expectation:
-            for i in range(0,len(self.grid_response)):
+            # Get expectation (method 1 -- on the fly):
+            #for i in range(0,len(self.grid_response)):
 
                 # Get weight
-                this_pix = self.grid[i]
-                weight = self.skymap1[this_pix]*4*np.pi/self.skymap1.npix
+            #    this_pix = self.grid[i]
+            #    weight = self.skymap1[this_pix]*4*np.pi/self.skymap1.npix
 
-                if i == 0:
-                    total_expectation = self.grid_response[i].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi']) * weight
-                if i > 0:
-                    this_expectation = self.grid_response[i].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi']) * weight
-                    total_expectation += this_expectation
+            #    if i == 0:
+            #        total_expectation = self.grid_response[i].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi']) * weight
+            #    if i > 0:
+            #        this_expectation = self.grid_response[i].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi']) * weight
+            #        total_expectation += this_expectation
             
+            # Get expectation (method 2 -- precomputed psr in Galactic coordinates):
+            total_expectation = Histogram(edges = self.psr_axes[2:])
+
+            with h5.File(self.response_file) as f:
+
+                #for pix,weight in enumerate(self.skymap1): # using full sky
+                for i in range(len(self.grid)): # using subset of pixels
+
+                    pix = self.grid[i]
+                    weight = self.skymap1[pix]
+
+                    if weight == 0:
+                        continue
+        
+                    psr = PointSourceResponse(self.psr_axes[1:], f['hist/contents'][pix+1], unit = f['hist'].attrs['unit'])
+                    pix_expectation = psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
+        
+                    total_expectation += pix_expectation*(weight*4*np.pi/self.skymap1.npix)
+
             # Add source to signal and update source counter:
             if self.src_counter == 0:
                 self._signal = total_expectation
