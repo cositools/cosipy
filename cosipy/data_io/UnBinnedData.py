@@ -468,9 +468,14 @@ class UnBinnedData(DataIO):
         cols = hdu[1].columns
         data = hdu[1].data
         for i in range(0,len(cols)):
-            this_key = cols[i].name
-            this_data = data[this_key]
-            this_dict[this_key] = this_data
+            
+            #this_key = cols[i].name
+            #this_data = data[this_key]
+            #this_dict[this_key] = this_data
+            
+            this_dict[cols[i].name] = data[this_key]
+            # Clear unused memory:
+            gc.collect()
 
         return this_dict
 
@@ -564,7 +569,10 @@ class UnBinnedData(DataIO):
                     self.cosi_dataset[key] = np.concatenate((self.cosi_dataset[key],this_dict[key]))
                     
             counter =+ 1
-        
+            
+            # Clear unused memory:
+            gc.collect()
+
         # Write unbinned data to file (either fits or hdf5):
         if output_name != None:
             self.write_unbinned_output(output_name)
