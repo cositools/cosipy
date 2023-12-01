@@ -70,8 +70,8 @@ class COSILike(PluginPrototype):
         
         try:
             if data.axes["PsiChi"].coordsys.name != bkg.axes["PsiChi"].coordsys.name:
-                logger.warning("Data is binned in " + data.axes["PsiChi"].coordsys.name + " and background is binned in " 
-                               + bkg.axes["PsiChi"].coordsys.name + ". They should be binned in the same coordinate system.")
+                raise RuntimeError("Data is binned in " + data.axes["PsiChi"].coordsys.name + " and background is binned in " 
+                                   + bkg.axes["PsiChi"].coordsys.name + ". They should be binned in the same coordinate system.")
             else:
                 self._coordsys = data.axes["PsiChi"].coordsys.name
         except:
