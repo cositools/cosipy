@@ -44,9 +44,14 @@ class COSILike(PluginPrototype):
         bkg: histpy.Histogram
             Binned background model. Note: Eventually this should be a cosipy data class
         sc_orientation: cosipy.spacecraftfile.SpacecraftFile
-            It contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
-            the spacecraft for the duration of the data included in the analysis.
-            orientation module
+            Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
+            the spacecraft for the duration of the data included in the analysis
+        nuisance_param: astromodels.core.parameter.Parameter
+            Background parameter (optional)
+        coordsys: str
+            Coordinate system ('galactic' or 'spacecraftframe') to perform fit in, which should match coordinate system of data 
+            and background. This only needs to be specified if the binned data and background do not have a coordinate system 
+            attached to them
         """
         
         # create the hash for the nuisance parameters. We have none for now.
