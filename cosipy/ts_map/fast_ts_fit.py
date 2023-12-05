@@ -1,5 +1,8 @@
-from histpy import Histogram
+from histpy import Histogram, Axis, Axes
+import h5py as h5
+import sys
 from cosipy import SpacecraftFile
+from cosipy.response import PointSourceResponse
 import healpy as hp
 from mhealpy import HealpixMap
 import numpy as np
@@ -13,7 +16,7 @@ import time
 
 class FastTSMap():
     
-    def __init__(self, data, bkg_model, orientation, response_path, cds_frame = "local", scheme = "RING"):
+    def __init__(self, data, bkg_model, response_path, orientation = None, cds_frame = "local", scheme = "RING"):
         
         """
         Initialize the instance
@@ -32,8 +35,6 @@ class FastTSMap():
         
         self._data = data.project(["Em", "PsiChi", "Phi"])
         self._bkg_model = bkg_model.project(["Em", "PsiChi", "Phi"])
-        if not isinstance(orientation, SpacecraftFile):
-            raise TypeError("The orientation must be a cosipy.SpacecraftFile object!")
         self._orientation = orientation
         self._response_path = Path(response_path)
         self._cds_frame = cds_frame
@@ -114,10 +115,55 @@ class FastTSMap():
         cds_array = np.array(hist_cds.to_dense()[:]).flatten()  # here [:] is equivalent to [:, :]
         
         return cds_array
-        
-        
+    
     @staticmethod
-    def get_ei_cds_array(hypothesis_coord, energy_channel, orientation, response_path, spectrum, cds_frame):
+    def get_expectation_in_galactic(hypothesis_coord, response_path, spectrum):
+        
+        """
+        Get the expectation in galactic. Please be aware that you must use a galactic response!
+        # to do: to make the weight parameter not hardcoded
+        
+        Parameters
+        ----------
+        hypothesis_coord:
+        spectrum:
+        
+        Returns
+        -------
+        expectation
+        """
+        
+        # Open the response
+        # Notes from Israel: Inside it contains a single histogram with all the regular axes for a Compton Data Space (CDS) analysis, in galactic coordinates. Since there is no class yet to handle it, this is how to read in the HDF5 manually.
+        
+        with h5.File(response_path) as f:
+
+            axes_group = f['hist/axes']
+            axes = []
+            for axis in axes_group.values():
+                # Get class. Backwards compatible with version
+                # with only Axis
+                axis_cls = Axis
+                if '__class__' in axis.attrs:
+                    class_module, class_name = axis.attrs['__class__']
+                    axis_cls = getattr(sys.modules[class_module], class_name)
+                axes += [axis_cls._open(axis)]
+        axes = Axes(axes)
+        
+        # get the pixel number of the hypothesis coordinate
+        map_temp = HealpixMap(base = axes[0])
+        hypothesis_coord_pix_number = map_temp.ang2pix(hypothesis_coord)
+        
+        # get the expectation for the hypothesis coordinate (a point source)
+        with h5.File(response_path) as f:
+            pix = hypothesis_coord_pix_number
+            psr = PointSourceResponse(axes[1:], f['hist/contents'][pix+1], unit = f['hist'].attrs['unit'])
+                
+        return psr
+    
+    
+    @staticmethod
+    def get_ei_cds_array(hypothesis_coord, energy_channel, response_path, spectrum, cds_frame, orientation = None):
                          
         """
         Get the expected counts in CDS in local or galactic frame.
@@ -140,6 +186,9 @@ class FastTSMap():
         # the local and galactic frame works very differently, so we need to compuate the point source response (psr) accordingly 
         if cds_frame == "local":
             
+            if orientation == None:
+                raise TypeError("The when the data are binned in local frame, orientation must be provided to compute the expected counts.")
+            
             # convert the hypothesis coord to the local frame (Spacecraft frame)
             hypothesis_in_sc_frame = orientation.get_target_in_sc_frame(target_name = "Hypothesis", 
                                                                         target_coord = hypothesis_coord, 
@@ -153,15 +202,8 @@ class FastTSMap():
 
         elif cds_frame == "galactic":
             
-            with FullDetectorResponse.open(response_path) as response:
+            psr = FastTSMap.get_expectation_in_galactic(hypothesis_coord = hypothesis_coord, response_path = response_path, spectrum = spectrum)
             
-                # get scatt_map, currently I have a shallow understanding of scatt_map
-                # play more with it when possible to deep the understanding
-                scatt_map = orientation.get_scatt_map(nside = response.nside * 2, coordsys = 'galactic')
-            
-                # convolve the response with the scatt_map to get the point source response in the galactic frame
-                psr = response.get_point_source_response(coord = hypothesis_coord, scatt_map = scatt_map)
-                
         else:
             raise ValueError("The point source response must be calculated in the local and galactic frame. Others are not supported (yet)!")
             
@@ -196,7 +238,7 @@ class FastTSMap():
         return [pix, result[0], result[1], result[2], result[3]]
 
         
-    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING"):
+    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None):
         
         """
         Perform parallel computation on all the hypothesis coordinates.
@@ -216,17 +258,31 @@ class FastTSMap():
         # decide the ts_nside from the list of hypothesis coordinates
         ts_nside = hp.npix2nside(len(hypothesis_coords))
         
-        # get the data_cds_array
-        data_cds_array = FastTSMap.get_cds_array(self._data, energy_channel)
-        bkg_model_cds_array = FastTSMap.get_cds_array(self._bkg_model, energy_channel)
+        # get the flattened data_cds_array
+        data_cds_array = FastTSMap.get_cds_array(self._data, energy_channel).flatten()
+        bkg_model_cds_array = FastTSMap.get_cds_array(self._bkg_model, energy_channel).flatten()
         
-        if (data_cds_array.flatten()[bkg_model_cds_array.flatten()==0]!=0).sum() != 0:
-            raise ValueError("You have data!=0 but bkg=0, check your inputs!")
+        if (data_cds_array[bkg_model_cds_array ==0]!=0).sum() != 0:
+            #raise ValueError("You have data!=0 but bkg=0, check your inputs!")
+            # let's try to set the data bin to zero when the corresponding bkg bin isn't zero.
+            # Need further investigate, why bkg = 0 but data!=0 happens? ==> it's more like an issue related to simulated data instead of code
+            # This first happened in GRB fitting, but got fixed somehow <== I now understand it's caused by using different PsiChi binning in the same fit
+            # But it also happened to Crab while the PsiChi binning are both galactic for Crab and the Albedo, why???? ?_?
+            data_cds_array[bkg_model_cds_array == 0] =0
+            
         
+        # set up the number of cores to use for the parallel computation
+        total_cores = multiprocessing.cpu_count()
+        if cpu_cores == None or cpu_cores >= total_cores:
+            # if you don't specify the number of cpu cores to use or the specified number of cpu cores is the same as the total number of cores you have
+            # it will use the [total_cores - 1] number of cores to run the parallel computation.
+            cores = total_cores - 1
+        else:
+            cores = cpu_cores
+            
         start = time.time()
-        
-        cores = multiprocessing.cpu_count()
-        pool = multiprocessing.Pool(processes=cores)
+        multiprocessing.set_start_method(start_method, force = True)
+        pool = multiprocessing.Pool(processes = cores)
         results = pool.starmap(FastTSMap.fast_ts_fit, product(hypothesis_coords, [energy_channel], [data_cds_array], [bkg_model_cds_array], 
                                                              [self._orientation], [self._response_path], [spectrum], [self._cds_frame], 
                                                              [ts_nside], [ts_scheme]))
