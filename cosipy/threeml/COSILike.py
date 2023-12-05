@@ -268,15 +268,7 @@ class COSILike(PluginPrototype):
        
         # Set model:
         self.set_model(self._model)
-       
-        # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
-        #if type(self._signal.contents) == u.quantity.Quantity:
-        #    signal = self._signal.contents.value
-        #elif type(self._signal.contents) == COO:
-        #    signal = self._signal.contents.todense() 
-        #else:
-        #    raise RuntimeError("Expectation is an unknown object")
-         
+        
         # Compute expectation including free background parameter:
         if self._fit_nuisance_params: 
             expectation = self._signal + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
