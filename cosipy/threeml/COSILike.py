@@ -10,6 +10,12 @@ from scoords import SpacecraftFrame, Attitude
 
 from mhealpy import HealpixMap
 
+from cosipy.response import PointSourceResponse
+from histpy import Histogram
+import h5py as h5
+from histpy import Axis, Axes
+import sys
+
 import astropy.units as u
 import astropy.coordinates as coords
 
@@ -28,7 +34,8 @@ logger = logging.getLogger(__name__)
 
 class COSILike(PluginPrototype):
     
-    def __init__(self, name, dr, data, bkg, sc_orientation, nuisance_param=None, coordsys=None, **kwargs):
+    def __init__(self, name, dr, data, bkg, sc_orientation, 
+            nuisance_param=None, coordsys=None, precomputed_psr_file=None, **kwargs):
         
         """
         COSI 3ML plugin
@@ -52,6 +59,8 @@ class COSILike(PluginPrototype):
             Coordinate system ('galactic' or 'spacecraftframe') to perform fit in, which should match coordinate system of data 
             and background. This only needs to be specified if the binned data and background do not have a coordinate system 
             attached to them
+        precomputed_psr_file: str
+            Full path to precomputed point source response in Galactic coordinates (optional). 
         """
         
         # create the hash for the nuisance parameters. We have none for now.
@@ -98,6 +107,30 @@ class COSILike(PluginPrototype):
         else:
             raise RuntimeError("Nuisance parameter must be astromodels.core.parameter.Parameter object")
         
+        # Option to use precomputed point source response.
+        # Note: this still needs to be implemented in a 
+        # consistent way for point srcs and extended srcs. 
+        # Here we will get the axes information. 
+        self.precomputed_psr_file = precomputed_psr_file
+        if self.precomputed_psr_file != None:
+            with h5.File(self.precomputed_psr_file) as f:
+
+                axes_group = f['hist/axes']
+                axes = []
+                for axis in axes_group.values():
+
+                    # Get class. Backwards compatible with version
+                    # with only Axis
+                    axis_cls = Axis
+
+                    if '__class__' in axis.attrs:
+                        class_module, class_name = axis.attrs['__class__']
+                        axis_cls = getattr(sys.modules[class_module], class_name)
+
+                    axes += [axis_cls._open(axis)]
+
+            self.psr_axes = Axes(axes)
+        
     def set_model(self, model):
         
         """
@@ -107,18 +140,58 @@ class COSILike(PluginPrototype):
         ----------
         model: astromodels.core.model.Model; any model supported by astromodels
         """
+    
+        # Get point sources and extended sources from model: 
+        point_sources = model.point_sources
+        extended_sources = model.extended_sources
         
-        # Check for limitations
-        if len(model.extended_sources) != 0 or len(model.particle_sources):
-            raise RuntimeError("Only point source models are supported")
+        # Source counter for models with multiple sources:
+        self.src_counter = 0
         
-        sources = model.point_sources
-        
-        if len(sources) != 1:
-            raise RuntimeError("Only one for now")
-        
-        # Get expectation
-        for name,source in sources.items():
+       # Get expectation for extended sources:
+        for name,source in extended_sources.items():
+
+            # Set spectrum:
+            # Note: the spectral parameters are updated internally by 3ML
+            # during the likelihood scan. 
+            spectrum = source.spectrum.main.shape
+    
+            # Get expectation using precomputed psr in Galactic coordinates:
+            total_expectation = Histogram(edges = self.psr_axes[2:])
+
+            with h5.File(self.precomputed_psr_file) as f:
+ 
+                # sum over sky pixels: 
+                for i in range(len(source.grid)):
+
+                    pix = source.grid[i]
+                    weight = source.skymap[pix]
+
+                    if weight == 0:
+                        continue
+
+                    psr = PointSourceResponse(self.psr_axes[1:], f['hist/contents'][pix+1], unit = f['hist'].attrs['unit'])
+                    pix_expectation = psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
+
+                    total_expectation += pix_expectation*(weight*4*np.pi/source.skymap.npix)
+
+            # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
+            if type(total_expectation.contents) == u.quantity.Quantity:
+                total_expectation = total_expectation.contents.value
+            elif type(total_expectation.contents) == COO:
+                total_expectation = total_expectation.contents.todense() 
+            else:
+                raise RuntimeError("Expectation is an unknown object")
+
+            # Add source to signal and update source counter:
+            if self.src_counter == 0:
+                self._signal = total_expectation
+            if self.src_counter != 0:
+                self._signal += total_expectation
+            self.src_counter += 1
+
+        # Get expectation for point sources:
+        for name,source in point_sources.items():
 
             if self._source is None:
                 self._source = copy.deepcopy(source) # to avoid same memory issue
@@ -159,8 +232,23 @@ class COSILike(PluginPrototype):
             # See also the Detector Response and Source Injector tutorials
             spectrum = source.spectrum.main.shape
                 
-            self._signal = self._psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
+            total_expectation = self._psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
+         
+            # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
+            if type(total_expectation.contents) == u.quantity.Quantity:
+                total_expectation = total_expectation.contents.value
+            elif type(total_expectation.contents) == COO:
+                total_expectation = total_expectation.contents.todense() 
+            else:
+                raise RuntimeError("Expectation is an unknown object")
             
+            # Add source to signal and update source counter:
+            if self.src_counter == 0:
+                self._signal = total_expectation
+            if self.src_counter != 0:
+                self._signal += total_expectation
+            self.src_counter += 1
+
         # Cache
         self._model = model
 
@@ -177,27 +265,34 @@ class COSILike(PluginPrototype):
         # Recompute the expectation if any parameter in the model changed
         if self._model is None:
             log.error("You need to set the model first")
-        
+       
+        # Set model:
         self.set_model(self._model)
+       
+        # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
+        #if type(self._signal.contents) == u.quantity.Quantity:
+        #    signal = self._signal.contents.value
+        #elif type(self._signal.contents) == COO:
+        #    signal = self._signal.contents.todense() 
+        #else:
+        #    raise RuntimeError("Expectation is an unknown object")
+         
+        # Compute expectation including free background parameter:
+        if self._fit_nuisance_params: 
+            expectation = self._signal + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
         
-        if type(self._signal.contents) == u.quantity.Quantity:
-            signal = self._signal.contents.value
-        elif type(self._signal.contents) == COO:
-            signal = self._signal.contents.todense()
-        else:
-            raise RuntimeError("Expectation is an unknown object")
-            
-        if self._fit_nuisance_params: # Compute expectation including free background parameter
-            expectation = signal + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
-        else: # Compute expectation without background parameter
-            expectation = signal + self._bkg.contents.todense()
+        # Compute expectation without background parameter:
+        else: 
+            expectation = self._signal + self._bkg.contents.todense()
         
-        data = self._data.contents # Into an array
+        # Convert data into an arrary:
+        data = self._data.contents
         
-        # Compute the log-likelihood
-        
+        # Compute the log-likelihood:
         log_like = np.nansum(data*np.log(expectation) - expectation)
         
+        # Need to mask zero-values pixels if obtaining infinite likelihood.
+        # Note: the mask function gives errors sometimes. This is a bug that needs to be fixed. 
         if log_like == -np.inf:
             logger.warning(f"There are bins in which the total expected counts = 0 but data != 0, making log-likelihood = -inf. "
                            f"Masking these bins.")

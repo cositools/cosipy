@@ -469,11 +469,9 @@ class UnBinnedData(DataIO):
         data = hdu[1].data
         for i in range(0,len(cols)):
             
-            #this_key = cols[i].name
-            #this_data = data[this_key]
-            #this_dict[this_key] = this_data
+            this_key = cols[i].name
+            this_dict[this_key] = data[this_key]
             
-            this_dict[cols[i].name] = data[this_key]
             # Clear unused memory:
             gc.collect()
 
