@@ -60,14 +60,15 @@ class CoordsysConversionMatrix(Histogram):
                 filtered_orientation = orientation.source_interval(init_time, end_time)
                 pixel_movement = filtered_orientation.get_target_in_sc_frame(target_name = f"pixel_{ipix}_{i_time}",
                                                                              target_coord = pixel_coord,
-                                                                             quiet = True)
+                                                                             quiet = True,
+                                                                             save = False)
 
                 time_diff = filtered_orientation.get_time_delta()
 
                 dwell_time_map = filtered_orientation.get_dwell_map(response = full_detector_response.filename,
                                                                     dts = time_diff,
                                                                     src_path = pixel_movement,
-                                                                    quiet = True)
+                                                                    save = False)
 
                 ccm_thispix[i_time] = dwell_time_map.data 
                 # (HealpixMap).data returns the numpy array without its unit. dwell_time_map.unit is u.s.
