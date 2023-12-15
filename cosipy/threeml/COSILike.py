@@ -2,7 +2,6 @@ from threeML import PluginPrototype
 from threeML.minimizer import minimization
 from threeML.config.config import threeML_config
 from threeML.exceptions.custom_exceptions import FitFailed
-from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
@@ -12,14 +11,13 @@ from scoords import SpacecraftFrame, Attitude
 
 from mhealpy import HealpixMap
 
-from cosipy.response import PointSourceResponse
+from cosipy.response import PointSourceResponse, DetectorResponse
 from histpy import Histogram
 import h5py as h5
 from histpy import Axis, Axes
 import sys
 
 import astropy.units as u
-from astropy.units import Quantity
 import astropy.coordinates as coords
 
 from sparse import COO
@@ -27,7 +25,6 @@ from sparse import COO
 import numpy as np
 
 from scipy.special import factorial
-from scipy import integrate
 
 import collections
 
@@ -114,29 +111,14 @@ class COSILike(PluginPrototype):
         # Option to use precomputed point source response.
         # Note: this still needs to be implemented in a 
         # consistent way for point srcs and extended srcs. 
-        # Here we will get the axes information. 
         self.precomputed_psr_file = precomputed_psr_file
-#        if self.precomputed_psr_file != None:
-#            with h5.File(self.precomputed_psr_file) as f:
-#
-#                axes_group = f['hist/axes']
-#                axes = []
-#                for axis in axes_group.values():
-#
-#                    # Get class. Backwards compatible with version
-#                    # with only Axis
-#                    axis_cls = Axis
-#
-#                    if '__class__' in axis.attrs:
-#                        class_module, class_name = axis.attrs['__class__']
-#                        axis_cls = getattr(sys.modules[class_module], class_name)
-#
-#                    axes += [axis_cls._open(axis)]
-#
-#            self.psr_axes = Axes(axes)
-        
-        print("...loading the pre-computed image response")
-        self.image_response = Histogram.open(self.precomputed_psr_file)
+        if self.precomputed_psr_file != None:
+
+            print("... loading the pre-computed image response ...")
+            self.image_response = DetectorResponse.open(self.precomputed_psr_file)
+            # in the near future, we will implement ExtendedSourceResponse class, which should be used here.
+            # probably, it is better to move this loading part outside of this class. Then, we don't have to load the response everytime we start the fitting.
+            print("--> done")
         
     def set_model(self, model):
         
@@ -161,44 +143,21 @@ class COSILike(PluginPrototype):
             # Set spectrum:
             # Note: the spectral parameters are updated internally by 3ML
             # during the likelihood scan. 
-            spectrum = source.spectrum.main.shape
 
-            # just for Gaussian
-            spectrum_unit = spectrum.F.unit / spectrum.sigma.unit
+            model_map = ModelMap(nside = self.image_response.axes['NuLambda'].nside, 
+                                energy_edges = self.image_response.axes['Ei'].edges,
+                                coordsys = 'galactic',
+                                label_image = 'NuLambda', # I think the label should be something like 'lb' to distiguish the photon direction in the local/galactic coordinates 
+                                label_energy = 'Ei')
 
-            eaxis = self.image_response.axes['Ei']
-
-            flux = Quantity([integrate.quad(spectrum, lo_lim/lo_lim.unit, hi_lim/hi_lim.unit)[0] * spectrum_unit * lo_lim.unit for lo_lim,hi_lim in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
-
-            modelmap = ModelMap(nside = self.image_response.axes['NuLambda'].nside, energy_edges = eaxis.edges)
-            modelmap.axes[0].label = 'NuLambda'
-           
-            npix = modelmap.axes[0].npix 
-            coords = modelmap.axes[0].pix2skycoord(np.arange(npix))
-            normalized_map = source.spatial_shape(coords.l.deg, coords.b.deg) / u.sr
-
-            modelmap[:] = np.tensordot(normalized_map, flux, axes = 0) 
+            model_map.set_values_from_extendedmodel(source)
 
             # Get expectation using precomputed psr in Galactic coordinates:
-            total_expectation = Histogram(edges = self.image_response.axes[2:])
-
-            total_expectation += np.tensordot(modelmap.contents, self.image_response.contents, axes = ([0,1], [0,1])) * 4 * np.pi / npix * u.sr
-
-#            with h5.File(self.precomputed_psr_file) as f:
-# 
-#                # sum over sky pixels: 
-#                for i in range(len(source.grid)):
-#
-#                    pix = source.grid[i]
-#                    weight = source.skymap[pix]
-#
-#                    if weight == 0:
-#                        continue
-#
-#                    psr = PointSourceResponse(self.psr_axes[1:], f['hist/contents'][pix+1], unit = f['hist'].attrs['unit'])
-#                    pix_expectation = psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
-#
-#                    total_expectation += pix_expectation*(weight*4*np.pi/source.skymap.npix)
+            total_expectation = Histogram(edges = self.image_response.axes[2:],
+                                          contents = np.tensordot(model_map.contents, self.image_response.contents, axes = ([0,1], [0,1])) * model_map.axes['NuLambda'].pixarea())
+            # ['NuLambda', 'Ei'] x ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'] => 'Em', 'Phi', 'PsiChi']
+            # this part should be modified with the future ExtendedSourceResponse class like
+            # total_expectation = self.image_response.get_expectation(model_map)
 
             # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
             if type(total_expectation.contents) == u.quantity.Quantity:
