@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v3.11
       - name: Install dependencies
         run: |
           pip install . sphinx sphinx_rtd_theme myst_parser nbsphinx
