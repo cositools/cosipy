@@ -116,8 +116,8 @@ class COSILike(PluginPrototype):
 
             print("... loading the pre-computed image response ...")
             self.image_response = DetectorResponse.open(self.precomputed_psr_file)
-            # in the near future, we will implement ExtendedSourceResponse class, which should be used here.
-            # probably, it is better to move this loading part outside of this class. Then, we don't have to load the response everytime we start the fitting.
+            # in the near future, we will implement ExtendedSourceResponse class, which should be used here (HY).
+            # probably, it is better to move this loading part outside of this class. Then, we don't have to load the response everytime we start the fitting (HY).
             print("--> done")
         
     def set_model(self, model):
@@ -158,6 +158,8 @@ class COSILike(PluginPrototype):
             # ['NuLambda', 'Ei'] x ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'] => 'Em', 'Phi', 'PsiChi']
             # this part should be modified with the future ExtendedSourceResponse class like
             # total_expectation = self.image_response.get_expectation(model_map)
+            # or 
+            # total_expectation = self.image_response.get_expectation_from_astromodel(source) (HY)
 
             # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
             if type(total_expectation.contents) == u.quantity.Quantity:
@@ -282,7 +284,7 @@ class COSILike(PluginPrototype):
 
         expectation += 1e-12 
         # to avoid infinite likelihood
-        # This 1e-12 should be defined as a parameter in the near future
+        # This 1e-12 should be defined as a parameter in the near future (HY)
         
         # Convert data into an arrary:
         data = self._data.contents
