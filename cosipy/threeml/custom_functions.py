@@ -1,12 +1,15 @@
 from astromodels.functions.function import Function1D, FunctionMeta, ModelAssertionViolation
 import astromodels.functions.numba_functions as nb_func
-from threeML import Band
+from threeML import Band, DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
 import astropy.units as astropy_units
+from astropy.units import Quantity
 from past.utils import old_div
 from scipy.special import gammainc, expi
 from scipy import integrate
 import numpy as np
 import math
+
+from histpy import Histogram, Axes, Axis
 
 class Band_Eflux(Function1D, metaclass=FunctionMeta):
     r"""
@@ -89,3 +92,54 @@ class Band_Eflux(Function1D, metaclass=FunctionMeta):
         A_ = K_ / integrate.quad(spectrum_, a_, b_)[0]
 
         return nb_func.band_eval(x_, A_, alpha_, beta_, E0_, 1.0) * unit_
+
+def get_integrated_spectral_model(spectrum, eaxis):
+    """
+    Get the photon fluxes integrated over given energy bins with an input astropy spectral model
+        
+    Parameters
+    ----------
+    spectrum: astromodels (one-dimensional function)
+    eaxis: histpy.Axis
+    
+    Returns
+    -------
+    flux: histpy.Histogram 
+    """
+
+    spectrum_unit = None
+
+    for item in spectrum.parameters:
+        if getattr(spectrum, item).is_normalization == True:
+            spectrum_unit = getattr(spectrum, item).unit
+            break
+            
+    if spectrum_unit == None:
+        if isinstance(spectrum, Constant):
+            spectrum_unit = spectrum.k.unit
+        elif isinstance(spectrum, Line) or isinstance(spectrum, Quadratic) or isinstance(spectrum, Cubic) or isinstance(spectrum, Quartic):
+            spectrum_unit = spectrum.a.unit
+        elif isinstance(spectrum, StepFunction) or isinstance(spectrum, StepFunctionUpper) or isinstance(spectrum, Cosine_Prior) or isinstance(spectrum, Uniform_prior) or isinstance(spectrum, DiracDelta): 
+            spectrum_unit = spectrum.value.unit
+        elif isinstance(spectrum, PhAbs):
+            spectrum_unit = u.dimensionless_unscaled
+        elif isinstance(spectrum, Gaussian):
+            spectrum_unit = spectrum.F.unit / spectrum.sigma.unit 
+        else:
+            try:
+                spectrum_unit = spectrum.K.unit
+            except:
+                raise RuntimeError("Spectrum not yet supported because units of spectrum are unknown.")
+                
+    if isinstance(spectrum, DiracDelta):
+        flux = Quantity([spectrum.value.value * spectrum_unit * lo_lim.unit if spectrum.zero_point.value >= lo_lim/lo_lim.unit and spectrum.zero_point.value <= hi_lim/hi_lim.unit else 0 * spectrum_unit * lo_lim.unit
+                         for lo_lim,hi_lim
+                         in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
+    else:
+        flux = Quantity([integrate.quad(spectrum, lo_lim/lo_lim.unit, hi_lim/hi_lim.unit)[0] * spectrum_unit * lo_lim.unit
+                         for lo_lim,hi_lim
+                         in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
+    
+    flux = Histogram(eaxis, contents = flux)
+
+    return flux

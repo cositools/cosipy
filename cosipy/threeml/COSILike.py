@@ -5,12 +5,13 @@ from threeML.exceptions.custom_exceptions import FitFailed
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
+from cosipy.image_deconvolution import ModelMap
 
 from scoords import SpacecraftFrame, Attitude
 
 from mhealpy import HealpixMap
 
-from cosipy.response import PointSourceResponse
+from cosipy.response import PointSourceResponse, DetectorResponse
 from histpy import Histogram
 import h5py as h5
 from histpy import Axis, Axes
@@ -110,26 +111,14 @@ class COSILike(PluginPrototype):
         # Option to use precomputed point source response.
         # Note: this still needs to be implemented in a 
         # consistent way for point srcs and extended srcs. 
-        # Here we will get the axes information. 
         self.precomputed_psr_file = precomputed_psr_file
         if self.precomputed_psr_file != None:
-            with h5.File(self.precomputed_psr_file) as f:
 
-                axes_group = f['hist/axes']
-                axes = []
-                for axis in axes_group.values():
-
-                    # Get class. Backwards compatible with version
-                    # with only Axis
-                    axis_cls = Axis
-
-                    if '__class__' in axis.attrs:
-                        class_module, class_name = axis.attrs['__class__']
-                        axis_cls = getattr(sys.modules[class_module], class_name)
-
-                    axes += [axis_cls._open(axis)]
-
-            self.psr_axes = Axes(axes)
+            print("... loading the pre-computed image response ...")
+            self.image_response = DetectorResponse.open(self.precomputed_psr_file)
+            # in the near future, we will implement ExtendedSourceResponse class, which should be used here (HY).
+            # probably, it is better to move this loading part outside of this class. Then, we don't have to load the response everytime we start the fitting (HY).
+            print("--> done")
         
     def set_model(self, model):
         
@@ -154,26 +143,23 @@ class COSILike(PluginPrototype):
             # Set spectrum:
             # Note: the spectral parameters are updated internally by 3ML
             # during the likelihood scan. 
-            spectrum = source.spectrum.main.shape
-    
+
+            model_map = ModelMap(nside = self.image_response.axes['NuLambda'].nside, 
+                                energy_edges = self.image_response.axes['Ei'].edges,
+                                coordsys = 'galactic',
+                                label_image = 'NuLambda', # I think the label should be something like 'lb' to distiguish the photon direction in the local/galactic coordinates 
+                                label_energy = 'Ei')
+
+            model_map.set_values_from_extendedmodel(source)
+
             # Get expectation using precomputed psr in Galactic coordinates:
-            total_expectation = Histogram(edges = self.psr_axes[2:])
-
-            with h5.File(self.precomputed_psr_file) as f:
- 
-                # sum over sky pixels: 
-                for i in range(len(source.grid)):
-
-                    pix = source.grid[i]
-                    weight = source.skymap[pix]
-
-                    if weight == 0:
-                        continue
-
-                    psr = PointSourceResponse(self.psr_axes[1:], f['hist/contents'][pix+1], unit = f['hist'].attrs['unit'])
-                    pix_expectation = psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
-
-                    total_expectation += pix_expectation*(weight*4*np.pi/source.skymap.npix)
+            total_expectation = Histogram(edges = self.image_response.axes[2:],
+                                          contents = np.tensordot(model_map.contents, self.image_response.contents, axes = ([0,1], [0,1])) * model_map.axes['NuLambda'].pixarea())
+            # ['NuLambda', 'Ei'] x ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'] => 'Em', 'Phi', 'PsiChi']
+            # this part should be modified with the future ExtendedSourceResponse class like
+            # total_expectation = self.image_response.get_expectation(model_map)
+            # or 
+            # total_expectation = self.image_response.get_expectation_from_astromodel(source) (HY)
 
             # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
             if type(total_expectation.contents) == u.quantity.Quantity:
@@ -190,49 +176,62 @@ class COSILike(PluginPrototype):
                 self._signal += total_expectation
             self.src_counter += 1
 
-        # Get expectation for point sources:
-        for name,source in point_sources.items():
+        # Initialization
+        # probably it is better that this part be outside of COSILike (HY).
+        if self._psr is None or len(point_sources) != len(self._psr):
 
-            if self._source is None:
-                self._source = copy.deepcopy(source) # to avoid same memory issue
-                     
-            # Compute point source response for source position
-            # See also the Detector Response and Source Injector tutorials
-            if self._psr is None:
-            
-                coord = self._source.position.sky_coord
-                
-                if self._coordsys == 'spacecraftframe':
-                    dwell_time_map = self._get_dwell_time_map(coord)
-                    self._psr = self._dr.get_point_source_response(exposure_map=dwell_time_map)
-                elif self._coordsys == 'galactic':
-                    scatt_map = self._get_scatt_map()
-                    self._psr = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
-                else:
-                    raise RuntimeError("Unknown coordinate system")
-                
-            elif (source.position.sky_coord != self._source.position.sky_coord):
-                
+            print("... Calculating point source responses ...")
+
+            self._psr = {}
+            self._source_location = {} # Shoule the poition information be in the point source response? (HY)
+
+            for name, source in point_sources.items():
                 coord = source.position.sky_coord
                 
+                self._source_location[name] = copy.deepcopy(coord) # to avoid same memory issue
+
                 if self._coordsys == 'spacecraftframe':
                     dwell_time_map = self._get_dwell_time_map(coord)
-                    self._psr = self._dr.get_point_source_response(exposure_map=dwell_time_map)
+                    self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
                 elif self._coordsys == 'galactic':
                     scatt_map = self._get_scatt_map()
-                    self._psr = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
+                    self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
                 else:
                     raise RuntimeError("Unknown coordinate system")
+
+                print(f"--> done (source name : {name})")
+
+            print(f"--> all done")
+        
+        # check if the source location is updated or not
+        for name, source in point_sources.items():
+
+            if source.position.sky_coord != self._source_location[name]:
+                print(f"... Re-calculating the point source response of {name} ...")
+                coord = source.position.sky_coord
+
+                self._source_location[name] = copy.deepcopy(coord) # to avoid same memory issue
                 
-            # Caching source to self._source after position judgment
-            if self._source is not None:
-                self._source = copy.deepcopy(source)
+                if self._coordsys == 'spacecraftframe':
+                    dwell_time_map = self._get_dwell_time_map(coord)
+                    self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
+                elif self._coordsys == 'galactic':
+                    scatt_map = self._get_scatt_map()
+                    self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
+                else:
+                    raise RuntimeError("Unknown coordinate system")
+
+                print(f"--> done (source name : {name})")
+
+        # Get expectation for point sources:
+        for name,source in point_sources.items():
 
             # Convolve with spectrum
             # See also the Detector Response and Source Injector tutorials
             spectrum = source.spectrum.main.shape
                 
-            total_expectation = self._psr.get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
+            total_expectation = self._psr[name].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
+            # should it be like self._psr[name].get_expectation(spectrum) (without 'project')? (HY)
          
             # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
             if type(total_expectation.contents) == u.quantity.Quantity:
@@ -271,11 +270,21 @@ class COSILike(PluginPrototype):
         
         # Compute expectation including free background parameter:
         if self._fit_nuisance_params: 
-            expectation = self._signal + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
+            if type(self._bkg.contents) == COO:
+                expectation = self._signal + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents.todense()
+            else:
+                expectation = self._signal + self._nuisance_parameters[self._bkg_par.name].value * self._bkg.contents
         
         # Compute expectation without background parameter:
         else: 
-            expectation = self._signal + self._bkg.contents.todense()
+            if type(self._bkg.contents) == COO:
+                expectation = self._signal + self._bkg.contents.todense()
+            else:
+                expectation = self._signal + self._bkg.contents
+
+        expectation += 1e-12 
+        # to avoid infinite likelihood
+        # This 1e-12 should be defined as a parameter in the near future (HY)
         
         # Convert data into an arrary:
         data = self._data.contents
@@ -285,6 +294,7 @@ class COSILike(PluginPrototype):
         
         # Need to mask zero-values pixels if obtaining infinite likelihood.
         # Note: the mask function gives errors sometimes. This is a bug that needs to be fixed. 
+        # This part can be removed because the minimum value in expectation is now 1e-12 (HY)
         if log_like == -np.inf:
             logger.warning(f"There are bins in which the total expected counts = 0 but data != 0, making log-likelihood = -inf. "
                            f"Masking these bins.")
