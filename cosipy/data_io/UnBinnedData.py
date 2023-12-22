@@ -518,7 +518,7 @@ class UnBinnedData(DataIO):
 
         # Get time cut index:
         time_array = self.cosi_dataset["TimeTags"]
-        time_cut_index = (time_array >= self.tmin) & (time_array <= self.tmax)
+        time_cut_index = (time_array >= self.tmin) & (time_array < self.tmax)
     
         # Apply cuts to dictionary:
         for key in self.cosi_dataset:

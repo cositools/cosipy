@@ -96,7 +96,8 @@ class COSILike(PluginPrototype):
         self._source = None
         self._psr = None
         self._signal = None
-        
+        self._expected_counts = None 
+
         # Set to fit nuisance parameter if given by user
         if nuisance_param == None:
             self.set_inner_minimization(False)
@@ -138,6 +139,12 @@ class COSILike(PluginPrototype):
         self.src_counter = 0
         
        # Get expectation for extended sources:
+        
+        # Save expected counts for each source,
+        # in order to enable easy plotting after likelihood scan:
+        if self._expected_counts == None:
+            self._expected_counts = {}
+
         for name,source in extended_sources.items():
 
             # Set spectrum:
@@ -161,6 +168,9 @@ class COSILike(PluginPrototype):
             # or 
             # total_expectation = self.image_response.get_expectation_from_astromodel(source) (HY)
 
+            # Save expected counts for source:
+            self._expected_counts[name] = copy.deepcopy(total_expectation)
+
             # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
             if type(total_expectation.contents) == u.quantity.Quantity:
                 total_expectation = total_expectation.contents.value
@@ -178,30 +188,32 @@ class COSILike(PluginPrototype):
 
         # Initialization
         # probably it is better that this part be outside of COSILike (HY).
-        if self._psr is None or len(point_sources) != len(self._psr):
+        if len(point_sources) != 0:
+        
+            if self._psr is None or len(point_sources) != len(self._psr):
 
-            print("... Calculating point source responses ...")
+                print("... Calculating point source responses ...")
 
-            self._psr = {}
-            self._source_location = {} # Shoule the poition information be in the point source response? (HY)
+                self._psr = {}
+                self._source_location = {} # Shoule the poition information be in the point source response? (HY)
 
-            for name, source in point_sources.items():
-                coord = source.position.sky_coord
+                for name, source in point_sources.items():
+                    coord = source.position.sky_coord
                 
-                self._source_location[name] = copy.deepcopy(coord) # to avoid same memory issue
+                    self._source_location[name] = copy.deepcopy(coord) # to avoid same memory issue
 
-                if self._coordsys == 'spacecraftframe':
-                    dwell_time_map = self._get_dwell_time_map(coord)
-                    self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
-                elif self._coordsys == 'galactic':
-                    scatt_map = self._get_scatt_map()
-                    self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
-                else:
-                    raise RuntimeError("Unknown coordinate system")
+                    if self._coordsys == 'spacecraftframe':
+                        dwell_time_map = self._get_dwell_time_map(coord)
+                        self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
+                    elif self._coordsys == 'galactic':
+                        scatt_map = self._get_scatt_map()
+                        self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
+                    else:
+                        raise RuntimeError("Unknown coordinate system")
 
-                print(f"--> done (source name : {name})")
+                    print(f"--> done (source name : {name})")
 
-            print(f"--> all done")
+                print(f"--> all done")
         
         # check if the source location is updated or not
         for name, source in point_sources.items():
@@ -240,7 +252,11 @@ class COSILike(PluginPrototype):
                 total_expectation = total_expectation.contents.todense() 
             else:
                 raise RuntimeError("Expectation is an unknown object")
-            
+           
+
+            # Save expected counts for source:
+            self._expected_counts[name] = copy.deepcopy(total_expectation)
+
             # Add source to signal and update source counter:
             if self.src_counter == 0:
                 self._signal = total_expectation
