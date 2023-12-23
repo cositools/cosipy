@@ -12,9 +12,7 @@
 #
 # import os
 # import sys
-# sys.path.insert(0, os.path.abspath('.'))
-
-import cosipy
+# sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -23,7 +21,8 @@ copyright = '2022, COSI Team'
 author = 'COSI Team'
 
 # The full version, including alpha/beta/rc tags
-release = cosipy.__version__
+with open('../cosipy/_version.py') as f:
+    release = f.readline()
 
 # -- General configuration ---------------------------------------------------
 
