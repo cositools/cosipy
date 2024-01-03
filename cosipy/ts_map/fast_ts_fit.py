@@ -221,21 +221,32 @@ class FastTSMap():
                     orientation, response_path, spectrum, cds_frame,
                     ts_nside, ts_scheme):
         
+        start_fast_ts_fit = time.time()
+        
         # get the pix number of the ts map
         data_array = np.zeros(hp.nside2npix(ts_nside))
         ts_temp = HealpixMap(data = data_array, scheme = ts_scheme, coordsys = "galactic")
         pix = ts_temp.ang2pix(hypothesis_coord)
         
         # get the expected counts in the flattened cds array
+        start_ei_cds_array = time.time()
         ei_cds_array = FastTSMap.get_ei_cds_array(hypothesis_coord = hypothesis_coord, cds_frame = cds_frame,
                                                   energy_channel = energy_channel, orientation = orientation, 
                                                   response_path = response_path, spectrum = spectrum)
+        end_ei_cds_array = time.time()
+        time_ei_cds_array = end_ei_cds_array - start_ei_cds_array
         
         # start the fit
+        start_fit = time.time()
         fit = fnf(max_iter=1000)
         result = fit.solve(data_cds_array, bkg_model_cds_array, ei_cds_array)
+        end_fit = time.time()
+        time_fit = end_fit - start_fit
+
+        end_fast_ts_fit = time.time()
+        time_fast_ts_fit = end_fast_ts_fit - start_fast_ts_fit
         
-        return [pix, result[0], result[1], result[2], result[3]]
+        return [pix, result[0], result[1], result[2], result[3], result[4], time_ei_cds_array, time_fit, time_fast_ts_fit]
 
         
     def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None):
