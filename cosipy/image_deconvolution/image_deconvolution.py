@@ -1,17 +1,11 @@
-import astropy.units as u
-import numpy as np
 import warnings
+import astropy.units as u
 
-from histpy import Histogram, Axes
-from mhealpy import HealpixMap
-
-from astropy.coordinates import SkyCoord
-from scoords import SpacecraftFrame, Attitude
-from cosipy.response import FullDetectorResponse
 from cosipy.config import Configurator
 
 from .modelmap import ModelMap
-from .RichardsonLucy import RichardsonLucy 
+# import image deconvolution algorithms
+from .RichardsonLucy import RichardsonLucy
 
 class ImageDeconvolution:
     """

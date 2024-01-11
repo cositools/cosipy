@@ -1,8 +1,6 @@
 import copy
 import numpy as np
-import astropy.units as u
 from tqdm.autonotebook import tqdm
-import gc
 
 from histpy import Histogram
 

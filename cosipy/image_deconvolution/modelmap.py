@@ -1,6 +1,6 @@
+import warnings
 import astropy.units as u
 import numpy as np
-import warnings
 
 from histpy import Histogram, Axes, Axis, HealpixAxis
 

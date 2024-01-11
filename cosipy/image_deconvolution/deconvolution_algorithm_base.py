@@ -1,8 +1,8 @@
 import gc
-import numpy as np
-import astropy.units as u
 from tqdm.autonotebook import tqdm
+import numpy as np
 import healpy as hp
+import astropy.units as u
 from astropy.coordinates import angular_separation
 
 from histpy import Histogram, Axes, Axis

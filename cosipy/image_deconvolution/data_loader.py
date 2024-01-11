@@ -1,20 +1,13 @@
+import warnings
 import numpy as np
 from tqdm.autonotebook import tqdm
 import astropy.units as u
-from astropy.time import Time
-from astropy.coordinates import SkyCoord
-import healpy as hp
 
-from histpy import Histogram, Axes, HealpixAxis
-from mhealpy import HealpixMap
+from histpy import Histogram, Axes
 
 from cosipy.response import FullDetectorResponse
-from scoords import SpacecraftFrame, Attitude
-from cosipy.spacecraftfile import SpacecraftFile
 from cosipy.data_io import BinnedData
 from .coordsys_conversion_matrix import CoordsysConversionMatrix
-
-import warnings
 
 class DataLoader(object):
     """

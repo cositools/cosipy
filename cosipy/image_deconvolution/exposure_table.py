@@ -1,12 +1,10 @@
-from histpy import Histogram, HealpixAxis, Axis, Axes
-
+import warnings
+import pandas as pd
+from tqdm.autonotebook import tqdm
 import numpy as np
 import healpy as hp
-import pandas as pd
 from astropy.io import fits
 import astropy.units as u
-from tqdm.autonotebook import tqdm
-import warnings
 
 from cosipy.spacecraftfile import SpacecraftAttitudeMap
 

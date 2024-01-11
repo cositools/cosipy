@@ -1,14 +1,13 @@
-import astropy.units as u
-from astropy.time import Time
-from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
 import numpy as np
 import healpy as hp
 from tqdm.autonotebook import tqdm
+import sparse
+import astropy.units as u
+from astropy.time import Time
+from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
 
 from scoords import Attitude, SpacecraftFrame
 from histpy import Histogram, Axes, Axis, HealpixAxis
-
-import sparse
 
 class CoordsysConversionMatrix(Histogram):
     """
