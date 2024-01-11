@@ -10,13 +10,20 @@ class ModelMap(Histogram):
     """
     Photon flux maps in given energy bands. 2-dimensional histogram.
 
-    Args:
-        nside (int): Healpix NSIDE parameter.
-        energy_edges (array): Bin edges for energies. We recommend to use a Quantity array with the unit of keV.
-        scheme (str, optional): Healpix scheme. Either 'ring', 'nested'. The default is 'ring'.
-        coordsys (BaseFrameRepresentation or str, optional): Instrinsic coordinates of the map. The default is 'galactic'.
-        label_image (str, optional): The label name of the healpix axis. The default is 'lb'.
-        label_energy (str, optional): The label name of the energy axis. The default is 'Ei'.
+    Attributes
+    ----------
+    nside : int
+        Healpix NSIDE parameter.
+    energy_edges : :py:class:`np.array`
+        Bin edges for energies. We recommend to use a Quantity array with the unit of keV.
+    scheme : str, default 'ring'
+        Healpix scheme. Either 'ring', 'nested'.
+    coordsys : str or :py:class:`astropy.coordinates.BaseRepresentation`, default is 'galactic'
+        Instrinsic coordinates of the map. The default is 'galactic'.
+    label_image : str, default 'lb'
+        The label name of the healpix axis.
+    label_energy : str, default 'Ei'
+        The label name of the energy axis. The default is 'Ei'.
     """
 
     def __init__(self,
@@ -48,13 +55,17 @@ class ModelMap(Histogram):
         """
         Set the values of this model map accordinng to the specified algorithm. 
 
-        Args:
-            algorithm_name (str): Algorithm name to fill the values.  
-            parameter (dict): Parameters for the specified algorithm.
+        Parameters
+        ----------
+        algorithm_name : str
+            Algorithm name to fill the values.  
+        parameter : py:class:`cosipy.config.Configurator`
+            Parameters for the specified algorithm.
 
-        Notes:
-            Currently algorithm_name can be only 'flat'. All of the pixel values in each energy bins will set to the given value.
-            parameter should be {'values': [ flux value at 1st energy bin (without unit), flux value at 2nd energy bin, ...]}
+        Notes
+        -----
+        Currently algorithm_name can be only 'flat'. All of the pixel values in each energy bins will set to the given value.
+        parameter should be {'values': [ flux value at 1st energy bin (without unit), flux value at 2nd energy bin, ...]}.
         """
 
         if algorithm_name == "flat":
@@ -67,8 +78,10 @@ class ModelMap(Histogram):
         """
         Set the values of this model map accordinng to the given astromodels.ExtendedSource.
 
-        Args:
-            extendedmodel (astromodels.ExtendedSource): the extended source model.
+        Parameters
+        ----------
+        extendedmodel : :py:class:`astromodels.ExtendedSource`
+            Extended source model
         """
 
         integrated_flux = get_integrated_spectral_model(spectrum = extendedmodel.spectrum.main.shape,

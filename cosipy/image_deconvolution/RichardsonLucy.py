@@ -52,8 +52,9 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
     def Estep(self):
         """
-        Notes:
-            Expect count histogram is calculated in the post processing.
+        Notes
+        -----
+        Expect count histogram is calculated in the post processing.
         """
         print("... skip E-step ...")
 
@@ -61,10 +62,11 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         M-step in RL algorithm.
 
-        Notes:
-            Background normalization is also optimized based on a generalized RL algirithm.
-            Currenly we use a signle normalization parameter. 
-            In the future, the normalization will be optimized for each background group defined in some file.
+        Notes
+        -----
+        Background normalization is also optimized based on a generalized RL algirithm.
+        Currenly we use a signle normalization parameter. 
+        In the future, the normalization will be optimized for each background group defined in some file.
         """
         diff = self.data.event_dense / self.expectation - 1
 
@@ -102,8 +104,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         Here three processes will be performed.
         - response weighting filter: the delta map is renormalized as pixels with large exposure times will have more feedback.
         - gaussian smoothing filter: the delta map is blurred with a Gaussian function.
-        - acceleration of RL algirithm: the normalization of delta map is increased 
-                                        as long as the updated image has no non-negative components.
+        - acceleration of RL algirithm: the normalization of delta map is increased as long as the updated image has no non-negative components.
         """
 
         if self.do_response_weighting:
@@ -125,8 +126,9 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         If i_iteration is smaller than iteration_max, the iterative process will continue.
 
-        Returns:
-            bool
+        Returns
+        -------
+        bool
         """
         if i_iteration < self.iteration_max:
             return False
@@ -174,8 +176,10 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         Calculate the acceleration parameter in RL algorithm.
 
-        Returns:
-            float: acceleration parameter
+        Returns
+        -------
+        float
+            Acceleration parameter
         """
         alpha = -1.0 / np.min( delta / model_map ) * (1 - almost_zero)
         alpha = min(alpha, self.alpha_max)

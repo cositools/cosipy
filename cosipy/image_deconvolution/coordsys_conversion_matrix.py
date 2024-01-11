@@ -27,16 +27,24 @@ class CoordsysConversionMatrix(Histogram):
     def time_binning_ccm(cls, full_detector_response, orientation, time_intervals, nside_model = None, is_nest_model = False):
         """
         Calculate a ccm from a given orientation.
-
-        Args:
-            full_detector_response (cosipy.response.FullDetectorResponse): response
-            orientation (cosipy.spacecraftfile.SpacecraftFile): orientation
-            time_intervals (np.array): the same format of binned_data.axes['Time'].edges
-            nside_model (int, optional): If it is None, it will be the same as the NSIDE in the response.
-            is_nest_model (bool, optional): If scheme of the model map is nested, it should be False while it is rare.
+        
+        Parameters
+        ----------
+        full_detector_response : :py:class:`cosipy.response.FullDetectorResponse`
+            Response
+        orientation : :py:class:`cosipy.spacecraftfile.SpacecraftFile`
+            Orientation
+        time_intervals : :py:class:`np.array`
+            The same format of binned_data.axes['Time'].edges
+        nside_model : int or None, default None
+            If it is None, it will be the same as the NSIDE in the response.
+        is_nest_model : bool, default False
+            If scheme of the model map is nested, it should be False while it is rare.
 
         Returns
-            CoordsysConversionMatrix: its axes are [ "lb", "Time", "NuLambda" ].
+        -------
+        :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix`
+            Its axes are [ "lb", "Time", "NuLambda" ].
         """
 
         if nside_model is None:
@@ -91,20 +99,26 @@ class CoordsysConversionMatrix(Histogram):
         """
         Calculate a ccm from a given exposure_table.
 
-        Args:
-            full_detector_response (cosipy.response.FullDetectorResponse): response
-            exposure_table (cosipy.image_deconvolution.SpacecraftAttitudeExposureTable): scatt exposure table
-            nside_model (int, optional): If it is None, it will be the same as the NSIDE in the response.
-            use_averaged_pointing (bool, optional): 
-                If it is True, first the averaged Z- and X-pointings are calculated.
-                Then the dwell time map is calculated once for ach model pixel and each scatt_binning_index.
-                If it is False, the dwell time map is calculated for each attitude in zpointing and xpointing in the exposure table.
-                Then the calculated dwell time maps are summed up. 
-                In the former case, the computation is fast but may lose the angular resolution. 
-                In the latter case, the conversion matrix is more accurate but it takes a long time to calculate it.
+        Parameters
+        ----------
+        full_detector_response : :py:class:`cosipy.response.FullDetectorResponse`
+            Response
+        exposure_table : :py:class:`cosipy.image_deconvolution.SpacecraftAttitudeExposureTable`
+            Scatt exposure table
+        nside_model : int or None, default None
+            If it is None, it will be the same as the NSIDE in the response.
+        use_averaged_pointing : bool, default False
+            If it is True, first the averaged Z- and X-pointings are calculated.
+            Then the dwell time map is calculated once for ach model pixel and each scatt_binning_index.
+            If it is False, the dwell time map is calculated for each attitude in zpointing and xpointing in the exposure table.
+            Then the calculated dwell time maps are summed up. 
+            In the former case, the computation is fast but may lose the angular resolution. 
+            In the latter case, the conversion matrix is more accurate but it takes a long time to calculate it.
 
         Returns
-            CoordsysConversionMatrix: its axes are [ "lb", "ScAtt", "NuLambda" ].
+        -------
+        :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix'
+            Its axes are [ "lb", "ScAtt", "NuLambda" ].
         """
 
         if nside_model is None:
@@ -186,12 +200,17 @@ class CoordsysConversionMatrix(Histogram):
         """
         Open a ccm from a file.
 
-        Args:
-            filename (str): Path to file
-            name (str): Name of group where the histogram was saved.
+        Parameters
+        ----------
+        filename : str
+            Path to file.
+        name : str, default 'hist'
+            Name of group where the histogram was saved.
 
         Returns
-            CoordsysConversionMatrix: its axes are [ "lb", "Time" or "ScAtt", "NuLambda" ].
+        -------
+        :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix'
+            Its axes are [ "lb", "Time" or "ScAtt", "NuLambda" ].
         """
 
         new = super().open(filename, name)

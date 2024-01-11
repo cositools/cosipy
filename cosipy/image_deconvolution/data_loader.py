@@ -34,15 +34,23 @@ class DataLoader(object):
         """
         Load data
 
-        Args:
-            event_binned_data (histpy.Histogram): event histogram
-            bkg_binned_data (histpy.Histogram): background model
-            rsp (histpy.Histogram or cosipy.response.FullDetectorResponse): response
-            coordsys_conv_matrix (cosipy.image_deconvolution.CoordsysConversionMatrix): coordsys conversion matrix 
-            is_miniDC2_format (bool, optional): whether the file format is for mini-DC2. should be removed in the future.
+        Parameters
+        ----------
+        event_binned_data : :py:class:`histpy.Histogram`
+            Event histogram
+        bkg_binned_data : :py:class:`histpy.Histogram`
+            Background model
+        rsp : :py:class:`histpy.Histogram` or :py:class:`cosipy.response.FullDetectorResponse`
+            Response
+        coordsys_conv_matrix : :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix`
+            Coordsys conversion matrix 
+        is_miniDC2_format : bool, default False
+            Whether the file format is for mini-DC2. It will be removed in the future.
 
-        Returns:
-            DataLoader: DataLoader instance containing the input data set
+        Returns
+        -------
+        :py:class:`cosipy.image_deconvolution.DataLoader`
+            DataLoader instance containing the input data set
         """
 
         new = cls()
@@ -67,17 +75,27 @@ class DataLoader(object):
         """
         Load data from file pathes
 
-        Args:
-            event_hdf5_filepath (str): file path of HDF5 file for event histogram.
-            event_yaml_filepath (str): file path of yaml file to read the HDF5 file.
-            bkg_hdf5_filepath (str): file path of HDF5 file for background model.
-            bkg_yaml_filepath (str): file path of yaml file to read the HDF5 file.
-            rsp_filepath (str): file path of the response matrix.
-            ccm_filepath (str): file path of the coordsys conversion matrix.
-            is_miniDC2_format (bool, optional): whether the file format is for mini-DC2. should be removed in the future.
+        Parameters
+        ----------
+        event_hdf5_filepath : str or None, default None
+            File path of HDF5 file for event histogram.
+        event_yaml_filepath : str or None, default None
+            File path of yaml file to read the HDF5 file.
+        bkg_hdf5_filepath : str or None, default None
+            File path of HDF5 file for background model.
+        bkg_yaml_filepath : str or None, default None
+            File path of yaml file to read the HDF5 file.
+        rsp_filepath : str or None, default None
+            File path of the response matrix.
+        ccm_filepath : str or None, default None
+            File path of the coordsys conversion matrix.
+        is_miniDC2_format : bool, default False
+            Whether the file format is for mini-DC2. should be removed in the future.
 
-        Returns:
-            DataLoader: DataLoader instance containing the input data set
+        Returns
+        -------
+        :py:class:`cosipy.image_deconvolution.DataLoader`
+            DataLoader instance containing the input data set
         """
 
         new = cls()
@@ -98,9 +116,12 @@ class DataLoader(object):
         """
         Load event data from file pathes
 
-        Args:
-            hdf5_filepath (str): file path of HDF5 file for event histogram.
-            yaml_filepath (str): file path of yaml file to read the HDF5 file.
+        Parameters
+        ----------
+        hdf5_filepath : str
+            File path of HDF5 file for event histogram.
+        yaml_filepath : str
+            File path of yaml file to read the HDF5 file.
         """
 
         self._event_hdf5_filepath = hdf5_filepath
@@ -119,12 +140,12 @@ class DataLoader(object):
         """
         Load background model from file pathes
 
-        Args:
-            hdf5_filepath (str): file path of HDF5 file for background model.
-            yaml_filepath (str): file path of yaml file to read the HDF5 file.
-
-        Returns:
-            DataLoader: DataLoader instance containing the input data set
+        Parameters
+        ----------
+        hdf5_filepath : str
+            File path of HDF5 file for background model.
+        yaml_filepath : str
+            File path of yaml file to read the HDF5 file.
         """
 
         self._bkg_hdf5_filepath = hdf5_filepath
@@ -143,8 +164,10 @@ class DataLoader(object):
         """
         Load response matrix from file pathes
 
-        Args:
-            filepath (str): file path of the response matrix.
+        Parameters
+        ----------
+        filepath : str
+            File path of the response matrix.
         """
 
         self._rsp_filepath = filepath
@@ -159,8 +182,10 @@ class DataLoader(object):
         """
         Load coordsys conversion matrix from file pathes
 
-        Args:
-            filepath (str): file path of the coordsys conversion matrix.
+        Parameters
+        ----------
+        filepath : str
+            File path of the coordsys conversion matrix.
         """
 
         self._ccm_filepath = filepath
@@ -175,8 +200,10 @@ class DataLoader(object):
         """
         Check whether files are loaded.
 
-        Returns:
-            bool: True if all required files are loaded.
+        Returns
+        -------
+        bool
+            True if all required files are loaded.
         """
 
         print(f"... checking the file registration ...")
@@ -193,8 +220,10 @@ class DataLoader(object):
         """
         Check whether the axes of event/background/response are consistent with each other.
 
-        Returns:
-            bool: True if their axes are correct.
+        Returns
+        -------
+        bool
+            True if their axes are consistent.
         """
         
         print(f"... checking the axis consistency ...")
