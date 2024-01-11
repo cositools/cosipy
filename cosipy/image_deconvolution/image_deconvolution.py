@@ -1,5 +1,6 @@
 import astropy.units as u
 import numpy as np
+import warnings
 
 from histpy import Histogram, Axes
 from mhealpy import HealpixMap
@@ -13,17 +14,36 @@ from .modelmap import ModelMap
 from .RichardsonLucy import RichardsonLucy 
 
 class ImageDeconvolution:
+    """
+    A class to reconstruct all-sky images from COSI data based on image deconvolution methods.
+    """
 
     def __init__(self):
         self._initial_model_map = None
 
     def set_data(self, data):
+        """
+        Set COSI dataset
+
+        Args:
+            data (cosipy.image_deconvolution.DataLoader): data loader contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.
+
+        Notes:
+            cosipy.image_deconvolution.DataLoader may be removed in the future once the formats of event/background/response are fixed.
+            In this case, this method will be modified.
+        """
 
         self._data = data
 
         print("data for image deconvolution was set -> ", data)
 
     def read_parameterfile(self, parameter_filepath):
+        """
+        Read parameters from a yaml file.
+
+        Args:
+            parameter_filepath (str or pathlib.Path) : path of parameter file.
+        """
 
         self._parameter = Configurator.open(parameter_filepath)
 
@@ -31,23 +51,50 @@ class ImageDeconvolution:
 
     @property
     def data(self):
+        """
+        Return the set data.
+        """
         return self._data
 
     @property
     def parameter(self):
+        """
+        Return the set parameter
+        """
         return self._parameter
 
     def override_parameter(self, *args):
+        """
+        Override parameter
+
+        Args:
+            *args: a new parameter
+
+        Examples:
+            >>> image_deconvolution.override_parameter("deconvolution:parameter_RL:iteration = 30")
+        """
         self._parameter.override(args)
 
     @property
     def initial_model_map(self):
+        """
+        Return the initial model map.
+        """
         if self._initial_model_map is None:
-            print("warining: need the initialization")
+            warnings.warn("Need to initialize model map in the image_deconvolution instance")
 
         return self._initial_model_map
 
     def _check_model_response_consistency(self):
+        """
+        Check whether the axes of model map are consistent with those of the response matrix.
+
+        Returns:
+            bool: If True, their axes are consistent with each other.
+
+        Notes:
+            It will be implemented in the future. Currently it always returns true.
+        """
         #self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense_projected.axes["Ei"].axis_scale
 
         #return self._initial_model_map.axes["lb"] == self._data.image_response_dense_projected.axes["lb"] \
@@ -55,6 +102,14 @@ class ImageDeconvolution:
         return True
 
     def initialize(self):
+        """
+        Initialize an image_deconvolution instance. It is mandatory to execute this method before running the image deconvolution.
+        This method has three steps:
+        1. generate a model map with properties (nside, energy bins, etc.) given in the parameter file.
+        2. initialize a model map following an initial condition given in the parameter file
+        3. load parameters for the image deconvolution
+        """
+
         print("#### Initialization ####")
         
         print("1. generating a model map") 
@@ -81,9 +136,9 @@ class ImageDeconvolution:
         print("---- parameters ----")
         print(parameter_model_initialization.dump())
 
-        print("3. resistering the deconvolution algorithm ...")
+        print("3. registering the deconvolution algorithm ...")
         parameter_deconvolution = Configurator(self._parameter['deconvolution'])
-        self._deconvolution = self.resister_deconvolution_algorithm(parameter_deconvolution)
+        self._deconvolution = self.register_deconvolution_algorithm(parameter_deconvolution)
 
         print("---- parameters ----")
         print(parameter_deconvolution.dump())
@@ -91,7 +146,42 @@ class ImageDeconvolution:
         print("#### Done ####")
         print("")
 
-    def resister_deconvolution_algorithm(self, parameter_deconvolution):
+    def register_deconvolution_algorithm(self, parameter_deconvolution):
+        """
+        Register parameters for image deconvolution on a deconvolution instance.
+
+        Args:
+            parameter_deconvolution (dict): Parameters for the image deconvolution methods.
+
+        Notes:
+            Currently only RichardsonLucy algorithm is implemented.
+
+            ***An example of parameters for RL algorithm***
+            algorithm: "RL"
+            parameter_RL:
+                iteration: 10 
+                # number of iterations
+                acceleration: True 
+                # whether the accelerated ML-EM algorithm (Knoedlseder+99) is used
+                alpha_max: 10.0 
+                # the maximum value for the acceleration alpha parameter
+                save_results_each_iteration: False 
+                # whether a updated model map, detal map, likelihood etc. are save at the end of each iteration
+                response_weighting: True 
+                # whether a factor $w_j = (\sum_{i} R_{ij})^{\beta}$ for weighting the delta image is introduced 
+                # see Knoedlseder+05, Siegert+20
+                response_weighting_index: 0.5 
+                # $\beta$ in the above equation
+                smoothing: True 
+                # whether a Gaussian filter is used (see Knoedlseder+05, Siegert+20)
+                smoothing_FWHM: 2.0 #deg 
+                # the FWHM of the Gaussian in the filter 
+                background_normalization_fitting: False 
+                # whether the background normalization is optimized at each iteration. 
+                # As for now, the same single background normalization factor is used in all of the time bins
+                background_normalization_range: [0.01, 10.0]
+                # the range of the normalization factor. it should be positive.
+        """
 
         algorithm_name = parameter_deconvolution['algorithm']
 
@@ -105,6 +195,12 @@ class ImageDeconvolution:
         return _deconvolution
 
     def run_deconvolution(self):
+        """
+        Perform the image deconvolution. Make sure that the initialize method has been conducted.
+        
+        Returns:
+            list: List containing results (reconstructed image, likelihood etc) at each iteration. 
+        """
         print("#### Deconvolution Starts ####")
         
         all_result = []
@@ -118,5 +214,5 @@ class ImageDeconvolution:
         print("")
         return all_result
 
-    def analyze_result(self):
-        pass
+#    def analyze_result(self):
+#        pass

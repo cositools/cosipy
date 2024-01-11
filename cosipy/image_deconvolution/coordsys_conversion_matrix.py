@@ -11,6 +11,9 @@ from histpy import Histogram, Axes, Axis, HealpixAxis
 import sparse
 
 class CoordsysConversionMatrix(Histogram):
+    """
+    A class for coordinate conversion matrix (ccm).
+    """
 
     def __init__(self, edges, contents = None, sumw2 = None,
                  labels=None, axis_scale = None, sparse = None, unit = None,
@@ -24,16 +27,17 @@ class CoordsysConversionMatrix(Histogram):
     @classmethod
     def time_binning_ccm(cls, full_detector_response, orientation, time_intervals, nside_model = None, is_nest_model = False):
         """
-        Parameters
-        ----------
-        full_detector_response: 
-        orientation:
-        time_intervals: 2d np.array. it is the same format of binned_data.axes['Time'].edges
-        nside_model: If it is None, it will be the same as the NSIDE in the response.
+        Calculate a ccm from a given orientation.
+
+        Args:
+            full_detector_response (cosipy.response.FullDetectorResponse): response
+            orientation (cosipy.spacecraftfile.SpacecraftFile): orientation
+            time_intervals (np.array): the same format of binned_data.axes['Time'].edges
+            nside_model (int, optional): If it is None, it will be the same as the NSIDE in the response.
+            is_nest_model (bool, optional): If scheme of the model map is nested, it should be False while it is rare.
 
         Returns
-        -------
-        coordsys_conv_matrix: Axes [ "lb", "Time", "NuLambda" ]
+            CoordsysConversionMatrix: its axes are [ "lb", "Time", "NuLambda" ].
         """
 
         if nside_model is None:
@@ -86,15 +90,22 @@ class CoordsysConversionMatrix(Histogram):
     @classmethod
     def spacecraft_attitude_binning_ccm(cls, full_detector_response, exposure_table, nside_model = None, use_averaged_pointing = False):
         """
-        Parameters
-        ----------
-        full_detector_response: 
-        exposure_table:
-        use_averaged_pointing: if this is True, the ccm loses accuracy but the calculatiion gets much faster.
+        Calculate a ccm from a given exposure_table.
+
+        Args:
+            full_detector_response (cosipy.response.FullDetectorResponse): response
+            exposure_table (cosipy.image_deconvolution.SpacecraftAttitudeExposureTable): scatt exposure table
+            nside_model (int, optional): If it is None, it will be the same as the NSIDE in the response.
+            use_averaged_pointing (bool, optional): 
+                If it is True, first the averaged Z- and X-pointings are calculated.
+                Then the dwell time map is calculated once for ach model pixel and each scatt_binning_index.
+                If it is False, the dwell time map is calculated for each attitude in zpointing and xpointing in the exposure table.
+                Then the calculated dwell time maps are summed up. 
+                In the former case, the computation is fast but may lose the angular resolution. 
+                In the latter case, the conversion matrix is more accurate but it takes a long time to calculate it.
 
         Returns
-        -------
-        coordsys_conv_matrix: Axes [ "lb", "ScAtt", "NuLambda" ]
+            CoordsysConversionMatrix: its axes are [ "lb", "ScAtt", "NuLambda" ].
         """
 
         if nside_model is None:
@@ -173,6 +184,16 @@ class CoordsysConversionMatrix(Histogram):
     
     @classmethod
     def open(cls, filename, name = 'hist'):
+        """
+        Open a ccm from a file.
+
+        Args:
+            filename (str): Path to file
+            name (str): Name of group where the histogram was saved.
+
+        Returns
+            CoordsysConversionMatrix: its axes are [ "lb", "Time" or "ScAtt", "NuLambda" ].
+        """
 
         new = super().open(filename, name)
 

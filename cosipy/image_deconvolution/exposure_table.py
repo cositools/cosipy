@@ -6,23 +6,30 @@ import pandas as pd
 from astropy.io import fits
 import astropy.units as u
 from tqdm.autonotebook import tqdm
+import warnings
 
 from cosipy.spacecraftfile import SpacecraftAttitudeMap
 
 class SpacecraftAttitudeExposureTable(pd.DataFrame):
     """
-    scatt_binning_index : 
-    healpix_index : list of tuple, (healpix_index_zpointing, healpix_index_xpointing)
-    zpointing : np.array, [[l, b]] in degrees
-    xpointing : np.array, [[l, b]] in degrees
-    zpointing_averaged : np.array, [l, b] in degrees
-    xpointing_averaged : np.array, [l, b] in degrees
-    delta_time : 
-    exposure : 
-    num_pointings :
-    bkg_group :
-    nside : nside for the model map
-    scheme : healpix scheme (ring or nested)
+    A class to analyze exposure time per each spacecraft attitude
+    
+    Table columns are:
+        - scatt_binning_index: int 
+        - healpix_index: list of tuple. Each tuple is (healpix_index_zpointing, healpix_index_xpointing).
+        - zpointing: np.array of [l, b] in degrees. Array of z-pointings assigned to each scatt bin.
+        - xpointing: np.array of [l, b] in degrees. Array of x-pointings assigned to each scatt bin.
+        - zpointing_averaged: [l, b] in degrees. Averaged z-pointing in each scatt bin.
+        - xpointing_averaged: [l, b] in degrees. Averaged x-pointing in each scatt bin.
+        - delta_time: np.array of float in second. Exposure times for pointings assigned to each scatt bin.
+        - exposure: float in second. total exposure for each scatt bin.
+        - num_pointings: number of pointings assigned to each scatt bin.
+        - bkg_group: index of the backgroud group. will be used in the data analysis.
+
+    Args:
+        df (pd.DataFrame): pandas dataframe with the above columns
+        nside (int): Healpix NSIDE parameter.
+        scheme (str, optional): Healpix scheme. Either 'ring', 'nested'. The default is 'ring'.
     """
 
     def __init__(self, df, nside, scheme = 'ring'):
@@ -34,7 +41,7 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         if scheme == 'ring' or scheme == 'nested':
             self.scheme = scheme
         else:
-            print('Warning: the scheme should be "ring" or "nested". It was set to "ring".')
+            warnings.warn('The scheme should be "ring" or "nested" in SpacecraftAttitudeExposureTable. It will be set to "ring".')
             self.scheme = 'ring'
 
     def __eq__(self, other):
@@ -51,6 +58,17 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
 
     @classmethod
     def from_pickle(cls, filename, nside, scheme = 'ring'):
+        """
+        Read exposure table from pickle.
+
+        Args:
+            filename (str): Path to file
+            nside (int): Healpix NSIDE parameter.
+            scheme (str, optional): Healpix scheme. Either 'ring', 'nested'. The default is 'ring'.
+        
+        Returns:
+            SpacecraftAttitudeExposureTable     
+        """
 
         df = pd.read_pickle(filename)
 
@@ -60,6 +78,21 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
 
     @classmethod
     def from_orientation(cls, orientation, nside, scheme = 'ring', start = None, stop = None, min_exposure = None, min_num_pointings = None):
+        """
+        Produce exposure table from orientation.
+
+        Args:
+            orientation (cosipy.spacecraftfile.SpacecraftFile): orientation
+            nside (int): Healpix NSIDE parameter.
+            scheme (str, optional): Healpix scheme. Either 'ring', 'nested'. The default is 'ring'.
+            start: start time to analyze the orientation
+            stop: stop time to analyze the orientation
+            min_exposure (float): minimum exposure time required for each scatt bin
+            min_num_pointings (int): minimum number of pointings required for each scatt bin
+
+        Returns:
+            SpacecraftAttitudeExposureTable     
+        """
         
         df = cls.analyze_orientation(orientation, nside, scheme, start, stop, min_exposure, min_num_pointings)
 
@@ -70,6 +103,21 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
     # GTI should be a mandary parameter
     @classmethod
     def analyze_orientation(cls, orientation, nside, scheme = 'ring', start = None, stop = None, min_exposure = None, min_num_pointings = None):
+        """
+        Produce pd.DataFrame from orientation.
+
+        Args:
+            orientation (cosipy.spacecraftfile.SpacecraftFile): orientation
+            nside (int): Healpix NSIDE parameter.
+            scheme (str, optional): Healpix scheme. Either 'ring', 'nested'. The default is 'ring'.
+            start: start time to analyze the orientation
+            stop: stop time to analyze the orientation
+            min_exposure (float): minimum exposure time required for each scatt bin
+            min_num_pointings (int): minimum number of pointings required for each scatt bin
+
+        Returns:
+            pd.DataFrame
+        """
 
         print("angular resolution: ", hp.nside2resol(nside) * 180 / np.pi, "deg.")    
     
@@ -164,6 +212,16 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
 
     @classmethod
     def from_fits(cls, filename):
+        """
+        Read exposure table from a fits file.
+
+        Args:
+            filename (str): Path to file
+        
+        Returns:
+            SpacecraftAttitudeExposureTable     
+        """
+
         infile = fits.open(filename)
         hdu = infile[1]
     
@@ -210,6 +268,14 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         return new
 
     def save_as_fits(self, filename, overwrite = True):
+        """
+        Save exposure table as a fits file.
+
+        Args:
+            filename (str): Path to file
+            overwrite (bool)
+        """
+
         # primary HDU
         primary_hdu = fits.PrimaryHDU()
     
@@ -277,6 +343,16 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
 
     @classmethod
     def _get_averaged_pointing(cls, pointing, delta_time):
+        """
+        Calculate an averaged pointing from given lists of pointings and exposure time on each pointing
+
+        Args:
+            pointing (list): list of pointings in degrees, e.g., [ np.array([l, b]), np.array([l, b]), ...]
+            delta_time (list): list of exposure time in seconds for each pointing, e.g, [ 1.0, 1.0, ...] 
+
+        Returns:
+            np.array([l, b]): averaged pointing in degrees
+        """
 
         averaged_vector = np.sum(hp.ang2vec(pointing.T[0], pointing.T[1], lonlat = True).T * delta_time, axis = (1))
         averaged_vector /= np.linalg.norm(averaged_vector)
@@ -289,6 +365,16 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         return averaged_pointing 
 
     def calc_pointing_trajectory_map(self):
+        """
+        Calculate a 2-dimensional map showing exposure time for each spacecraft attitude.
+
+        Returns:
+            SpacecraftAttitudeMap
+
+        Notes:
+            The default axes in SpacecraftAttitudeMap is x- and y-pointings,
+            but here the spacecraft attitude is described with z- and x-pointings. 
+        """
     
         map_pointing_zx = SpacecraftAttitudeMap(nside = self.nside, scheme = self.scheme, coordsys = 'galactic', labels = ['z', 'x'])
     
