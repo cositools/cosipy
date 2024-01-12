@@ -31,7 +31,7 @@ class ImageDeconvolution:
         """
 
         self._data = data
-
+        
         print("data for image deconvolution was set -> ", data)
 
     def read_parameterfile(self, parameter_filepath):
@@ -117,6 +117,18 @@ class ImageDeconvolution:
         """
 
         print("#### Initialization ####")
+
+        ### check self._data ###
+        ### this part will be removed in the future ###
+        if self._data.response_on_memory == False:
+
+            warnings.warn("In the image deconvolution, the option to not load the response on memory is currently not supported. Performing DataLoader.load_full_detector_response_on_memory().")
+            self._data.load_full_detector_response_on_memory()
+
+        if self._data.image_response_dense_projected is None:
+
+            warnings.warn("The image_response_dense_projected has not been calculated. Performing DataLoader.calc_image_response_projected().")
+            self._data.calc_image_response_projected()
         
         print("1. generating a model map") 
         parameter_model_property = Configurator(self._parameter['model_property'])

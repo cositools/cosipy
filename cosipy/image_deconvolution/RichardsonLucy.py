@@ -68,26 +68,38 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         Currenly we use a signle normalization parameter. 
         In the future, the normalization will be optimized for each background group defined in some file.
         """
+        # Currenly (2024-01-12) this method can work for both local coordinate CDS and in galactic coordinate CDS.
+        # This is just because in DC2 the rotate response for galactic coordinate CDS does not have an axis for time/scatt binning.
+        # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
+        # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
+
         diff = self.data.event_dense / self.expectation - 1
 
         delta_map_part1 = self.model_map / self.data.image_response_dense_projected
         delta_map_part2 = Histogram(self.model_map.axes, unit = self.data.image_response_dense_projected.unit)
 
         if self.data.response_on_memory == True:
-            diff_x_response_this_pix = np.tensordot(diff.contents, self.data.image_response_dense.contents, axes = ([1,2,3], [2,3,4])) 
+            diff_x_response = np.tensordot(diff.contents, self.data.image_response_dense.contents, axes = ([1,2,3], [2,3,4])) 
             # [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, NuLambda, Ei]
 
-            delta_map_part2[:] = np.tensordot(self.data.coordsys_conv_matrix.contents, diff_x_response_this_pix, axes = ([1,2], [0,1])) * diff_x_response_this_pix.unit * self.data.coordsys_conv_matrix.unit #lb, Ei
-            # [lb, Time/ScAtt, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
+            delta_map_part2[:] = np.tensordot(self.data.coordsys_conv_matrix.contents, diff_x_response, axes = ([0,2], [0,1])) \
+                                 * diff_x_response.unit * self.data.coordsys_conv_matrix.unit
+            # [Time/ScAtt, lb, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
             # note that coordsys_conv_matrix is the sparse, so the unit should be recovered.
 
         else:
             for ipix in tqdm(range(self.npix_local)):
-                response_this_pix = np.sum(self.data.full_detector_response[ipix].to_dense(), axis = (4,5)) # may not work with the DC2 response format
+                if self.data.is_miniDC2_format == True:
+                    response_this_pix = np.sum(self.data.full_detector_response[ipix].to_dense(), axis = (4,5)) # [Ei, Em, Phi, PsiChi]
+                else:
+                    response_this_pix = self.data.full_detector_response[ipix].to_dense() # [Ei, Em, Phi, PsiChi]
 
-                diff_x_response_this_pix = np.tensordot(diff.contents, response_this_pix, axes = ([1,2,3], [1,2,3])) # Ti, Ei
+                diff_x_response_this_pix = np.tensordot(diff.contents, response_this_pix, axes = ([1,2,3], [1,2,3]))
+                # [Time/ScAtt, Em, Phi, PsiChi] x [Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Ei]
 
-                delta_map_part2 += np.tensordot(self.data.coordsys_conv_matrix[:,:,ipix], diff_x_response_this_pix, axes = ([1],[0])) * diff_x_response_this_pix.unit * self.data.coordsys_conv_matrix.unit #lb, Ei
+                delta_map_part2 += np.tensordot(self.data.coordsys_conv_matrix[:,:,ipix], diff_x_response_this_pix, axes = ([0],[0])) \
+                                   * diff_x_response_this_pix.unit * self.data.coordsys_conv_matrix.unit #lb, Ei
+                # [Time/ScAtt, lb] x [Time/ScAtt, Ei] -> [lb, Ei]
 
         self.delta_map = delta_map_part1 * delta_map_part2
 

@@ -29,6 +29,8 @@ class DataLoader(object):
 
         self.response_on_memory = False
 
+        self.image_response_dense_projected = None
+
     @classmethod
     def load(cls, event_binned_data, bkg_binned_data, rsp, coordsys_conv_matrix, is_miniDC2_format = False):
         """
@@ -256,8 +258,8 @@ class DataLoader(object):
         Modify the axes of data. This method will be removed in the future.
         """
 
-        warnings.warn("Note that _modify_axes in DataLoader is tentetive. It will be removed in the future.", FutureWarning)
-        warnings.warn("Make sure to run _modify_axes only once after the data are loaded.")
+        warnings.warn("Note that _modify_axes() in DataLoader was implemented for a temporary use. It will be removed in the future.", FutureWarning)
+        warnings.warn("Make sure to perform _modify_axes() only once after the data are loaded.")
 
         if self.coordsys_conv_matrix.binning_method == 'Time':
             axis_name = ['Time', 'Em', 'Phi', 'PsiChi']
@@ -492,9 +494,12 @@ class DataLoader(object):
 
         if self.response_on_memory:
 
-            self.image_response_dense_projected[:] = np.tensordot( np.sum(self.coordsys_conv_matrix, axis = (1)), 
-                                                                np.sum(self.image_response_dense, axis = (2,3,4)),
-                                                                axes = ([1], [0]) ) * self.full_detector_response.unit * self.coordsys_conv_matrix.unit #lb, Ei
+            self.image_response_dense_projected[:] = np.tensordot( np.sum(self.coordsys_conv_matrix, axis = (0)), 
+                                                                   np.sum(self.image_response_dense, axis = (2,3,4)),
+                                                                   axes = ([1], [0]) ) * self.full_detector_response.unit * self.coordsys_conv_matrix.unit
+            # [Time/ScAtt, lb, NuLambda] -> [lb, NuLambda]
+            # [NuLambda, Ei, Em, Phi, PsiChi] -> [NuLambda, Ei]
+            # [lb, NuLambda] x [NuLambda, Ei] -> [lb, Ei]
 
         else:
             npix = self.full_detector_response.axes["NuLambda"].npix 
@@ -506,6 +511,6 @@ class DataLoader(object):
                 else:
                     full_detector_response_projected_Ei = np.sum(self.full_detector_response[ipix].to_dense(), axis = (1,2,3)) #Ei
     
-                coordsys_conv_matrix_projected_lb = np.sum(self.coordsys_conv_matrix[:,:,ipix], axis = (1)).todense() * self.coordsys_conv_matrix.unit #lb
+                coordsys_conv_matrix_projected_lb = np.sum(self.coordsys_conv_matrix[:,:,ipix], axis = (0)).todense() * self.coordsys_conv_matrix.unit #lb
     
                 self.image_response_dense_projected += np.outer(coordsys_conv_matrix_projected_lb, full_detector_response_projected_Ei)

@@ -197,10 +197,15 @@ class DeconvolutionAlgorithmBase(object):
         -----
         This method should be implemented in a more general class, for example, extended source response class in the future.
         """
+        # Currenly (2024-01-12) this method can work for both local coordinate CDS and in galactic coordinate CDS.
+        # This is just because in DC2 the rotate response for galactic coordinate CDS does not have an axis for time/scatt binning.
+        # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
+        # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
 
         expectation = Histogram(data.event_dense.axes) 
 
-        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([0], [0])) # ['lb', 'Time/ScAtt', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
+        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([1], [0])) 
+        # ['Time/ScAtt', 'lb', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
         map_rotated *= data.coordsys_conv_matrix.unit * model_map.unit
         map_rotated *= self.pixelarea_model
         # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
