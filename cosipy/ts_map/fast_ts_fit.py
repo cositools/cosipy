@@ -307,7 +307,63 @@ class FastTSMap():
         elapsed_minutes = elapsed_seconds/60
         print(f"The time used for the parallel TS map computation is {elapsed_minutes} minutes")
         
+        results = np.array(results)
+        self.result_array = results
         
         return results
+
+    @staticmethod
+    def _plot_ts(result_array, skycoord = None, mode = "all"):
+
+        """
+        Plot 90% confidence level of the TS map
+
+        Parameters
+        ----------
+        result_array: the result array from parallel ts fit.
+        skycoord: the true location of the source
+
+        Returns
+        -------
+        None
+        """
+
+
+        if skycoord != None:
+            lon = skycoord.l.deg
+            lat = skycoord.b.deg
+        
+        # sort the array by the pixel number
+        result_array = result_array[result_array[:, 0].argsort()]
+
+        # get the ts value colum
+        m_ts = result_array[:,1]
+
+        # plot the ts map with 90% confidence level
+        if mode == "confidence":
+            max_ts = np.max(m_ts[:])
+            min_ts = np.min(m_ts[:])        
+            hp.mollview(m_ts[:], max = max_ts, min = max_ts-9)  # this is hard-coded, will provide more confidence level options
+        elif mode == "all":
+            hp.mollview(m_ts[:])  # this is hard-coded, will provide more confidence level options
+            
+        
+        if skycoord != None:
+            hp.projtext(lon, lat, "x", lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia");
+        #hp.projtext(40, -17, "True Location", lonlat=True, coord = "G", label = "True location at l=51, b=-17", color = "fuchsia")
+        hp.projtext(0, 0, "o", lonlat=True, coord = "G", color = "red");
+        hp.projtext(350, 0, "(l=0, b=0)", lonlat=True, coord = "G", color = "red");
+
+        return
+
+    def plot_ts(self, skycoord = None, result_array = None, mode = "all"):
+
+        if result_array == None:
+            result_array = self.result_array
+
+        FastTSMap._plot_ts(result_array = result_array, skycoord = skycoord, mode = mode)
+
+        return
+    
         
     
