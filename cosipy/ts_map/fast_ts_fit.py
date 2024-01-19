@@ -28,7 +28,7 @@ class FastTSMap():
         bkg_model: histpy.Histogram; background model, which includes the background counts to model the background in observed data
         orientation: cosipy.SpacecraftFile; the orientation of the spacecraft when data are collected
         response_path: pathlib.Path; the path to the response file
-        cds_frame: str; "local" or "galactic", it's the frame of the data, bkg_model and the response
+        cds_frame: str; "local" or "galactic", it's the frame of the data, bkg_model and the response 
         
         Returns
         -------
