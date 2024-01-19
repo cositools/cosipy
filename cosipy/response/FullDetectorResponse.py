@@ -245,7 +245,8 @@ class FullDetectorResponse(HealpixBase):
         #check if the type of spectrum is known
         assert norm=="powerlaw" or norm=="Mono" or norm=="Linear","unknown normalisation !" 
          
-
+        #check the number of simulated events is not 0
+        assert nevents_sim != 0,"number of simulated events is 0 !" 
         
         
         print("normalisation is {0}".format(norm))
