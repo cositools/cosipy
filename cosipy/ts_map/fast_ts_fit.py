@@ -13,6 +13,7 @@ from .fast_norm_fit import FastNormFit as fnf
 from pathlib import Path
 from cosipy.response import FullDetectorResponse
 import time
+import scipy.stats
 
 class FastTSMap():
     
@@ -313,15 +314,16 @@ class FastTSMap():
         return results
 
     @staticmethod
-    def _plot_ts(result_array, skycoord = None, mode = "all"):
+    def _plot_ts(result_array, skycoord = None, containment = 0.9):
 
         """
-        Plot 90% confidence level of the TS map
+        Plot the containment region of the TS map.
 
         Parameters
         ----------
-        result_array: the result array from parallel ts fit.
+        result_array: the result array from parallel ts fit
         skycoord: the true location of the source
+        containment: None or float; the containment level of the source. If None, it will plot raw TS values
 
         Returns
         -------
@@ -339,13 +341,15 @@ class FastTSMap():
         # get the ts value colum
         m_ts = result_array[:,1]
 
-        # plot the ts map with 90% confidence level
-        if mode == "confidence":
+        # plot the ts map with containment region
+        if containment != None:
+            critical = FastTSMap.get_chi_critical_value(containment = containment)
+            percentage = containment*100
             max_ts = np.max(m_ts[:])
             min_ts = np.min(m_ts[:])        
-            hp.mollview(m_ts[:], max = max_ts, min = max_ts-9)  # this is hard-coded, will provide more confidence level options
-        elif mode == "all":
-            hp.mollview(m_ts[:])  # this is hard-coded, will provide more confidence level options
+            hp.mollview(m_ts[:], max = max_ts, min = max_ts-critical, title = f"Containment {percentage}%") 
+        elif containment == None:
+            hp.mollview(m_ts[:]) 
             
         
         if skycoord != None:
@@ -356,14 +360,19 @@ class FastTSMap():
 
         return
 
-    def plot_ts(self, skycoord = None, result_array = None, mode = "all"):
+    def plot_ts(self, skycoord = None, result_array = None, containment = None):
 
         if result_array == None:
             result_array = self.result_array
 
-        FastTSMap._plot_ts(result_array = result_array, skycoord = skycoord, mode = mode)
+        FastTSMap._plot_ts(result_array = result_array, skycoord = skycoord, containment = containment)
 
         return
+
+    @staticmethod
+    def get_chi_critical_value(containment = 0.90):
+
+        return scipy.stats.chi2.ppf(containment, df=2)
     
         
     
