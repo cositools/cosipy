@@ -19,12 +19,29 @@ except:
 
 class ReadTraTest(UnBinnedData):
 
+    """Old method for reading tra file, used for unit testing."""
+    
     def read_tra_old(self,make_plots=True):
         
-        """
-        Reads in MEGAlib .tra (or .tra.gz) file.
-        Returns COSI dataset as a dictionary of the form:
-        cosi_dataset = {'Full filename':self.data_file,
+        """Reads in MEGAlib .tra (or .tra.gz) file.
+       
+        Extended Summary
+        ----------------
+        This method uses MEGAlib to read events from the tra file. 
+        This is used to compare to the new event reader, which is 
+        independent of MEGAlib. 
+        
+
+        Parameters
+        ----------
+        make_plots : bool, optional
+            Option to make binning plot.
+
+        Returns
+        -------
+        cosi_dataset : dict
+            Returns COSI dataset as a dictionary of the form:
+            cosi_dataset = {'Full filename':self.data_file,
                         'Energies':erg,
                         'TimeTags':tt,
                         'Xpointings':np.array([lonX,latX]).T,
@@ -37,8 +54,10 @@ class ReadTraTest(UnBinnedData):
                         'Chi galactic':chi_gal,
                         'Psi galactic':psi_gal}
         
-        Input (optional):
-        tra_file: Name of tra file to read. Default is output from select_data method.
+        Note
+        ----
+        This method sets the instance attribute, cosi_dataset, 
+        but it does not explicitly return this.  
         """
 
         # tra file to use:
