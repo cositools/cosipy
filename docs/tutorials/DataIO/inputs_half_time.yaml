@@ -11,5 +11,5 @@ phi_pix_size: 6 # binning of Compton scattering anlge [deg]
 nside: 8 # healpix binning of psi chi local
 scheme: 'ring' # healpix binning of psi chi local
 tmin: 1835478000.0 # Min time cut in seconds.
-tmax: 1835485200.0 # Max time cut in seconds.
+tmax: 1835481600.0 # Max time cut in seconds.
 #----------#

@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 class COSILike(PluginPrototype):
     
     def __init__(self, name, dr, data, bkg, sc_orientation, 
-            nuisance_param=None, coordsys=None, precomputed_psr_file=None, **kwargs):
+                 nuisance_param=None, coordsys=None, precomputed_psr_file=None, **kwargs):
         
         """
         COSI 3ML plugin
@@ -61,7 +61,7 @@ class COSILike(PluginPrototype):
             and background. This only needs to be specified if the binned data and background do not have a coordinate system 
             attached to them
         precomputed_psr_file: str
-            Full path to precomputed point source response in Galactic coordinates (optional). 
+            Full path to precomputed point source response in Galactic coordinates (optional) 
         """
         
         # create the hash for the nuisance parameters. We have none for now.
@@ -87,7 +87,7 @@ class COSILike(PluginPrototype):
         except:
             if coordsys == None:
                 raise RuntimeError(f"There is no coordinate system attached to the binned data. One must be provided by " 
-                                       f"specifiying coordsys='galactic' or 'spacecraftframe'")
+                                   f"specifiying coordsys='galactic' or 'spacecraftframe'")
             else:
                 self._coordsys = coordsys
             
@@ -114,7 +114,6 @@ class COSILike(PluginPrototype):
         # consistent way for point srcs and extended srcs. 
         self.precomputed_psr_file = precomputed_psr_file
         if self.precomputed_psr_file != None:
-
             print("... loading the pre-computed image response ...")
             self.image_response = DetectorResponse.open(self.precomputed_psr_file)
             # in the near future, we will implement ExtendedSourceResponse class, which should be used here (HY).
@@ -138,7 +137,7 @@ class COSILike(PluginPrototype):
         # Source counter for models with multiple sources:
         self.src_counter = 0
         
-       # Get expectation for extended sources:
+        # Get expectation for extended sources:
         
         # Save expected counts for each source,
         # in order to enable easy plotting after likelihood scan:
@@ -253,7 +252,6 @@ class COSILike(PluginPrototype):
             else:
                 raise RuntimeError("Expectation is an unknown object")
            
-
             # Save expected counts for source:
             self._expected_counts[name] = copy.deepcopy(total_expectation)
 
@@ -298,8 +296,8 @@ class COSILike(PluginPrototype):
             else:
                 expectation = self._signal + self._bkg.contents
 
-        expectation += 1e-12 
-        # to avoid infinite likelihood
+        expectation += 1e-12 # to avoid -infinite log-likelihood (occurs when expected counts = 0 but data != 0)
+        logger.warning("Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.")
         # This 1e-12 should be defined as a parameter in the near future (HY)
         
         # Convert data into an arrary:
@@ -307,14 +305,6 @@ class COSILike(PluginPrototype):
         
         # Compute the log-likelihood:
         log_like = np.nansum(data*np.log(expectation) - expectation)
-        
-        # Need to mask zero-values pixels if obtaining infinite likelihood.
-        # Note: the mask function gives errors sometimes. This is a bug that needs to be fixed. 
-        # This part can be removed because the minimum value in expectation is now 1e-12 (HY)
-        if log_like == -np.inf:
-            logger.warning(f"There are bins in which the total expected counts = 0 but data != 0, making log-likelihood = -inf. "
-                           f"Masking these bins.")
-            log_like = np.nansum(np.ma.masked_invalid(data*np.log(expectation) - expectation))
         
         return log_like
     
