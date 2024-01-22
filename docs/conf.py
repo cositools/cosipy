@@ -10,9 +10,9 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('..'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -49,16 +49,37 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # The master toctree document.
 master_doc = 'index'
 
-# intersphinx
+# mock dependencies so we don't have to install them
+autodoc_mock_imports = ["histpy",
+                        'threeML',
+                        'astromodels',
+                        'past',
+                        'numpy',
+                        'h5py',
+                        'astropy',
+                        'healpy',
+                        'mhealpy',
+                        'sparse',
+                        'matplotlib',
+                        'yaml',
+                        'scoords',
+                        'pandas',
+                        'tqdm',
+                        'scipy']
+
+# intersphinx for mocked dependencies
 
 intersphinx_mapping = {
     'histpy': ('https://histpy.readthedocs.io/en/latest', None),
+    'threeML': ('https://threeml.readthedocs.io/en/latest/', None),
+    'astromodels': ('https://astromodels.readthedocs.io/en/latest/', None),
+    'numpy': ('https://numpy.org/doc/stable/', None),
     'h5py' : ('https://docs.h5py.org/en/stable/', None),
     'astropy' : ('https://docs.astropy.org/en/stable', None),
     'python' : ('https://docs.python.org/3', None),
     'mhealpy' : ('https://mhealpy.readthedocs.io/en/latest/', None),
     'sparse' : ('https://sparse.pydata.org/en/stable/', None),
-    'gammapy' : ('https://docs.gammapy.org/dev', None),
+    'matplotlib' : ('https://matplotlib.org/stable/', None),
     'scipy' : ('https://scipy.github.io/devdocs', None),
   }
 
@@ -86,29 +107,3 @@ autodoc_member_order = 'bysource'
 
 # Extensions to theme docs
 
-# Fix issue with Napoleon RTD that displays "Variables" instead of "Attributes"
-# credit - https://michaelgoerz.net/notes/extending-sphinx-napoleon-docstring-sections.html
-
-from sphinx.ext.napoleon.docstring import GoogleDocstring
-
-# first, we define new methods for any new sections and add them to the class
-def parse_keys_section(self, section):
-    return self._format_fields('Keys', self._consume_fields())
-GoogleDocstring._parse_keys_section = parse_keys_section
-
-def parse_attributes_section(self, section):
-    return self._format_fields('Attributes', self._consume_fields())
-GoogleDocstring._parse_attributes_section = parse_attributes_section
-
-def parse_class_attributes_section(self, section):
-    return self._format_fields('Class Attributes', self._consume_fields())
-GoogleDocstring._parse_class_attributes_section = parse_class_attributes_section
-
-# we now patch the parse method to guarantee that the the above methods are
-# assigned to the _section dict
-def patched_parse(self):
-    self._sections['keys'] = self._parse_keys_section
-    self._sections['class attributes'] = self._parse_class_attributes_section
-    self._unpatched_parse()
-GoogleDocstring._unpatched_parse = GoogleDocstring._parse
-GoogleDocstring._parse = patched_parse
