@@ -65,7 +65,7 @@ List of tutorials and contents (WiP):
    DataIO/DataIO_example.ipynb
    Point_source_resonse.ipynb
    DetectorResponse.ipynb
+   Parallel_TS_map_computation.ipynb
    spectral_fits/continuum_fit/grb/SpectralFit.ipynb
    spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb
    image_deconvolution/511keV/ScAttBinning/511keV-DC2-ScAtt-ImageDeconvolution.ipynb
-   

@@ -6,7 +6,6 @@ Welcome to cosipy's documentation!
    :caption: Contents:
 
    install
-   tutorials/Intro.ipynb
    tutorials/index
    tutorials/other_examples
    api/index
