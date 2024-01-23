@@ -67,6 +67,15 @@ autodoc_mock_imports = ["histpy",
                         'tqdm',
                         'scipy']
 
+# There seems to be a conflict between unittest.mock (used by sphinx) and metaclasses
+# The cosipy.threeml.custom_functions.Band_Eflux includes a metaclass from
+# astromodels.functions.function, so we mock that one manually with the mock package
+import mock
+
+MOCK_MODULES = ['astromodels.functions.function']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
+
 # intersphinx for mocked dependencies
 
 intersphinx_mapping = {

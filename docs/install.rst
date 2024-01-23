@@ -31,9 +31,9 @@ You can install ``pytest`` and ``pytest-cov`` with::
 Compiling the docs
 ------------------
 
-You need pandoc, sphinx, nbsphinx and sphinx_rtd_theme. Using conda::
+You need pandoc, sphinx, nbsphinx, sphinx_rtd_theme and mock. Using conda::
 
-    conda install -c conda-forge pandoc nbsphinx sphinx_rtd_theme
+    conda install -c conda-forge pandoc nbsphinx sphinx_rtd_theme mock
 
 Onece you have this requirements, run::
 

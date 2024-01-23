@@ -16,7 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt install pandoc
-          pip install sphinx sphinx_rtd_theme nbsphinx
+          pip install sphinx sphinx_rtd_theme nbsphinx mock
       - name: Sphinx build
         run: |
           make -C docs html
