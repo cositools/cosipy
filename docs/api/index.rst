@@ -10,3 +10,5 @@ API
    data_io
    threeml
    image_deconvolution
+   spacecraftfile
+   ts_map
