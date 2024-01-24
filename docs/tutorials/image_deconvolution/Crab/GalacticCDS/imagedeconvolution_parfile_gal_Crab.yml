@@ -1,6 +1,5 @@
-version: 0.0.2
 author: Hiroki Yoneda 
-date: 2023-11-21
+date: 2024-01-23
 model_property:
   coordinate: "galactic"
   nside: 8
@@ -21,7 +20,6 @@ deconvolution:
     response_weighting_index: 0.5
     smoothing: True 
     smoothing_FWHM: 2.0 #deg
-    smoothing_max_sigma: 10.0
       #    stopping_criterion: "TBD"
     background_normalization_fitting: False 
     background_normalization_range: [0.01, 10.0]
