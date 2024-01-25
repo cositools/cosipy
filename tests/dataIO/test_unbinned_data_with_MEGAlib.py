@@ -28,7 +28,7 @@ yaml = os.path.join(test_data.path,"inputs_crab.yaml")
 analysis = UnBinnedData(yaml)
 analysis.data_file = os.path.join(test_data.path,analysis.data_file)
 analysis.ori_file = os.path.join(test_data.path,analysis.ori_file)
-analysis.read_tra(run_test=True)
+analysis.read_tra(run_test=True, use_ori=False)
 
 # Read in MEGAlib's calculations from its event reader:
 mega_data = os.path.join(test_data.path,"unbinned_data_MEGAlib_calc.hdf5")
