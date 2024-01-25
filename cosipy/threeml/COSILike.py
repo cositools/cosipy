@@ -42,24 +42,24 @@ class COSILike(PluginPrototype):
         
         Parameters
         ----------
-        name: str
+        name : str
             Plugin name e.g. "cosi". Needs to have a distinct name with respect to other plugins in the same analysis
-        dr: Path
+        dr : str
             Path to full detector response
-        data: histpy.Histogram
+        data : histpy.Histogram
             Binned data. Note: Eventually this should be a cosipy data class
-        bkg: histpy.Histogram
+        bkg : histpy.Histogram
             Binned background model. Note: Eventually this should be a cosipy data class
-        sc_orientation: cosipy.spacecraftfile.SpacecraftFile
+        sc_orientation : cosipy.spacecraftfile.SpacecraftFile
             Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
             the spacecraft for the duration of the data included in the analysis
-        nuisance_param: astromodels.core.parameter.Parameter, optional
+        nuisance_param : astromodels.core.parameter.Parameter, optional
             Background parameter
-        coordsys: str, optional
+        coordsys : str, optional
             Coordinate system ('galactic' or 'spacecraftframe') to perform fit in, which should match coordinate system of data 
             and background. This only needs to be specified if the binned data and background do not have a coordinate system 
             attached to them
-        precomputed_psr_file: str, optional
+        precomputed_psr_file : str, optional
             Full path to precomputed point source response in Galactic coordinates
         """
         
@@ -125,7 +125,7 @@ class COSILike(PluginPrototype):
         
         Parameters
         ----------
-        model: astromodels.core.model.Model
+        model : astromodels.core.model.Model
             Any model supported by astromodels
         """
     
@@ -269,7 +269,7 @@ class COSILike(PluginPrototype):
         
         Returns
         ----------
-        log_like: float
+        log_like : float
             Value of the log-likelihood
         """
         
@@ -319,12 +319,12 @@ class COSILike(PluginPrototype):
         
         Parameters
         ----------
-        coord: astropy.coordinates.SkyCoord
+        coord : astropy.coordinates.SkyCoord
             Coordinates of the target source
         
         Returns
         -------
-        dwell_time_map: mhealpy.containers.healpix_map.HealpixMap
+        dwell_time_map : mhealpy.containers.healpix_map.HealpixMap
             Dwell time map
         """
         
@@ -339,7 +339,7 @@ class COSILike(PluginPrototype):
         
         Returns
         -------
-        scatt_map: cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
+        scatt_map : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
         """
         
         scatt_map = self._sc_orientation.get_scatt_map(nside = self._dr.nside * 2, coordsys = 'galactic')
@@ -352,7 +352,7 @@ class COSILike(PluginPrototype):
         
         Parameters
         ----------
-        flag: bool
+        flag : bool
             Turns on and off the minimization  of the internal parameters
         """
         
