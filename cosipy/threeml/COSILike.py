@@ -194,7 +194,7 @@ class COSILike(PluginPrototype):
                 print("... Calculating point source responses ...")
 
                 self._psr = {}
-                self._source_location = {} # Shoule the poition information be in the point source response? (HY)
+                self._source_location = {} # Should the poition information be in the point source response? (HY)
 
                 for name, source in point_sources.items():
                     coord = source.position.sky_coord
@@ -240,20 +240,19 @@ class COSILike(PluginPrototype):
             # Convolve with spectrum
             # See also the Detector Response and Source Injector tutorials
             spectrum = source.spectrum.main.shape
-                
-            total_expectation = self._psr[name].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
-            # should it be like self._psr[name].get_expectation(spectrum) (without 'project')? (HY)
+
+            total_expectation = self._psr[name].get_expectation(spectrum)
+            
+            # Save expected counts for source:
+            self._expected_counts[name] = copy.deepcopy(total_expectation)
          
             # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
             if type(total_expectation.contents) == u.quantity.Quantity:
-                total_expectation = total_expectation.contents.value
+                total_expectation = total_expectation.project(['Em', 'Phi', 'PsiChi']).contents.value
             elif type(total_expectation.contents) == COO:
-                total_expectation = total_expectation.contents.todense() 
+                total_expectation = total_expectation.project(['Em', 'Phi', 'PsiChi']).contents.todense() 
             else:
                 raise RuntimeError("Expectation is an unknown object")
-           
-            # Save expected counts for source:
-            self._expected_counts[name] = copy.deepcopy(total_expectation)
 
             # Add source to signal and update source counter:
             if self.src_counter == 0:
