@@ -7,17 +7,24 @@ import cosipy.data_io
 from cosipy.config import Configurator
 
 class DataIO:
-    
-    def __init__(self, input_yaml, pw=None):
-       
-        #print(argv)
-        """Main user inputs are specified in inputs.yaml file."""
-        #parser = argparse.ArgumentParser()
-        #parser.add_argument('-pw', '--pw', help = 'username')
-        #args = parser.parse_args(argv)
-        #self.pw = args.pw
-        #print(self.pw)
 
+    """Handles main inputs and outputs."""
+
+    def __init__(self, input_yaml, pw=None):
+    
+        """
+        Parameters
+        ----------
+        input_yaml : yaml file
+            Input yaml file containing all needed inputs for analysis.
+    
+        Notes
+        -----
+        The main inputs must currently be passed with the yaml file.
+        The parameter configurator will be updated in the near future,
+        to allow for much more flexibility. 
+        """
+        
         # Load housekeeping inputs:
         housekeeping_path_prefix = os.path.split(cosipy.data_io.__file__)[0]
         housekeeping_dir = os.path.join(housekeeping_path_prefix,"housekeeping_files")
@@ -36,9 +43,3 @@ class DataIO:
         self.scheme = inputs['scheme'] # Healpix binning of psi chi local
         self.tmin = inputs['tmin'] # Min time in seconds. 
         self.tmax = inputs['tmax'] # Max time in seconds. 
-
-    def parse_args(self, argv=None):
-        parser = argparse.ArgumentParser()
-        parser.add_argument('-pw', '--pw', help = 'username')
-        args = vars(parser.parse_args(argv))
-        print(args) 
