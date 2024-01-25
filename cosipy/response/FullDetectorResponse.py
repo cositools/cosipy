@@ -190,21 +190,24 @@ class FullDetectorResponse(HealpixBase):
                 elif key == 'SA':
                     area_sim = float(line[1])
                     
-                elif key == "SP" and line[1]!="true" and line[1]!="false" :
-                    norm = str(line[1])
+                elif key == "SP" :
                     
+                    try :
+                        norm = str(line[1])
+                    except :
+                        print(f"norm not found in the file ! We assume {norm}")
+
                     if norm =="Linear" :
                         emin = int(line[2])
                         emax = int(line[3])
                         
-                elif key == "SP" and line[1]=="true" :
-                    sparse = True
-                    
-                elif key == "SP" and line[1]=="false" :
-                    sparse = False
+             
 		
                 elif key == "MS":
-                    sparse = bool(line[1])	
+                    if line[1] == "true" :
+                        sparse = True
+                    if line[1] == "false" :
+                        sparse = False
 
                 elif key == 'AD':
 
@@ -242,7 +245,8 @@ class FullDetectorResponse(HealpixBase):
         #check if the type of spectrum is known
         assert norm=="powerlaw" or norm=="Mono" or norm=="Linear","unknown normalisation !" 
          
-
+        #check the number of simulated events is not 0
+        assert nevents_sim != 0,"number of simulated events is 0 !" 
         
         
         print("normalisation is {0}".format(norm))

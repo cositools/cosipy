@@ -24,14 +24,46 @@ import time
 logger = logging.getLogger(__name__)
 
 class UnBinnedData(DataIO):
-    
+    """Handles unbinned data."""
+
     def read_tra(self, output_name=None, run_test=False, use_ori=False,
             event_min=None, event_max=None):
         
-        """
-        Reads in MEGAlib .tra (or .tra.gz) file.
-        Returns COSI dataset as a dictionary of the form:
-        cosi_dataset = {'Energies':erg,
+        """Reads MEGAlib .tra (or .tra.gz) file and creates cosi datset.
+        
+        Parameters
+        ----------
+        output_name : str, optional
+            Prefix of output file (default is None, in which case no 
+            output is written). 
+        run_test : bool, optional 
+            This is for unit testing only! Keep False unless 
+            comparing to MEGAlib calculations. 
+        use_ori : bool, optional
+            Option to get pointing information from the orientation 
+            file, based on event time-stamps (default is False, in 
+            which case the pointing information comes from the event 
+            file itself). Note: this is an option for now, but will 
+            later be the default. 
+        event_min : int, optional
+            Minimum event number to process (inclusive). All events 
+            below this will be skipped.        
+        event_max : int, optional
+            Maximum event number to process (non-inclusive). All 
+            events at and above this will be skipped. 
+            
+            Note: event_min and event_max correspond to the total 
+            number of events in the file, which is not necessarily the 
+            same as the event ID number. The purpose of this is to 
+            allow the data to be read in chunks, in order to overcome 
+            memory limitations, depending on the user's system.
+
+        Returns
+        -------
+        cosi_dataset, dict
+            The returned dictionary contains the COSI dataset, which
+            has the form:
+            cosi_dataset = {'Energies':erg,
                         'TimeTags':tt,
                         'Xpointings':np.array([lonX,latX]).T,
                         'Ypointings':np.array([lonY,latY]).T,
@@ -41,38 +73,17 @@ class UnBinnedData(DataIO):
                         'Psi local':psi_loc,
                         'Distance':dist,
                         'Chi galactic':chi_gal,
-                        'Psi galactic':psi_gal}
+                        'Psi galactic':psi_gal} 
+            Arrays contain unbinned photon data.
         
-        Arrays contain unbinned data.
-        
-        Inputs:
-        
-        output_name: prefix of output file. 
-            - Default is None, in which case no output is written. 
+        Notes
+        -----
+            The current code is only able to handle data with Compton 
+            events. It will need to be modified to handle single-site 
+            and pair events. 
 
-        run_test: This is for unit testing only! Keep False
-        unless comparing to MEGAlib calculations. 
-
-        use_ori: Option to get pointing information from the orientation file, 
-        based on event time-stamps.
-            - True or False. Default is False, in which case the pointing information
-              comes from the event file itself. 
-            - Note: this is an option for now, but will later be the default. 
-
-        event_min: Minimum event number to process (inclusive). 
-            - All events below this will be skipped.
-        
-        event_max: Maximum event number to process (non-inclusive).
-            - All events at and above this will be skipped.
-
-        Note: Note: event_min and event_max correspond to the total 
-              number of events in the file, which is not necessarily 
-              the same as the event ID number. The purpose of this is
-              to allow the data to be read in chunks, in order to 
-              overcome memory limitations, depending on the user's system.
-
-        Note: The current code is only able to handle data with Compton events.
-              It will need to be modified to handle single-site and pair.    
+            This method sets the instance attribute, cosi_dataset, 
+            but it does not explicitly return this.  
         """
    
         start_time = time.time()
@@ -363,10 +374,24 @@ class UnBinnedData(DataIO):
 
     def instrument_pointing(self):
 
-        """
-        Get pointing information from ori file.
-        Initializes interpolated functions for 
-        lonx, latx, lonz, latz in radians.
+        """Get pointing information from ori file.
+        
+        Extended Summary
+        ---------------
+        Initializes interpolated functions for lonx, latx, lonz, latz 
+        in radians.
+        
+        Returns
+        -------
+        xl_interp : scipy:interpolate:interp1d
+        xb_interp : scipy:interpolate:interp1d
+        zl_interp : scipy:interpolate:interp1d
+        zb_interp : scipy:interpolate:interp1d
+
+        Note
+        ----
+            This method sets the instance attributes, 
+            but it does not explicitly return them.
         """
 
         # Get ori info:
@@ -385,13 +410,29 @@ class UnBinnedData(DataIO):
 
     def construct_scy(self, scx_l, scx_b, scz_l, scz_b):
     
-        """
-        Construct y-coordinate of spacecraft/balloon given x and z directions
-        Note that here, z is the optical axis
-        param: scx_l   longitude of x direction
-        param: scx_b   latitude of x direction
-        param: scz_l   longitude of z direction
-        param: scz_b   latitude of z direction
+        """Construct y-coordinate of instrument pointing given x and z directions.
+        
+        Parameters
+        ----------
+        scx_l : float
+            Longitude of x direction in degrees.
+        scx_b : float
+            Latitude of x direction in degrees.
+        scz_l : float
+            Longitude of z direction in degrees.
+        scz_b : float
+            Latitude of z direction in degrees.
+
+        Returns
+        -------
+        ra : float
+            Right ascension (in degrees) for y-coordinate of instrument pointing.
+        dec : float
+            Declination (in degrees) for y-coordinate of instrument pointing.
+
+        Note
+        ----
+            Here, z is the optical axis.
         """
         
         x = self.polar2cart(scx_l, scx_b)
@@ -401,11 +442,20 @@ class UnBinnedData(DataIO):
 
     def polar2cart(self, ra, dec):
     
-        """
-        Coordinate transformation of ra/dec (lon/lat) [phi/theta] polar/spherical coordinates
-        into cartesian coordinates
-        param: ra   angle in deg
-        param: dec  angle in deg
+        """Coordinate transformation of ra/dec (lon/lat) [phi/theta] 
+        polar/spherical coordinates into cartesian coordinates.
+
+        Parameters
+        ----------
+        ra : float
+            Right ascension in degrees. 
+        dec: float
+            Declination in degrees. 
+        
+        Returns
+        -------
+        array
+            x, y, and z cartesian coordinates in radians.
         """
         
         x = np.cos(np.deg2rad(ra)) * np.cos(np.deg2rad(dec))
@@ -416,9 +466,20 @@ class UnBinnedData(DataIO):
 
     def cart2polar(self, vector):
     
-        """
-        Coordinate transformation of cartesian x/y/z values into spherical (deg)
-        param: vector   vector of x/y/z values
+        """Coordinate transformation of cartesian x/y/z values into 
+        spherical (deg).
+
+        Parameters
+        ----------
+        vector : vec
+            Vector of x/y/z values.
+
+        Returns
+        -------
+        ra : float
+            Right ascension in degrees.
+        dec : float
+            Declination in degrees. 
         """
         
         ra = np.arctan2(vector[1],vector[0]) 
@@ -428,10 +489,12 @@ class UnBinnedData(DataIO):
 
     def write_unbinned_output(self, output_name):
 
-        """
-        Writes unbinned data file to either fits or hdf5.
+        """Writes unbinned data file to either fits or hdf5.
         
-        output_name: Name of output file. 
+        Parameters
+        ----------
+        output_name : str 
+            Name of output file. Only include prefix (not file type). 
         """
 
         # Data units:
@@ -458,7 +521,18 @@ class UnBinnedData(DataIO):
 
     def get_dict_from_fits(self, input_fits):
 
-        """Constructs dictionary from input fits file"""
+        """Constructs dictionary from input fits file.
+        
+        Parameters
+        ----------
+        input_fits : str
+            Name of input fits file.
+
+        Returns
+        -------
+        dict
+            Dictionary constructed from input fits file.
+        """
 
         # Initialize dictionary:
         this_dict = {}
@@ -479,10 +553,17 @@ class UnBinnedData(DataIO):
 
     def get_dict_from_hdf5(self, input_hdf5):
 
-        """
-        Constructs dictionary from input hdf5 file
+        """Constructs dictionary from input hdf5 file
         
-        input_hdf5: Name of input hdf5 file. 
+        Parameter
+        ---------
+        input_hdf5 : str
+            Name of input hdf5 file. 
+
+        Returns
+        -------
+        dict
+            Dictionary constructed from input hdf5 file.
         """
 
         # Initialize dictionary:
@@ -498,13 +579,19 @@ class UnBinnedData(DataIO):
 
     def select_data(self, output_name=None, unbinned_data=None):
 
-        """
-        Applies cuts to unbinnned data dictionary. 
-        Only cuts in time are allowed for now. 
+        """Applies cuts to unbinnned data dictionary. 
         
-        unbinned_data: Unbinned dictionary file. 
-        output_name: Prefix of output file.
-            - Default is None, in which case no file is saved.
+        Parameters
+        ----------
+        unbinned_data : str, optional
+            Name of unbinned dictionary file.
+        output_name : str, optional
+            Prefix of output file (default is None, in which case no 
+            file is saved).
+        
+        Note
+        ----
+        Only cuts in time are allowed for now. 
         """
         
         print("Making data selections...")
@@ -518,7 +605,7 @@ class UnBinnedData(DataIO):
 
         # Get time cut index:
         time_array = self.cosi_dataset["TimeTags"]
-        time_cut_index = (time_array >= self.tmin) & (time_array <= self.tmax)
+        time_cut_index = (time_array >= self.tmin) & (time_array < self.tmax)
     
         # Apply cuts to dictionary:
         for key in self.cosi_dataset:
@@ -534,13 +621,14 @@ class UnBinnedData(DataIO):
 
     def combine_unbinned_data(self, input_files, output_name=None):
 
-        """
-        Combines input unbinned data files.
+        """Combines input unbinned data files.
         
-        Inputs:
-        input_files: List of file names to combine.
-        output_name: Option to save output.
-            - Give prefix of output file. 
+        Parameters
+        ----------
+        input_files : list
+            List of file names to combine.
+        output_name : str, optional
+            Prefix of output file.
         """
 
         self.cosi_dataset = {}
@@ -576,4 +664,3 @@ class UnBinnedData(DataIO):
             self.write_unbinned_output(output_name)
 
         return
-

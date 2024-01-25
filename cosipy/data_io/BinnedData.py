@@ -17,24 +17,40 @@ logger = logging.getLogger(__name__)
 
 
 class BinnedData(UnBinnedData):
-   
-    def get_binned_data(self, unbinned_data=None, output_name=None, \
-            make_binning_plots=False, psichi_binning="galactic", psichi_old=False):
+    """Handles binned data."""
 
-        """ 
-        Bin the data using histpy and mhealpy.
+    def get_binned_data(self, unbinned_data=None, output_name=None, \
+            make_binning_plots=False, psichi_binning="galactic", event_range=None):
+
+        """Bin the data using histpy and mhealpy.
         
-        Optional inputs:
-        - unbinned_data: read in unbinned data from file. 
-          Input file is either .fits or .hdf5 as specified in
-          the unbinned_output parameter in inputs.yaml.     
-        - output_name: Prefix of output file.
-        - make_binning_plots: Option to make basic plots of the binning.
-          Default is False.
-        - psichi_binning: 'galactic' for binning psichi in Galactic coordinates,
-          or 'local' for binning in local coordinates. Default is Galactic. 
-        - psichi_old: use old binning definition for psichi.
-            - This is just here as a temporary sanity check, and will soon be removed. 
+        Parameters
+        ----------
+        unbinned_data : str, optional
+            Name of unbinned data file to use. Input file is either 
+            .fits or .hdf5 as specified in the unbinned_output 
+            parameter in inputs.yaml.     
+        output_name : str, optional
+            Prefix of output file.
+        make_binning_plots : bool, optional
+            Option to make basic plots of the binning (default is False).
+        psichi_binning : str, optional
+            'galactic' for binning psichi in Galactic coordinates, or 
+            'local' for binning in local coordinates. Default is Galactic. 
+        event_range : list of integers, optional 
+            min and max event to use for the binning. 
+        
+        Returns
+        -------
+        binned_data : histpy:Histogram
+            Data is binned in four axes: time, measured energy, 
+            Compton scattering angle (phi), and scattering direction 
+            (PsiChi).
+
+        Note
+        ----
+        This method constructs the instance attribute, binned_data, 
+        but it does not explicitly return it.
         """
         
         # Make print statement:
@@ -78,60 +94,40 @@ class BinnedData(UnBinnedData):
         number_phi_bins = int(180./self.phi_pix_size)
         phi_bin_edges = np.linspace(0,180,number_phi_bins+1)
 
-        # Get healpix binning for psi and chi:
-        if psichi_old == True:
-            print("using old psichi definition...")
-            npix = hp.nside2npix(self.nside)
-            print()
-            print("PsiChi binning:")
-            print("Approximate resolution at NSIDE {} is {:.2} deg".format(self.nside, hp.nside2resol(self.nside, arcmin=True) / 60))
-            print()
-
-            # Define the grid and initialize
-            self.m = HealpixMap(nside = self.nside, scheme = self.scheme, dtype = int)
-
-            # Bin psi and chi data:
-            if psichi_binning not in ['galactic','local']:
-                print("ERROR: psichi_binning must be either 'galactic' or 'local'")
-                sys.exit()
-            if psichi_binning == 'galactic':
-                PsiChi_pixs = self.m.ang2pix(self.cosi_dataset['Chi galactic'],self.cosi_dataset['Psi galactic'],lonlat=True)
-            if psichi_binning == 'local':
-                PsiChi_pixs = self.m.ang2pix(self.cosi_dataset['Psi local'],self.cosi_dataset['Chi local'])
-            PsiChi_bin_edges = np.arange(0,npix+1,1)
-    
-            # Fill healpix map:
-            unique, unique_counts = np.unique(PsiChi_pixs, return_counts=True)
-            self.m[unique] = unique_counts
-
-            # Save healpix map to file:
-            self.m.write_map("psichi_healpix_map.fits",overwrite=True)
-
-            # Initialize histogram:
-            self.binned_data = Histogram([time_bin_edges, energy_bin_edges, phi_bin_edges, PsiChi_bin_edges], labels = ['Time','Em','Phi','PsiChi'], sparse=True)
-
-            # Fill histogram:
-            self.binned_data.fill(self.cosi_dataset['TimeTags'], self.cosi_dataset['Energies'], np.rad2deg(self.cosi_dataset['Phi']), PsiChi_pixs)
- 
         # Define psichi axis and data for binning:
-        if psichi_old == False:
-            if psichi_binning == 'galactic':
-                psichi_axis = HealpixAxis(nside = self.nside, scheme = self.scheme, coordsys = 'galactic', label='PsiChi')
-                coords = SkyCoord(l=self.cosi_dataset['Chi galactic']*u.deg, b=self.cosi_dataset['Psi galactic']*u.deg, frame = 'galactic')
-            if psichi_binning == 'local':
-                psichi_axis = HealpixAxis(nside = self.nside, scheme = self.scheme, coordsys = SpacecraftFrame(), label='PsiChi')
-                coords = SkyCoord(lon=self.cosi_dataset['Chi local']*u.rad, lat=((np.pi/2.0) - self.cosi_dataset['Psi local'])*u.rad, frame = SpacecraftFrame())
+        if psichi_binning == 'galactic':
+            psichi_axis = HealpixAxis(nside = self.nside, 
+                    scheme = self.scheme, coordsys = 'galactic', label='PsiChi')
+            coords = SkyCoord(l=self.cosi_dataset['Chi galactic']*u.deg, 
+                    b=self.cosi_dataset['Psi galactic']*u.deg, frame = 'galactic')
+        if psichi_binning == 'local':
+            psichi_axis = HealpixAxis(nside = self.nside, 
+                    scheme = self.scheme, coordsys = SpacecraftFrame(), label='PsiChi')
+            coords = SkyCoord(lon=self.cosi_dataset['Chi local']*u.rad, 
+                    lat=((np.pi/2.0) - self.cosi_dataset['Psi local'])*u.rad, 
+                    frame = SpacecraftFrame())
 
-            # Initialize histogram:
-            self.binned_data = Histogram([Axis(time_bin_edges*u.s, label='Time'), 
-                Axis(energy_bin_edges*u.keV, label='Em'), 
-                Axis(phi_bin_edges*u.deg, label='Phi'), 
-                psichi_axis], 
-                sparse=True)
+        # Initialize histogram:
+        self.binned_data = Histogram([Axis(time_bin_edges*u.s, label='Time'), 
+            Axis(energy_bin_edges*u.keV, label='Em'), 
+            Axis(phi_bin_edges*u.deg, label='Phi'), 
+            psichi_axis], 
+            sparse=True)
          
-            # Fill histogram:
-            self.binned_data.fill(self.cosi_dataset['TimeTags']*u.s, self.cosi_dataset['Energies']*u.keV, np.rad2deg(self.cosi_dataset['Phi'])*u.deg, coords)
-      
+        # Fill histogram:
+        if event_range == None:
+            self.binned_data.fill(self.cosi_dataset['TimeTags']*u.s, 
+                    self.cosi_dataset['Energies']*u.keV, 
+                    np.rad2deg(self.cosi_dataset['Phi'])*u.deg, 
+                    coords)
+        if event_range != None:
+            low = int(event_range[0])
+            high = int(event_range[1])
+            self.binned_data.fill(self.cosi_dataset['TimeTags'][low:high]*u.s, 
+                    self.cosi_dataset['Energies'][low:high]*u.keV, 
+                    np.rad2deg(self.cosi_dataset['Phi'][low:high])*u.deg, 
+                    coords[low:high])
+
         # Save binned data to hdf5 file:
         if output_name != None:
             self.binned_data.write('%s.hdf5' %output_name, overwrite=True)
@@ -142,16 +138,31 @@ class BinnedData(UnBinnedData):
         # Plot the binned data:
         if make_binning_plots == True:
             self.plot_binned_data()  
-            if psichi_old == True:
-                self.plot_psichi_map()
-            if psichi_old == False:
-                self.plot_psichi_map_new()
+            self.plot_psichi_map()
 
         return
 
     def load_binned_data_from_hdf5(self,binned_data):
 
-        """Loads binned histogram from hdf5 file."""
+        """Loads binned histogram from hdf5 file.
+        
+        Parameters
+        ----------
+        binned_data : str
+            Name of binned data file to load. 
+
+        Returns
+        -------
+        binned_data : histpy:Histogram
+            Data is binned in four axes: time, measured energy, 
+            Compton scattering angle (phi), and scattering direction 
+            (PsiChi).
+
+        Note
+        ----
+        This method sets the instance attribute, binned_data, 
+        but it does not explicitly return it.
+        """
         
         self.binned_data = Histogram.open(binned_data)    
 
@@ -159,10 +170,12 @@ class BinnedData(UnBinnedData):
 
     def get_binning_info(self, binned_data=None):
 
-        """
-        Get binning information from Histpy histogram.
-        Optional input:
-        binned_data: Histogram object (hdf5).
+        """Get binning information from Histpy histogram.
+        
+        Parameters
+        ----------
+        binned_data : str
+            Name of binned data hdf5 file to use.
         """
         
         # Option to read in binned data from hdf5 file:
@@ -206,10 +219,12 @@ class BinnedData(UnBinnedData):
 
     def plot_binned_data(self, binned_data=None):
 
-        """
-        Plot binnned data for all axes.
-        Optional input:
-        binned_data: Histogram object (hdf5).
+        """Plot binnned data for all axes.
+        
+        Parameters
+        ----------
+        binned_data : histpy:Histogram, optional
+            Name of binned histogram to use. 
         """
         
         # Option to read in binned data from hdf5 file:
@@ -241,7 +256,7 @@ class BinnedData(UnBinnedData):
  
         return
 
-    def plot_psichi_map_new(self):
+    def plot_psichi_map(self):
         
         """
         Plot psichi healpix map.
@@ -258,50 +273,24 @@ class BinnedData(UnBinnedData):
 
         return
 
-    def plot_psichi_map(self, healpix_map=None):
-
-        """
-        Plot psichi healpix map.
-        Optional input:
-        healpix_map: Healpix map object.
-        """
-
-        # Option to read in healpix map from fits file.
-        if healpix_map:
-            self.m = HealpixMap(nside = self.nside, scheme = self.scheme, dtype = int).read_map(healpix_map)
-
-        # Plot PsiChi mhealpy default:
-        plot,ax = self.m.plot()
-        ax.get_figure().set_figwidth(4) 
-        ax.get_figure().set_figheight(3)
-        plt.title("PsiChi Binning (counts)")
-        plt.savefig("psichi_default.png",bbox_inches='tight')
-        plt.show()
-        plt.close()
-
-        # Plot PsiChi mhealpy rotated:
-        plot,ax = self.m.plot(ax = 'orthview', ax_kw = {'rot':[0,90,0]})
-        ax.get_figure().set_figwidth(3)  
-        ax.get_figure().set_figheight(4)
-        plt.title("PsiChi Binning (counts)")
-        plt.savefig("psichi_rotated.png",bbox_inches='tight')
-        plt.show()
-        plt.close()
-    
-        return
-
     def plot_psichi_map_slices(self, Em, phi, output, binned_data=None, coords=None):
 
-        """
-        Plot psichi map in slices of Em and phi.
-        Inputs:
-        Em: Bin of energy slice.
-        phi: Bin of phi slice.
-        output: Name of output plot. 
-        binned_data (optional): Histogram object (hdf5).
-        coords (optional; list): Coordinates of source position. 
-            - Galactic longitude and latidude for Galactic coordinates.
-            - Azimuthal and latitude for local coordinates. 
+        """Plot psichi map in slices of Em and phi.
+        
+        Parameters
+        ----------
+        Em : int 
+            Bin of energy slice.
+        phi : int 
+            Bin of phi slice.
+        output : str
+            Prefix of output plot. 
+        binned_data : histpy:Histogram, optional
+            Name of binned histogram to use. 
+        coords : list, optional
+            Coordinates of source position. Galactic longitude and 
+            latidude for Galactic coordinates. Azimuthal and latitude 
+            for local coordinates. 
         """
 
         # Option to read in binned data from hdf5 file:
@@ -338,13 +327,16 @@ class BinnedData(UnBinnedData):
 
     def get_raw_spectrum(self, binned_data=None, time_rate=False, output_name=None):
 
-        """
-        Calculates raw spectrum of binned data, plots, and writes to file. 
+        """Calculates raw spectrum of binned data, plots, and writes to file. 
         
-        Inputs (all optional):
-        binned_data: Binnned data file (hdf5).
-        output_name: Prefix of output files. 
-        time_rate: If True calculates ct/keV/s. The defualt is ct/keV. 
+        Parameters
+        ----------
+        binned_data : str, optional
+            Name of binnned hdf5 data file.
+        output_name : str, optional
+            Prefix of output files. Writes both pdf and dat file. 
+        time_rate : bool, optional
+            If True, calculates ct/keV/s. The defualt is ct/keV. 
         """
 
         # Make print statement:
@@ -382,11 +374,14 @@ class BinnedData(UnBinnedData):
 
     def get_raw_lightcurve(self, binned_data=None, output_name=None):
 
-        """
-        Calculates raw lightcurve of binned data, plots, and writes data to file.
+        """Calculates raw lightcurve of binned data, plots, and writes data to file.
         
-        Inputs (optional):
-        binned_data: Binnned data file (hdf5).
+        Parameters
+        ----------
+        binned_data : str, optional
+            Name of binnned hdf5 data file to use.
+        output_name : str, optional
+            Prefix of output files. Writes both pdf and dat file. 
         """
 
         # Make print statement:
