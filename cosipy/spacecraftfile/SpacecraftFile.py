@@ -76,7 +76,19 @@ class SpacecraftFile():
     @classmethod
     def parse_from_file(cls, file):
 
-        #parses timestamps, axis positions from file and returns to __init__
+        """
+        Parses timestamps, axis positions from file and returns to __init__.
+
+        Parameters
+        ----------
+        file : str
+            The file path of the pointings.
+
+        Returns
+        -------
+        cosipy.spacecraftfile.SpacecraftFile
+            The SpacecraftFile object.
+        """
 
         time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1, comments=("#","EN"))
         axis_1 = np.loadtxt(file, usecols = (3,2), delimiter = ' ', skiprows = 1, comments=("#","EN"))
@@ -95,11 +107,13 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        time_array: None or np.array; If None, the time array will be taken from the instance
+        time_array : None or numpy.ndarray, default=None
+            If None, the time array will be taken from the instance.
 
         Returns
         -------
         astropy.Time
+            The time stamps of the orientation.
         """
 
         if time_array == None:
@@ -112,15 +126,17 @@ class SpacecraftFile():
     def get_time_delta(self, time_array = None):
 
         """
-        Return an array of the time period between neighbouring time points
+        Return an array of the time period between neighbouring time points.
 
         Parameters
         ----------
-        time_array: None or np.array; If None, the time array will be taken from the instance
+        time_array: None or numpy.ndarray, default=None
+            If None, the time array will be taken from the instance.
 
         Returns
         -------
-        astropy.Time
+        time_delta : astropy.Time
+            The time difference between the neighbouring time stamps.
         """
 
         if time_array == None:
@@ -135,7 +151,7 @@ class SpacecraftFile():
     def interpolate_direction(self, trigger, idx, direction):
 
         """
-        Linearly interpolates position at a given time between two timestamps
+        Linearly interpolates position at a given time between two timestamps.
 
         Parameters
         ----------
@@ -230,14 +246,19 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        x_pointings : SkyCoord object; the pointings of the x axis of the spacecraft.
-        y_pointings : SkyCoord object; the pointings of the y axis of the spacecraft.
-        z_pointings : SkyCoord object; the pointings of the z axis of the spacecraft.
-        frame : :py:class:`astropy.coordinates.BaseCoordinateFrame`; Inertial reference frame
+        x_pointings : astropy.coordinates.SkyCoord, default=None
+            The pointings of the x axis of the spacecraft.
+        y_pointings : astropy.coordinates.SkyCoord, default=None
+            The pointings of the y axis of the spacecraft.
+        z_pointings : astropy.coordinates.SkyCoord, default=None
+            The pointings of the z axis of the spacecraft.
+        frame : astropy.coordinates.BaseCoordinateFrame, default=None
+            Inertial reference frame.
 
         Returns
         -------
         cosipy.attitude
+            The attitude of the spacecraft.
         """
         if self.attitude is None:
             # the attitude is None, we will calculate from the x, y and z pointings
@@ -275,13 +296,21 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        target_name: str; the name of the target object
-        target_coord: astropy.Skycoord; the coordinates of the target object
-        attitude: None or cosipy.Attitude; If not, the attitude will be taken from the instance
+        target_name : str
+            The name of the target object.
+        target_coord : astropy.Skycoord
+            The coordinates of the target object.
+        attitude : None or cosipy.Attitude, default=None
+            If not, the attitude will be taken from the instance
+        quiet : bool, default=False
+            Setting `True` to stop printing the messages.
+        save : bool, default=False
+            Setting `True` to save the target coordinates in the spacecraft frame.
 
         Returns
         -------
-        SkyCoord object
+        astropy.coordinates.SkyCoord
+            The target coordinates in the spacecraft frame.
         """
 
         if attitude != None:
@@ -324,13 +353,17 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        response : str; .h5 file, the response for the observation
-        dts : None or numpy.ndarray; the elapsed time for each pointing. It must has the same size as the pointings
-        src_path : SkyCoord object; the movement of source in the detector frame.
+        response : str or pathlib.Path
+            The path to the response.
+        dts : None or numpy.ndarray
+            The elapsed time for each pointing. It must has the same size as the pointings.
+        src_path : SkyCoord object
+            The movement of source in the detector frame.
 
         Returns
         -------
         mhealpy.containers.healpix_map.HealpixMap
+            The dwell time map.
         """
 
         # Define the response
@@ -402,22 +435,31 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        response : .h5 file; the response for the observation
-        dwell_map : None or str; the time dwell map for the source, you can load saved dwell time map
-                    using this parameterif you've saved it before
-        dts : numpy array or the file path; the elapsed time for each pointing. It must has the same
-              size as the pointings. If you have saved this array, you can load it using this parameter
+        response : str or pathlib.Path, default=None
+            The response for the observation
+        dwell_map : None or str, default=None
+            The time dwell map for the source, you can load saved dwell time map using this parameter if you've saved it before.
+        dts : numpy.ndarray or str, default=None
+            The elapsed time for each pointing. It must has the same size as the pointings. If you have saved this array, you can load it using this parameter.
 
         Returns
         -------
-        Ei_edges : numpy array; the edges of the incident energy
-        Ei_lo : numpy array; the lower edges of the incident energy
-        Ei_hi : numpy array; the upper edges of the incident energy
-        Em_edges : numpy array; the edges of the measured energy
-        Em_lo : numpy array; the lower edges of the measured energy
-        Em_hi : numpy array; the upper edges of the measured energy
-        areas " numpy array; the effective area of each energy bin
-        matrix : numpy.array; the energy dispersion matrix
+        Ei_edges : numpy.ndarray
+            The edges of the incident energy.
+        Ei_lo : numpy.ndarray
+            The lower edges of the incident energy.
+        Ei_hi : numpy.ndarray
+            The upper edges of the incident energy.
+        Em_edges : numpy.ndarray
+            The edges of the measured energy.
+        Em_lo : numpy.ndarray
+            The lower edges of the measured energy.
+        Em_hi : numpy.ndarray
+            The upper edges of the measured energy.
+        areas : numpy.ndarray
+            The effective area of each energy bin.
+        matrix : numpy.ndarray
+            The energy dispersion matrix.
         """
 
         if response == None:
@@ -466,11 +508,12 @@ class SpacecraftFile():
     def get_arf(self, out_name = None):
 
         """
-        Converts the point source response to an arf file that can be read by XSPEC
+        Converts the point source response to an arf file that can be read by XSPEC.
 
         Parameters
         ----------
-        out_name: str; the name of the arf file to save
+        out_name: str or None, default=None
+            The name of the arf file to save.
 
         Returns
         -------
@@ -523,11 +566,12 @@ class SpacecraftFile():
     def get_rmf(self, out_name = None):
 
         """
-        Converts the point source response to an rmf file that can be read by XSPEC
+        Converts the point source response to an rmf file that can be read by XSPEC.
 
         Parameters
         ----------
-        out_name: str; the name of the rmf file to save
+        out_name: str or None, default=None
+            The name of the arf file to save.
 
         Returns
         -------
@@ -667,17 +711,24 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        src_counts : np.array; the counts in each energy band. If you have src_counts with unit counts/kev/s, you must
-                     convert it to counts by multiplying it with exposure time and the energy band width
-        errors : np.array; the error for counts. It has the same unit requirement as src_counts
-        rmf_file : str; the rmf file name
-        arf_file : str; the arf file name
-        bkg_file : str; the background file name. If the src_counts is source counts only, you don't need to edit this parameter
-        exposure_time : number; the exposure time for this source observation
-        dts : numpy array or str; it's used to calculate the exposure time. It has the same effect as exposure_time. If both
-              exposure_time and dts are given, dts will write over the exposure_time
-        telescope : str; the name of the telecope. Default is COSI.
-        instrument : str; the name of the instrument. Default is COSI.
+        src_counts : numpy.ndarray
+            The counts in each energy band. If you have src_counts with unit counts/kev/s, you must convert it to counts by multiplying it with exposure time and the energy band width.
+        errors : numpy.ndarray
+            The error for counts. It has the same unit requirement as src_counts.
+        rmf_file : str, default=None
+            The rmf file name.
+        arf_file : str, default=None
+            The arf file name.
+        bkg_file : str, default="None"
+            The background file name. If the src_counts is source counts only, you don't need to edit this parameter. 
+        exposure_time : None or float, default=None
+            The exposure time for this source observation.
+        dts : numpy.ndarray or str, default=None
+            It's used to calculate the exposure time. It has the same effect as exposure_time. If both exposure_time and dts are given, dts will write over the exposure_time
+        telescope : str
+            The name of the telecope. Default is COSI.
+        instrument : str
+            The name of the instrument. Default is COSI.
 
         Returns
         -------
@@ -774,9 +825,12 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        file_name: str; the directory if the arf fits file.
-        save_name: str; the name of the saved image of effective area
-        dpi: int; the dpi of the saved image
+        file_name: str
+            The directory if the arf fits file.
+        save_name: str
+            The name of the saved image of effective area.
+        dpi: int
+            The dpi of the saved image.
 
         Returns
         -------
@@ -827,9 +881,12 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        file_name: str; the directory if the rmf fits file.
-        save_name: str; the name of the saved image of effective area
-        dpi: int; the dpi of the saved image
+        file_name: str
+            The directory if the rmf fits file.
+        save_name: str
+            The name of the saved image of effective area.
+        dpi: int
+            The dpi of the saved image.
 
         Returns
         -------

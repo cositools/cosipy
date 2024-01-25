@@ -20,15 +20,22 @@ class FastTSMap():
     def __init__(self, data, bkg_model, response_path, orientation = None, cds_frame = "local", scheme = "RING"):
         
         """
-        Initialize the instance
+        Initialize the instance if a TS map fit.
         
         Parameters
         ----------
-        data: histpy.Histogram; observed data, whichincludes counts from both signal and background
-        bkg_model: histpy.Histogram; background model, which includes the background counts to model the background in observed data
-        orientation: cosipy.SpacecraftFile; the orientation of the spacecraft when data are collected
-        response_path: pathlib.Path; the path to the response file
-        cds_frame: str; "local" or "galactic", it's the frame of the data, bkg_model and the response 
+        data : histpy.Histogram
+            Observed data, which includes counts from both signal and background.
+        bkg_model : histpy.Histogram
+            Background model, which includes the background counts to model the background in the observed data.
+        response_path : str or pathlib.Path
+            The path to the response file.
+        orientation : cosipy.SpacecraftFile, default=None
+            The orientation of the spacecraft when data are collected.
+        cds_frame : str, default="local"
+            "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame.
+        scheme : str, default="RING"
+            The scheme of the TS map.
         
         Returns
         -------
@@ -44,17 +51,21 @@ class FastTSMap():
     @staticmethod
     def slice_energy_channel(hist, channel_start, channel_stop):
         """
-        Slice one or more bins along first axis
+        Slice one or more bins along first axis of the `hist`.
         
         Parameters
         ----------
-        hist: histpy.Histogram; the hist to be sliced
-        channel_start: int; the start of the slice (inclusive)
-        channel_stop: int; the stop of the slice (exclusive)
+        hist : histpy.Histogram
+            The histogram object to be sliced.
+        channel_start : int
+            The start of the slice (inclusive)
+        channel_stop : int
+            The stop of the slice (exclusive)
         
         Returns
         -------
-        sliced_hist: histpy.Histogram: the sliced hist
+        sliced_hist : histpy.Histogram
+            The sliced histogram.
         """
         
         sliced_hist = hist.slice[channel_start:channel_stop,:]
@@ -65,15 +76,21 @@ class FastTSMap():
     def get_hypothesis_coords(nside, scheme = "RING", coordsys = "galactic"):
         
         """
-        Get a list of hypothesis coordinates
+        Get a list of hypothesis coordinates.
         
         Parameters
         ----------
-        nside: int; the nside of the map
+        nside : int
+            The nside of the map.
+        scheme : str, default="RING"
+            The scheme of the map where the hypothesis coordinates are generated.
+        coordsys : str, default="galactic"
+            The coordinate system used in the map where the hypothesis coordinates are generated.
         
         Returns
         -------
-        hypothesis_coords: list; the list of the hypothesis coordinates at the center of each pixel
+        hypothesis_coords : list
+            The list of the hypothesis coordinates at the center of each pixel
         """
         
         data_array = np.zeros(hp.nside2npix(nside))
@@ -94,12 +111,15 @@ class FastTSMap():
         
         Parameters
         -----------
-        hist: histpy.Histogram; input Histogram
-        energy_channel: list; [lower_channel, upper_chanel]
-        
+        hist : histpy.Histogram
+            The input Histogram.
+        energy_channel : list
+            The format is `[lower_channel, upper_chanel]`. The lower_channel is inclusive while the upper_channel is exclusive.
+
         Returns
         -------
-        cds_array
+        cds_array : numpy.ndarray
+            The flattended Compton data space (CDS) array.
         
         """
         if not isinstance(hist, Histogram):
@@ -118,20 +138,25 @@ class FastTSMap():
         return cds_array
     
     @staticmethod
-    def get_expectation_in_galactic(hypothesis_coord, response_path, spectrum):
+    def get_psr_in_galactic(hypothesis_coord, response_path, spectrum):
         
         """
-        Get the expectation in galactic. Please be aware that you must use a galactic response!
-        # to do: to make the weight parameter not hardcoded
+        Get the point source response (psr) in galactic. Please be aware that you must use a galactic response!
+        To do: to make the weight parameter not hardcoded
         
         Parameters
         ----------
-        hypothesis_coord:
-        spectrum:
+        hypothesis_coord : astropy.coordinates.SkyCoord
+            The hypothesis coordinate.
+        response_path : str or path.lib.Path
+            The path to the response.
+        spectrum : astromodel spectrum
+            The spectrum of the source to be placed at the hypothesis coordinate.
         
         Returns
         -------
-        expectation
+        psr : histpy.Histogram
+            The point source response of the spectrum at the hypothesis coordinate.
         """
         
         # Open the response
@@ -171,15 +196,23 @@ class FastTSMap():
         
         Parameters
         ----------
-        hypothesis_coord
-        energy_channel
-        orientation
-        response_path
-        spectrum
+        hypothesis_coord : astropy.coordinates.SkyCoord
+            The hypothesis coordinate. 
+        energy_channel : list
+            The format is `[lower_channel, upper_chanel]`. The lower_channel is inclusive while the upper_channel is exclusive.
+        response_path : str or pathlib.Path
+            The path to the response file.
+        spectrum : astromodel spectrum
+            The spectrum of the source.
+        cds_frame : str, default="local"
+            "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame.
+        orientation : cosipy.SpacecraftFile, default=None
+            The orientation of the spacecraft when data are collected.
         
         Returns
         -------
-        cds_array
+        cds_array : numpy.ndarray
+            The flattended Compton data space (CDS) array.
         """
                          
         # check inputs, will complete later
@@ -203,7 +236,7 @@ class FastTSMap():
 
         elif cds_frame == "galactic":
             
-            psr = FastTSMap.get_expectation_in_galactic(hypothesis_coord = hypothesis_coord, response_path = response_path, spectrum = spectrum)
+            psr = FastTSMap.get_psr_in_galactic(hypothesis_coord = hypothesis_coord, response_path = response_path, spectrum = spectrum)
             
         else:
             raise ValueError("The point source response must be calculated in the local and galactic frame. Others are not supported (yet)!")
@@ -221,6 +254,38 @@ class FastTSMap():
                     energy_channel, data_cds_array, bkg_model_cds_array, 
                     orientation, response_path, spectrum, cds_frame,
                     ts_nside, ts_scheme):
+
+        """
+        Perform a TS fit on a single location at `hypothesis_coord`.
+
+        Parameters
+        ----------
+        hypothesis_coord : astropy.coordinates.SkyCoord
+            The hypothesis coordinate. 
+        energy_channel : list
+            The format is `[lower_channel, upper_chanel]`. The lower_channel is inclusive while the upper_channel is exclusive.
+        data_cds_array : numpy.ndarray
+            The flattened Compton data space (CDS) array of the data.
+        bkg_model_cds_array : numpy.ndarray
+            The flattened Compton data space (CDS) array of the background model.
+        orientation : cosipy.SpacecraftFile
+            The orientation of the spacecraft when data are collected. 
+        response_path : str or pathlib.Path
+            The path to the response file.
+        spectrum : astromodel spectrum
+            The spectrum of the source.
+        cds_frame : str, default="local"
+            "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame.
+        ts_nside : int
+            The nside of the ts map.
+        ts_scheme : str
+            The scheme of the Ts map.
+
+        Rsturns
+        -------
+        list
+            The list of the resulting TS fit: [pix number, ts value, norm, norm_err, failed, iterations, time_ei_cds_array, time_fit, time_fast_ts_fit]
+        """
         
         start_fast_ts_fit = time.time()
         
@@ -257,14 +322,23 @@ class FastTSMap():
         
         Parameters
         ----------
-        hypothesis_coords: list; a list of the hypothesis coordinates
-        energy_channel: list; the energy channel you want to use: [lower_channel, upper_channel]
-        spectrum: astromodels; the model to be placed at the hypothesis coordinates
-        ts_scheme: str; "RING" or "NESTED"
+        hypothesis_coords : list
+            A list of the hypothesis coordinates
+        energy_channel : list
+            the energy channel you want to use: [lower_channel, upper_channel]. lower_channel is inclusive while upper_channel is exclusive.
+        spectrum : astromodel spectrum
+            The spectrum of the source.
+        ts_scheme : str, default="RING"
+            The scheme of the TS map.
+        start_method : str, default="fork"
+            The starting method of the parallel computation.
+        cpu_cores : bool, default=None
+            The number of cpu cores you wish to use for the parallel computation.
         
         Returns
         -------
-        ts_values
+        results : numpy.ndarray
+            The result of the ts fit over all the hypothesis coordinates.
         """
         
         # decide the ts_nside from the list of hypothesis coordinates
@@ -289,9 +363,11 @@ class FastTSMap():
             # if you don't specify the number of cpu cores to use or the specified number of cpu cores is the same as the total number of cores you have
             # it will use the [total_cores - 1] number of cores to run the parallel computation.
             cores = total_cores - 1
+            print(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
         else:
             cores = cpu_cores
-            
+            print(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
+
         start = time.time()
         multiprocessing.set_start_method(start_method, force = True)
         pool = multiprocessing.Pool(processes = cores)
@@ -321,9 +397,12 @@ class FastTSMap():
 
         Parameters
         ----------
-        result_array: the result array from parallel ts fit
-        skycoord: the true location of the source
-        containment: None or float; the containment level of the source. If None, it will plot raw TS values
+        result_array : numpy.ndarray
+            The result array from parallel ts fit
+        skyoord : astropy.coordinates.SkyCoord
+            The true location of the source
+        containment: None or float, default=0.9
+            The containment level of the source. If None, it will plot raw TS values
 
         Returns
         -------
@@ -362,6 +441,24 @@ class FastTSMap():
 
     def plot_ts(self, skycoord = None, result_array = None, containment = None):
 
+        """
+        Plot the containment region of the TS map.
+
+        Parameters
+        ----------
+        skyoord : astropy.coordinates.SkyCoord
+            The true location of the source
+        result_array : numpy.ndarray
+            The result array from parallel ts fit
+        containment: None or float, default=None
+            The containment level of the source. If None, it will plot raw TS values
+
+        Returns
+        -------
+        None
+        """
+
+
         if result_array == None:
             result_array = self.result_array
 
@@ -371,6 +468,20 @@ class FastTSMap():
 
     @staticmethod
     def get_chi_critical_value(containment = 0.90):
+        
+        """
+        Get the critical value of the chi^2 distribution based ob the confidence level.
+
+        Parameters
+        ----------
+        containment : float
+            The confidence level of the chi^2 distribution.
+
+        Returns
+        -------
+        float
+            The critical value corresponds to the confidence level.
+        """
 
         return scipy.stats.chi2.ppf(containment, df=2)
     
