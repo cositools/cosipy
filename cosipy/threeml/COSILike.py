@@ -37,15 +37,14 @@ class COSILike(PluginPrototype):
     
     def __init__(self, name, dr, data, bkg, sc_orientation, 
                  nuisance_param=None, coordsys=None, precomputed_psr_file=None, **kwargs):
-        
         """
-        COSI 3ML plugin
+        COSI 3ML plugin.
         
         Parameters
         ----------
-        name : str
+        name: str
             Plugin name e.g. "cosi". Needs to have a distinct name with respect to other plugins in the same analysis
-        dr : Path
+        dr: Path
             Path to full detector response
         data: histpy.Histogram
             Binned data. Note: Eventually this should be a cosipy data class
@@ -54,14 +53,14 @@ class COSILike(PluginPrototype):
         sc_orientation: cosipy.spacecraftfile.SpacecraftFile
             Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
             the spacecraft for the duration of the data included in the analysis
-        nuisance_param: astromodels.core.parameter.Parameter
-            Background parameter (optional)
-        coordsys: str
+        nuisance_param: astromodels.core.parameter.Parameter, optional
+            Background parameter
+        coordsys: str, optional
             Coordinate system ('galactic' or 'spacecraftframe') to perform fit in, which should match coordinate system of data 
             and background. This only needs to be specified if the binned data and background do not have a coordinate system 
             attached to them
-        precomputed_psr_file: str
-            Full path to precomputed point source response in Galactic coordinates (optional) 
+        precomputed_psr_file: str, optional
+            Full path to precomputed point source response in Galactic coordinates
         """
         
         # create the hash for the nuisance parameters. We have none for now.
@@ -121,13 +120,13 @@ class COSILike(PluginPrototype):
             print("--> done")
         
     def set_model(self, model):
-        
         """
         Set the model to be used in the joint minimization.
         
         Parameters
         ----------
-        model: astromodels.core.model.Model; any model supported by astromodels
+        model: astromodels.core.model.Model
+            Any model supported by astromodels
         """
     
         # Get point sources and extended sources from model: 
@@ -265,13 +264,13 @@ class COSILike(PluginPrototype):
         self._model = model
 
     def get_log_like(self):
-        
         """
-        Return the value of the log-likelihood.
+        Calculate the log-likelihood.
         
         Returns
         ----------
         log_like: float
+            Value of the log-likelihood
         """
         
         # Recompute the expectation if any parameter in the model changed
@@ -308,25 +307,25 @@ class COSILike(PluginPrototype):
         return log_like
     
     def inner_fit(self):
-        
         """
-        This fits nuisance parameters.
+        Required for 3ML fit.
         """
         
         return self.get_log_like()
     
     def _get_dwell_time_map(self, coord):
-        
         """
-        Get the dwell time map of the source in the spacecraft frame.
+        Get the dwell time map of the source in the inertial (spacecraft) frame.
         
         Parameters
         ----------
-        coord: astropy.coordinates.SkyCoord; the coordinate of the target source.
+        coord: astropy.coordinates.SkyCoord
+            Coordinates of the target source
         
         Returns
         -------
         dwell_time_map: mhealpy.containers.healpix_map.HealpixMap
+            Dwell time map
         """
         
         self._sc_orientation.get_target_in_sc_frame(target_name = self._name, target_coord = coord)
@@ -335,14 +334,8 @@ class COSILike(PluginPrototype):
         return dwell_time_map
     
     def _get_scatt_map(self):
-        
         """
         Get the spacecraft attitude map of the source in the inertial (spacecraft) frame.
-        
-        Parameters
-        ----------
-        nside: int; resolution of scatt map
-        coordsys: BaseFrameRepresentation or str; coordinate system of map
         
         Returns
         -------
@@ -354,13 +347,13 @@ class COSILike(PluginPrototype):
         return scatt_map
     
     def set_inner_minimization(self, flag: bool):
-       
         """
-        Turn on the minimization of the internal COSI parameters.
+        Turn on the minimization of the internal COSI (nuisance) parameters.
         
         Parameters
         ----------
-        flag: bool; turns on and off the minimization  of the internal parameters
+        flag: bool
+            Turns on and off the minimization  of the internal parameters
         """
         
         self._fit_nuisance_params: bool = bool(flag)
