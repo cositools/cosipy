@@ -20,13 +20,20 @@ class SpacecraftFile():
                  instrument = "COSI", frame = "galactic"):
 
         """
-        Time: astropy.Time; The time stamp for each pointings. Note this is NOT the time duration.
-        x_pointings: astropy.coordinates.SkyCoord; The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft.
-        y_pointings: astropy.coordinates.SkyCoord; The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft.
-        z_pointings: astropy.coordinates.SkyCoord; The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft.
-        attitude: numpy.ndarray: the attitude of the spacecraft.
-        instrument: string; the instrument name.
-        frame: string; the frame on which the analysis will be based.
+        Time : astropy.Time
+            The time stamps for each pointings. Note this is NOT the time duration.
+        x_pointings : astropy.coordinates.SkyCoord or NoneType, optional
+            The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft (the default is None, which implies no input for the x pointings).
+        y_pointings : astropy.coordinates.SkyCoord or NoneType, optional
+            The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft (the default is None, which implies no input for the y pointings).
+        z_pointings : astropy.coordinates.SkyCoord or NoneType, optional
+            The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft (the default is None, which implies no input for the z pointings).
+        attitude: numpy.ndarray or NoneType, optional
+            The attitude of the spacecraft (the default is None, which implies no input for the attitude of the spacecraft).
+        instrument : str, optional
+            The instrument name (the default is "COSI")
+        frame : str, optional
+            The frame on which the analysis will be based (the default is "galactic").
         """
 
         # check if the inputs are valid
@@ -107,8 +114,8 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        time_array : None or numpy.ndarray, default=None
-            If None, the time array will be taken from the instance.
+        time_array : numpy.ndarray or NoneType, optional
+            The time array (the default is None, which implies the time array will be taken from the instance).
 
         Returns
         -------
@@ -130,8 +137,8 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        time_array: None or numpy.ndarray, default=None
-            If None, the time array will be taken from the instance.
+        time_array : numpy.ndarray or NoneType, optional
+           The time delta array (the default is None, which implies the time array will be taken from the instance).
 
         Returns
         -------
@@ -246,14 +253,12 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        x_pointings : astropy.coordinates.SkyCoord, default=None
-            The pointings of the x axis of the spacecraft.
-        y_pointings : astropy.coordinates.SkyCoord, default=None
-            The pointings of the y axis of the spacecraft.
-        z_pointings : astropy.coordinates.SkyCoord, default=None
-            The pointings of the z axis of the spacecraft.
-        frame : astropy.coordinates.BaseCoordinateFrame, default=None
-            Inertial reference frame.
+        x_pointings : astropy.coordinates.SkyCoord or NoneType, optional
+            The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft (the default is None, which implies that the x pointings will be taken from the instance).
+        y_pointings : astropy.coordinates.SkyCoord or NoneType, optional
+            The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft (the default is None, which implies that the y pointings will be taken from the instance).
+        z_pointings : astropy.coordinates.SkyCoord or NoneType, optional
+            The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft (the default is None, which implies that the z pointings will be taken from the instance).
 
         Returns
         -------
@@ -300,8 +305,8 @@ class SpacecraftFile():
             The name of the target object.
         target_coord : astropy.Skycoord
             The coordinates of the target object.
-        attitude : None or cosipy.Attitude, default=None
-            If not, the attitude will be taken from the instance
+        attitude: cosipy.Attitude or NoneType, optional
+            The attitude of the spacecraft (the default is None, which implies the attitude will be taken from the instance).
         quiet : bool, default=False
             Setting `True` to stop printing the messages.
         save : bool, default=False
@@ -355,10 +360,14 @@ class SpacecraftFile():
         ----------
         response : str or pathlib.Path
             The path to the response.
-        dts : None or numpy.ndarray
-            The elapsed time for each pointing. It must has the same size as the pointings.
-        src_path : SkyCoord object
-            The movement of source in the detector frame.
+        dts : None or numpy.ndarray, optional
+            The elapsed time for each pointing. It must has the same size as the pointings (the default is None, which implies that the `dts` will be read from the instance).
+        ds_format : None or str, optional
+            The time format for `dts`. If the `dts` is provided by the `dts` argument, you must provide the time format using this argument (the default is None, which implies that there is no input for the time format for `dts`).
+        src_path : astropy.coordinates.SkyCoord or NoneType, optional
+            The movement of source in the detector frame (the default is None, which implies that the `src_path` will be read from the instance).
+        save : bool, default=False
+            Set True to save the dwell time map.
 
         Returns
         -------
@@ -409,6 +418,15 @@ class SpacecraftFile():
                        ):
         """
         Bin the spacecraft attitude history into a 4D histogram that contains the accumulated time the axes of the spacecraft where looking at a given direction. 
+
+        Paremeters
+        ----------
+        nside : int
+            The nside of the scatt map.
+        scheme : str, optional
+            The scheme of the scatt map (the default is "ring")
+        coordsys : str, optional
+            The coordinate system used in the scatt map (the default is "galactic).
         """
         
         # Get orientations
@@ -435,12 +453,12 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        response : str or pathlib.Path, default=None
-            The response for the observation
-        dwell_map : None or str, default=None
-            The time dwell map for the source, you can load saved dwell time map using this parameter if you've saved it before.
-        dts : numpy.ndarray or str, default=None
-            The elapsed time for each pointing. It must has the same size as the pointings. If you have saved this array, you can load it using this parameter.
+        response : str or pathlib.Path, optional
+            The response for the observation (the defaul is None, which implies that the `response` will be read from the instance).
+        dwell_map : None or str, optional
+            The time dwell map for the source, you can load saved dwell time map using this parameter if you've saved it before (the defaul is None, which implies that the `dwell_map` will be read from the instance).
+        dts : numpy.ndarray or str, optional
+            The elapsed time for each pointing. It must has the same size as the pointings. If you have saved this array, you can load it using this parameter (the defaul is None, which implies that the `dts` will be read from the instance).
 
         Returns
         -------
@@ -512,8 +530,8 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        out_name: str or None, default=None
-            The name of the arf file to save.
+        out_name: str or NoneType
+            The name of the arf file to save. (the default is None, which implies that the saving name will be the target name of the instance).
 
         Returns
         -------
@@ -570,9 +588,9 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        out_name: str or None, default=None
-            The name of the arf file to save.
-
+        out_name: str or NoneType
+            The name of the arf file to save. (the default is None, which implies that the saving name will be the target name of the instance).
+            
         Returns
         -------
         None
@@ -715,20 +733,20 @@ class SpacecraftFile():
             The counts in each energy band. If you have src_counts with unit counts/kev/s, you must convert it to counts by multiplying it with exposure time and the energy band width.
         errors : numpy.ndarray
             The error for counts. It has the same unit requirement as src_counts.
-        rmf_file : str, default=None
-            The rmf file name.
-        arf_file : str, default=None
-            The arf file name.
-        bkg_file : str, default="None"
-            The background file name. If the src_counts is source counts only, you don't need to edit this parameter. 
-        exposure_time : None or float, default=None
-            The exposure time for this source observation.
-        dts : numpy.ndarray or str, default=None
-            It's used to calculate the exposure time. It has the same effect as exposure_time. If both exposure_time and dts are given, dts will write over the exposure_time
-        telescope : str
-            The name of the telecope. Default is COSI.
-        instrument : str
-            The name of the instrument. Default is COSI.
+        rmf_file : str or NoneType, optional
+            The rmf file name to be written into the pha file (the default is None, which implies that it uses the rmf file generate by function `get_rmf`)
+        arf_file : str or NoneType, optional
+            The arf file name to be written into the pha file (the default is None, which implies that it uses the arf file generate by function `get_arf`)
+        bkg_file : str or NoneType, optional
+            The background file name (the default is None, which implied the `src_counts` is source counts only).
+        exposure_time : NoneType or float, optional
+            The exposure time for this source observation (the default is None, which implied that the exposure time will be calculated by `dts`).
+        dts : numpy.ndarray or NoneType, optional
+            It's used to calculate the exposure time. It has the same effect as exposure_time. If both exposure_time and dts are given, dts will write over the exposure_time (the default is None, which implies that the `dts` will be read from the instance).
+        telescope : str, optional
+            The name of the telecope (the default is "COSI").
+        instrument : str, optional
+            The instrument name (the default is "COSI").
 
         Returns
         -------
@@ -825,12 +843,12 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        file_name: str
-            The directory if the arf fits file.
-        save_name: str
-            The name of the saved image of effective area.
-        dpi: int
-            The dpi of the saved image.
+        file_name: str or NoneType, optional
+            The directory if the arf fits file (the default is None, which implies the file name will be read from the instance).
+        save_name: str or NoneType, optional
+            The name of the saved image of effective area (the default is None, which implies the file name will be read from the instance).
+        dpi: int, optional
+            The dpi of the saved image (the default is 300).
 
         Returns
         -------
@@ -881,13 +899,13 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        file_name: str
-            The directory if the rmf fits file.
-        save_name: str
-            The name of the saved image of effective area.
-        dpi: int
-            The dpi of the saved image.
-
+        file_name: str or NoneType, optional
+            The directory if the arf fits file (the default is None, which implies the file name will be read from the instance).
+        save_name: str or NoneType, optional
+            The name of the saved image of effective area (the default is None, which implies the file name will be read from the instance).
+        dpi: int, optional
+            The dpi of the saved image (the default is 300).
+            
         Returns
         -------
         None

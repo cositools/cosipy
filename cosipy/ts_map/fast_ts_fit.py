@@ -30,12 +30,12 @@ class FastTSMap():
             Background model, which includes the background counts to model the background in the observed data.
         response_path : str or pathlib.Path
             The path to the response file.
-        orientation : cosipy.SpacecraftFile, default=None
-            The orientation of the spacecraft when data are collected.
-        cds_frame : str, default="local"
-            "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame.
-        scheme : str, default="RING"
-            The scheme of the TS map.
+        orientation : cosipy.SpacecraftFile or NoneType, optional
+            The orientation of the spacecraft when data are collected (the default is None, which implies the orientation file is not needed).
+        cds_frame : str, optional
+            "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame (the default is "local", which implied that a local frame that attached to the spacecraft).
+        scheme : str, optional
+            The scheme of the CDS of data (the default is "RING", which implies a "RING" scheme of the data).
         
         Returns
         -------
@@ -82,10 +82,10 @@ class FastTSMap():
         ----------
         nside : int
             The nside of the map.
-        scheme : str, default="RING"
-            The scheme of the map where the hypothesis coordinates are generated.
-        coordsys : str, default="galactic"
-            The coordinate system used in the map where the hypothesis coordinates are generated.
+        scheme : str, optional
+            The scheme of the map where the hypothesis coordinates are generated (the default is "RING", which implies the "RING" scheme is used to get the hypothesis coordinates).
+        coordsys : str, optional
+            The coordinate system used in the map where the hypothesis coordinates are generated (the default is "galactic", which implies the galactic coordinates system is used).
         
         Returns
         -------
@@ -204,10 +204,10 @@ class FastTSMap():
             The path to the response file.
         spectrum : astromodel spectrum
             The spectrum of the source.
-        cds_frame : str, default="local"
+        cds_frame : str, optional
             "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame.
-        orientation : cosipy.SpacecraftFile, default=None
-            The orientation of the spacecraft when data are collected.
+        orientation : cosipy.SpacecraftFile or NoneType, optional
+            The orientation of the spacecraft when data are collected (the default is None, which implies the orientation file is not needed).
         
         Returns
         -------
@@ -274,8 +274,8 @@ class FastTSMap():
             The path to the response file.
         spectrum : astromodel spectrum
             The spectrum of the source.
-        cds_frame : str, default="local"
-            "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame.
+        cds_frame : str
+            "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame .
         ts_nside : int
             The nside of the ts map.
         ts_scheme : str
@@ -328,12 +328,12 @@ class FastTSMap():
             the energy channel you want to use: [lower_channel, upper_channel]. lower_channel is inclusive while upper_channel is exclusive.
         spectrum : astromodel spectrum
             The spectrum of the source.
-        ts_scheme : str, default="RING"
-            The scheme of the TS map.
-        start_method : str, default="fork"
-            The starting method of the parallel computation.
-        cpu_cores : bool, default=None
-            The number of cpu cores you wish to use for the parallel computation.
+        ts_scheme : str, optional
+            The scheme of the TS map (the default is "RING", which implies a "RING" scheme of the TS map).
+        start_method : str, optional
+            The starting method of the parallel computation (the default is "fork", which implies using the fork method to start parallel computation).
+        cpu_cores : int or NoneType, optional
+            The number of cpu cores you wish to use for the parallel computation (the default is None, which implies using all the available number of cores -1 to perform the parallel computation).
         
         Returns
         -------
@@ -390,7 +390,7 @@ class FastTSMap():
         return results
 
     @staticmethod
-    def _plot_ts(result_array, skycoord = None, containment = 0.9):
+    def _plot_ts(result_array, skycoord = None, containment = None):
 
         """
         Plot the containment region of the TS map.
@@ -398,11 +398,11 @@ class FastTSMap():
         Parameters
         ----------
         result_array : numpy.ndarray
-            The result array from parallel ts fit
-        skyoord : astropy.coordinates.SkyCoord
-            The true location of the source
-        containment: None or float, default=0.9
-            The containment level of the source. If None, it will plot raw TS values
+            The result array from parallel ts fit.
+        skyoord : astropy.coordinates.SkyCoord or NoneType, optional
+            The true location of the source (the default is None, which implies that there are no coordiantes to be printed on the TS map).
+        containment: NoneType or float, optional
+            The containment level of the source (the default is None, which will plot raw TS values).
 
         Returns
         -------
@@ -439,19 +439,17 @@ class FastTSMap():
 
         return
 
-    def plot_ts(self, skycoord = None, result_array = None, containment = None):
+    def plot_ts(self, skycoord = None, containment = 0.9):
 
         """
         Plot the containment region of the TS map.
 
         Parameters
         ----------
-        skyoord : astropy.coordinates.SkyCoord
-            The true location of the source
-        result_array : numpy.ndarray
-            The result array from parallel ts fit
-        containment: None or float, default=None
-            The containment level of the source. If None, it will plot raw TS values
+        skyoord : astropy.coordinates.SkyCoord or NoneType, optional
+            The true location of the source (the default is None, which implies that there are no coordiantes to be printed on the TS map).
+        containment: NoneType or float, optional
+            The containment level of the source (the default is 0.9, which implies plot the 90% containment region).
 
         Returns
         -------
@@ -459,8 +457,7 @@ class FastTSMap():
         """
 
 
-        if result_array == None:
-            result_array = self.result_array
+        result_array = self.result_array
 
         FastTSMap._plot_ts(result_array = result_array, skycoord = skycoord, containment = containment)
 
@@ -474,8 +471,8 @@ class FastTSMap():
 
         Parameters
         ----------
-        containment : float
-            The confidence level of the chi^2 distribution.
+        containment : float, optional
+            The confidence level of the chi^2 distribution (the default is 0.9, which implies that the 90% containment region).
 
         Returns
         -------
