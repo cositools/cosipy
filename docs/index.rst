@@ -1,7 +1,7 @@
 Welcome to cosipy's documentation!
 ==================================
 
-The cosipy library is `COSI <https://cosi.ssl.berkeley.edu/>`_'s high-level analysis software. It allows you to extract from imaging and spectral information from the data, as well as to perform statistical model comparisons. The cosipy product are meant to be ready for interpretation.
+The cosipy library is `COSI <https://cosi.ssl.berkeley.edu/>`_'s high-level analysis software. It allows you to extract imaging and spectral information from the data, as well as to perform statistical model comparisons. The cosipy product are meant to be ready for interpretation.
 
 The main repository is hosted in https://github.com/cositools/cosipy
 
