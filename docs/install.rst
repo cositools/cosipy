@@ -29,11 +29,11 @@ Optional but recommended step: install a conda environment::
   conda create -n <cosipy_env_name> python=3.10 pip
   conda activate <cosipy_env_name>
 
-Also optional but recommented: before installing cosipy, install the main
-dependencies from source (similar
+Also optional but recommended: before installing cosipy, install the main
+dependencies from the source (similar
 procedure as for cosipy below). These are histpy, mhealpy, scoords, threeml and
 astromodels. The reason is that these libraries might be changing rapidly to
-accomodate new features in cosipy. 
+accommodate new features in cosipy. 
   
 Do the following (preferably inside a conda environment)::
 
@@ -48,7 +48,7 @@ Testing
 .......
 
 .. warning::
-    Under construction. Unit tests not ready.
+    Under construction. Unit tests are not ready.
     
 When you make a change, check that it didn't break something by running::
 
@@ -69,10 +69,11 @@ You need pandoc, sphinx, nbsphinx, sphinx_rtd_theme and mock. Using conda::
 
     conda install -c conda-forge pandoc nbsphinx sphinx_rtd_theme mock
 
-Onece you have this requirements, run::
+Once you have these requirements, run::
 
     cd docs
     make html
 
 To read the documentation, open ``docs/_build/html/index.html`` in a browser.
+
 
