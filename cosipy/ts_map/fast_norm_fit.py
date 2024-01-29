@@ -240,4 +240,4 @@ class FastNormFit:
             #Assumed to be a numerical error
             ts = 0
 
-        return (ts, norm, norm_err, failed)
+        return (ts, norm, norm_err, failed, iteration)

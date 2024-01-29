@@ -26,7 +26,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Visualizing the response
   - Convolving the detector response with a point source model (location + spectrum) + spacecraft file to obtain the expected signal counts. Both in SC and galactic coordinates.
     
-4. TS Map: localizing a GRB `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/Parallel_TS_map_computation.ipynb>`_
+4. TS Map: localizing a GRB `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/ts_map/Parallel_TS_map_computation_DC2.ipynb>`_
   - TS calculation
   - Meaning of the TS map and how to compute confidence contours
   - Computing a TS map, get the best location and estimate the error
@@ -67,7 +67,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    Data format and handling <DataIO/DataIO_example.ipynb>
    Spacecraft orientation and location <Point_source_resonse.ipynb>
    Detector response and signal expectation <DetectorResponse.ipynb>
-   TS Map: localizing a GRB <Parallel_TS_map_computation.ipynb>
+   TS Map: localizing a GRB <ts_map/Parallel_TS_map_computation_DC2.ipynb>
    Fitting the spectrum of a GRB <spectral_fits/continuum_fit/grb/SpectralFit.ipynb>
    Fitting the spectrum of the Crab <spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>
    Extended source model fitting <spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>
