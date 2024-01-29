@@ -1,5 +1,5 @@
-COSILike
-========
+COSILike (3ML plugin)
+=====================
 
 ThreeML plugin
 

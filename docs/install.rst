@@ -47,6 +47,9 @@ having to run ``pip`` again.
 Testing
 .......
 
+.. warning::
+    Under construction. Unit tests not ready.
+    
 When you make a change, check that it didn't break something by running::
 
     pytest --cov=cosipy --cov-report term --cov-report html:tests/coverage_report
