@@ -835,7 +835,7 @@ class FullDetectorResponse(HealpixBase):
             Effective time spent by the source at each pixel location in spacecraft coordinates
         coord : :py:class:`astropy.coordinates.SkyCoord`
             Source coordinate
-        scatt_map : :py:cass:`SpacecraftAttitudeMap`
+        scatt_map : :py:class:`SpacecraftAttitudeMap`
             Spacecraft attitude map
         
         Returns

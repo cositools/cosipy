@@ -34,34 +34,33 @@ import logging
 logger = logging.getLogger(__name__)
 
 class COSILike(PluginPrototype):
-    
+    """
+    COSI 3ML plugin.
+
+    Parameters
+    ----------
+    name : str
+        Plugin name e.g. "cosi". Needs to have a distinct name with respect to other plugins in the same analysis
+    dr : str
+        Path to full detector response
+    data : histpy.Histogram
+        Binned data. Note: Eventually this should be a cosipy data class
+    bkg : histpy.Histogram
+        Binned background model. Note: Eventually this should be a cosipy data class
+    sc_orientation : cosipy.spacecraftfile.SpacecraftFile
+        Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
+        the spacecraft for the duration of the data included in the analysis
+    nuisance_param : astromodels.core.parameter.Parameter, optional
+        Background parameter
+    coordsys : str, optional
+        Coordinate system ('galactic' or 'spacecraftframe') to perform fit in, which should match coordinate system of data 
+        and background. This only needs to be specified if the binned data and background do not have a coordinate system 
+        attached to them
+    precomputed_psr_file : str, optional
+        Full path to precomputed point source response in Galactic coordinates
+    """
     def __init__(self, name, dr, data, bkg, sc_orientation, 
                  nuisance_param=None, coordsys=None, precomputed_psr_file=None, **kwargs):
-        """
-        COSI 3ML plugin.
-        
-        Parameters
-        ----------
-        name : str
-            Plugin name e.g. "cosi". Needs to have a distinct name with respect to other plugins in the same analysis
-        dr : str
-            Path to full detector response
-        data : histpy.Histogram
-            Binned data. Note: Eventually this should be a cosipy data class
-        bkg : histpy.Histogram
-            Binned background model. Note: Eventually this should be a cosipy data class
-        sc_orientation : cosipy.spacecraftfile.SpacecraftFile
-            Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
-            the spacecraft for the duration of the data included in the analysis
-        nuisance_param : astromodels.core.parameter.Parameter, optional
-            Background parameter
-        coordsys : str, optional
-            Coordinate system ('galactic' or 'spacecraftframe') to perform fit in, which should match coordinate system of data 
-            and background. This only needs to be specified if the binned data and background do not have a coordinate system 
-            attached to them
-        precomputed_psr_file : str, optional
-            Full path to precomputed point source response in Galactic coordinates
-        """
         
         # create the hash for the nuisance parameters. We have none for now.
         self._nuisance_parameters = collections.OrderedDict()
