@@ -34,35 +34,33 @@ import logging
 logger = logging.getLogger(__name__)
 
 class COSILike(PluginPrototype):
-    
+    """
+    COSI 3ML plugin.
+
+    Parameters
+    ----------
+    name : str
+        Plugin name e.g. "cosi". Needs to have a distinct name with respect to other plugins in the same analysis
+    dr : str
+        Path to full detector response
+    data : histpy.Histogram
+        Binned data. Note: Eventually this should be a cosipy data class
+    bkg : histpy.Histogram
+        Binned background model. Note: Eventually this should be a cosipy data class
+    sc_orientation : cosipy.spacecraftfile.SpacecraftFile
+        Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
+        the spacecraft for the duration of the data included in the analysis
+    nuisance_param : astromodels.core.parameter.Parameter, optional
+        Background parameter
+    coordsys : str, optional
+        Coordinate system ('galactic' or 'spacecraftframe') to perform fit in, which should match coordinate system of data 
+        and background. This only needs to be specified if the binned data and background do not have a coordinate system 
+        attached to them
+    precomputed_psr_file : str, optional
+        Full path to precomputed point source response in Galactic coordinates
+    """
     def __init__(self, name, dr, data, bkg, sc_orientation, 
                  nuisance_param=None, coordsys=None, precomputed_psr_file=None, **kwargs):
-        
-        """
-        COSI 3ML plugin
-        
-        Parameters
-        ----------
-        name : str
-            Plugin name e.g. "cosi". Needs to have a distinct name with respect to other plugins in the same analysis
-        dr : Path
-            Path to full detector response
-        data: histpy.Histogram
-            Binned data. Note: Eventually this should be a cosipy data class
-        bkg: histpy.Histogram
-            Binned background model. Note: Eventually this should be a cosipy data class
-        sc_orientation: cosipy.spacecraftfile.SpacecraftFile
-            Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
-            the spacecraft for the duration of the data included in the analysis
-        nuisance_param: astromodels.core.parameter.Parameter
-            Background parameter (optional)
-        coordsys: str
-            Coordinate system ('galactic' or 'spacecraftframe') to perform fit in, which should match coordinate system of data 
-            and background. This only needs to be specified if the binned data and background do not have a coordinate system 
-            attached to them
-        precomputed_psr_file: str
-            Full path to precomputed point source response in Galactic coordinates (optional) 
-        """
         
         # create the hash for the nuisance parameters. We have none for now.
         self._nuisance_parameters = collections.OrderedDict()
@@ -121,13 +119,13 @@ class COSILike(PluginPrototype):
             print("--> done")
         
     def set_model(self, model):
-        
         """
         Set the model to be used in the joint minimization.
         
         Parameters
         ----------
-        model: astromodels.core.model.Model; any model supported by astromodels
+        model : astromodels.core.model.Model
+            Any model supported by astromodels
         """
     
         # Get point sources and extended sources from model: 
@@ -194,7 +192,7 @@ class COSILike(PluginPrototype):
                 print("... Calculating point source responses ...")
 
                 self._psr = {}
-                self._source_location = {} # Shoule the poition information be in the point source response? (HY)
+                self._source_location = {} # Should the poition information be in the point source response? (HY)
 
                 for name, source in point_sources.items():
                     coord = source.position.sky_coord
@@ -240,20 +238,19 @@ class COSILike(PluginPrototype):
             # Convolve with spectrum
             # See also the Detector Response and Source Injector tutorials
             spectrum = source.spectrum.main.shape
-                
-            total_expectation = self._psr[name].get_expectation(spectrum).project(['Em', 'Phi', 'PsiChi'])
-            # should it be like self._psr[name].get_expectation(spectrum) (without 'project')? (HY)
+
+            total_expectation = self._psr[name].get_expectation(spectrum)
+            
+            # Save expected counts for source:
+            self._expected_counts[name] = copy.deepcopy(total_expectation)
          
             # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
             if type(total_expectation.contents) == u.quantity.Quantity:
-                total_expectation = total_expectation.contents.value
+                total_expectation = total_expectation.project(['Em', 'Phi', 'PsiChi']).contents.value
             elif type(total_expectation.contents) == COO:
-                total_expectation = total_expectation.contents.todense() 
+                total_expectation = total_expectation.project(['Em', 'Phi', 'PsiChi']).contents.todense() 
             else:
                 raise RuntimeError("Expectation is an unknown object")
-           
-            # Save expected counts for source:
-            self._expected_counts[name] = copy.deepcopy(total_expectation)
 
             # Add source to signal and update source counter:
             if self.src_counter == 0:
@@ -266,13 +263,13 @@ class COSILike(PluginPrototype):
         self._model = model
 
     def get_log_like(self):
-        
         """
-        Return the value of the log-likelihood.
+        Calculate the log-likelihood.
         
         Returns
         ----------
-        log_like: float
+        log_like : float
+            Value of the log-likelihood
         """
         
         # Recompute the expectation if any parameter in the model changed
@@ -309,25 +306,25 @@ class COSILike(PluginPrototype):
         return log_like
     
     def inner_fit(self):
-        
         """
-        This fits nuisance parameters.
+        Required for 3ML fit.
         """
         
         return self.get_log_like()
     
     def _get_dwell_time_map(self, coord):
-        
         """
-        Get the dwell time map of the source in the spacecraft frame.
+        Get the dwell time map of the source in the inertial (spacecraft) frame.
         
         Parameters
         ----------
-        coord: astropy.coordinates.SkyCoord; the coordinate of the target source.
+        coord : astropy.coordinates.SkyCoord
+            Coordinates of the target source
         
         Returns
         -------
-        dwell_time_map: mhealpy.containers.healpix_map.HealpixMap
+        dwell_time_map : mhealpy.containers.healpix_map.HealpixMap
+            Dwell time map
         """
         
         self._sc_orientation.get_target_in_sc_frame(target_name = self._name, target_coord = coord)
@@ -336,18 +333,12 @@ class COSILike(PluginPrototype):
         return dwell_time_map
     
     def _get_scatt_map(self):
-        
         """
         Get the spacecraft attitude map of the source in the inertial (spacecraft) frame.
         
-        Parameters
-        ----------
-        nside: int; resolution of scatt map
-        coordsys: BaseFrameRepresentation or str; coordinate system of map
-        
         Returns
         -------
-        scatt_map: cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
+        scatt_map : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
         """
         
         scatt_map = self._sc_orientation.get_scatt_map(nside = self._dr.nside * 2, coordsys = 'galactic')
@@ -355,13 +346,13 @@ class COSILike(PluginPrototype):
         return scatt_map
     
     def set_inner_minimization(self, flag: bool):
-       
         """
-        Turn on the minimization of the internal COSI parameters.
+        Turn on the minimization of the internal COSI (nuisance) parameters.
         
         Parameters
         ----------
-        flag: bool; turns on and off the minimization  of the internal parameters
+        flag : bool
+            Turns on and off the minimization  of the internal parameters
         """
         
         self._fit_nuisance_params: bool = bool(flag)
