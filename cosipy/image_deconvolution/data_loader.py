@@ -1,20 +1,23 @@
+import warnings
 import numpy as np
 from tqdm.autonotebook import tqdm
 import astropy.units as u
-from astropy.time import Time
-from astropy.coordinates import SkyCoord
-import healpy as hp
 
-from histpy import Histogram, Axes, HealpixAxis
-from mhealpy import HealpixMap
+from histpy import Histogram, Axes
 
 from cosipy.response import FullDetectorResponse
-from scoords import SpacecraftFrame, Attitude
-from cosipy.spacecraftfile import SpacecraftFile
 from cosipy.data_io import BinnedData
 from .coordsys_conversion_matrix import CoordsysConversionMatrix
 
 class DataLoader(object):
+    """
+    A class to manage data for image analysis, 
+    namely event data, background model, response, coordsys conversion matrix.
+    Ideally, these data should be input directly to ImageDeconvolution class,
+    but considering their data formats are not fixed, this class is introduced.
+    The purpose of this class is to check the consistency between input data and calculate intermediate files etc.
+    In the future, this class may be removed or hidden in ImageDeconvolution class.
+    """
 
     def __init__(self):
         self.event_dense = None
@@ -26,8 +29,31 @@ class DataLoader(object):
 
         self.response_on_memory = False
 
+        self.image_response_dense_projected = None
+
     @classmethod
     def load(cls, event_binned_data, bkg_binned_data, rsp, coordsys_conv_matrix, is_miniDC2_format = False):
+        """
+        Load data
+
+        Parameters
+        ----------
+        event_binned_data : :py:class:`histpy.Histogram`
+            Event histogram
+        bkg_binned_data : :py:class:`histpy.Histogram`
+            Background model
+        rsp : :py:class:`histpy.Histogram` or :py:class:`cosipy.response.FullDetectorResponse`
+            Response
+        coordsys_conv_matrix : :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix`
+            Coordsys conversion matrix 
+        is_miniDC2_format : bool, default False
+            Whether the file format is for mini-DC2. It will be removed in the future.
+
+        Returns
+        -------
+        :py:class:`cosipy.image_deconvolution.DataLoader`
+            DataLoader instance containing the input data set
+        """
 
         new = cls()
 
@@ -48,6 +74,31 @@ class DataLoader(object):
                            bkg_hdf5_filepath = None, bkg_yaml_filepath = None, 
                            rsp_filepath = None, ccm_filepath = None,
                            is_miniDC2_format = False):
+        """
+        Load data from file pathes
+
+        Parameters
+        ----------
+        event_hdf5_filepath : str or None, default None
+            File path of HDF5 file for event histogram.
+        event_yaml_filepath : str or None, default None
+            File path of yaml file to read the HDF5 file.
+        bkg_hdf5_filepath : str or None, default None
+            File path of HDF5 file for background model.
+        bkg_yaml_filepath : str or None, default None
+            File path of yaml file to read the HDF5 file.
+        rsp_filepath : str or None, default None
+            File path of the response matrix.
+        ccm_filepath : str or None, default None
+            File path of the coordsys conversion matrix.
+        is_miniDC2_format : bool, default False
+            Whether the file format is for mini-DC2. should be removed in the future.
+
+        Returns
+        -------
+        :py:class:`cosipy.image_deconvolution.DataLoader`
+            DataLoader instance containing the input data set
+        """
 
         new = cls()
 
@@ -64,6 +115,16 @@ class DataLoader(object):
         return new
 
     def set_event_from_filepath(self, hdf5_filepath, yaml_filepath):
+        """
+        Load event data from file pathes
+
+        Parameters
+        ----------
+        hdf5_filepath : str
+            File path of HDF5 file for event histogram.
+        yaml_filepath : str
+            File path of yaml file to read the HDF5 file.
+        """
 
         self._event_hdf5_filepath = hdf5_filepath
         self._event_yaml_filepath = yaml_filepath
@@ -78,6 +139,16 @@ class DataLoader(object):
         print("... Done ...")
 
     def set_bkg_from_filepath(self, hdf5_filepath, yaml_filepath):
+        """
+        Load background model from file pathes
+
+        Parameters
+        ----------
+        hdf5_filepath : str
+            File path of HDF5 file for background model.
+        yaml_filepath : str
+            File path of yaml file to read the HDF5 file.
+        """
 
         self._bkg_hdf5_filepath = hdf5_filepath
         self._bkg_yaml_filepath = yaml_filepath
@@ -92,6 +163,14 @@ class DataLoader(object):
         print("... Done ...")
 
     def set_rsp_from_filepath(self, filepath):
+        """
+        Load response matrix from file pathes
+
+        Parameters
+        ----------
+        filepath : str
+            File path of the response matrix.
+        """
 
         self._rsp_filepath = filepath
 
@@ -102,6 +181,14 @@ class DataLoader(object):
         print("... Done ...")
 
     def set_ccm_from_filepath(self, filepath):
+        """
+        Load coordsys conversion matrix from file pathes
+
+        Parameters
+        ----------
+        filepath : str
+            File path of the coordsys conversion matrix.
+        """
 
         self._ccm_filepath = filepath
         
@@ -112,6 +199,14 @@ class DataLoader(object):
         print("... Done ...")
 
     def _check_file_registration(self):
+        """
+        Check whether files are loaded.
+
+        Returns
+        -------
+        bool
+            True if all required files are loaded.
+        """
 
         print(f"... checking the file registration ...")
 
@@ -124,6 +219,14 @@ class DataLoader(object):
         return False
 
     def _check_axis_consistency(self):
+        """
+        Check whether the axes of event/background/response are consistent with each other.
+
+        Returns
+        -------
+        bool
+            True if their axes are consistent.
+        """
         
         print(f"... checking the axis consistency ...")
 
@@ -150,10 +253,13 @@ class DataLoader(object):
         print(f"    --> pass")
         return True
 
-    def _modify_axes(self): # this is a tentetive function
+    def _modify_axes(self):
+        """
+        Modify the axes of data. This method will be removed in the future.
+        """
 
-        print(f"Note that this function is tentetive. It should be removed in the future!")
-        print(f"Please run this function only once!")
+        warnings.warn("Note that _modify_axes() in DataLoader was implemented for a temporary use. It will be removed in the future.", FutureWarning)
+        warnings.warn("Make sure to perform _modify_axes() only once after the data are loaded.")
 
         if self.coordsys_conv_matrix.binning_method == 'Time':
             axis_name = ['Time', 'Em', 'Phi', 'PsiChi']
@@ -243,6 +349,9 @@ class DataLoader(object):
     '''
 
     def load_full_detector_response_on_memory(self):
+        """
+        Load a response file on the computer memory.
+        """
 
         axes_image_response = [self.full_detector_response.axes["NuLambda"], self.full_detector_response.axes["Ei"],
                                self.full_detector_response.axes["Em"], self.full_detector_response.axes["Phi"], self.full_detector_response.axes["PsiChi"]]
@@ -374,7 +483,9 @@ class DataLoader(object):
     '''
 
     def calc_image_response_projected(self):
-        # calculate the image_response_dense_projected
+        """
+        Calculate image_response_dense_projected, which is an intermidiate matrix used in RL algorithm.
+        """
 
         print("... (DataLoader) calculating a projected image response ...")
 
@@ -383,9 +494,12 @@ class DataLoader(object):
 
         if self.response_on_memory:
 
-            self.image_response_dense_projected[:] = np.tensordot( np.sum(self.coordsys_conv_matrix, axis = (1)), 
-                                                                np.sum(self.image_response_dense, axis = (2,3,4)),
-                                                                axes = ([1], [0]) ) * self.full_detector_response.unit * self.coordsys_conv_matrix.unit #lb, Ei
+            self.image_response_dense_projected[:] = np.tensordot( np.sum(self.coordsys_conv_matrix, axis = (0)), 
+                                                                   np.sum(self.image_response_dense, axis = (2,3,4)),
+                                                                   axes = ([1], [0]) ) * self.full_detector_response.unit * self.coordsys_conv_matrix.unit
+            # [Time/ScAtt, lb, NuLambda] -> [lb, NuLambda]
+            # [NuLambda, Ei, Em, Phi, PsiChi] -> [NuLambda, Ei]
+            # [lb, NuLambda] x [NuLambda, Ei] -> [lb, Ei]
 
         else:
             npix = self.full_detector_response.axes["NuLambda"].npix 
@@ -397,6 +511,6 @@ class DataLoader(object):
                 else:
                     full_detector_response_projected_Ei = np.sum(self.full_detector_response[ipix].to_dense(), axis = (1,2,3)) #Ei
     
-                coordsys_conv_matrix_projected_lb = np.sum(self.coordsys_conv_matrix[:,:,ipix], axis = (1)).todense() * self.coordsys_conv_matrix.unit #lb
+                coordsys_conv_matrix_projected_lb = np.sum(self.coordsys_conv_matrix[:,:,ipix], axis = (0)).todense() * self.coordsys_conv_matrix.unit #lb
     
                 self.image_response_dense_projected += np.outer(coordsys_conv_matrix_projected_lb, full_detector_response_projected_Ei)

@@ -1,16 +1,18 @@
-import astropy.units as u
-from astropy.time import Time
-from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
 import numpy as np
 import healpy as hp
 from tqdm.autonotebook import tqdm
+import sparse
+import astropy.units as u
+from astropy.time import Time
+from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
 
 from scoords import Attitude, SpacecraftFrame
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
-import sparse
-
 class CoordsysConversionMatrix(Histogram):
+    """
+    A class for coordinate conversion matrix (ccm).
+    """
 
     def __init__(self, edges, contents = None, sumw2 = None,
                  labels=None, axis_scale = None, sparse = None, unit = None,
@@ -24,40 +26,50 @@ class CoordsysConversionMatrix(Histogram):
     @classmethod
     def time_binning_ccm(cls, full_detector_response, orientation, time_intervals, nside_model = None, is_nest_model = False):
         """
+        Calculate a ccm from a given orientation.
+        
         Parameters
         ----------
-        full_detector_response: 
-        orientation:
-        time_intervals: 2d np.array. it is the same format of binned_data.axes['Time'].edges
-        nside_model: If it is None, it will be the same as the NSIDE in the response.
+        full_detector_response : :py:class:`cosipy.response.FullDetectorResponse`
+            Response
+        orientation : :py:class:`cosipy.spacecraftfile.SpacecraftFile`
+            Orientation
+        time_intervals : :py:class:`np.array`
+            The same format of binned_data.axes['Time'].edges
+        nside_model : int or None, default None
+            If it is None, it will be the same as the NSIDE in the response.
+        is_nest_model : bool, default False
+            If scheme of the model map is nested, it should be False while it is rare.
 
         Returns
         -------
-        coordsys_conv_matrix: Axes [ "lb", "Time", "NuLambda" ]
+        :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix`
+            Its axes are [ "Time", "lb", "NuLambda" ].
         """
 
         if nside_model is None:
             nside_model = full_detector_response.nside
 
-        axis_model_map = HealpixAxis(nside = nside_model, coordsys = "galactic", label = "lb")
         axis_time = Axis(edges = time_intervals, label = "Time")
+        axis_model_map = HealpixAxis(nside = nside_model, coordsys = "galactic", label = "lb")
         axis_local_map = full_detector_response.axes["NuLambda"]
 
-        axis_coordsys_conv_matrix = [ axis_model_map, axis_time, axis_local_map ] #lb, Time, NuLambda
+        axis_coordsys_conv_matrix = [ axis_time, axis_model_map, axis_local_map ] #Time, lb, NuLambda
 
         contents = []
 
-        for ipix in tqdm(range(hp.nside2npix(nside_model))):
-            l, b = hp.pix2ang(nside_model, ipix, nest=is_nest_model, lonlat=True)
-            pixel_coord = SkyCoord(l, b, unit = "deg", frame = 'galactic')
+        for i_time, [init_time, end_time] in tqdm(enumerate(axis_time.bounds), total = len(axis_time.bounds)):
+            ccm_thispix = np.zeros((axis_model_map.nbins, axis_local_map.nbins)) # without unit
 
-            ccm_thispix = np.zeros((axis_time.nbins, axis_local_map.nbins)) # without unit
-
-            for i_time, [init_time, end_time] in enumerate(axis_time.bounds):
-                init_time = Time(init_time, format = 'unix')
-                end_time = Time(end_time, format = 'unix')
+            init_time = Time(init_time, format = 'unix')
+            end_time = Time(end_time, format = 'unix')
     
-                filtered_orientation = orientation.source_interval(init_time, end_time)
+            filtered_orientation = orientation.source_interval(init_time, end_time)
+
+            for ipix in range(hp.nside2npix(nside_model)):
+                l, b = hp.pix2ang(nside_model, ipix, nest=is_nest_model, lonlat=True)
+                pixel_coord = SkyCoord(l, b, unit = "deg", frame = 'galactic')
+
                 pixel_movement = filtered_orientation.get_target_in_sc_frame(target_name = f"pixel_{ipix}_{i_time}",
                                                                              target_coord = pixel_coord,
                                                                              quiet = True,
@@ -70,10 +82,10 @@ class CoordsysConversionMatrix(Histogram):
                                                                     src_path = pixel_movement,
                                                                     save = False)
 
-                ccm_thispix[i_time] = dwell_time_map.data 
+                ccm_thispix[ipix] = dwell_time_map.data 
                 # (HealpixMap).data returns the numpy array without its unit. dwell_time_map.unit is u.s.
 
-            ccm_thispix_sparse = sparse.COO.from_numpy( ccm_thispix.reshape((1, axis_time.nbins, axis_local_map.nbins)) )
+            ccm_thispix_sparse = sparse.COO.from_numpy( ccm_thispix.reshape((1, axis_model_map.nbins, axis_local_map.nbins)) )
 
             contents.append(ccm_thispix_sparse)
 
@@ -86,15 +98,28 @@ class CoordsysConversionMatrix(Histogram):
     @classmethod
     def spacecraft_attitude_binning_ccm(cls, full_detector_response, exposure_table, nside_model = None, use_averaged_pointing = False):
         """
+        Calculate a ccm from a given exposure_table.
+
         Parameters
         ----------
-        full_detector_response: 
-        exposure_table:
-        use_averaged_pointing: if this is True, the ccm loses accuracy but the calculatiion gets much faster.
+        full_detector_response : :py:class:`cosipy.response.FullDetectorResponse`
+            Response
+        exposure_table : :py:class:`cosipy.image_deconvolution.SpacecraftAttitudeExposureTable`
+            Scatt exposure table
+        nside_model : int or None, default None
+            If it is None, it will be the same as the NSIDE in the response.
+        use_averaged_pointing : bool, default False
+            If it is True, first the averaged Z- and X-pointings are calculated.
+            Then the dwell time map is calculated once for ach model pixel and each scatt_binning_index.
+            If it is False, the dwell time map is calculated for each attitude in zpointing and xpointing in the exposure table.
+            Then the calculated dwell time maps are summed up. 
+            In the former case, the computation is fast but may lose the angular resolution. 
+            In the latter case, the conversion matrix is more accurate but it takes a long time to calculate it.
 
         Returns
         -------
-        coordsys_conv_matrix: Axes [ "lb", "ScAtt", "NuLambda" ]
+        :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix'
+            Its axes are [ "ScAtt", "lb", "NuLambda" ].
         """
 
         if nside_model is None:
@@ -104,41 +129,41 @@ class CoordsysConversionMatrix(Histogram):
         
         n_scatt_bins = len(exposure_table)
 
-        axis_model_map = HealpixAxis(nside = nside_model, coordsys = "galactic", scheme = exposure_table.scheme, label = "lb")
         axis_scatt = Axis(edges = np.arange(n_scatt_bins+1), label = "ScAtt")
+        axis_model_map = HealpixAxis(nside = nside_model, coordsys = "galactic", scheme = exposure_table.scheme, label = "lb")
         axis_local_map = full_detector_response.axes["NuLambda"]
 
-        axis_coordsys_conv_matrix = [ axis_model_map, axis_scatt, axis_local_map ] #lb, ScAtt, NuLambda
+        axis_coordsys_conv_matrix = [ axis_scatt, axis_model_map, axis_local_map ] #lb, ScAtt, NuLambda
         
         contents = []
 
-        for ipix in tqdm(range(hp.nside2npix(nside_model))):
-            l, b = hp.pix2ang(nside_model, ipix, nest=is_nest_model, lonlat=True)
-            pixel_coord = SkyCoord(l, b, unit = "deg", frame = 'galactic')
+        for i_scatt_bin in tqdm(range(n_scatt_bins)):
+            ccm_thispix = np.zeros((axis_model_map.nbins, axis_local_map.nbins)) # without unit
 
-            ccm_thispix = np.zeros((axis_scatt.nbins, axis_local_map.nbins)) # without unit
+            row = exposure_table.iloc[i_scatt_bin]
+        
+            scatt_binning_index = row['scatt_binning_index']
+            num_pointings = row['num_pointings']
+            #healpix_index = row['healpix_index']
+            zpointing = row['zpointing']
+            xpointing = row['xpointing']
+            zpointing_averaged = row['zpointing_averaged']
+            xpointing_averaged = row['xpointing_averaged']
+            delta_time = row['delta_time']
+            exposure = row['exposure']
+            
+            if use_averaged_pointing:
+                z = SkyCoord([zpointing_averaged[0]], [zpointing_averaged[1]], frame="galactic", unit="deg")
+                x = SkyCoord([xpointing_averaged[0]], [xpointing_averaged[1]], frame="galactic", unit="deg")
+            else:
+                z = SkyCoord(zpointing.T[0], zpointing.T[1], frame="galactic", unit="deg")
+                x = SkyCoord(xpointing.T[0], xpointing.T[1], frame="galactic", unit="deg")
+        
+            attitude = Attitude.from_axes(x = x, z = z, frame = 'galactic')
 
-            for idx in range(n_scatt_bins):
-                row = exposure_table.iloc[idx]
-            
-                scatt_binning_index = row['scatt_binning_index']
-                num_pointings = row['num_pointings']
-                #healpix_index = row['healpix_index']
-                zpointing = row['zpointing']
-                xpointing = row['xpointing']
-                zpointing_averaged = row['zpointing_averaged']
-                xpointing_averaged = row['xpointing_averaged']
-                delta_time = row['delta_time']
-                exposure = row['exposure']
-                
-                if use_averaged_pointing:
-                    z = SkyCoord([zpointing_averaged[0]], [zpointing_averaged[1]], frame="galactic", unit="deg")
-                    x = SkyCoord([xpointing_averaged[0]], [xpointing_averaged[1]], frame="galactic", unit="deg")
-                else:
-                    z = SkyCoord(zpointing.T[0], zpointing.T[1], frame="galactic", unit="deg")
-                    x = SkyCoord(xpointing.T[0], xpointing.T[1], frame="galactic", unit="deg")
-            
-                attitude = Attitude.from_axes(x = x, z = z, frame = 'galactic')
+            for ipix in range(hp.nside2npix(nside_model)):
+                l, b = hp.pix2ang(nside_model, ipix, nest=is_nest_model, lonlat=True)
+                pixel_coord = SkyCoord(l, b, unit = "deg", frame = 'galactic')
             
                 src_path_cartesian = SkyCoord(np.dot(attitude.rot.inv().as_matrix(), pixel_coord.cartesian.xyz.value),
                                               representation_type = 'cartesian', frame = SpacecraftFrame())
@@ -159,9 +184,9 @@ class CoordsysConversionMatrix(Histogram):
 
                 hist, bins = np.histogram(pixels, bins = axis_local_map.edges, weights = weights)
                 
-                ccm_thispix[idx] = hist
+                ccm_thispix[ipix] = hist
 
-            ccm_thispix_sparse = sparse.COO.from_numpy( ccm_thispix.reshape((1, axis_scatt.nbins, axis_local_map.nbins)) )
+            ccm_thispix_sparse = sparse.COO.from_numpy( ccm_thispix.reshape((1, axis_model_map.nbins, axis_local_map.nbins)) )
 
             contents.append(ccm_thispix_sparse)
 
@@ -173,12 +198,27 @@ class CoordsysConversionMatrix(Histogram):
     
     @classmethod
     def open(cls, filename, name = 'hist'):
+        """
+        Open a ccm from a file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to file.
+        name : str, default 'hist'
+            Name of group where the histogram was saved.
+
+        Returns
+        -------
+        :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix'
+            Its axes are [ "lb", "Time" or "ScAtt", "NuLambda" ].
+        """
 
         new = super().open(filename, name)
 
         new = cls(new.axes, contents = new.contents, sumw2 = new.contents, unit = new.unit) 
 
-        new.binning_method = new.axes.labels[1] # 'Time' or 'ScAtt'
+        new.binning_method = new.axes.labels[0] # 'Time' or 'ScAtt'
 
         return new
 
