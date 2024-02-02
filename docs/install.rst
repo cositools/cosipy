@@ -14,9 +14,9 @@ installation issues with a dependency (astromodels, see issues `#201 <https://gi
 
 Install with pip::
   
-  pip install cosipy==0.0.2a1
+  pip install cosipy==0.0.2a2
 
-Note: you need to specify the alpha release 0.0.2a1, otherwise pip will fall back to
+Note: you need to specify the alpha release version, otherwise pip will fall back to
 the latest regular release (which is currently unusable). This will be updated when
 we have our next regular release.
   
