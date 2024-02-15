@@ -1,9 +1,0 @@
-#----------#
-
-# Full path to geometry file:
-geo_file: "COSITools/massmodel"
-
-# default mimrec configuration file:
-mimrec_config: "ContinuumResponse_cori_v1v2_nuclearizer_12Det_200812_imaging_atmos_9Det_6deg_10ebins.mimrec.cfg"
-
-#----------#
