@@ -13,18 +13,18 @@ def fetch_wasabi_file(file,
 
     Parameters
     ----------
-    file: str
+    file : str
         Full path to file in Wasabi
-    output: str
+    output : str,  optional
         Full path to the downloaded file in the local system. By default it will use 
         the current durectory and the same file name as the input file.
-    bucket: str
+    bucket : str, optional
         Passed to aws --bucket option
-    endpoint: str:
+    endpoint : str, optional
         Passed to aws --endpoint-url option
-    access_key: str
+    access_key : str, optional
         AWS_ACCESS_KEY_ID
-    secret_key: str
+    secret_key : str, optional
         AWS_SECRET_ACCESS_KEY
     """
     
