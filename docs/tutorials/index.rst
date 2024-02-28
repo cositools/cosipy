@@ -14,13 +14,14 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Combining files.
   - Inspecting and plotting the data
     
-2. Spacecraft orientation and location `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/Point_source_resonse.ipynb>`_
+2. Spacecraft orientation and location `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/response/Point_source_response.ipynb>`_
   
   - SC file format and manipulation it —e.g. get a time range, rebin it.  
   - The dwell time map and how to obtain it
+  - Generate point source response and export to the format that can be read by XSPEC
   - The scatt map and how to obtain it
 
-3. Detector response and signal expectation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/DetectorResponse.ipynb>`_
+3. Detector response and signal expectation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/response/DetectorResponse.ipynb>`_
   
   - Explanation of the detector response format and meaning
   - Visualizing the response
@@ -55,7 +56,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Scatt binning and its advantages/disadvantages
   - Fitting the 511 diffuse emission.
     
-9. TODO: Source injector
+9. TODO: Source injector `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/source_injector/GRB_source_injector.ipynb`
   - Nice to have: allow theorist to test the sensitivity of their models
 
 .. warning::
