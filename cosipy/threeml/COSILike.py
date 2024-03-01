@@ -33,6 +33,8 @@ import copy
 import logging
 logger = logging.getLogger(__name__)
 
+import inspect
+
 class COSILike(PluginPrototype):
     """
     COSI 3ML plugin.
@@ -127,6 +129,10 @@ class COSILike(PluginPrototype):
         model : astromodels.core.model.Model
             Any model supported by astromodels
         """
+        
+        # Temporary fix to only print log-likelihood warning once max per fit
+        if inspect.stack()[1][3] == '_assign_model_to_data':
+            self._printed_warning = False
     
         # Get point sources and extended sources from model: 
         point_sources = model.point_sources
@@ -294,7 +300,9 @@ class COSILike(PluginPrototype):
                 expectation = self._signal + self._bkg.contents
 
         expectation += 1e-12 # to avoid -infinite log-likelihood (occurs when expected counts = 0 but data != 0)
-        logger.warning("Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.")
+        if not self._printed_warning:
+            logger.warning("Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.")
+            self._printed_warning = True
         # This 1e-12 should be defined as a parameter in the near future (HY)
         
         # Convert data into an arrary:
