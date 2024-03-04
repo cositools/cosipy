@@ -419,7 +419,7 @@ class SpacecraftFile():
         """
         Bin the spacecraft attitude history into a 4D histogram that contains the accumulated time the axes of the spacecraft where looking at a given direction. 
 
-        Paremeters
+        Parameters
         ----------
         nside : int
             The nside of the scatt map.
