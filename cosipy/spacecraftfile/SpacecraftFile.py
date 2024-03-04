@@ -411,6 +411,82 @@ class SpacecraftFile():
 
         return self.dwell_map
 
+
+    def get_fast_dwell_map(self, response, dts = None, dt_format = None, src_path = None, save = False):
+
+        """
+        Generates the dwell time map for the source.
+
+        Parameters
+        ----------
+        response : str or pathlib.Path
+            The path to the response.
+        dts : None or numpy.ndarray, optional
+            The elapsed time for each pointing. It must has the same size as the pointings (the default is None, which implies that the `dts` will be read from the instance).
+        ds_format : None or str, optional
+            The time format for `dts`. If the `dts` is provided by the `dts` argument, you must provide the time format using this argument (the default is None, which implies that there is no input for the time format for `dts`).
+        src_path : astropy.coordinates.SkyCoord or NoneType, optional
+            The movement of source in the detector frame (the default is None, which implies that the `src_path` will be read from the instance).
+        save : bool, default=False
+            Set True to save the dwell time map.
+
+        Returns
+        -------
+        mhealpy.containers.healpix_map.HealpixMap
+            The dwell time map.
+        """
+
+        # Define the response
+        self.response_file = response
+
+        # Define the dts
+        if dts == None:
+            self.dts = self.get_time_delta()
+        else:
+            self.dts = Time(dts, format = dt_format)
+
+        # define the target source path in the SC frame
+        if src_path == None:
+            path = self.src_path_skycoord
+        else:
+            path = src_path
+        # check if the target source path is astropy.Skycoord object
+        if type(path) != SkyCoord:
+            raise TypeError("The coordiates of the source movement in the Spacecraft frame must be a SkyCoord object")
+
+        if path.shape[0]-1 != self.dts.shape[0]:
+            raise ValueError("The dimensions of the dts or source coordinates are not correct. Please check your inputs.")
+
+        with FullDetectorResponse.open(self.response_file) as response:
+            self.dwell_map = HealpixMap(base = response,
+                                        unit = u.s,
+                                        coordsys = SpacecraftFrame())
+    
+        pixels, weights = self.dwell_map.get_interp_weights(theta = self.src_path_skycoord)  # there I calculate the pixel numbers and weights together
+
+        pixels = pixels[:, :-1].flatten()  # remove the last column to match the dimension of dts
+        weights = weights[:,:-1]  # remove the last column to match the dimension of dts
+
+        dts_matrix = np.row_stack((self.dts.value,)*4)  # create the dts matrix to multiply the weights
+        weighted_duration = weights * dts_matrix
+        weighted_duration = weighted_duration.flatten()
+
+        pixel_unique = np.unique(pixels)
+        pixel_durations = []  # the weighted and summed duration for different pixels  
+        for pixel in pixel_unique:
+            durations = weighted_duration[pixels == pixel].sum()
+            pixel_durations += [durations]
+        
+        pixel_durations = np.array(pixel_durations)
+
+        for p, d in zip(pixel_unique, pixel_durations):
+            self.dwell_map[p] += (d*u.s)
+
+        if save == True:
+            self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)
+
+        return self.dwell_map
+
     def get_scatt_map(self,
                        nside,
                        scheme = 'ring',
