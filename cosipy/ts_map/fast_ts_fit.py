@@ -33,15 +33,12 @@ class FastTSMap():
             Background model, which includes the background counts to model the background in the observed data.
         response_path : str or pathlib.Path
             The path to the response file.
-        orientation : cosipy.SpacecraftFile or NoneType, optional
-            The orientation of the spacecraft when data are collected (the default is None, which implies the orientation file is not needed).
+        orientation : cosipy.SpacecraftFile, optional
+            The orientation of the spacecraft when data are collected (the default is `None`, which implies the orientation file is not needed).
         cds_frame : str, optional
             "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame (the default is "local", which implied that a local frame that attached to the spacecraft).
         scheme : str, optional
             The scheme of the CDS of data (the default is "RING", which implies a "RING" scheme of the data).
-        
-        Returns
-        -------
         """
         
         self._data = data.project(["Em", "PsiChi", "Phi"])
@@ -54,16 +51,16 @@ class FastTSMap():
     @staticmethod
     def slice_energy_channel(hist, channel_start, channel_stop):
         """
-        Slice one or more bins along first axis of the `hist`.
+        Slice one or more bins along first axis of the `histogram`.
         
         Parameters
         ----------
         hist : histpy.Histogram
             The histogram object to be sliced.
         channel_start : int
-            The start of the slice (inclusive)
+            The start of the slice (inclusive).
         channel_stop : int
-            The stop of the slice (exclusive)
+            The stop of the slice (exclusive).
         
         Returns
         -------
@@ -93,7 +90,7 @@ class FastTSMap():
         Returns
         -------
         hypothesis_coords : list
-            The list of the hypothesis coordinates at the center of each pixel
+            The list of the hypothesis coordinates at the center of each pixel.
         """
         
         data_array = np.zeros(hp.nside2npix(nside))
@@ -157,7 +154,7 @@ class FastTSMap():
             The hypothesis coordinate.
         response_path : str or path.lib.Path
             The path to the response.
-        spectrum : astromodel spectrum
+        spectrum : astromodels.functions
             The spectrum of the source to be placed at the hypothesis coordinate.
         
         Returns
@@ -209,12 +206,12 @@ class FastTSMap():
             The format is `[lower_channel, upper_chanel]`. The lower_channel is inclusive while the upper_channel is exclusive.
         response_path : str or pathlib.Path
             The path to the response file.
-        spectrum : astromodel spectrum
+        spectrum : astromodels.functions
             The spectrum of the source.
         cds_frame : str, optional
             "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame.
-        orientation : cosipy.SpacecraftFile or NoneType, optional
-            The orientation of the spacecraft when data are collected (the default is None, which implies the orientation file is not needed).
+        orientation : cosipy.spacecraftfile.SpacecraftFile, optional
+            The orientation of the spacecraft when data are collected (the default is `None`, which implies the orientation file is not needed).
         
         Returns
         -------
@@ -297,11 +294,11 @@ class FastTSMap():
             The flattened Compton data space (CDS) array of the data.
         bkg_model_cds_array : numpy.ndarray
             The flattened Compton data space (CDS) array of the background model.
-        orientation : cosipy.SpacecraftFile
+        orientation : cosipy.spacecraftfile.SpacecraftFile
             The orientation of the spacecraft when data are collected. 
         response_path : str or pathlib.Path
             The path to the response file.
-        spectrum : astromodel spectrum
+        spectrum : astromodels.functions
             The spectrum of the source.
         cds_frame : str
             "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame .
@@ -310,7 +307,7 @@ class FastTSMap():
         ts_scheme : str
             The scheme of the Ts map.
 
-        Rsturns
+        Returns
         -------
         list
             The list of the resulting TS fit: [pix number, ts value, norm, norm_err, failed, iterations, time_ei_cds_array, time_fit, time_fast_ts_fit]
@@ -355,14 +352,14 @@ class FastTSMap():
             A list of the hypothesis coordinates
         energy_channel : list
             the energy channel you want to use: [lower_channel, upper_channel]. lower_channel is inclusive while upper_channel is exclusive.
-        spectrum : astromodel spectrum
+        spectrum : astromodels.functions
             The spectrum of the source.
         ts_scheme : str, optional
             The scheme of the TS map (the default is "RING", which implies a "RING" scheme of the TS map).
         start_method : str, optional
             The starting method of the parallel computation (the default is "fork", which implies using the fork method to start parallel computation).
-        cpu_cores : int or NoneType, optional
-            The number of cpu cores you wish to use for the parallel computation (the default is None, which implies using all the available number of cores -1 to perform the parallel computation).
+        cpu_cores : int, optional
+            The number of cpu cores you wish to use for the parallel computation (the default is `None`, which implies using all the available number of cores -1 to perform the parallel computation).
         
         Returns
         -------
@@ -428,14 +425,10 @@ class FastTSMap():
         ----------
         result_array : numpy.ndarray
             The result array from parallel ts fit.
-        skyoord : astropy.coordinates.SkyCoord or NoneType, optional
-            The true location of the source (the default is None, which implies that there are no coordiantes to be printed on the TS map).
-        containment: NoneType or float, optional
-            The containment level of the source (the default is None, which will plot raw TS values).
-
-        Returns
-        -------
-        None
+        skyoord : astropy.coordinates.SkyCoord, optional
+            The true location of the source (the default is `None`, which implies that there are no coordiantes to be printed on the TS map).
+        containment:float, optional
+            The containment level of the source (the default is `None`, which will plot raw TS values).
         """
 
 
@@ -475,14 +468,10 @@ class FastTSMap():
 
         Parameters
         ----------
-        skyoord : astropy.coordinates.SkyCoord or NoneType, optional
-            The true location of the source (the default is None, which implies that there are no coordiantes to be printed on the TS map).
-        containment: NoneType or float, optional
-            The containment level of the source (the default is 0.9, which implies plot the 90% containment region).
-
-        Returns
-        -------
-        None
+        skyoord : astropy.coordinates.SkyCoord, optional
+            The true location of the source (the default is `None`, which implies that there are no coordiantes to be printed on the TS map).
+        containment:float, optional
+            The containment level of the source (the default is `0.9`, which implies plot the 90% containment region).
         """
 
 
@@ -501,7 +490,7 @@ class FastTSMap():
         Parameters
         ----------
         containment : float, optional
-            The confidence level of the chi^2 distribution (the default is 0.9, which implies that the 90% containment region).
+            The confidence level of the chi^2 distribution (the default is `0.9`, which implies that the 90% containment region).
 
         Returns
         -------

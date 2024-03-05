@@ -15,7 +15,20 @@ class SpacecraftAttitudeMap(Histogram):
         the accumulated time the axes of the spacecraft where looking at a 
         given direction. 
 
-        Same arguments as an HealpixAxis
+        Same arguments as an HealpixAxis.
+
+        Parameters
+        ----------
+        nside : int
+            The nside of the spacecraft attitude map.
+        scheme : str, optional
+            The scheme of the spacecraft attitude map (the default is "ring").
+        coordsys : str, optional
+            The coordinate system of the spacecraft attitude map (the default is "galactic").
+        labels : list, optional
+            The labels of the two axes of the spacecraft attitude map (the default is `["x", "y"]`.
+
+            
         """
 
         super().__init__([HealpixAxis(nside = nside,
