@@ -351,6 +351,7 @@ class SpacecraftFile():
 
         return self.src_path_skycoord
 
+
     def get_dwell_map(self, response, dts = None, dt_format = None, src_path = None, save = False):
 
         """
@@ -379,74 +380,13 @@ class SpacecraftFile():
         self.response_file = response
 
         # Define the dts
-        if dts == None:
+        if dts is None:
             self.dts = self.get_time_delta()
         else:
             self.dts = Time(dts, format = dt_format)
 
         # define the target source path in the SC frame
-        if src_path == None:
-            path = self.src_path_skycoord
-        else:
-            path = src_path
-        # check if the target source path is astropy.Skycoord object
-        if type(path) != SkyCoord:
-            raise TypeError("The coordiates of the source movement in the Spacecraft frame must be a SkyCoord object")
-
-        if path.shape[0]-1 != self.dts.shape[0]:
-            raise ValueError("The dimensions of the dts or source coordinates are not correct. Please check your inputs.")
-
-        with FullDetectorResponse.open(self.response_file) as response:
-            self.dwell_map = HealpixMap(base = response,
-                                        unit = u.s,
-                                        coordsys = SpacecraftFrame())
-
-            for duration, coord in zip(self.dts, path):
-                pixels, weights = self.dwell_map.get_interp_weights(coord)
-                for p, w in zip(pixels, weights):
-                    self.dwell_map[p] += w*(duration.unix*u.s)
-
-        if save == True:
-            self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)
-
-        return self.dwell_map
-
-
-    def get_fast_dwell_map(self, response, dts = None, dt_format = None, src_path = None, save = False):
-
-        """
-        Generates the dwell time map for the source.
-
-        Parameters
-        ----------
-        response : str or pathlib.Path
-            The path to the response.
-        dts : None or numpy.ndarray, optional
-            The elapsed time for each pointing. It must has the same size as the pointings (the default is None, which implies that the `dts` will be read from the instance).
-        ds_format : None or str, optional
-            The time format for `dts`. If the `dts` is provided by the `dts` argument, you must provide the time format using this argument (the default is None, which implies that there is no input for the time format for `dts`).
-        src_path : astropy.coordinates.SkyCoord or NoneType, optional
-            The movement of source in the detector frame (the default is None, which implies that the `src_path` will be read from the instance).
-        save : bool, default=False
-            Set True to save the dwell time map.
-
-        Returns
-        -------
-        mhealpy.containers.healpix_map.HealpixMap
-            The dwell time map.
-        """
-
-        # Define the response
-        self.response_file = response
-
-        # Define the dts
-        if dts == None:
-            self.dts = self.get_time_delta()
-        else:
-            self.dts = Time(dts, format = dt_format)
-
-        # define the target source path in the SC frame
-        if src_path == None:
+        if src_path is None:
             path = self.src_path_skycoord
         else:
             path = src_path
