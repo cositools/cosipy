@@ -32,7 +32,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Meaning of the TS map and how to compute confidence contours
   - Computing a TS map, getting the best location and estimating the error
     
-5. Fitting the spectrum of a GRB `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/spectral_fits/continuum_fit/grb/SpectralFit.ipynb>`_
+5. Fitting the spectrum of a GRB `(ipynb) <https://github.com/cositools/cosipy/blob/main/docs/tutorials/spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb>`_
   
   - Introduction to 3ML and astromodels
   - Likelihood analysis. 
@@ -69,7 +69,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    Spacecraft orientation and location <Point_source_resonse.ipynb>
    Detector response and signal expectation <DetectorResponse.ipynb>
    TS Map: localizing a GRB <ts_map/Parallel_TS_map_computation_DC2.ipynb>
-   Fitting the spectrum of a GRB <spectral_fits/continuum_fit/grb/SpectralFit.ipynb>
+   Fitting the spectrum of a GRB <spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb>
    Fitting the spectrum of the Crab <spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>
    Extended source model fitting <spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>
    Image deconvolution <image_deconvolution/511keV/ScAttBinning/511keV-DC2-ScAtt-ImageDeconvolution.ipynb>
