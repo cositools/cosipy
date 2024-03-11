@@ -14,11 +14,43 @@ import astropy.io.fits as fits
 
 
 class TSMap:
+
+    """
+    Compute the TS map of using `threeML` package.
+    """
     
     def __init__(self, *args, **kwargs):
         pass
     
     def link_model_all_plugins(self, dr, data, bkg, sc_orientation, piv, index, other_plugins=None, norm=1, ra=0, dec=0):
+
+        """
+        Load the model and plugins
+
+        Parameters
+        ----------
+        dr : str
+            Path to full detector response.
+        data : histpy.Histogram
+            Binned data. Note: Eventually this should be a cosipy data class.
+        bkg : histpy.Histogram
+            Binned background model. Note: Eventually this should be a cosipy data class.
+        sc_orientation : cosipy.spacecraftfile.SpacecraftFile
+            Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
+            the spacecraft for the duration of the data included in the analysis.
+        piv : float
+            The pivotal energy of the spectrum.
+        index : float
+            The index of the spectrum.
+        other_plugins : threeML.plugins, optional
+            The plugins from other instruments.
+        norm : int, optional
+            The norm of the spectrum model (the default is 1).
+        ra : float, optional
+            The RA of the source model (the default is 0).
+        dec : float, optional
+            The Dec of the source model (the default is 0).
+        """
         
         # necessary inputs
         self.dr             = dr
@@ -54,6 +86,10 @@ class TSMap:
         self.like = JointLikelihood(self.model, self.all_plugins, verbose = False)
         
     def instantiate_plugin(self):
+
+        """
+        Instantiate the likelihood plugin.
+        """
         
         if self.other_plugins == None:
             self.cosi_plugin = COSILike("cosi",
@@ -65,6 +101,10 @@ class TSMap:
             raise RuntimeError("Only COSI plugin for now")
             
     def gather_all_plugins(self):
+
+        """
+        Gather all the plugins togather into a DataList.
+        """
         
         if self.other_plugins == None:
             self.all_plugins = DataList(self.cosi_plugin)
@@ -72,6 +112,16 @@ class TSMap:
             raise RuntimeError("Only COSI plugin for now")
     
     def create_model(self):
+
+        """
+        Create the source model.
+
+        Returns
+        -------
+        astromodels.core.model.Model
+            The source model.
+
+        """
         
         self.spectrum = Powerlaw()
         
@@ -87,10 +137,18 @@ class TSMap:
         self.model = Model(self.source)
         
     def fix_index(self):
+
+        """
+        Return the index of the source spectrum.
+        """
         
         self.source.spectrum.main.Powerlaw.index.fix = True
     
     def ts_fitting(self):
+
+        """
+        Peform the ts fitting.
+        """
         
         # collect ts_grid_data, ts_grid_bkg and calculate_ts because sometime we may want to skip fiiting
         self.ts_grid_data()
@@ -99,6 +157,10 @@ class TSMap:
         
     # iterate ra and dec to find the best fit of data (time consuming)
     def ts_grid_data(self):
+
+        """
+        Perform the ts fitting using the data on the different pixels.
+        """
         
         # using rad due to mollweide projection
         self.ra_range  = (-np.pi  , np.pi  ) # rad
@@ -134,6 +196,10 @@ class TSMap:
     # only see it as constant for now
     # set the normalization to 0, that is, background-only null-hypothesis
     def ts_grid_bkg(self):
+
+        """
+        Perform the ts fitting using the background on the different pixels.
+        """
         
         # spectrum.K.value need to be 1e-10 otherwise you will have a migrad error
         self.spectrum.K.value = 1e-10
@@ -146,6 +212,10 @@ class TSMap:
         
     # calculate TS by ts_grid_data and ts_grid_bkg
     def calculate_ts(self):
+
+        """
+        Calculate the TS by the TS of data and background.
+        """
         
         self.ts = 2 * (self.log_like - self.log_like0)
 
@@ -155,6 +225,10 @@ class TSMap:
         self.ts_max = self.ts[self.argmax]
         
     def print_best_fit(self):
+
+        """
+        Print the best fit location.
+        """
         
         # report the best fit position
         # converting rad to deg due to ra and dec in 3ML PointSource
@@ -169,11 +243,29 @@ class TSMap:
         print(f"Expected significance: {stats.norm.isf(stats.chi2.sf(self.ts_max, df = 2)):.1f} sigma")
         
     def save_ts(self, output_file_name):
+
+        """
+        Save the TS map.
+
+        Parameters
+        ----------
+        output_file_name : str
+            The path to save the ts map.
+        """
         
         # save TS to .h5 file
         self.ts.write(output_file_name, overwrite = True)
     
     def load_ts(self, input_file_name):
+
+        """
+        Load a ts map from file.
+
+        Parameters
+        ----------
+        input_file_name : str
+            The path to the saved TS map file.
+        """
         
         # load .h5 file to TS
         self.ts = Histogram.open(input_file_name)
@@ -184,6 +276,10 @@ class TSMap:
     
     # refit the best fit to check norm
     def refit_best_fit(self):
+
+        """
+        Refit the best fit to check norm.
+        """
         
         # reset self.spectrum.K.value to self.norm (big initial value)
         self.spectrum.K.value = self.norm
@@ -202,6 +298,10 @@ class TSMap:
         self.like.results.display()
 
     def plot_ts_map(self):
+
+        """
+        Plot the TS map.
+        """
         
         fig, ax = plt.subplots(figsize=(16, 8), subplot_kw={'projection': 'mollweide'}, dpi=120)
         
