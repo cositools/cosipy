@@ -25,8 +25,6 @@ class ReadTraTest(UnBinnedData):
         
         """Reads in MEGAlib .tra (or .tra.gz) file.
        
-        Extended Summary
-        ----------------
         This method uses MEGAlib to read events from the tra file. 
         This is used to compare to the new event reader, which is 
         independent of MEGAlib. 
@@ -41,17 +39,17 @@ class ReadTraTest(UnBinnedData):
         -------
         cosi_dataset : dict
             Returns COSI dataset as a dictionary of the form:
-            cosi_dataset = {'Full filename':self.data_file,
-                        'Energies':erg,
-                        'TimeTags':tt,
-                        'Xpointings':np.array([lonX,latX]).T,
-                        'Ypointings':np.array([lonY,latY]).T,
-                        'Zpointings':np.array([lonZ,latZ]).T,
-                        'Phi':phi,
-                        'Chi local':chi_loc,
-                        'Psi local':psi_loc,
-                        'Distance':dist,
-                        'Chi galactic':chi_gal,
+            cosi_dataset = {'Full filename':self.data_file,\
+                        'Energies':erg,\
+                        'TimeTags':tt,\
+                        'Xpointings':np.array([lonX,latX]).T,\
+                        'Ypointings':np.array([lonY,latY]).T,\
+                        'Zpointings':np.array([lonZ,latZ]).T,\
+                        'Phi':phi,\
+                        'Chi local':chi_loc,\
+                        'Psi local':psi_loc,\
+                        'Distance':dist,\
+                        'Chi galactic':chi_gal,\
                         'Psi galactic':psi_gal}
         
         Note
