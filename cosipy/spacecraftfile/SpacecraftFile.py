@@ -362,7 +362,7 @@ class SpacecraftFile():
         return self.src_path_skycoord
 
 
-    def get_dwell_map(self, response, dts = None, dt_format = None, src_path = None, save = False):
+    def get_dwell_map(self, response, src_path = None, save = False):
 
         """
         Generates the dwell time map for the source.
@@ -371,10 +371,6 @@ class SpacecraftFile():
         ----------
         response : str or pathlib.Path
             The path to the response file.
-        dts : numpy.ndarray, optional
-            The elapsed time for each pointing. It must has the same size as the pointings (the default is `None`, which implies that the `dts` will be read from the instance).
-        ds_format : str, optional
-            The time format for `dts`. If the `dts` is provided by the `dts` argument, you must provide the time format using this argument (the default is `None`, which implies that there is no input for the time format for `dts`).
         src_path : astropy.coordinates.SkyCoord, optional
             The movement of source in the detector frame (the default is `None`, which implies that the `src_path` will be read from the instance).
         save : bool, default=False
@@ -390,11 +386,8 @@ class SpacecraftFile():
         self.response_file = response
 
         # Define the dts
-        if dts is None:
-            self.dts = self.get_time_delta()
-        else:
-            self.dts = Time(dts, format = dt_format)
-
+        self.dts = self.get_time_delta()
+        
         # define the target source path in the SC frame
         if src_path is None:
             path = self.src_path_skycoord
@@ -532,7 +525,7 @@ class SpacecraftFile():
         if dts == None:
             self.dts = self.get_time_delta()
         else:
-            self.dts = Time(dts, format = "unix")
+            self.dts = TimeDelta(dts*u.second)
 
         with FullDetectorResponse.open(self.response_file) as response:
 
@@ -549,7 +542,7 @@ class SpacecraftFile():
 
          # get the effective area and matrix
         print("Getting the effective area ...")
-        self.areas = np.float32(np.array(self.psr.project('Ei').to_dense().contents))/self.dts.unix.sum()
+        self.areas = np.float32(np.array(self.psr.project('Ei').to_dense().contents))/self.dts.to_value(u.second).sum()
         spectral_response = np.float32(np.array(self.psr.project(['Ei','Em']).to_dense().contents))
         self.matrix = np.float32(np.zeros((self.Ei_lo.size,self.Em_lo.size))) # initate the matrix
 
