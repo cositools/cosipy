@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.io import fits
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
 from mhealpy import HealpixMap
 import matplotlib.pyplot as plt
@@ -155,7 +155,7 @@ class SpacecraftFile():
         else:
             self._time_delta = np.diff(time_array)
 
-        time_delta = Time(self._time_delta, format='unix')
+        time_delta = TimeDelta(self._time_delta * u.second)
 
         return time_delta
 
@@ -411,26 +411,32 @@ class SpacecraftFile():
             self.dwell_map = HealpixMap(base = response,
                                         unit = u.s,
                                         coordsys = SpacecraftFrame())
-    
-        pixels, weights = self.dwell_map.get_interp_weights(theta = self.src_path_skycoord)  # there I calculate the pixel numbers and weights together
 
-        pixels = pixels[:, :-1].flatten()  # remove the last column to match the dimension of dts
-        weights = weights[:,:-1]  # remove the last column to match the dimension of dts
+        # Get the unique pixels to weight, and sum all the correspondint weights first, so
+        # each pixels needs to be called only once.
+        # Based on https://stackoverflow.com/questions/23268605/grouping-indices-of-unique-elements-in-numpy
+        
+        # remove the last value. Effectively a 0th order interpolations
+        pixels, weights = self.dwell_map.get_interp_weights(theta = self.src_path_skycoord[:-1])  
 
-        dts_matrix = np.row_stack((self.dts.value,)*4)  # create the dts matrix to multiply the weights
-        weighted_duration = weights * dts_matrix
+        weighted_duration = weights * self.dts[None]
+
+        pixels = pixels.flatten()
         weighted_duration = weighted_duration.flatten()
 
-        pixel_unique = np.unique(pixels)
-        pixel_durations = []  # the weighted and summed duration for different pixels  
-        for pixel in pixel_unique:
-            durations = weighted_duration[pixels == pixel].sum()
-            pixel_durations += [durations]
-        
-        pixel_durations = np.array(pixel_durations)
+        pixels_argsort = np.argsort(pixels)
 
-        for p, d in zip(pixel_unique, pixel_durations):
-            self.dwell_map[p] += (d*u.s)
+        pixels = pixels[pixels_argsort]
+        weighted_duration = weighted_duration[pixels_argsort]
+
+        first_unique = np.concatenate(([True], pixels[1:] != pixels[:-1]))
+        
+        pixel_unique = pixels[first_unique]
+
+        pixel_durations = [np.sum(a).to(u.second) for a in np.split(weighted_duration, np.nonzero(first_unique)[0][1:])]
+        
+        for pix, dur in zip(pixel_unique, pixel_durations):
+            self.dwell_map[pix] += dur
 
         if save == True:
             self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)
