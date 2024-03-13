@@ -409,7 +409,6 @@ class SpacecraftFile():
 
         with FullDetectorResponse.open(self.response_file) as response:
             self.dwell_map = HealpixMap(base = response,
-                                        unit = u.s,
                                         coordsys = SpacecraftFrame())
 
         # Get the unique pixels to weight, and sum all the correspondint weights first, so
@@ -419,7 +418,7 @@ class SpacecraftFile():
         # remove the last value. Effectively a 0th order interpolations
         pixels, weights = self.dwell_map.get_interp_weights(theta = self.src_path_skycoord[:-1])  
 
-        weighted_duration = weights * self.dts[None]
+        weighted_duration = weights * self.dts.to_value(u.second)[None]
 
         pixels = pixels.flatten()
         weighted_duration = weighted_duration.flatten()
@@ -433,11 +432,14 @@ class SpacecraftFile():
         
         pixel_unique = pixels[first_unique]
 
-        pixel_durations = [np.sum(a).to(u.second) for a in np.split(weighted_duration, np.nonzero(first_unique)[0][1:])]
+        splits =  np.nonzero(first_unique)[0][1:]
+        pixel_durations = [np.sum(weighted_duration[start:stop]) for start,stop in zip(np.append(0,splits), np.append(splits, pixels.size))]
         
         for pix, dur in zip(pixel_unique, pixel_durations):
             self.dwell_map[pix] += dur
 
+        self.dwell_map.to(u.second, update = False, copy = False)
+            
         if save == True:
             self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)
 
