@@ -63,27 +63,27 @@ class UnBinnedData(DataIO):
         cosi_dataset, dict
             The returned dictionary contains the COSI dataset, which
             has the form:
-            cosi_dataset = {'Energies':erg,
-                        'TimeTags':tt,
-                        'Xpointings':np.array([lonX,latX]).T,
-                        'Ypointings':np.array([lonY,latY]).T,
-                        'Zpointings':np.array([lonZ,latZ]).T,
-                        'Phi':phi,
-                        'Chi local':chi_loc,
-                        'Psi local':psi_loc,
-                        'Distance':dist,
-                        'Chi galactic':chi_gal,
-                        'Psi galactic':psi_gal} 
-            Arrays contain unbinned photon data.
+            cosi_dataset = {'Energies':erg,\
+                        'TimeTags':tt,\
+                        'Xpointings':np.array([lonX,latX]).T,\
+                        'Ypointings':np.array([lonY,latY]).T,\
+                        'Zpointings':np.array([lonZ,latZ]).T,\
+                        'Phi':phi,\
+                        'Chi local':chi_loc,\
+                        'Psi local':psi_loc,\
+                        'Distance':dist,\
+                        'Chi galactic':chi_gal,\
+                        'Psi galactic':psi_gal}\
+            Arrays contain unbinned photon data. 
         
         Notes
         -----
-            The current code is only able to handle data with Compton 
-            events. It will need to be modified to handle single-site 
-            and pair events. 
+        The current code is only able to handle data with Compton 
+        events. It will need to be modified to handle single-site 
+        and pair events. 
 
-            This method sets the instance attribute, cosi_dataset, 
-            but it does not explicitly return this.  
+        This method sets the instance attribute, cosi_dataset, 
+        but it does not explicitly return this.  
         """
    
         start_time = time.time()
@@ -376,8 +376,6 @@ class UnBinnedData(DataIO):
 
         """Get pointing information from ori file.
         
-        Extended Summary
-        ---------------
         Initializes interpolated functions for lonx, latx, lonz, latz 
         in radians.
         
@@ -555,8 +553,8 @@ class UnBinnedData(DataIO):
 
         """Constructs dictionary from input hdf5 file
         
-        Parameter
-        ---------
+        Parameters
+        ----------
         input_hdf5 : str
             Name of input hdf5 file. 
 
