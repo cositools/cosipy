@@ -67,7 +67,9 @@ Compiling the docs
 
 You need pandoc, sphinx, nbsphinx, sphinx_rtd_theme and mock. Using conda::
 
-    conda install -c conda-forge pandoc nbsphinx sphinx_rtd_theme mock
+    conda install -c conda-forge pandoc=3.1.3 nbsphinx=0.9.3 sphinx_rtd_theme=2.0.0 mock=5.1.0
+
+Other versions might work was well.
 
 Once you have these requirements, run::
 
