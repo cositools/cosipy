@@ -1,7 +1,7 @@
 Tutorials
 =========
 
-This is a series of tutorials explaining step by step the various components of the `cosipy` library and how to use it. Although they are rendered as a webpage here, these are interactive Python notebooks (ipynb) that you can execute and modify, distributed as part of the cosipy repository.
+This is a series of tutorials explaining step by step the various components of the `cosipy` library and how to use it. Although they are rendered as a webpage here, these are interactive Python notebooks (ipynb) that you can execute and modify, distributed as part of the cosipy repository. You can download them using the links below, or by cloning the whole repository running :code:`git clone git@github.com:cositools/cosipy.git`.
 
 If you are interested instead of the description of each class and method, please see our `API <../api/index.html>`_ section.
 
