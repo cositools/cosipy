@@ -56,7 +56,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Scatt binning and its advantages/disadvantages
   - Fitting the 511 diffuse emission.
     
-9. TODO: Source injector `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/source_injector/GRB_source_injector.ipynb`
+9. TODO: Source injector
   - Nice to have: allow theorist to test the sensitivity of their models
 
 .. warning::
