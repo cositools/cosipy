@@ -14,7 +14,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Combining files.
   - Inspecting and plotting the data
     
-2. Spacecraft orientation and location `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/response/Point_source_response.ipynb>`_
+2. Spacecraft orientation and location `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/response/SpacecraftFile.ipynb>`_
   
   - SC file format and manipulation it —e.g. get a time range, rebin it.  
   - The dwell time map and how to obtain it
