@@ -14,11 +14,7 @@ installation issues with a dependency (astromodels, see issues `#201 <https://gi
 
 Install with pip::
   
-  pip install cosipy==0.0.2a5
-
-Note: you need to specify the alpha release version, otherwise pip will fall back to
-the latest regular release (which is currently unusable). This will be updated when
-we have our next regular release.
+  pip install cosipy
   
 
 From source (for developers)
@@ -67,7 +63,9 @@ Compiling the docs
 
 You need pandoc, sphinx, nbsphinx, sphinx_rtd_theme and mock. Using conda::
 
-    conda install -c conda-forge pandoc nbsphinx sphinx_rtd_theme mock
+    conda install -c conda-forge pandoc=3.1.3 nbsphinx=0.9.3 sphinx_rtd_theme=2.0.0 mock=5.1.0
+
+Other versions might work was well.
 
 Once you have these requirements, run::
 

@@ -1,7 +1,7 @@
 Tutorials
 =========
 
-This is a series of tutorials explaining step by step the various components of the `cosipy` library and how to use it. Although they are rendered as a webpage here, these are interactive Python notebooks (ipynb) that you can execute and modify, distributed as part of the cosipy repository.
+This is a series of tutorials explaining step by step the various components of the `cosipy` library and how to use it. Although they are rendered as a webpage here, these are interactive Python notebooks (ipynb) that you can execute and modify, distributed as part of the cosipy repository. You can download them using the links below, or by cloning the whole repository running :code:`git clone git@github.com:cositools/cosipy.git`.
 
 If you are interested instead of the description of each class and method, please see our `API <../api/index.html>`_ section.
 
@@ -56,7 +56,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Scatt binning and its advantages/disadvantages
   - Fitting the 511 diffuse emission.
     
-9. TODO: Source injector `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/source_injector/GRB_source_injector.ipynb`
+9. TODO: Source injector
   - Nice to have: allow theorist to test the sensitivity of their models
 
 .. warning::
