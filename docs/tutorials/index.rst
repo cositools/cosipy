@@ -14,7 +14,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Combining files.
   - Inspecting and plotting the data
     
-2. Spacecraft orientation and location `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/response/Point_source_response.ipynb>`_
+2. Spacecraft orientation and location `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/response/SpacecraftFile.ipynb>`_
   
   - SC file format and manipulation it —e.g. get a time range, rebin it.  
   - The dwell time map and how to obtain it
@@ -66,8 +66,8 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    :maxdepth: 1
 
    Data format and handling <DataIO/DataIO_example.ipynb>
-   Spacecraft orientation and location <Point_source_resonse.ipynb>
-   Detector response and signal expectation <DetectorResponse.ipynb>
+   response/SpacecraftFile.ipynb
+   Detector response and signal expectation <response/DetectorResponse.ipynb>
    TS Map: localizing a GRB <ts_map/Parallel_TS_map_computation_DC2.ipynb>
    Fitting the spectrum of a GRB <spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb>
    Fitting the spectrum of the Crab <spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>

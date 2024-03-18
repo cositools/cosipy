@@ -1,5 +1,6 @@
 import os
 from awscli.clidriver import create_clidriver
+from pathlib import Path
 
 def fetch_wasabi_file(file,
                       output = None,
@@ -31,16 +32,19 @@ def fetch_wasabi_file(file,
     if output is None:
         output = file.split('/')[-1]
 
-    if os.path.exists(output) and not override:
+    output = Path(output)    
+        
+    if output.exists() and not override:
         raise RuntimeError(f"File {output} already exists.")
 
     cli = create_clidriver()
 
     cli.session.set_credentials(access_key, secret_key)
-    
-    cli.main(['s3api', 'get-object',
-              '--bucket', bucket,
-              '--key', file,
-              '--endpoint-url', endpoint,
-              output])
+    command = ['s3api', 'get-object',
+               '--bucket', bucket,
+               '--key', file,
+               '--endpoint-url', endpoint,
+               str(output)]
+
+    cli.main(command)
 
