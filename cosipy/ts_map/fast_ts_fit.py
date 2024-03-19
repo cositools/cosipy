@@ -17,6 +17,7 @@ import scipy.stats
 import os
 import psutil
 import gc
+import matplotlib.pyplot as plt
 
 class FastTSMap():
     
@@ -416,7 +417,7 @@ class FastTSMap():
         return results
 
     @staticmethod
-    def _plot_ts(result_array, skycoord = None, containment = None):
+    def _plot_ts(result_array, skycoord = None, containment = None, save_plot = False, save_path = "", save_name = "ts_map.png", dpi = 300):
 
         """
         Plot the containment region of the TS map.
@@ -442,26 +443,30 @@ class FastTSMap():
         # get the ts value colum
         m_ts = result_array[:,1]
 
+        # get plotting canvas
+        fig, ax = plt.subplots()
+
         # plot the ts map with containment region
         if containment != None:
             critical = FastTSMap.get_chi_critical_value(containment = containment)
             percentage = containment*100
             max_ts = np.max(m_ts[:])
             min_ts = np.min(m_ts[:])        
-            hp.mollview(m_ts[:], max = max_ts, min = max_ts-critical, title = f"Containment {percentage}%") 
+            hp.mollview(m_ts[:], max = max_ts, min = max_ts-critical, title = f"Containment {percentage}%", coord = "G", hold = True) 
         elif containment == None:
-            hp.mollview(m_ts[:]) 
-            
-        
+            hp.mollview(m_ts[:], coord = "G", hold = True) 
+    
         if skycoord != None:
-            hp.projtext(lon, lat, "x", lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia");
-        #hp.projtext(40, -17, "True Location", lonlat=True, coord = "G", label = "True location at l=51, b=-17", color = "fuchsia")
-        hp.projtext(0, 0, "o", lonlat=True, coord = "G", color = "red");
-        hp.projtext(350, 0, "(l=0, b=0)", lonlat=True, coord = "G", color = "red");
+            hp.projtext(lon, lat, "x", lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia")
+        hp.projtext(0, 0, "o", lonlat=True, coord = "G", color = "red")
+        hp.projtext(350, 0, "(l=0, b=0)", lonlat=True, coord = "G", color = "red")
+
+        if save_plot == True:
+            fig.savefig(Path(save_path)/save_name, dpi = dpi)
 
         return
 
-    def plot_ts(self, skycoord = None, containment = None):
+    def plot_ts(self, skycoord = None, containment = None, save_plot = False, save_path = "", save_name = "ts_map.png", dpi = 300):
 
         """
         Plot the containment region of the TS map.
@@ -477,7 +482,8 @@ class FastTSMap():
 
         result_array = self.result_array
 
-        FastTSMap._plot_ts(result_array = result_array, skycoord = skycoord, containment = containment)
+        FastTSMap._plot_ts(result_array = result_array, skycoord = skycoord, containment = containment, 
+                            save_plot = save_plot, save_path = save_path, save_name = save_name, dpi = dpi)
 
         return
 
