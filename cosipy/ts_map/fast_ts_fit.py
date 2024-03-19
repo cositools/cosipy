@@ -412,20 +412,22 @@ class FastTSMap():
         print(f"The time used for the parallel TS map computation is {elapsed_minutes} minutes")
         
         results = np.array(results)
+        results = results[results[:, 0].argsort()]
         self.result_array = results
+        self.ts_array = results[:,1]
         
         return results
 
     @staticmethod
-    def _plot_ts(result_array, skycoord = None, containment = None, save_plot = False, save_path = "", save_name = "ts_map.png", dpi = 300):
+    def _plot_ts(ts_array, skycoord = None, containment = None, save_plot = False, save_path = "", save_name = "ts_map.png", dpi = 300):
 
         """
         Plot the containment region of the TS map.
 
         Parameters
         ----------
-        result_array : numpy.ndarray
-            The result array from parallel ts fit.
+        ts_array : numpy.ndarray
+            The array of ts values from parallel ts fit.
         skyoord : astropy.coordinates.SkyCoord, optional
             The true location of the source (the default is `None`, which implies that there are no coordiantes to be printed on the TS map).
         containment:float, optional
@@ -436,12 +438,9 @@ class FastTSMap():
         if skycoord != None:
             lon = skycoord.l.deg
             lat = skycoord.b.deg
-        
-        # sort the array by the pixel number
-        result_array = result_array[result_array[:, 0].argsort()]
 
-        # get the ts value colum
-        m_ts = result_array[:,1]
+        # get the ts value
+        m_ts = ts_array
 
         # get plotting canvas
         fig, ax = plt.subplots()
@@ -479,11 +478,8 @@ class FastTSMap():
             The containment level of the source (the default is `0.9`, which implies plot the 90% containment region).
         """
 
-
-        result_array = self.result_array
-
-        FastTSMap._plot_ts(result_array = result_array, skycoord = skycoord, containment = containment, 
-                            save_plot = save_plot, save_path = save_path, save_name = save_name, dpi = dpi)
+        FastTSMap._plot_ts(ts_array = self.ts_array, skycoord = skycoord, containment = containment, 
+                           save_plot = save_plot, save_path = save_path, save_name = save_name, dpi = dpi)
 
         return
 
