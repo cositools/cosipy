@@ -465,7 +465,7 @@ class FastTSMap():
 
         return
 
-    def plot_ts(self, skycoord = None, containment = None, save_plot = False, save_path = "", save_name = "ts_map.png", dpi = 300):
+    def plot_ts(self, ts_array = None, skycoord = None, containment = None, save_plot = False, save_path = "", save_name = "ts_map.png", dpi = 300):
 
         """
         Plot the containment region of the TS map.
@@ -478,8 +478,15 @@ class FastTSMap():
             The containment level of the source (the default is `0.9`, which implies plot the 90% containment region).
         """
 
-        FastTSMap._plot_ts(ts_array = self.ts_array, skycoord = skycoord, containment = containment, 
-                           save_plot = save_plot, save_path = save_path, save_name = save_name, dpi = dpi)
+        if ts_array is not None:
+
+            FastTSMap._plot_ts(ts_array = ts_array, skycoord = skycoord, containment = containment, 
+                               save_plot = save_plot, save_path = save_path, save_name = save_name, dpi = dpi)
+
+        else:
+            
+            FastTSMap._plot_ts(ts_array = self.ts_array, skycoord = skycoord, containment = containment, 
+                               save_plot = save_plot, save_path = save_path, save_name = save_name, dpi = dpi)
 
         return
 
