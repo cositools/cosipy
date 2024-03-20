@@ -304,7 +304,7 @@ class FastTSMap():
         cds_frame : str
             "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame .
         ts_nside : int
-            The nside of the ts map.
+            The nside of the ts map.   
         ts_scheme : str
             The scheme of the Ts map.
 
@@ -315,11 +315,9 @@ class FastTSMap():
         """
         
         start_fast_ts_fit = time.time()
-        
-        # get the pix number of the ts map
-        data_array = np.zeros(hp.nside2npix(ts_nside))
-        ts_temp = HealpixMap(data = data_array, scheme = ts_scheme, coordsys = "galactic")
-        pix = ts_temp.ang2pix(hypothesis_coord)
+
+        # get the indices of the pixels to fit
+        pix = hp.ang2pix(nside = ts_nside, theta = hypothesis_coord.l.deg, phi = hypothesis_coord.b.deg, lonlat = True)
         
         # get the expected counts in the flattened cds array
         start_ei_cds_array = time.time()
@@ -342,7 +340,7 @@ class FastTSMap():
         return [pix, result[0], result[1], result[2], result[3], result[4], time_ei_cds_array, time_fit, time_fast_ts_fit]
 
         
-    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None):
+    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None, ts_nside = None):
         
         """
         Perform parallel computation on all the hypothesis coordinates.
@@ -350,7 +348,7 @@ class FastTSMap():
         Parameters
         ----------
         hypothesis_coords : list
-            A list of the hypothesis coordinates
+            A list of the hypothesis coordinates to fit
         energy_channel : list
             the energy channel you want to use: [lower_channel, upper_channel]. lower_channel is inclusive while upper_channel is exclusive.
         spectrum : astromodels.functions
@@ -361,6 +359,8 @@ class FastTSMap():
             The starting method of the parallel computation (the default is "fork", which implies using the fork method to start parallel computation).
         cpu_cores : int, optional
             The number of cpu cores you wish to use for the parallel computation (the default is `None`, which implies using all the available number of cores -1 to perform the parallel computation).
+        ts_nside : int, optional
+            The nside of the ts map. This must be given if the number of hypothesis_coords isn't equal to the number of pixels of the total ts map, which means that you fit only a portion of the total ts map. (the default is `None`, which means that you fit the full ts map). 
         
         Returns
         -------
@@ -368,8 +368,9 @@ class FastTSMap():
             The result of the ts fit over all the hypothesis coordinates.
         """
         
-        # decide the ts_nside from the list of hypothesis coordinates
-        ts_nside = hp.npix2nside(len(hypothesis_coords))
+        # decide the ts_nside from the list of hypothesis coordinates if not given
+        if ts_nside == None:
+            ts_nside = hp.npix2nside(len(hypothesis_coords))
         
         # get the flattened data_cds_array
         data_cds_array = FastTSMap.get_cds_array(self._data, energy_channel).flatten()
