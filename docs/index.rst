@@ -12,6 +12,8 @@ In the following sections you will find:
 - Further usage examples
 - The Application Programming Interface (API), describes the various available classes, their properties, and usage.
 
+See also `COSI's second data challenge <https://github.com/cositools/cosi-data-challenge-2>`_ for the scientific description of the simulated data used in the tutorials, as well as an explanation of the statistical tools used by cosipy.
+  
 .. warning::
    While many features are already available, cosipy is still actively under development. COSI is scheduled to launch in 2027. In preparation, the cosipy team will be releasing alpha versions with approximately an annual cadence. Your feedback will be greatly appreciated! Note, however, that these are not stable releases and various components can be modified or deprecated shortly.
 

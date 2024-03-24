@@ -5,6 +5,8 @@ This is a series of tutorials explaining step by step the various components of 
 
 If you are interested instead of the description of each class and method, please see our `API <../api/index.html>`_ section.
 
+See also `COSI's second data challenge <https://github.com/cositools/cosi-data-challenge-2>`_ for the scientific description of the simulated data used in the tutorials, as well as an explanation of the statistical tools used by cosipy.
+
 List of tutorials and contents, as a link to the corresponding Python notebook in the repository:
 
 1. Data format and handling `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/DataIO/DataIO_example.ipynb>`_
