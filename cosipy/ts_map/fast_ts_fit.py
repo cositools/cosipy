@@ -17,6 +17,7 @@ import scipy.stats
 import os
 import psutil
 import gc
+import matplotlib.pyplot as plt
 
 class FastTSMap():
     
@@ -303,7 +304,7 @@ class FastTSMap():
         cds_frame : str
             "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame .
         ts_nside : int
-            The nside of the ts map.
+            The nside of the ts map.   
         ts_scheme : str
             The scheme of the Ts map.
 
@@ -314,11 +315,9 @@ class FastTSMap():
         """
         
         start_fast_ts_fit = time.time()
-        
-        # get the pix number of the ts map
-        data_array = np.zeros(hp.nside2npix(ts_nside))
-        ts_temp = HealpixMap(data = data_array, scheme = ts_scheme, coordsys = "galactic")
-        pix = ts_temp.ang2pix(hypothesis_coord)
+
+        # get the indices of the pixels to fit
+        pix = hp.ang2pix(nside = ts_nside, theta = hypothesis_coord.l.deg, phi = hypothesis_coord.b.deg, lonlat = True)
         
         # get the expected counts in the flattened cds array
         start_ei_cds_array = time.time()
@@ -341,7 +340,7 @@ class FastTSMap():
         return [pix, result[0], result[1], result[2], result[3], result[4], time_ei_cds_array, time_fit, time_fast_ts_fit]
 
         
-    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None):
+    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None, ts_nside = None):
         
         """
         Perform parallel computation on all the hypothesis coordinates.
@@ -349,7 +348,7 @@ class FastTSMap():
         Parameters
         ----------
         hypothesis_coords : list
-            A list of the hypothesis coordinates
+            A list of the hypothesis coordinates to fit
         energy_channel : list
             the energy channel you want to use: [lower_channel, upper_channel]. lower_channel is inclusive while upper_channel is exclusive.
         spectrum : astromodels.functions
@@ -360,6 +359,8 @@ class FastTSMap():
             The starting method of the parallel computation (the default is "fork", which implies using the fork method to start parallel computation).
         cpu_cores : int, optional
             The number of cpu cores you wish to use for the parallel computation (the default is `None`, which implies using all the available number of cores -1 to perform the parallel computation).
+        ts_nside : int, optional
+            The nside of the ts map. This must be given if the number of hypothesis_coords isn't equal to the number of pixels of the total ts map, which means that you fit only a portion of the total ts map. (the default is `None`, which means that you fit the full ts map). 
         
         Returns
         -------
@@ -367,8 +368,9 @@ class FastTSMap():
             The result of the ts fit over all the hypothesis coordinates.
         """
         
-        # decide the ts_nside from the list of hypothesis coordinates
-        ts_nside = hp.npix2nside(len(hypothesis_coords))
+        # decide the ts_nside from the list of hypothesis coordinates if not given
+        if ts_nside == None:
+            ts_nside = hp.npix2nside(len(hypothesis_coords))
         
         # get the flattened data_cds_array
         data_cds_array = FastTSMap.get_cds_array(self._data, energy_channel).flatten()
@@ -411,20 +413,22 @@ class FastTSMap():
         print(f"The time used for the parallel TS map computation is {elapsed_minutes} minutes")
         
         results = np.array(results)
+        results = results[results[:, 0].argsort()]
         self.result_array = results
+        self.ts_array = results[:,1]
         
         return results
 
     @staticmethod
-    def _plot_ts(result_array, skycoord = None, containment = None):
+    def _plot_ts(ts_array, skycoord = None, containment = None, save_plot = False, save_path = "", save_name = "ts_map.png", dpi = 300):
 
         """
         Plot the containment region of the TS map.
 
         Parameters
         ----------
-        result_array : numpy.ndarray
-            The result array from parallel ts fit.
+        ts_array : numpy.ndarray
+            The array of ts values from parallel ts fit.
         skyoord : astropy.coordinates.SkyCoord, optional
             The true location of the source (the default is `None`, which implies that there are no coordiantes to be printed on the TS map).
         containment:float, optional
@@ -435,12 +439,12 @@ class FastTSMap():
         if skycoord != None:
             lon = skycoord.l.deg
             lat = skycoord.b.deg
-        
-        # sort the array by the pixel number
-        result_array = result_array[result_array[:, 0].argsort()]
 
-        # get the ts value colum
-        m_ts = result_array[:,1]
+        # get the ts value
+        m_ts = ts_array
+
+        # get plotting canvas
+        fig, ax = plt.subplots(dpi=250)
 
         # plot the ts map with containment region
         if containment != None:
@@ -448,20 +452,21 @@ class FastTSMap():
             percentage = containment*100
             max_ts = np.max(m_ts[:])
             min_ts = np.min(m_ts[:])        
-            hp.mollview(m_ts[:], max = max_ts, min = max_ts-critical, title = f"Containment {percentage}%") 
+            hp.mollview(m_ts[:], max = max_ts, min = max_ts-critical, title = f"Containment {percentage}%", coord = "G", hold = True) 
         elif containment == None:
-            hp.mollview(m_ts[:]) 
-            
-        
+            hp.mollview(m_ts[:], coord = "G", hold = True) 
+    
         if skycoord != None:
-            hp.projtext(lon, lat, "x", lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia");
-        #hp.projtext(40, -17, "True Location", lonlat=True, coord = "G", label = "True location at l=51, b=-17", color = "fuchsia")
-        hp.projtext(0, 0, "o", lonlat=True, coord = "G", color = "red");
-        hp.projtext(350, 0, "(l=0, b=0)", lonlat=True, coord = "G", color = "red");
+            hp.projscatter(lon, lat, marker = "x", linewidths = 0.5, lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia")
+        hp.projscatter(0, 0, marker = "o", linewidths = 0.5, lonlat=True, coord = "G", color = "red")
+        hp.projtext(350, 0, "(l=0, b=0)", lonlat=True, coord = "G", color = "red")
+
+        if save_plot == True:
+            fig.savefig(Path(save_path)/save_name, dpi = dpi)
 
         return
 
-    def plot_ts(self, skycoord = None, containment = None):
+    def plot_ts(self, ts_array = None, skycoord = None, containment = None, save_plot = False, save_path = "", save_name = "ts_map.png", dpi = 300):
 
         """
         Plot the containment region of the TS map.
@@ -474,10 +479,15 @@ class FastTSMap():
             The containment level of the source (the default is `0.9`, which implies plot the 90% containment region).
         """
 
+        if ts_array is not None:
 
-        result_array = self.result_array
+            FastTSMap._plot_ts(ts_array = ts_array, skycoord = skycoord, containment = containment, 
+                               save_plot = save_plot, save_path = save_path, save_name = save_name, dpi = dpi)
 
-        FastTSMap._plot_ts(result_array = result_array, skycoord = skycoord, containment = containment)
+        else:
+            
+            FastTSMap._plot_ts(ts_array = self.ts_array, skycoord = skycoord, containment = containment, 
+                               save_plot = save_plot, save_path = save_path, save_name = save_name, dpi = dpi)
 
         return
 
