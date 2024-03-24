@@ -444,7 +444,7 @@ class FastTSMap():
         m_ts = ts_array
 
         # get plotting canvas
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(dpi=250)
 
         # plot the ts map with containment region
         if containment != None:
@@ -457,8 +457,8 @@ class FastTSMap():
             hp.mollview(m_ts[:], coord = "G", hold = True) 
     
         if skycoord != None:
-            hp.projtext(lon, lat, "x", lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia")
-        hp.projtext(0, 0, "o", lonlat=True, coord = "G", color = "red")
+            hp.projscatter(lon, lat, marker = "x", linewidths = 0.5, lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia")
+        hp.projscatter(0, 0, marker = "o", linewidths = 0.5, lonlat=True, coord = "G", color = "red")
         hp.projtext(350, 0, "(l=0, b=0)", lonlat=True, coord = "G", color = "red")
 
         if save_plot == True:
