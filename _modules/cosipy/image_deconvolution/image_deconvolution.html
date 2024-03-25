@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.image_deconvolution.image_deconvolution &mdash; cosipy __version__ = &#34;0.2.1&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=0aed9c3d"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.image_deconvolution.image_deconvolution</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.image_deconvolution.image_deconvolution</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">astropy.units</span> <span class="k">as</span> <span class="nn">u</span>
+
+<span class="kn">from</span> <span class="nn">cosipy.config</span> <span class="kn">import</span> <span class="n">Configurator</span>
+
+<span class="kn">from</span> <span class="nn">.modelmap</span> <span class="kn">import</span> <span class="n">ModelMap</span>
+<span class="c1"># import image deconvolution algorithms</span>
+<span class="kn">from</span> <span class="nn">.RichardsonLucy</span> <span class="kn">import</span> <span class="n">RichardsonLucy</span>
+
+<div class="viewcode-block" id="ImageDeconvolution">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution">[docs]</a>
+<span class="k">class</span> <span class="nc">ImageDeconvolution</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to reconstruct all-sky images from COSI data based on image deconvolution methods.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model_map</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ImageDeconvolution.set_data">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.set_data">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set COSI dataset</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data : :py:class:`cosipy.image_deconvolution.DataLoader`</span>
+<span class="sd">            Data loader contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        cosipy.image_deconvolution.DataLoader may be removed in the future once the formats of event/background/response are fixed.</span>
+<span class="sd">        In this case, this method will be also modified in the future.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;data for image deconvolution was set -&gt; &quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolution.read_parameterfile">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.read_parameterfile">[docs]</a>
+    <span class="k">def</span> <span class="nf">read_parameterfile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter_filepath</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read parameters from a yaml file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        parameter_filepath : str or pathlib.Path</span>
+<span class="sd">            Path of parameter file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span> <span class="o">=</span> <span class="n">Configurator</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">parameter_filepath</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;parameter file for image deconvolution was set -&gt; &quot;</span><span class="p">,</span> <span class="n">parameter_filepath</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the set data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the set parameter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span>
+
+<div class="viewcode-block" id="ImageDeconvolution.override_parameter">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.override_parameter">[docs]</a>
+    <span class="k">def</span> <span class="nf">override_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Override parameter</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        *args</span>
+<span class="sd">            new parameter</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; image_deconvolution.override_parameter(&quot;deconvolution:parameter_RL:iteration = 30&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">initial_model_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the initial model map.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model_map</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Need to initialize model map in the image_deconvolution instance&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model_map</span>
+
+    <span class="k">def</span> <span class="nf">_check_model_response_consistency</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check whether the axes of model map are consistent with those of the response matrix.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool</span>
+<span class="sd">            If True, their axes are consistent with each other.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        It will be implemented in the future. Currently it always returns true.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#self._initial_model_map.axes[&quot;Ei&quot;].axis_scale = self._data.image_response_dense_projected.axes[&quot;Ei&quot;].axis_scale</span>
+
+        <span class="c1">#return self._initial_model_map.axes[&quot;lb&quot;] == self._data.image_response_dense_projected.axes[&quot;lb&quot;] \</span>
+        <span class="c1">#       and self._initial_model_map.axes[&quot;Ei&quot;] == self._data.image_response_dense_projected.axes[&quot;Ei&quot;]</span>
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="ImageDeconvolution.initialize">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.initialize">[docs]</a>
+    <span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize an image_deconvolution instance. It is mandatory to execute this method before running the image deconvolution.</span>
+
+<span class="sd">        This method has three steps:</span>
+<span class="sd">        1. generate a model map with properties (nside, energy bins, etc.) given in the parameter file.</span>
+<span class="sd">        2. initialize a model map following an initial condition given in the parameter file</span>
+<span class="sd">        3. load parameters for the image deconvolution</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#### Initialization ####&quot;</span><span class="p">)</span>
+
+        <span class="c1">### check self._data ###</span>
+        <span class="c1">### this part will be removed in the future ###</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">response_on_memory</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;In the image deconvolution, the option to not load the response on memory is currently not supported. Performing DataLoader.load_full_detector_response_on_memory().&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">load_full_detector_response_on_memory</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">image_response_dense_projected</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The image_response_dense_projected has not been calculated. Performing DataLoader.calc_image_response_projected().&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">calc_image_response_projected</span><span class="p">()</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;1. generating a model map&quot;</span><span class="p">)</span> 
+        <span class="n">parameter_model_property</span> <span class="o">=</span> <span class="n">Configurator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span><span class="p">[</span><span class="s1">&#39;model_property&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model_map</span> <span class="o">=</span> <span class="n">ModelMap</span><span class="p">(</span><span class="n">nside</span> <span class="o">=</span> <span class="n">parameter_model_property</span><span class="p">[</span><span class="s1">&#39;nside&#39;</span><span class="p">],</span>
+                                           <span class="n">energy_edges</span> <span class="o">=</span> <span class="n">parameter_model_property</span><span class="p">[</span><span class="s1">&#39;energy_edges&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">keV</span><span class="p">,</span> 
+                                           <span class="n">scheme</span> <span class="o">=</span> <span class="n">parameter_model_property</span><span class="p">[</span><span class="s1">&#39;scheme&#39;</span><span class="p">],</span> 
+                                           <span class="n">coordsys</span> <span class="o">=</span> <span class="n">parameter_model_property</span><span class="p">[</span><span class="s1">&#39;coordinate&#39;</span><span class="p">])</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;---- parameters ----&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">parameter_model_property</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;2. initializing the model map ...&quot;</span><span class="p">)</span>
+        <span class="n">parameter_model_initialization</span> <span class="o">=</span> <span class="n">Configurator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span><span class="p">[</span><span class="s1">&#39;model_initialization&#39;</span><span class="p">])</span>
+
+        <span class="n">algorithm_name</span> <span class="o">=</span> <span class="n">parameter_model_initialization</span><span class="p">[</span><span class="s1">&#39;algorithm&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model_map</span><span class="o">.</span><span class="n">set_values_from_parameters</span><span class="p">(</span><span class="n">algorithm_name</span><span class="p">,</span> 
+                                                           <span class="n">parameter_model_initialization</span><span class="p">[</span><span class="s1">&#39;parameter_&#39;</span><span class="o">+</span><span class="n">algorithm_name</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_model_response_consistency</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;---- parameters ----&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">parameter_model_initialization</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;3. registering the deconvolution algorithm ...&quot;</span><span class="p">)</span>
+        <span class="n">parameter_deconvolution</span> <span class="o">=</span> <span class="n">Configurator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span><span class="p">[</span><span class="s1">&#39;deconvolution&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">register_deconvolution_algorithm</span><span class="p">(</span><span class="n">parameter_deconvolution</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;---- parameters ----&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">parameter_deconvolution</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#### Done ####&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolution.register_deconvolution_algorithm">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.register_deconvolution_algorithm">[docs]</a>
+    <span class="k">def</span> <span class="nf">register_deconvolution_algorithm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter_deconvolution</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register parameters for image deconvolution on a deconvolution instance.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        parameter_deconvolution : :py:class:`cosipy.config.Configurator`</span>
+<span class="sd">            Parameters for the image deconvolution methods.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Currently only RichardsonLucy algorithm is implemented.</span>
+
+<span class="sd">        ***An example of parameters for RL algorithm***</span>
+<span class="sd">        algorithm: &quot;RL&quot;</span>
+<span class="sd">        parameter_RL:</span>
+<span class="sd">            iteration: 10 </span>
+<span class="sd">            # number of iterations</span>
+<span class="sd">            acceleration: True </span>
+<span class="sd">            # whether the accelerated ML-EM algorithm (Knoedlseder+99) is used</span>
+<span class="sd">            alpha_max: 10.0 </span>
+<span class="sd">            # the maximum value for the acceleration alpha parameter</span>
+<span class="sd">            save_results_each_iteration: False </span>
+<span class="sd">            # whether a updated model map, detal map, likelihood etc. are save at the end of each iteration</span>
+<span class="sd">            response_weighting: True </span>
+<span class="sd">            # whether a factor $w_j = (\sum_{i} R_{ij})^{\beta}$ for weighting the delta image is introduced </span>
+<span class="sd">            # see Knoedlseder+05, Siegert+20</span>
+<span class="sd">            response_weighting_index: 0.5 </span>
+<span class="sd">            # $\beta$ in the above equation</span>
+<span class="sd">            smoothing: True </span>
+<span class="sd">            # whether a Gaussian filter is used (see Knoedlseder+05, Siegert+20)</span>
+<span class="sd">            smoothing_FWHM: 2.0 #deg </span>
+<span class="sd">            # the FWHM of the Gaussian in the filter </span>
+<span class="sd">            background_normalization_fitting: False </span>
+<span class="sd">            # whether the background normalization is optimized at each iteration. </span>
+<span class="sd">            # As for now, the same single background normalization factor is used in all of the time bins</span>
+<span class="sd">            background_normalization_range: [0.01, 10.0]</span>
+<span class="sd">            # the range of the normalization factor. it should be positive.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">algorithm_name</span> <span class="o">=</span> <span class="n">parameter_deconvolution</span><span class="p">[</span><span class="s1">&#39;algorithm&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">algorithm_name</span> <span class="o">==</span> <span class="s1">&#39;RL&#39;</span><span class="p">:</span>
+            <span class="n">parameter_RL</span> <span class="o">=</span> <span class="n">Configurator</span><span class="p">(</span><span class="n">parameter_deconvolution</span><span class="p">[</span><span class="s1">&#39;parameter_RL&#39;</span><span class="p">])</span>
+            <span class="n">_deconvolution</span> <span class="o">=</span> <span class="n">RichardsonLucy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initial_model_map</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="n">parameter_RL</span><span class="p">)</span>
+<span class="c1">#        elif algorithm_name == &#39;MaxEnt&#39;:</span>
+<span class="c1">#            parameter = self.parameter[&#39;deconvolution&#39;][&#39;parameter_MaxEnt&#39;]</span>
+<span class="c1">#            self.deconvolution == ...</span>
+
+        <span class="k">return</span> <span class="n">_deconvolution</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolution.run_deconvolution">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.run_deconvolution">[docs]</a>
+    <span class="k">def</span> <span class="nf">run_deconvolution</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform the image deconvolution. Make sure that the initialize method has been conducted.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            List containing results (reconstructed image, likelihood etc) at each iteration. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#### Deconvolution Starts ####&quot;</span><span class="p">)</span>
+        
+        <span class="n">all_result</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution</span><span class="o">.</span><span class="n">iteration</span><span class="p">():</span>
+            <span class="n">all_result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="c1">### can perform intermediate check ###</span>
+            <span class="c1">#...</span>
+            <span class="c1">###</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;#### Done ####&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">all_result</span></div>
+</div>
+
+
+<span class="c1">#    def analyze_result(self):</span>
+<span class="c1">#        pass</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

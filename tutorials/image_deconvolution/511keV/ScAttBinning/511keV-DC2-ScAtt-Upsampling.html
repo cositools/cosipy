@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DC2 Image Analysis, 511keV, Upsampling &mdash; cosipy __version__ = &#34;0.2.1&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/nbsphinx-code-cells.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../../_static/documentation_options.js?v=0aed9c3d"></script>
+        <script src="../../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/index.html">API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">DC2 Image Analysis, 511keV, Upsampling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/tutorials/image_deconvolution/511keV/ScAttBinning/511keV-DC2-ScAtt-Upsampling.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="DC2-Image-Analysis,-511keV,-Upsampling">
+<h1>DC2 Image Analysis, 511keV, Upsampling<a class="headerlink" href="#DC2-Image-Analysis,-511keV,-Upsampling" title="Link to this heading"></a></h1>
+<p>updated on 2024-01-30 (the commit 26cfdeacb25335bd511a91c4f8a29bdeb36408f2)</p>
+<p>This notebook explains image reconstruction using the pixel resolution of the model map finer than that of the response matrix.</p>
+<p>Note that this notebook is advanced. It is assumed that you have already performed the two notebooks (511keV-DC2-ScAtt-DataReduction.ipynb, 511keV-DC2-ScAtt-ImageDeconvolution.ipynb).</p>
+<section id="Point">
+<h2>Point<a class="headerlink" href="#Point" title="Link to this heading"></a></h2>
+<p>In the current implementation, the pixel size of the model map can be differnt from that of the response matrix. The model pixel size is used in the following instances:</p>
+<ul class="simple">
+<li><p>coordsys_conv_matrix</p></li>
+<li><p>image_deconvolution</p></li>
+</ul>
+<p>Thus, make sure that NSIDE in these instances must be the same. In this notebook, I present the case with NSIDE = 32 in the model map.</p>
+<p>When we convert the model map in the galactic coordinate to the detector coordinate, the pixel size will be downscaled so as the converted model map has the same pixel resolution matching the detector response. Thus, using finer resolution in the model space does not improve the angular resolution in principle, while the reconstructed image will be smoother.</p>
+<p>There are three different NSIDE defined in the analysis:</p>
+<ul class="simple">
+<li><p>NSIDE for the pixel resolution of the model (coordsys_conv_matrix, image_deconvolution)</p></li>
+<li><p>NSIDE for the pixel resolution of the response/data/background CDS (full_detector_response, inputs_511keV_DC2.yaml)</p></li>
+<li><p>NSIDE for the pixel resolution of the spacecraftattitude binning (exposure_table)</p></li>
+</ul>
+<p>Normally, these three values are set equal, but in principle they can be different.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from histpy import Histogram, HealpixAxis, Axis, Axes
+from mhealpy import HealpixMap
+from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
+
+from cosipy.response import FullDetectorResponse
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.ts_map.TSMap import TSMap
+from cosipy.data_io import UnBinnedData, BinnedData
+from cosipy.image_deconvolution import SpacecraftAttitudeExposureTable, CoordsysConversionMatrix, DataLoader, ImageDeconvolution
+
+# cosipy uses astropy units
+import astropy.units as u
+from astropy.units import Quantity
+from astropy.coordinates import SkyCoord
+from astropy.time import Time
+from astropy.table import Table
+from astropy.io import fits
+from scoords import Attitude, SpacecraftFrame
+
+#3ML is needed for spectral modeling
+from threeML import *
+from astromodels import Band
+
+#Other standard libraries
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+
+import healpy as hp
+from tqdm.autonotebook import tqdm
+
+%matplotlib inline
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>nside_scatt_binning = 32
+nside_model = 32
+</pre></div>
+</div>
+</div>
+<p><strong>In this notebook I change the NSIDE in the exposure table, so the binned data need to be reproduced.</strong></p>
+</section>
+</section>
+<section id="0.-Prepare-the-data">
+<h1>0. Prepare the data<a class="headerlink" href="#0.-Prepare-the-data" title="Link to this heading"></a></h1>
+<p>From wasabi - cosi-pipeline-public/COSI-SMEX/DC2/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5 - cosi-pipeline-public/COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori</p>
+<p>From docs/tutorials/image_deconvolution/511keV/ScAttBinning - inputs_511keV_DC2.yaml - imagedeconvolution_parfile_scatt_511keV.yml</p>
+<section id="Load-the-response-and-orientation-files">
+<h2>Load the response and orientation files<a class="headerlink" href="#Load-the-response-and-orientation-files" title="Link to this heading"></a></h2>
+<p>please modify “path_data” corresponding to your environment.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>path_data = &quot;path/to/data/&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+ori_filepath = path_data + &quot;20280301_3_month.ori&quot;
+ori = SpacecraftFile.parse_from_file(ori_filepath)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 16.4 s, sys: 1.14 s, total: 17.6 s
+Wall time: 17.2 s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>full_detector_response_filename = path_data + &quot;SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&quot;
+full_detector_response = FullDetectorResponse.open(full_detector_response_filename)
+
+nside_local = full_detector_response.nside
+npix_local = hp.nside2npix(nside_local)
+
+nside_local
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+16
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>full_detector_response
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+FILENAME: &#39;/Users/yoneda/Work/Exp/COSI/cosipy-2/data_challenge/DC2/prework/data/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&#39;
+AXES:
+  NuLambda:
+    DESCRIPTION: &#39;Location of the simulated source in the spacecraft coordinates&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 3072
+    NSIDE: 16
+    SCHEME: &#39;RING&#39;
+  Ei:
+    DESCRIPTION: &#39;Initial simulated energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 1
+    EDGES: [509.0 keV, 513.0 keV]
+  Em:
+    DESCRIPTION: &#39;Measured energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 1
+    EDGES: [509.0 keV, 513.0 keV]
+  Phi:
+    DESCRIPTION: &#39;Compton angle&#39;
+    TYPE: &#39;linear&#39;
+    UNIT: &#39;deg&#39;
+    NBINS: 60
+    EDGES: [0.0 deg, 3.0 deg, 6.0 deg, 9.0 deg, 12.0 deg, 15.0 deg, 18.0 deg, 21.0 deg, 24.0 deg, 27.0 deg, 30.0 deg, 33.0 deg, 36.0 deg, 39.0 deg, 42.0 deg, 45.0 deg, 48.0 deg, 51.0 deg, 54.0 deg, 57.0 deg, 60.0 deg, 63.0 deg, 66.0 deg, 69.0 deg, 72.0 deg, 75.0 deg, 78.0 deg, 81.0 deg, 84.0 deg, 87.0 deg, 90.0 deg, 93.0 deg, 96.0 deg, 99.0 deg, 102.0 deg, 105.0 deg, 108.0 deg, 111.0 deg, 114.0 deg, 117.0 deg, 120.0 deg, 123.0 deg, 126.0 deg, 129.0 deg, 132.0 deg, 135.0 deg, 138.0 deg, 141.0 deg, 144.0 deg, 147.0 deg, 150.0 deg, 153.0 deg, 156.0 deg, 159.0 deg, 162.0 deg, 165.0 deg, 168.0 deg, 171.0 deg, 174.0 deg, 177.0 deg, 180.0 deg]
+  PsiChi:
+    DESCRIPTION: &#39;Location in the Compton Data Space&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 3072
+    NSIDE: 16
+    SCHEME: &#39;RING&#39;
+
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="1.-analyze-the-orientation-file">
+<h1>1. analyze the orientation file<a class="headerlink" href="#1.-analyze-the-orientation-file" title="Link to this heading"></a></h1>
+<p>This section is the same as in 511keV-DC2-ScAtt-DataReduction.ipynb, but the nisde is changed to 32.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+exposure_table = SpacecraftAttitudeExposureTable.from_orientation(ori, nside = nside_scatt_binning, start = None, stop = None)
+exposure_table
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+angular resolution:  1.8322594196359498 deg.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING ErfaWarning: ERFA function &#34;utctai&#34; yielded 1 of &#34;dubious year (Note 3)&#34;
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+duration:  92.36059027777777 d
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING ErfaWarning: ERFA function &#34;utctai&#34; yielded 7979955 of &#34;dubious year (Note 3)&#34;
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "f8fbe1f0f5ca49299ffcaa7ce1ecabf1", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 1min 13s, sys: 2 s, total: 1min 15s
+Wall time: 1min 15s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>scatt_binning_index</th>
+      <th>healpix_index</th>
+      <th>zpointing</th>
+      <th>xpointing</th>
+      <th>zpointing_averaged</th>
+      <th>xpointing_averaged</th>
+      <th>delta_time</th>
+      <th>exposure</th>
+      <th>num_pointings</th>
+      <th>bkg_group</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>(8272, 427)</td>
+      <td>[[44.62664815323754, -21.585226694584346], [44...</td>
+      <td>[[44.62664815323755, 68.41477330541565], [44.6...</td>
+      <td>[44.49705286596814, -21.370653963754705]</td>
+      <td>[44.49899938347305, 68.62948123249228]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>22051.0</td>
+      <td>22051</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>(8399, 427)</td>
+      <td>[[44.78167623289732, -21.840823005240516], [44...</td>
+      <td>[[44.781676232897325, 68.15917699475948], [44....</td>
+      <td>[44.84546317102121, -21.94574666279381]</td>
+      <td>[44.845668028631366, 68.05426833879696]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 0.999...</td>
+      <td>7207.0</td>
+      <td>7207</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>(8528, 427)</td>
+      <td>[[44.937249783176014, -22.096275698920152], [4...</td>
+      <td>[[44.93724978317603, 67.90372430107985], [44.9...</td>
+      <td>[45.280789592422735, -22.65671255168847]</td>
+      <td>[45.28405398202019, 67.34354151639131]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>29025.0</td>
+      <td>29025</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>(8528, 488)</td>
+      <td>[[45.66020516346508, -23.269427365755966], [45...</td>
+      <td>[[45.6602051634651, 66.73057263424403], [45.69...</td>
+      <td>[45.792486557202956, -23.48162697469867]</td>
+      <td>[45.79313907872797, 66.51842748236865]</td>
+      <td>[1.0000000000065512, 0.9999999999969589, 0.999...</td>
+      <td>13091.0</td>
+      <td>13091</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>(8656, 488)</td>
+      <td>[[45.978454945885545, -23.778456203550505], [4...</td>
+      <td>[[45.978454945885545, 66.22154379644951], [46....</td>
+      <td>[46.11600105920392, -23.997057178710705]</td>
+      <td>[46.11666483156788, 66.00300061062126]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 1.000...</td>
+      <td>13268.0</td>
+      <td>13268</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>562</th>
+      <td>562</td>
+      <td>(3526, 515)</td>
+      <td>[[19.469949806943756, 24.43289490159796], [19....</td>
+      <td>[[199.46994980694376, 65.56710509840204], [199...</td>
+      <td>[19.471417500535573, 24.430350678106848]</td>
+      <td>[199.47141729115225, 65.56964934798671]</td>
+      <td>[1.000000000001755, 0.9999999999969589, 0.9999...</td>
+      <td>257.0</td>
+      <td>257</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>563</th>
+      <td>563</td>
+      <td>(745, 3302)</td>
+      <td>[[289.1161733315789, 62.182064711183735], [289...</td>
+      <td>[[109.11617333157892, 27.817935288816265], [10...</td>
+      <td>[289.1158698854739, 62.181869345669945]</td>
+      <td>[109.11587008833249, 27.818130910219594]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>216.0</td>
+      <td>216</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>564</th>
+      <td>564</td>
+      <td>(11555, 3438)</td>
+      <td>[[129.37391657068838, -62.722167168565605], [1...</td>
+      <td>[[129.37391657068838, 27.277832831434402], [12...</td>
+      <td>[129.3748932372682, -62.7229126247577]</td>
+      <td>[129.3748932228599, 27.277087393995096]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 0.999...</td>
+      <td>38.0</td>
+      <td>38</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>565</th>
+      <td>565</td>
+      <td>(749, 3438)</td>
+      <td>[[309.37452108662, 62.72183635479668], [309.37...</td>
+      <td>[[129.37452108662, 27.27816364520332], [129.37...</td>
+      <td>[309.3747190421793, 62.723149712157756]</td>
+      <td>[129.37471903379148, 27.27685031183828]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 1.000...</td>
+      <td>57.0</td>
+      <td>57</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>566</th>
+      <td>566</td>
+      <td>(11205, 2781)</td>
+      <td>[[83.68502160846401, -56.50792179772638], [83....</td>
+      <td>[[83.68502160846401, 33.49207820227362], [83.6...</td>
+      <td>[83.68453862559674, -56.50760146476969]</td>
+      <td>[83.68453900120738, 33.49239873132499]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 0.999...</td>
+      <td>10.0</td>
+      <td>10</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<p>567 rows × 10 columns</p>
+</div></div>
+</div>
+<p>You can save SpacecraftAttitudeExposureTable as a fits file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>exposure_table.save_as_fits(f&quot;exposure_table_nside{nside_scatt_binning}.fits&quot;, overwrite = True)
+</pre></div>
+</div>
+</div>
+<p>You can also read the fits file.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>exposure_table_from_fits = SpacecraftAttitudeExposureTable.from_fits(f&quot;exposure_table_nside{nside_scatt_binning}.fits&quot;)
+exposure_table == exposure_table_from_fits
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+True
+</pre></div></div>
+</div>
+</section>
+<section id="2.-Calculate-the-coordinate-conversion-matrix">
+<h1>2. Calculate the coordinate conversion matrix<a class="headerlink" href="#2.-Calculate-the-coordinate-conversion-matrix" title="Link to this heading"></a></h1>
+<p>CoordsysConversionMatrix.spacecraft_attitude_binning_ccm can produce the coordinate conversion matrix for the spacecraft attitude binning.</p>
+<p>In this calculation, we calculate the exposure time map in the detector coordinate for each model pixel and each scatt_binning_index. We refer to it as the dwell time map.</p>
+<p>If use_averaged_pointing is True, first the averaged Z- and X-pointings are calculated (the average of zpointing or xpointing in the exposure table) for each scatt_binning_index, and then the dwell time map is calculated assuming the averaged pointings for each model pixel and each scatt_binning_index.</p>
+<p>If use_averaged_pointing is False, the dwell time map is calculated for each attitude in zpointing and xpointing (basically every 1 second), and then the calculated dwell time maps are summed up for each model pixel and each scatt_binning_index.</p>
+<p>In the former case, the computation is fast but may lose the angular resolution. In the latter case, the conversion matrix is more accurate, but it takes a very long time to calculate it.</p>
+<p><strong>With NSIDE = 32, this process may take a few hours. I also prepared a python script to create the conversion matrix. If the notebook does not work, you can use mk_ccm_upsampling.py</strong></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+coordsys_conv_matrix = CoordsysConversionMatrix.spacecraft_attitude_binning_ccm(full_detector_response, exposure_table, nside_model = nside_model, use_averaged_pointing = True)
+</pre></div>
+</div>
+</div>
+<p>You can save CoordsysConversionMatrix as a hdf5 file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix.write(f&quot;ccm_nside{nside_model}.hdf5&quot;, overwrite = True)
+</pre></div>
+</div>
+</div>
+<p>You can also read the saved file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix = CoordsysConversionMatrix.open(f&quot;ccm_nside{nside_model}.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+<p><strong>Check the matrix shape</strong></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix.contents
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<table><tbody><tr><th style="text-align: left">Format</th><td style="text-align: left">coo</td></tr><tr><th style="text-align: left">Data Type</th><td style="text-align: left">float64</td></tr><tr><th style="text-align: left">Shape</th><td style="text-align: left">(567, 12288, 3072)</td></tr><tr><th style="text-align: left">nnz</th><td style="text-align: left">27869184</td></tr><tr><th style="text-align: left">Density</th><td style="text-align: left">0.0013020833333333333</td></tr><tr><th style="text-align: left">Read-only</th><td style="text-align: left">True</td></tr><tr><th style="text-align: left">Size</th><td style="text-align: left">850.5M</td></tr><tr><th style="text-align: left">Storage ratio</th><td style="text-align: left">0.0</td></tr></tbody></table></div>
+</div>
+</section>
+<section id="3.-produce-the-binned-data">
+<h1>3. produce the binned data<a class="headerlink" href="#3.-produce-the-binned-data" title="Link to this heading"></a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def get_binned_data_scatt(unbinned_event, exposure_table, psichi_binning = &#39;local&#39;, sparse = False):
+    exposure_dict = {row[&#39;healpix_index&#39;]: row[&#39;scatt_binning_index&#39;] for _, row in exposure_table.iterrows()}
+
+    # from BinnedData.py
+
+    # Get energy bins:
+    energy_bin_edges = np.array(unbinned_event.energy_bins)
+
+    # Get phi bins:
+    number_phi_bins = int(180./unbinned_event.phi_pix_size)
+    phi_bin_edges = np.linspace(0,180,number_phi_bins+1)
+
+    # Define psichi axis and data for binning:
+    if psichi_binning == &#39;galactic&#39;:
+        psichi_axis = HealpixAxis(nside = unbinned_event.nside, scheme = unbinned_event.scheme, coordsys = &#39;galactic&#39;, label=&#39;PsiChi&#39;)
+        coords = SkyCoord(l=unbinned_event.cosi_dataset[&#39;Chi galactic&#39;]*u.deg, b=unbinned_event.cosi_dataset[&#39;Psi galactic&#39;]*u.deg, frame = &#39;galactic&#39;)
+    if psichi_binning == &#39;local&#39;:
+        psichi_axis = HealpixAxis(nside = unbinned_event.nside, scheme = unbinned_event.scheme, coordsys = SpacecraftFrame(), label=&#39;PsiChi&#39;)
+        coords = SkyCoord(lon=unbinned_event.cosi_dataset[&#39;Chi local&#39;]*u.rad, lat=((np.pi/2.0) - unbinned_event.cosi_dataset[&#39;Psi local&#39;])*u.rad, frame = SpacecraftFrame())
+
+    # Define scatt axis and data for binning
+    n_scatt_bins = len(exposure_table)
+    scatt_axis = Axis(np.arange(n_scatt_bins + 1), label=&#39;ScAtt&#39;)
+
+    is_nest = True if exposure_table.scheme == &#39;nested&#39; else False
+
+    nside_scatt = exposure_table.nside
+
+    zindex = hp.ang2pix(nside_scatt, unbinned_event.cosi_dataset[&#39;Zpointings (glon,glat)&#39;].T[0] * 180 / np.pi,
+                        unbinned_event.cosi_dataset[&#39;Zpointings (glon,glat)&#39;].T[1] * 180 / np.pi, nest=is_nest, lonlat=True)
+    xindex = hp.ang2pix(nside_scatt, unbinned_event.cosi_dataset[&#39;Xpointings (glon,glat)&#39;].T[0] * 180 / np.pi,
+                        unbinned_event.cosi_dataset[&#39;Xpointings (glon,glat)&#39;].T[1] * 180 / np.pi, nest=is_nest, lonlat=True)
+    scatt_data = np.array( [ exposure_dict[(z, x)] + 0.5 if (z,x) in exposure_dict.keys() else -1 for z, x in zip(zindex, xindex)] ) # should this &quot;0.5&quot; be needed?
+
+    # Initialize histogram:
+    binned_data = Histogram([scatt_axis,
+                              Axis(energy_bin_edges*u.keV, label=&#39;Em&#39;),
+                              Axis(phi_bin_edges*u.deg, label=&#39;Phi&#39;),
+                              psichi_axis],
+                              sparse=sparse)
+
+    # Fill histogram:
+    binned_data.fill(scatt_data, unbinned_event.cosi_dataset[&#39;Energies&#39;]*u.keV, np.rad2deg(unbinned_event.cosi_dataset[&#39;Phi&#39;])*u.deg, coords)
+
+    return binned_data
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+signal_filepath = path_data + &quot;511_thin_disk_3months_unbinned_data.fits.gz&quot;
+
+unbinned_signal = UnBinnedData(input_yaml = &quot;inputs_511keV_DC2.yaml&quot;)
+
+unbinned_signal.cosi_dataset = unbinned_signal.get_dict_from_fits(signal_filepath)
+
+binned_signal = get_binned_data_scatt(unbinned_signal, exposure_table, psichi_binning = &#39;local&#39;, sparse = False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 7.34 s, sys: 362 ms, total: 7.7 s
+Wall time: 7.71 s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+bkg_filepath = path_data + &quot;albedo_photons_3months_unbinned_data.fits.gz&quot;
+
+unbinned_bkg = UnBinnedData(input_yaml = &quot;inputs_511keV_DC2.yaml&quot;)
+
+unbinned_bkg.cosi_dataset = unbinned_bkg.get_dict_from_fits(bkg_filepath)
+
+binned_bkg = get_binned_data_scatt(unbinned_bkg, exposure_table, psichi_binning = &#39;local&#39;, sparse = False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 1min 37s, sys: 4.49 s, total: 1min 41s
+Wall time: 1min 41s
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>binned_event = binned_signal + binned_bkg
+</pre></div>
+</div>
+</div>
+</section>
+<section id="4.-Imaging-deconvolution">
+<h1>4. Imaging deconvolution<a class="headerlink" href="#4.-Imaging-deconvolution" title="Link to this heading"></a></h1>
+<section id="4-1.-Prepare-DataLoader-containing-all-neccesary-datasets">
+<h2>4-1. Prepare DataLoader containing all neccesary datasets<a class="headerlink" href="#4-1.-Prepare-DataLoader-containing-all-neccesary-datasets" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dataloader = DataLoader.load(binned_event,
+                             binned_bkg,
+                             full_detector_response,
+                             coordsys_conv_matrix,
+                             is_miniDC2_format = False)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dataloader._modify_axes()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING FutureWarning: Note that _modify_axes() in DataLoader was implemented for a temporary use. It will be removed in the future.
+
+
+WARNING UserWarning: Make sure to perform _modify_axes() only once after the data are loaded.
+
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+... checking the axis ScAtt of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+... checking the axis Em of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+... checking the axis Phi of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+... checking the axis PsiChi of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+...checking the axis Em of the event and response files...
+    --&gt; pass (edges)
+...checking the axis Phi of the event and response files...
+    --&gt; pass (edges)
+...checking the axis PsiChi of the event and response files...
+    --&gt; pass (edges)
+The axes in the event and background files are redefined. Now they are consistent with those of the response file.
+</pre></div></div>
+</div>
+</section>
+<section id="4-2.-Load-the-response-file">
+<h2>4-2. Load the response file<a class="headerlink" href="#4-2.-Load-the-response-file" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+dataloader.load_full_detector_response_on_memory()
+dataloader.calc_image_response_projected() # mandatory
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+... (DataLoader) calculating a projected image response ...
+CPU times: user 20.5 s, sys: 2.81 s, total: 23.3 s
+Wall time: 23.8 s
+</pre></div></div>
+</div>
+</section>
+<section id="4-3.-Initialize-the-instance-of-the-image-deconvolution-class">
+<h2>4-3. Initialize the instance of the image deconvolution class<a class="headerlink" href="#4-3.-Initialize-the-instance-of-the-image-deconvolution-class" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>parameter_filepath = &quot;imagedeconvolution_parfile_scatt_511keV.yml&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution = ImageDeconvolution()
+
+# set dataloader to image_deconvolution
+image_deconvolution.set_data(dataloader)
+
+# set a parameter file for the image deconvolution
+image_deconvolution.read_parameterfile(parameter_filepath)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+data for image deconvolution was set -&gt;  &lt;cosipy.image_deconvolution.data_loader.DataLoader object at 0x3eb3d36a0&gt;
+parameter file for image deconvolution was set -&gt;  imagedeconvolution_parfile_scatt_511keV.yml
+</pre></div></div>
+</div>
+<p><strong>Do not forget to make sure that NSIDE of the model map is modified to 32</strong></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution.override_parameter(f&quot;model_property:nside = {nside_model}&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution.override_parameter(&quot;deconvolution:parameter_RL:iteration = 20&quot;)
+image_deconvolution.override_parameter(&quot;deconvolution:parameter_RL:background_normalization_fitting = True&quot;)
+image_deconvolution.override_parameter(&quot;deconvolution:parameter_RL:alpha_max = 10&quot;)
+image_deconvolution.override_parameter(&quot;deconvolution:parameter_RL:smoothing_FWHM = 2.5&quot;)
+
+image_deconvolution.initialize()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+#### Initialization ####
+1. generating a model map
+---- parameters ----
+coordinate: galactic
+energy_edges:
+- 509.0
+- 513.0
+nside: 32
+scheme: ring
+
+2. initializing the model map ...
+---- parameters ----
+algorithm: flat
+parameter_flat:
+  values:
+  - 1e-4
+
+3. registering the deconvolution algorithm ...
+... calculating the expected events with the initial model map ...
+... calculating the response weighting filter...
+... calculating the gaussian filter...
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "ef13726b066d4ba1899e84c14267ab97", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+---- parameters ----
+algorithm: RL
+parameter_RL:
+  acceleration: true
+  alpha_max: 10
+  background_normalization_fitting: true
+  background_normalization_range:
+  - 0.01
+  - 10.0
+  iteration: 20
+  response_weighting: true
+  response_weighting_index: 0.5
+  save_results_each_iteration: false
+  smoothing: true
+  smoothing_FWHM: 2.5
+
+#### Done ####
+
+</pre></div></div>
+</div>
+</section>
+<section id="4-5.-Start-the-image-deconvolution">
+<h2>4-5. Start the image deconvolution<a class="headerlink" href="#4-5.-Start-the-image-deconvolution" title="Link to this heading"></a></h2>
+<p><strong>With MacBook Pro with M1 Max and 64 GB memory, it takes about 9 minutes for 20 iterations.</strong></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+all_results = image_deconvolution.run_deconvolution()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+#### Deconvolution Starts ####
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "2393a7fc7c124505879957f1adce0ee8", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+  Iteration 1/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 2.4918880393981695
+    loglikelihood: -1756598.0322312904
+    background_normalization: 1.0024218882576656
+  Iteration 2/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1711635.518049215
+    background_normalization: 0.9971577453519401
+  Iteration 3/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0871086083508616
+    loglikelihood: -1701368.15366006
+    background_normalization: 0.999685900356176
+  Iteration 4/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1695610.545668051
+    background_normalization: 0.9999373176079243
+  Iteration 5/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1691748.2580263622
+    background_normalization: 0.9999267553231147
+  Iteration 6/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 3.3352964931227564
+    loglikelihood: -1684493.5281347963
+    background_normalization: 0.9999159811049237
+  Iteration 7/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1683748.9067139933
+    background_normalization: 0.9998932072705006
+  Iteration 8/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 2.2014651710448034
+    loglikelihood: -1682463.6552417497
+    background_normalization: 0.9998941090155609
+  Iteration 9/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1682061.3451082548
+    background_normalization: 0.9998924718443246
+  Iteration 10/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1681719.0622706544
+    background_normalization: 0.9998916199988997
+  Iteration 11/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1681425.6162618792
+    background_normalization: 0.9998911255697669
+  Iteration 12/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.715627885915885
+    loglikelihood: -1681000.181726581
+    background_normalization: 0.999890734568304
+  Iteration 13/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1680801.790441107
+    background_normalization: 0.9998901905185211
+  Iteration 14/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 2.2122797273704515
+    loglikelihood: -1680427.7005234426
+    background_normalization: 0.999889956371463
+  Iteration 15/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1680295.699487886
+    background_normalization: 0.9998895673515545
+  Iteration 16/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1680177.476488873
+    background_normalization: 0.9998894604073867
+  Iteration 17/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.1526900219311305
+    loglikelihood: -1680055.2851265944
+    background_normalization: 0.9998893892247812
+  Iteration 18/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1679960.7616204866
+    background_normalization: 0.9998893341848446
+  Iteration 19/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; continue
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1679875.0225631895
+    background_normalization: 0.9998893073627257
+  Iteration 20/20
+--&gt; pre-processing
+--&gt; E-step
+... skip E-step ...
+--&gt; M-step
+--&gt; post-processing
+... calculating the expected events with the updated model map ...
+--&gt; checking stopping criteria
+--&gt; --&gt; stop
+--&gt; registering results
+--&gt; showing results
+    alpha: 1.0
+    loglikelihood: -1679796.9820035975
+    background_normalization: 0.9998892961410736
+#### Done ####
+
+CPU times: user 1h 9min 8s, sys: 3min 24s, total: 1h 12min 33s
+Wall time: 13min 17s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import pprint
+
+pprint.pprint(all_results)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[{&#39;alpha&#39;: &lt;Quantity 2.49188804&gt;,
+  &#39;background_normalization&#39;: 1.0024218882576656,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632d70&gt;,
+  &#39;iteration&#39;: 1,
+  &#39;loglikelihood&#39;: -1756598.0322312904,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632da0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631090&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9971577453519401,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58750c0&gt;,
+  &#39;iteration&#39;: 2,
+  &#39;loglikelihood&#39;: -1711635.518049215,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f5877af0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96320e0&gt;},
+ {&#39;alpha&#39;: &lt;Quantity 1.08710861&gt;,
+  &#39;background_normalization&#39;: 0.999685900356176,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631750&gt;,
+  &#39;iteration&#39;: 3,
+  &#39;loglikelihood&#39;: -1701368.15366006,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f5874700&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632a10&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9999373176079243,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631e10&gt;,
+  &#39;iteration&#39;: 4,
+  &#39;loglikelihood&#39;: -1695610.545668051,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58769b0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631540&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9999267553231147,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632c20&gt;,
+  &#39;iteration&#39;: 5,
+  &#39;loglikelihood&#39;: -1691748.2580263622,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f5876f50&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96328c0&gt;},
+ {&#39;alpha&#39;: &lt;Quantity 3.33529649&gt;,
+  &#39;background_normalization&#39;: 0.9999159811049237,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96317b0&gt;,
+  &#39;iteration&#39;: 6,
+  &#39;loglikelihood&#39;: -1684493.5281347963,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631120&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9633b80&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998932072705006,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632f20&gt;,
+  &#39;iteration&#39;: 7,
+  &#39;loglikelihood&#39;: -1683748.9067139933,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632bc0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632230&gt;},
+ {&#39;alpha&#39;: &lt;Quantity 2.20146517&gt;,
+  &#39;background_normalization&#39;: 0.9998941090155609,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631240&gt;,
+  &#39;iteration&#39;: 8,
+  &#39;loglikelihood&#39;: -1682463.6552417497,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631180&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96314b0&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998924718443246,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632ef0&gt;,
+  &#39;iteration&#39;: 9,
+  &#39;loglikelihood&#39;: -1682061.3451082548,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96304f0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631c60&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998916199988997,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9633100&gt;,
+  &#39;iteration&#39;: 10,
+  &#39;loglikelihood&#39;: -1681719.0622706544,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9630b50&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9630220&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998911255697669,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96325c0&gt;,
+  &#39;iteration&#39;: 11,
+  &#39;loglikelihood&#39;: -1681425.6162618792,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96308e0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96317e0&gt;},
+ {&#39;alpha&#39;: &lt;Quantity 1.71562789&gt;,
+  &#39;background_normalization&#39;: 0.999890734568304,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9630700&gt;,
+  &#39;iteration&#39;: 12,
+  &#39;loglikelihood&#39;: -1681000.181726581,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632890&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96313c0&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998901905185211,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9632b30&gt;,
+  &#39;iteration&#39;: 13,
+  &#39;loglikelihood&#39;: -1680801.790441107,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f8b97880&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631b70&gt;},
+ {&#39;alpha&#39;: &lt;Quantity 2.21227973&gt;,
+  &#39;background_normalization&#39;: 0.999889956371463,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9633310&gt;,
+  &#39;iteration&#39;: 14,
+  &#39;loglikelihood&#39;: -1680427.7005234426,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96313f0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96300a0&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998895673515545,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9631c90&gt;,
+  &#39;iteration&#39;: 15,
+  &#39;loglikelihood&#39;: -1680295.699487886,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96336d0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58a7790&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998894604073867,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9630df0&gt;,
+  &#39;iteration&#39;: 16,
+  &#39;loglikelihood&#39;: -1680177.476488873,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9633f40&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58a7040&gt;},
+ {&#39;alpha&#39;: &lt;Quantity 1.15269002&gt;,
+  &#39;background_normalization&#39;: 0.9998893892247812,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9633b20&gt;,
+  &#39;iteration&#39;: 17,
+  &#39;loglikelihood&#39;: -1680055.2851265944,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9630c40&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58a6f20&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998893341848446,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f5877910&gt;,
+  &#39;iteration&#39;: 18,
+  &#39;loglikelihood&#39;: -1679960.7616204866,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e96335e0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58a6ef0&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998893073627257,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58a7880&gt;,
+  &#39;iteration&#39;: 19,
+  &#39;loglikelihood&#39;: -1679875.0225631895,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58a71c0&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58a4550&gt;},
+ {&#39;alpha&#39;: 1.0,
+  &#39;background_normalization&#39;: 0.9998892961410736,
+  &#39;delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58a5720&gt;,
+  &#39;iteration&#39;: 20,
+  &#39;loglikelihood&#39;: -1679796.9820035975,
+  &#39;model_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3e9633e50&gt;,
+  &#39;processed_delta_map&#39;: &lt;cosipy.image_deconvolution.modelmap.ModelMap object at 0x3f58a6d70&gt;}]
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="5.-Analyze-the-results">
+<h1>5. Analyze the results<a class="headerlink" href="#5.-Analyze-the-results" title="Link to this heading"></a></h1>
+<p>Examples to see/analyze the results are shown below.</p>
+<section id="Log-likelihood">
+<h2>Log-likelihood<a class="headerlink" href="#Log-likelihood" title="Link to this heading"></a></h2>
+<p>Plotting the log-likelihood vs the number of iterations</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x, y = [], []
+
+for result in all_results:
+    x.append(result[&#39;iteration&#39;])
+    y.append(result[&#39;loglikelihood&#39;])
+
+plt.plot(x, y)
+plt.grid()
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;loglikelihood&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;loglikelihood&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_47_1.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_47_1.png" />
+</div>
+</div>
+</section>
+<section id="Alpha-(the-factor-used-for-the-acceleration)">
+<h2>Alpha (the factor used for the acceleration)<a class="headerlink" href="#Alpha-(the-factor-used-for-the-acceleration)" title="Link to this heading"></a></h2>
+<p>Plotting <span class="math notranslate nohighlight">\(\alpha\)</span> vs the number of iterations. <span class="math notranslate nohighlight">\(\alpha\)</span> is a parameter to accelerate the EM algorithm (see the beginning of Section 4). If it is too large, reconstructed images may have artifacts.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x, y = [], []
+
+for result in all_results:
+    x.append(result[&#39;iteration&#39;])
+    y.append(result[&#39;alpha&#39;])
+
+plt.plot(x, y)
+plt.grid()
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;alpha&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;alpha&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_49_1.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_49_1.png" />
+</div>
+</div>
+</section>
+<section id="Background-normalization">
+<h2>Background normalization<a class="headerlink" href="#Background-normalization" title="Link to this heading"></a></h2>
+<p>Plotting the background nomalization factor vs the number of iterations. If the background model is accurate and the image is reconstructed perfectly, this factor should be close to 1.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x, y = [], []
+
+for result in all_results:
+    x.append(result[&#39;iteration&#39;])
+    y.append(result[&#39;background_normalization&#39;])
+
+plt.plot(x, y)
+plt.grid()
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;background_normalization&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;background_normalization&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_51_1.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_51_1.png" />
+</div>
+</div>
+</section>
+<section id="The-reconstructed-images">
+<h2>The reconstructed images<a class="headerlink" href="#The-reconstructed-images" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def plot_reconstructed_image(result, source_position = None): # source_position should be (l,b) in degrees
+    iteration = result[&#39;iteration&#39;]
+    image = result[&#39;model_map&#39;]
+
+    for energy_index in range(image.axes[&#39;Ei&#39;].nbins):
+        map_healpxmap = HealpixMap(data = image[:,energy_index], unit = image.unit)
+
+        _, ax = map_healpxmap.plot(&#39;mollview&#39;)
+
+        _.colorbar.set_label(str(image.unit))
+
+        if source_position is not None:
+            ax.scatter(source_position[0]*u.deg, source_position[1]*u.deg, transform=ax.get_transform(&#39;world&#39;), color = &#39;red&#39;)
+
+        plt.title(label = f&quot;iteration = {iteration}, energy_index = {energy_index} ({image.axes[&#39;Ei&#39;].bounds[energy_index][0]}-{image.axes[&#39;Ei&#39;].bounds[energy_index][1]})&quot;)
+</pre></div>
+</div>
+</div>
+<p>Plotting the reconstructed images in all of the energy bands at the 20th iteration</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>iteration = 19
+
+plot_reconstructed_image(all_results[iteration])
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_55_0.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_55_0.png" />
+</div>
+</div>
+<p>An example to plot the image in the log scale</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>iteration_idx = 19
+
+result = all_results[iteration_idx]
+
+iteration = result[&#39;iteration&#39;]
+image = result[&#39;model_map&#39;]
+
+data = image[:,0]
+data[data &lt;= 0 * data.unit] = 1e-12 * data.unit
+
+hp.mollview(data, min = 1e-5, norm =&#39;log&#39;, unit = str(data.unit), title = f&#39;511 keV image at {iteration}th iteration&#39;, cmap = &#39;magma&#39;)
+
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_57_0.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_57_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

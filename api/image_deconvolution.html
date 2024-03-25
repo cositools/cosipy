@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image deconvolution &mdash; cosipy __version__ = &#34;0.2.1&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=0aed9c3d"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Utilities" href="util.html" />
+    <link rel="prev" title="TS Map" href="ts_map.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            cosipy
+              <img src="../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="response.html">Detector response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_io.html">Data IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spacecraftfile.html">Spacecraft File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="threeml.html">COSILike (3ML plugin)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ts_map.html">TS Map</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Image deconvolution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader"><code class="docutils literal notranslate"><span class="pre">DataLoader</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader.load"><code class="docutils literal notranslate"><span class="pre">DataLoader.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader.load_from_filepath"><code class="docutils literal notranslate"><span class="pre">DataLoader.load_from_filepath()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader.set_event_from_filepath"><code class="docutils literal notranslate"><span class="pre">DataLoader.set_event_from_filepath()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader.set_bkg_from_filepath"><code class="docutils literal notranslate"><span class="pre">DataLoader.set_bkg_from_filepath()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader.set_rsp_from_filepath"><code class="docutils literal notranslate"><span class="pre">DataLoader.set_rsp_from_filepath()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader.set_ccm_from_filepath"><code class="docutils literal notranslate"><span class="pre">DataLoader.set_ccm_from_filepath()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader.load_full_detector_response_on_memory"><code class="docutils literal notranslate"><span class="pre">DataLoader.load_full_detector_response_on_memory()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader.calc_image_response_projected"><code class="docutils literal notranslate"><span class="pre">DataLoader.calc_image_response_projected()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#cosipy.image_deconvolution.ModelMap"><code class="docutils literal notranslate"><span class="pre">ModelMap</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ModelMap.nside"><code class="docutils literal notranslate"><span class="pre">ModelMap.nside</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ModelMap.energy_edges"><code class="docutils literal notranslate"><span class="pre">ModelMap.energy_edges</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ModelMap.scheme"><code class="docutils literal notranslate"><span class="pre">ModelMap.scheme</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ModelMap.coordsys"><code class="docutils literal notranslate"><span class="pre">ModelMap.coordsys</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ModelMap.label_image"><code class="docutils literal notranslate"><span class="pre">ModelMap.label_image</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ModelMap.label_energy"><code class="docutils literal notranslate"><span class="pre">ModelMap.label_energy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ModelMap.set_values_from_parameters"><code class="docutils literal notranslate"><span class="pre">ModelMap.set_values_from_parameters()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ModelMap.set_values_from_extendedmodel"><code class="docutils literal notranslate"><span class="pre">ModelMap.set_values_from_extendedmodel()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution.set_data"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution.set_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution.read_parameterfile"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution.read_parameterfile()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution.data"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution.parameter"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution.parameter</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution.override_parameter"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution.override_parameter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution.initial_model_map"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution.initial_model_map</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution.initialize"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution.initialize()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution.register_deconvolution_algorithm"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution.register_deconvolution_algorithm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution.run_deconvolution"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution.run_deconvolution()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.df"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable.df</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.nside"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable.nside</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.scheme"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable.scheme</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_pickle"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable.from_pickle()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_orientation"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable.from_orientation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.analyze_orientation"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable.analyze_orientation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_fits"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable.from_fits()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.save_as_fits"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable.save_as_fits()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#cosipy.image_deconvolution.CoordsysConversionMatrix"><code class="docutils literal notranslate"><span class="pre">CoordsysConversionMatrix</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.CoordsysConversionMatrix.time_binning_ccm"><code class="docutils literal notranslate"><span class="pre">CoordsysConversionMatrix.time_binning_ccm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.CoordsysConversionMatrix.spacecraft_attitude_binning_ccm"><code class="docutils literal notranslate"><span class="pre">CoordsysConversionMatrix.spacecraft_attitude_binning_ccm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.CoordsysConversionMatrix.open"><code class="docutils literal notranslate"><span class="pre">CoordsysConversionMatrix.open()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="util.html">Utilities</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API</a></li>
+      <li class="breadcrumb-item active">Image deconvolution</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/image_deconvolution.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-cosipy.image_deconvolution">
+<span id="image-deconvolution"></span><h1>Image deconvolution<a class="headerlink" href="#module-cosipy.image_deconvolution" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataLoader">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">DataLoader</span></span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/data_loader.html#DataLoader"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataLoader" title="Link to this definition"></a></dt>
+<dd><p>A class to manage data for image analysis,
+namely event data, background model, response, coordsys conversion matrix.
+Ideally, these data should be input directly to ImageDeconvolution class,
+but considering their data formats are not fixed, this class is introduced.
+The purpose of this class is to check the consistency between input data and calculate intermediate files etc.
+In the future, this class may be removed or hidden in ImageDeconvolution class.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataLoader.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_binned_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg_binned_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rsp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordsys_conv_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_miniDC2_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/data_loader.html#DataLoader.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataLoader.load" title="Link to this definition"></a></dt>
+<dd><p>Load data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event_binned_data</strong> (<a class="reference external" href="https://histpy.readthedocs.io/en/latest/api/histogram.html#histpy.Histogram" title="(in histpy)"><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></a>) – Event histogram</p></li>
+<li><p><strong>bkg_binned_data</strong> (<a class="reference external" href="https://histpy.readthedocs.io/en/latest/api/histogram.html#histpy.Histogram" title="(in histpy)"><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></a>) – Background model</p></li>
+<li><p><strong>rsp</strong> (<a class="reference external" href="https://histpy.readthedocs.io/en/latest/api/histogram.html#histpy.Histogram" title="(in histpy)"><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></a> or <a class="reference internal" href="response.html#cosipy.response.FullDetectorResponse" title="cosipy.response.FullDetectorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.response.FullDetectorResponse</span></code></a>) – Response</p></li>
+<li><p><strong>coordsys_conv_matrix</strong> (<a class="reference internal" href="#cosipy.image_deconvolution.CoordsysConversionMatrix" title="cosipy.image_deconvolution.CoordsysConversionMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.CoordsysConversionMatrix</span></code></a>) – Coordsys conversion matrix</p></li>
+<li><p><strong>is_miniDC2_format</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>default False</em>) – Whether the file format is for mini-DC2. It will be removed in the future.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataLoader instance containing the input data set</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader" title="cosipy.image_deconvolution.DataLoader"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.DataLoader</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataLoader.load_from_filepath">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load_from_filepath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_hdf5_filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_yaml_filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg_hdf5_filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg_yaml_filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rsp_filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ccm_filepath</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_miniDC2_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/data_loader.html#DataLoader.load_from_filepath"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataLoader.load_from_filepath" title="Link to this definition"></a></dt>
+<dd><p>Load data from file pathes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event_hdf5_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – File path of HDF5 file for event histogram.</p></li>
+<li><p><strong>event_yaml_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – File path of yaml file to read the HDF5 file.</p></li>
+<li><p><strong>bkg_hdf5_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – File path of HDF5 file for background model.</p></li>
+<li><p><strong>bkg_yaml_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – File path of yaml file to read the HDF5 file.</p></li>
+<li><p><strong>rsp_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – File path of the response matrix.</p></li>
+<li><p><strong>ccm_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – File path of the coordsys conversion matrix.</p></li>
+<li><p><strong>is_miniDC2_format</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>default False</em>) – Whether the file format is for mini-DC2. should be removed in the future.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>DataLoader instance containing the input data set</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.image_deconvolution.DataLoader" title="cosipy.image_deconvolution.DataLoader"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.DataLoader</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataLoader.set_event_from_filepath">
+<span class="sig-name descname"><span class="pre">set_event_from_filepath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hdf5_filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yaml_filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/data_loader.html#DataLoader.set_event_from_filepath"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataLoader.set_event_from_filepath" title="Link to this definition"></a></dt>
+<dd><p>Load event data from file pathes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hdf5_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – File path of HDF5 file for event histogram.</p></li>
+<li><p><strong>yaml_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – File path of yaml file to read the HDF5 file.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataLoader.set_bkg_from_filepath">
+<span class="sig-name descname"><span class="pre">set_bkg_from_filepath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hdf5_filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">yaml_filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/data_loader.html#DataLoader.set_bkg_from_filepath"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataLoader.set_bkg_from_filepath" title="Link to this definition"></a></dt>
+<dd><p>Load background model from file pathes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hdf5_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – File path of HDF5 file for background model.</p></li>
+<li><p><strong>yaml_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – File path of yaml file to read the HDF5 file.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataLoader.set_rsp_from_filepath">
+<span class="sig-name descname"><span class="pre">set_rsp_from_filepath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/data_loader.html#DataLoader.set_rsp_from_filepath"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataLoader.set_rsp_from_filepath" title="Link to this definition"></a></dt>
+<dd><p>Load response matrix from file pathes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – File path of the response matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataLoader.set_ccm_from_filepath">
+<span class="sig-name descname"><span class="pre">set_ccm_from_filepath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/data_loader.html#DataLoader.set_ccm_from_filepath"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataLoader.set_ccm_from_filepath" title="Link to this definition"></a></dt>
+<dd><p>Load coordsys conversion matrix from file pathes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – File path of the coordsys conversion matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataLoader.load_full_detector_response_on_memory">
+<span class="sig-name descname"><span class="pre">load_full_detector_response_on_memory</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/data_loader.html#DataLoader.load_full_detector_response_on_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataLoader.load_full_detector_response_on_memory" title="Link to this definition"></a></dt>
+<dd><p>Load a response file on the computer memory.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataLoader.calc_image_response_projected">
+<span class="sig-name descname"><span class="pre">calc_image_response_projected</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/data_loader.html#DataLoader.calc_image_response_projected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataLoader.calc_image_response_projected" title="Link to this definition"></a></dt>
+<dd><p>Calculate image_response_dense_projected, which is an intermidiate matrix used in RL algorithm.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelMap">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">ModelMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/modelmap.html#ModelMap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ModelMap" title="Link to this definition"></a></dt>
+<dd><p>Photon flux maps in given energy bands. 2-dimensional histogram.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelMap.nside">
+<span class="sig-name descname"><span class="pre">nside</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ModelMap.nside" title="Link to this definition"></a></dt>
+<dd><p>Healpix NSIDE parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelMap.energy_edges">
+<span class="sig-name descname"><span class="pre">energy_edges</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ModelMap.energy_edges" title="Link to this definition"></a></dt>
+<dd><p>Bin edges for energies. We recommend to use a Quantity array with the unit of keV.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">np.array</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelMap.scheme">
+<span class="sig-name descname"><span class="pre">scheme</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ModelMap.scheme" title="Link to this definition"></a></dt>
+<dd><p>Healpix scheme. Either ‘ring’, ‘nested’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>, default ‘ring’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelMap.coordsys">
+<span class="sig-name descname"><span class="pre">coordsys</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ModelMap.coordsys" title="Link to this definition"></a></dt>
+<dd><p>Instrinsic coordinates of the map. The default is ‘galactic’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str or <a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.BaseRepresentation.html#astropy.coordinates.BaseRepresentation" title="(in Astropy v6.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.coordinates.BaseRepresentation</span></code></a>, default is ‘galactic’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelMap.label_image">
+<span class="sig-name descname"><span class="pre">label_image</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ModelMap.label_image" title="Link to this definition"></a></dt>
+<dd><p>The label name of the healpix axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>, default ‘lb’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelMap.label_energy">
+<span class="sig-name descname"><span class="pre">label_energy</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ModelMap.label_energy" title="Link to this definition"></a></dt>
+<dd><p>The label name of the energy axis. The default is ‘Ei’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>, default ‘Ei’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelMap.set_values_from_parameters">
+<span class="sig-name descname"><span class="pre">set_values_from_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">algorithm_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/modelmap.html#ModelMap.set_values_from_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ModelMap.set_values_from_parameters" title="Link to this definition"></a></dt>
+<dd><p>Set the values of this model map accordinng to the specified algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>algorithm_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Algorithm name to fill the values.</p></li>
+<li><p><strong>parameter</strong> (py:class:<cite>cosipy.config.Configurator</cite>) – Parameters for the specified algorithm.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Currently algorithm_name can be only ‘flat’. All of the pixel values in each energy bins will set to the given value.
+parameter should be {‘values’: [ flux value at 1st energy bin (without unit), flux value at 2nd energy bin, …]}.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelMap.set_values_from_extendedmodel">
+<span class="sig-name descname"><span class="pre">set_values_from_extendedmodel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extendedmodel</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/modelmap.html#ModelMap.set_values_from_extendedmodel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ModelMap.set_values_from_extendedmodel" title="Link to this definition"></a></dt>
+<dd><p>Set the values of this model map accordinng to the given astromodels.ExtendedSource.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>extendedmodel</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">astromodels.ExtendedSource</span></code>) – Extended source model</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">ImageDeconvolution</span></span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution" title="Link to this definition"></a></dt>
+<dd><p>A class to reconstruct all-sky images from COSI data based on image deconvolution methods.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.set_data">
+<span class="sig-name descname"><span class="pre">set_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.set_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.set_data" title="Link to this definition"></a></dt>
+<dd><p>Set COSI dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> (<a class="reference internal" href="#cosipy.image_deconvolution.DataLoader" title="cosipy.image_deconvolution.DataLoader"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.DataLoader</span></code></a>) – Data loader contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>cosipy.image_deconvolution.DataLoader may be removed in the future once the formats of event/background/response are fixed.
+In this case, this method will be also modified in the future.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.read_parameterfile">
+<span class="sig-name descname"><span class="pre">read_parameterfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter_filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.read_parameterfile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.read_parameterfile" title="Link to this definition"></a></dt>
+<dd><p>Read parameters from a yaml file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.12)"><em>pathlib.Path</em></a>) – Path of parameter file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.data">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.data" title="Link to this definition"></a></dt>
+<dd><p>Return the set data.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.parameter">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parameter</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.parameter" title="Link to this definition"></a></dt>
+<dd><p>Return the set parameter.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.override_parameter">
+<span class="sig-name descname"><span class="pre">override_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.override_parameter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.override_parameter" title="Link to this definition"></a></dt>
+<dd><p>Override parameter</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>*args</strong> – new parameter</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">image_deconvolution</span><span class="o">.</span><span class="n">override_parameter</span><span class="p">(</span><span class="s2">&quot;deconvolution:parameter_RL:iteration = 30&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.initial_model_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_model_map</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.initial_model_map" title="Link to this definition"></a></dt>
+<dd><p>Return the initial model map.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.initialize" title="Link to this definition"></a></dt>
+<dd><p>Initialize an image_deconvolution instance. It is mandatory to execute this method before running the image deconvolution.</p>
+<p>This method has three steps:
+1. generate a model map with properties (nside, energy bins, etc.) given in the parameter file.
+2. initialize a model map following an initial condition given in the parameter file
+3. load parameters for the image deconvolution</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.register_deconvolution_algorithm">
+<span class="sig-name descname"><span class="pre">register_deconvolution_algorithm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter_deconvolution</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.register_deconvolution_algorithm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.register_deconvolution_algorithm" title="Link to this definition"></a></dt>
+<dd><p>Register parameters for image deconvolution on a deconvolution instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter_deconvolution</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.config.Configurator</span></code>) – Parameters for the image deconvolution methods.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Currently only RichardsonLucy algorithm is implemented.</p>
+<p><strong>*An example of parameters for RL algorithm*</strong>
+algorithm: “RL”
+parameter_RL:</p>
+<blockquote>
+<div><p>iteration: 10
+# number of iterations
+acceleration: True
+# whether the accelerated ML-EM algorithm (Knoedlseder+99) is used
+alpha_max: 10.0
+# the maximum value for the acceleration alpha parameter
+save_results_each_iteration: False
+# whether a updated model map, detal map, likelihood etc. are save at the end of each iteration
+response_weighting: True
+# whether a factor $w_j = (sum_{i} R_{ij})^{eta}$ for weighting the delta image is introduced
+# see Knoedlseder+05, Siegert+20
+response_weighting_index: 0.5
+# $eta$ in the above equation
+smoothing: True
+# whether a Gaussian filter is used (see Knoedlseder+05, Siegert+20)
+smoothing_FWHM: 2.0 #deg
+# the FWHM of the Gaussian in the filter
+background_normalization_fitting: False
+# whether the background normalization is optimized at each iteration.
+# As for now, the same single background normalization factor is used in all of the time bins
+background_normalization_range: [0.01, 10.0]
+# the range of the normalization factor. it should be positive.</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.run_deconvolution">
+<span class="sig-name descname"><span class="pre">run_deconvolution</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.run_deconvolution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.run_deconvolution" title="Link to this definition"></a></dt>
+<dd><p>Perform the image deconvolution. Make sure that the initialize method has been conducted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List containing results (reconstructed image, likelihood etc) at each iteration.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.12)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">SpacecraftAttitudeExposureTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable" title="Link to this definition"></a></dt>
+<dd><p>A class to analyze exposure time per each spacecraft attitude</p>
+<p>Table columns are:
+- scatt_binning_index: int
+- healpix_index: list of tuple. Each tuple is (healpix_index_zpointing, healpix_index_xpointing).
+- zpointing: np.array of [l, b] in degrees. Array of z-pointings assigned to each scatt bin.
+- xpointing: np.array of [l, b] in degrees. Array of x-pointings assigned to each scatt bin.
+- zpointing_averaged: [l, b] in degrees. Averaged z-pointing in each scatt bin.
+- xpointing_averaged: [l, b] in degrees. Averaged x-pointing in each scatt bin.
+- delta_time: np.array of float in second. Exposure times for pointings assigned to each scatt bin.
+- exposure: float in second. total exposure for each scatt bin.
+- num_pointings: number of pointings assigned to each scatt bin.
+- bkg_group: index of the backgroud group. will be used in the data analysis.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.df">
+<span class="sig-name descname"><span class="pre">df</span></span><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.df" title="Link to this definition"></a></dt>
+<dd><p>pandas dataframe with the above columns</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">pd.DataFrame</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.nside">
+<span class="sig-name descname"><span class="pre">nside</span></span><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.nside" title="Link to this definition"></a></dt>
+<dd><p>Healpix NSIDE parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.scheme">
+<span class="sig-name descname"><span class="pre">scheme</span></span><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.scheme" title="Link to this definition"></a></dt>
+<dd><p>Healpix scheme. Either ‘ring’, ‘nested’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>, default ‘ring’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_pickle">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_pickle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ring'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.from_pickle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_pickle" title="Link to this definition"></a></dt>
+<dd><p>Read exposure table from pickle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Path to file</p></li>
+<li><p><strong>nside</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Healpix NSIDE parameter.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>default 'ring'</em>) – Healpix scheme. Either ‘ring’, ‘nested’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraftfile.SpacecraftAttitudeExposureTable</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_orientation">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ring'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_exposure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_num_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.from_orientation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_orientation" title="Link to this definition"></a></dt>
+<dd><p>Produce exposure table from orientation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraftfile.SpacecraftFile</span></code></a>) – Orientation</p></li>
+<li><p><strong>nside</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Healpix NSIDE parameter.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>default 'ring'</em>) – Healpix scheme. Either ‘ring’, ‘nested’.</p></li>
+<li><p><strong>start</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v6.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.time.Time</span></code></a> or None, default None) – Start time to analyze the orientation</p></li>
+<li><p><strong>stop</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v6.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.time.Time</span></code></a> or None, default None) – Stop time to analyze the orientation</p></li>
+<li><p><strong>min_exposure</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – Minimum exposure time required for each scatt bin</p></li>
+<li><p><strong>min_num_pointings</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – Minimum number of pointings required for each scatt bin</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraftfile.SpacecraftAttitudeExposureTable</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.analyze_orientation">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">analyze_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ring'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_exposure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_num_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.analyze_orientation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.analyze_orientation" title="Link to this definition"></a></dt>
+<dd><p>Produce pd.DataFrame from orientation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraftfile.SpacecraftFile</span></code></a>) – Orientation</p></li>
+<li><p><strong>nside</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Healpix NSIDE parameter.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>default 'ring'</em>) – Healpix scheme. Either ‘ring’, ‘nested’.</p></li>
+<li><p><strong>start</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v6.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.time.Time</span></code></a> or None, default None) – Start time to analyze the orientation</p></li>
+<li><p><strong>stop</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v6.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.time.Time</span></code></a> or None, default None) – Stop time to analyze the orientation</p></li>
+<li><p><strong>min_exposure</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – Minimum exposure time required for each scatt bin</p></li>
+<li><p><strong>min_num_pointings</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – Minimum number of pointings required for each scatt bin</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">pd.DataFrame</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_fits">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.from_fits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_fits" title="Link to this definition"></a></dt>
+<dd><p>Read exposure table from a fits file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Path to file</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable" title="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.SpacecraftAttitudeExposureTable</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.save_as_fits">
+<span class="sig-name descname"><span class="pre">save_as_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.save_as_fits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.save_as_fits" title="Link to this definition"></a></dt>
+<dd><p>Save exposure table as a fits file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Path to file</p></li>
+<li><p><strong>overwrite</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>default False</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map">
+<span class="sig-name descname"><span class="pre">calc_pointing_trajectory_map</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map" title="Link to this definition"></a></dt>
+<dd><p>Calculate a 2-dimensional map showing exposure time for each spacecraft attitude.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraft.SpacecraftAttitudeMap</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The default axes in SpacecraftAttitudeMap is x- and y-pointings,
+but here the spacecraft attitude is described with z- and x-pointings.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.CoordsysConversionMatrix">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">CoordsysConversionMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/coordsys_conversion_matrix.html#CoordsysConversionMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.CoordsysConversionMatrix" title="Link to this definition"></a></dt>
+<dd><p>A class for coordinate conversion matrix (ccm).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.CoordsysConversionMatrix.time_binning_ccm">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">time_binning_ccm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">full_detector_response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_intervals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_nest_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/coordsys_conversion_matrix.html#CoordsysConversionMatrix.time_binning_ccm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.CoordsysConversionMatrix.time_binning_ccm" title="Link to this definition"></a></dt>
+<dd><p>Calculate a ccm from a given orientation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>full_detector_response</strong> (<a class="reference internal" href="response.html#cosipy.response.FullDetectorResponse" title="cosipy.response.FullDetectorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.response.FullDetectorResponse</span></code></a>) – Response</p></li>
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraftfile.SpacecraftFile</span></code></a>) – Orientation</p></li>
+<li><p><strong>time_intervals</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">np.array</span></code>) – The same format of binned_data.axes[‘Time’].edges</p></li>
+<li><p><strong>nside_model</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – If it is None, it will be the same as the NSIDE in the response.</p></li>
+<li><p><strong>is_nest_model</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>default False</em>) – If scheme of the model map is nested, it should be False while it is rare.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Its axes are [ “Time”, “lb”, “NuLambda” ].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.image_deconvolution.CoordsysConversionMatrix" title="cosipy.image_deconvolution.CoordsysConversionMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.CoordsysConversionMatrix</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.CoordsysConversionMatrix.spacecraft_attitude_binning_ccm">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">spacecraft_attitude_binning_ccm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">full_detector_response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_averaged_pointing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/coordsys_conversion_matrix.html#CoordsysConversionMatrix.spacecraft_attitude_binning_ccm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.CoordsysConversionMatrix.spacecraft_attitude_binning_ccm" title="Link to this definition"></a></dt>
+<dd><p>Calculate a ccm from a given exposure_table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>full_detector_response</strong> (<a class="reference internal" href="response.html#cosipy.response.FullDetectorResponse" title="cosipy.response.FullDetectorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.response.FullDetectorResponse</span></code></a>) – Response</p></li>
+<li><p><strong>exposure_table</strong> (<a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable" title="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.SpacecraftAttitudeExposureTable</span></code></a>) – Scatt exposure table</p></li>
+<li><p><strong>nside_model</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – If it is None, it will be the same as the NSIDE in the response.</p></li>
+<li><p><strong>use_averaged_pointing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>, </em><em>default False</em>) – If it is True, first the averaged Z- and X-pointings are calculated.
+Then the dwell time map is calculated once for ach model pixel and each scatt_binning_index.
+If it is False, the dwell time map is calculated for each attitude in zpointing and xpointing in the exposure table.
+Then the calculated dwell time maps are summed up.
+In the former case, the computation is fast but may lose the angular resolution.
+In the latter case, the conversion matrix is more accurate but it takes a long time to calculate it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Its axes are [ “ScAtt”, “lb”, “NuLambda” ].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>py:class:<a href="#id1"><span class="problematic" id="id2">`</span></a>cosipy.image_deconvolution.CoordsysConversionMatrix’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.CoordsysConversionMatrix.open">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hist'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/coordsys_conversion_matrix.html#CoordsysConversionMatrix.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.CoordsysConversionMatrix.open" title="Link to this definition"></a></dt>
+<dd><p>Open a ccm from a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Path to file.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>default 'hist'</em>) – Name of group where the histogram was saved.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Its axes are [ “lb”, “Time” or “ScAtt”, “NuLambda” ].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>py:class:<a href="#id3"><span class="problematic" id="id4">`</span></a>cosipy.image_deconvolution.CoordsysConversionMatrix’</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ts_map.html" class="btn btn-neutral float-left" title="TS Map" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="util.html" class="btn btn-neutral float-right" title="Utilities" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
