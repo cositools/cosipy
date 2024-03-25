@@ -17,6 +17,7 @@ import scipy.stats
 import os
 import psutil
 import gc
+import matplotlib.pyplot as plt
 
 class FastTSMap():
     
@@ -410,58 +411,70 @@ class FastTSMap():
         elapsed_minutes = elapsed_seconds/60
         print(f"The time used for the parallel TS map computation is {elapsed_minutes} minutes")
         
-        results = np.array(results)
-        self.result_array = results
+        results = np.array(results)  # turn to a numpy array
+        results = results[results[:, 0].argsort()]  # arrange the order by the pixel numbering
+        self.result_array = results  # the full result array
+        self.ts_array = results[:,1]  # the ts array
         
         return results
 
     @staticmethod
-    def _plot_ts(result_array, skycoord = None, containment = None):
+    def _plot_ts(ts_array, skycoord = None, containment = None, save_plot = False, save_dir = "", save_name = "ts_map.png", dpi = 300):
 
         """
         Plot the containment region of the TS map.
 
         Parameters
         ----------
-        result_array : numpy.ndarray
-            The result array from parallel ts fit.
+        ts_array : numpy.ndarray
+            The array of ts values from parallel ts fit.
         skyoord : astropy.coordinates.SkyCoord, optional
             The true location of the source (the default is `None`, which implies that there are no coordiantes to be printed on the TS map).
-        containment:float, optional
+        containment : float, optional
             The containment level of the source (the default is `None`, which will plot raw TS values).
+        save_plot : bool, optional
+            Set `True` to save the plot (the default is `False`, which means it won't save the plot.
+        save_dir : str or pathlib.Path, optional
+            The directory to save the plot.
+        save_name : str, optional
+            The file name of the plot to be save.
+        dpi : int, optional
+            The dpi for plotting and saving.
         """
 
 
         if skycoord != None:
             lon = skycoord.l.deg
             lat = skycoord.b.deg
+
+        # get the ts value
+        m_ts = ts_array
         
-        # sort the array by the pixel number
-        result_array = result_array[result_array[:, 0].argsort()]
-
-        # get the ts value colum
-        m_ts = result_array[:,1]
-
+        # get plotting canvas
+        fig, ax = plt.subplots(dpi=dpi)
+        
         # plot the ts map with containment region
         if containment != None:
             critical = FastTSMap.get_chi_critical_value(containment = containment)
             percentage = containment*100
             max_ts = np.max(m_ts[:])
             min_ts = np.min(m_ts[:])        
-            hp.mollview(m_ts[:], max = max_ts, min = max_ts-critical, title = f"Containment {percentage}%") 
+            hp.mollview(m_ts[:], max = max_ts, min = max_ts-critical, title = f"Containment {percentage}%", coord = "G", hold = True) 
         elif containment == None:
-            hp.mollview(m_ts[:]) 
+            hp.mollview(m_ts[:], coord = "G", hold = True) 
             
         
         if skycoord != None:
-            hp.projtext(lon, lat, "x", lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia");
-        #hp.projtext(40, -17, "True Location", lonlat=True, coord = "G", label = "True location at l=51, b=-17", color = "fuchsia")
-        hp.projtext(0, 0, "o", lonlat=True, coord = "G", color = "red");
-        hp.projtext(350, 0, "(l=0, b=0)", lonlat=True, coord = "G", color = "red");
+            hp.projscatter(lon, lat, marker = "x", linewidths = 0.5, lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia")
+        hp.projscatter(0, 0, marker = "o", linewidths = 0.5, lonlat=True, coord = "G", color = "red")
+        hp.projtext(350, 0, "(l=0, b=0)", lonlat=True, coord = "G", color = "red")
+
+        if save_plot == True:
+            fig.savefig(Path(save_dir)/save_name, dpi = dpi)
 
         return
 
-    def plot_ts(self, skycoord = None, containment = None):
+    def plot_ts(self, ts_array = None, skycoord = None, containment = None, save_plot = False, save_dir = "", save_name = "ts_map.png", dpi = 300):
 
         """
         Plot the containment region of the TS map.
@@ -470,14 +483,27 @@ class FastTSMap():
         ----------
         skyoord : astropy.coordinates.SkyCoord, optional
             The true location of the source (the default is `None`, which implies that there are no coordiantes to be printed on the TS map).
-        containment:float, optional
-            The containment level of the source (the default is `0.9`, which implies plot the 90% containment region).
+        containment : float, optional
+            The containment level of the source (the default is `None`, which will plot raw TS values).
+        save_plot : bool, optional
+            Set `True` to save the plot (the default is `False`, which means it won't save the plot.
+        save_dir : str or pathlib.Path, optional
+            The directory to save the plot.
+        save_name : str, optional
+            The file name of the plot to be save.
+        dpi : int, optional
+            The dpi for plotting and saving.
         """
 
+        if ts_array is not None:
 
-        result_array = self.result_array
+            FastTSMap._plot_ts(ts_array = ts_array, skycoord = skycoord, containment = containment, 
+                               save_plot = save_plot, save_dir = save_dir, save_name = save_name, dpi = dpi)
 
-        FastTSMap._plot_ts(result_array = result_array, skycoord = skycoord, containment = containment)
+        else:
+
+            FastTSMap._plot_ts(ts_array = self.ts_array, skycoord = skycoord, containment = containment, 
+                               save_plot = save_plot, save_dir = save_dir, save_name = save_name, dpi = dpi)
 
         return
 
