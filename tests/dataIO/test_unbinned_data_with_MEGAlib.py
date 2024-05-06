@@ -33,20 +33,21 @@ analysis.read_tra(run_test=True, use_ori=False)
 # Read in MEGAlib's calculations from its event reader:
 mega_data = os.path.join(test_data.path,"unbinned_data_MEGAlib_calc.hdf5")
 dict_old = analysis.get_dict_from_hdf5(mega_data)
-energy_old = dict_old["Energies"]
-time_old = dict_old["TimeTags"]
-phi_old = dict_old["Phi"]
-dist_old = dict_old["Distance"]
-lonX_old = dict_old["Xpointings"].T[0]
-latX_old = dict_old["Xpointings"].T[1]
-lonZ_old = dict_old["Zpointings"].T[0]
-latZ_old = dict_old["Zpointings"].T[1]
-lonY_old = dict_old["Ypointings"].T[0]
-latY_old = dict_old["Ypointings"].T[1]
-chi_loc_old = dict_old['Chi local']
-psi_loc_old = dict_old['Psi local']
-chi_gal_old = dict_old['Chi galactic']
-psi_gal_old = dict_old['Psi galactic']
+ntestsamples = analysis.cosi_dataset["Energies"].size #Using a reduced dataset for testing purposes
+energy_old = dict_old["Energies"][:ntestsamples]
+time_old = dict_old["TimeTags"][:ntestsamples]
+phi_old = dict_old["Phi"][:ntestsamples]
+dist_old = dict_old["Distance"][:ntestsamples]
+lonX_old = dict_old["Xpointings"].T[0][:ntestsamples]
+latX_old = dict_old["Xpointings"].T[1][:ntestsamples]
+lonZ_old = dict_old["Zpointings"].T[0][:ntestsamples]
+latZ_old = dict_old["Zpointings"].T[1][:ntestsamples]
+lonY_old = dict_old["Ypointings"].T[0][:ntestsamples]
+latY_old = dict_old["Ypointings"].T[1][:ntestsamples]
+chi_loc_old = dict_old['Chi local'][:ntestsamples]
+psi_loc_old = dict_old['Psi local'][:ntestsamples]
+chi_gal_old = dict_old['Chi galactic'][:ntestsamples]
+psi_gal_old = dict_old['Psi galactic'][:ntestsamples]
 
 # For comparing chi_loc, psi_loc=0 values are arbitrary,
 # so we exclude them from the comparison.
