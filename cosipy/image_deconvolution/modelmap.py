@@ -59,7 +59,7 @@ class ModelMap(Histogram):
         ----------
         algorithm_name : str
             Algorithm name to fill the values.  
-        parameter : py:class:`cosipy.config.Configurator`
+        parameter : py:class:`yayc.Configurator`
             Parameters for the specified algorithm.
 
         Notes

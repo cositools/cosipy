@@ -28,6 +28,7 @@ setup(name='cosipy',
                           'astromodels',
                           'threeml',
                           'numba<=0.58.0',
+                          'yayc',
                           'awscli'],
       description = "High-level analysis for the COSI telescope data",
       entry_points={"console_scripts":[

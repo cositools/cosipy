@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import mhealpy as hp
 from mhealpy import HealpixBase, HealpixMap
-from cosipy.config import Configurator
+from yayc import Configurator
 
 from scoords import SpacecraftFrame, Attitude
 
