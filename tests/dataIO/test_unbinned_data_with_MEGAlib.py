@@ -85,13 +85,14 @@ def test_unbinned_data_with_MEGAlib():
             chi_loc_dict,psi_loc_dict,chi_gal_dict,psi_gal_dict]
     for each in test_list:
         diff = compare(each["old"],each["new"],each["name"],make_plots=False)
-        if np.amax(diff) > 1e-12:
-            bad_index = diff > 1e-12
+        thresh = 1e-12
+        if np.amax(diff) > thresh:
+            bad_index = diff > thresh
             len_bad = len(each["new"][bad_index])
             len_tot = len(each["new"])
             bad_frac = len_bad/len_tot
             raise Exception(f"WARNING: Definition does not match MEGAlib: {each['name']}. "
-                            f"Fraction with diff > 1e-12: {bad_frac}. "
+                            f"Fraction with diff > {thresh}: {bad_frac}. "
                             f"Max difference: {np.amax(np.absolute(diff))}  {each['units']}")
         else:
             print("Passed: %s" %each["name"])
