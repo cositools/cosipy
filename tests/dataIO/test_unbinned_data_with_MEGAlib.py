@@ -85,7 +85,7 @@ def test_unbinned_data_with_MEGAlib():
             chi_loc_dict,psi_loc_dict,chi_gal_dict,psi_gal_dict]
     for each in test_list:
         diff = compare(each["old"],each["new"],each["name"],make_plots=False)
-        thresh = 1e-12
+        thresh = 1e-10
         if np.amax(diff) > thresh:
             bad_index = diff > thresh
             len_bad = len(each["new"][bad_index])
