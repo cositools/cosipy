@@ -34,3 +34,5 @@ The preferred communication channel is the GitHub repository:: if you find a pro
    tutorials/index
    tutorials/other_examples
    api/index
+   dev/index
+   
