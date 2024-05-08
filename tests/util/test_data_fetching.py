@@ -1,8 +1,10 @@
 from cosipy.util import fetch_wasabi_file
 
-fetch_wasabi_file('test_file.txt', override = True)
+def test_fetch_wasabi_file():
 
-f = open('test_file.txt')
+    fetch_wasabi_file('test_file.txt', override = True)
 
-assert f.read() == 'Small file used for testing purposes.\n'
+    f = open('test_file.txt')
+
+    assert f.read() == 'Small file used for testing purposes.\n'
 

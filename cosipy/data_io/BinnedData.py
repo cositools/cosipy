@@ -8,7 +8,7 @@ from mhealpy import HealpixMap, HealpixBase
 import healpy as hp
 import pandas as pd
 import matplotlib.pyplot as plt
-from cosipy.make_plots import MakePlots
+from cosipy.data_io.make_plots import MakePlots
 from cosipy.data_io import UnBinnedData
 import logging
 import astropy.units as u
