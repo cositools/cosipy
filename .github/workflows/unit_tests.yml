@@ -25,7 +25,7 @@ jobs:
       - name: Tests
         run: |
           pip install pytest pytest-cov
-          pytest tests --junitxml=junit/test-results.xml --cov=cosipy --cov-report=xml --cov-report=html
+          pytest tests --setup-only --junitxml=junit/test-results.xml --cov=cosipy --cov-report=xml --cov-report=html
       - name: Codecov
         uses: codecov/codecov-action@v4.2.0
         env:
