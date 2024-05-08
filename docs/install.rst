@@ -40,8 +40,42 @@ Do the following (preferably inside a conda environment)::
 The flag ``-e`` (``--editable``) allows you to make changes and try them without
 having to run ``pip`` again.
 
+Troubleshooting
+---------------
+
+ERROR:: Could not find a local HDF5 installation.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This error is caused by missing h5py wheels for M1 chips. 
+
+See https://github.com/h5py/h5py/issues/1810 and https://github.com/h5py/h5py/issues/1800
+
+Currently, the best workaround for M1 users is to install h5py using conda before the cosipy installation::
+
+    conda install h5py
+
+Example error log::
+
+    × Getting requirements to build wheel did not run successfully.
+    │ exit code: 1
+    ╰─> [13 lines of output]
+        /var/folders/5p/wnc17p7s0gz1vd3krp7gly60v5n_5p/T/H5close39c45pt5.c:1:10: fatal error: 'H5public.h' file not found
+        #include "H5public.h"
+                 ^~~~~~~~~~~~
+        1 error generated.
+        cpuinfo failed, assuming no CPU features: 'flags'
+        * Using Python 3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:41:52) [Clang 15.0.7 ]
+        * Found cython 3.0.10
+        * USE_PKGCONFIG: True
+        * Found conda env: ``/Users/mjmoss/miniforge3``
+        .. ERROR:: Could not find a local HDF5 installation.
+           You may need to explicitly state where your local HDF5 headers and
+           library can be found by setting the ``HDF5_DIR`` environment
+           variable or by using the ``--hdf5`` command-line option.
+
+
 Testing
-.......
+-------
 
 .. warning::
     Under construction. Unit tests are not ready.
