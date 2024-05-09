@@ -1,0 +1,16 @@
+# When modifying the this file, please validate the new YAML using
+# curl -X POST --data-binary @codecov.yml https://codecov.io/validate
+# See https://docs.codecov.com/docs/commit-status
+
+coverage:
+  status:
+    project: # How much the overall coverage can decrease
+      default:
+        threshold: 10%  # Will be 0% in the long term
+    patch:   # What percentage of the new lines need to be covered
+      default:
+        threshold: 50%  # Will be 0% in the long term
+        
+
+comment:
+  hide_project_coverage: false # Show both overall and delta coverage
