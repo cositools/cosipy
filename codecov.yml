@@ -1,15 +1,19 @@
 # When modifying the this file, please validate the new YAML using
 # curl -X POST --data-binary @codecov.yml https://codecov.io/validate
-# See https://docs.codecov.com/docs/commit-status
+# See
+# https://docs.codecov.com/docs/commit-status
+# https://docs.codecov.com/docs/codecovyml-reference
 
 coverage:
   status:
     project: # How much the overall coverage can decrease
       default:
-        threshold: 10%  # Will be 0% in the long term
+        target: auto    # Uses coverage of current pull request base or parent commit
+        threshold: 10%  # Leeway, allow it to decrease a little. Will be 0% in the long term
     patch:   # What percentage of the new lines need to be covered
       default:
-        threshold: 50%  # Will be 0% in the long term
+        target: 100%
+        threshold: 50%  # Leeway, allow not fully-covered contributuons. Will be 0% in the long term
         
 
 comment:
