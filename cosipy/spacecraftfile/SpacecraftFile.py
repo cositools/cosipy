@@ -101,9 +101,11 @@ class SpacecraftFile():
             The SpacecraftFile object.
         """
 
-        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1, comments=("#","EN"))
-        axis_1 = np.loadtxt(file, usecols = (3,2), delimiter = ' ', skiprows = 1, comments=("#","EN"))
-        axis_2 = np.loadtxt(file, usecols = (5,4), delimiter = ' ', skiprows = 1, comments=("#","EN"))
+
+        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5), delimiter=' ', skiprows=1, comments=("#", "EN"))
+        time_stamps = orientation_file[:, 0]
+        axis_1 = orientation_file[:, [2, 1]]
+        axis_2 = orientation_file[:, [4, 3]]
 
         time = Time(time_stamps, format = "unix")
         xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
