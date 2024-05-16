@@ -53,8 +53,8 @@ class BinnedData(UnBinnedData):
         but it does not explicitly return it.
         """
         
-        # Make print statement:
-        print("binning data...")
+        # Log message:
+        logger.info("binning data...")
       
         # Option to read in unbinned data file:
         if unbinned_data:
@@ -72,18 +72,14 @@ class BinnedData(UnBinnedData):
             num_bins = round(delta_t / self.time_bins)
             new_bin_size = delta_t / num_bins
             if self.time_bins != new_bin_size:
-                print()
-                print("Note: time bins must be equally spaced between min and max time.")
-                print("Using time bin size [s]: " + str(new_bin_size))
-                print()
+                logger.info("Note: time bins must be equally spaced between min and max time.")
+                logger.info("Using time bin size [s]: " + str(new_bin_size))
             time_bin_edges = np.linspace(min_time,max_time,num_bins+1)
 
         if type(self.time_bins).__name__ == 'list':
             # Check that bins correspond to min and max time:
             if (self.time_bins[0] > min_time) | (self.time_bins[-1] < max_time):
-                print()
-                print("ERROR: Time bins do not cover the full selected data range!")
-                print()
+                logger.error("ERROR: Time bins do not cover the full selected data range!")
                 sys.exit()
             time_bin_edges = np.array(self.time_bins)
 
@@ -262,7 +258,7 @@ class BinnedData(UnBinnedData):
         Plot psichi healpix map.
         """
 
-        print("plotting psichi in Galactic coordinates...")
+        logger.info("plotting psichi in Galactic coordinates...")
         plot, ax = self.binned_data.project('PsiChi').plot(ax_kw = {'coord':'G'})
         ax.get_figure().set_figwidth(4)
         ax.get_figure().set_figheight(3)
@@ -339,8 +335,8 @@ class BinnedData(UnBinnedData):
             If True, calculates ct/keV/s. The defualt is ct/keV. 
         """
 
-        # Make print statement:
-        print("getting raw spectrum...")
+        # Log message:
+        logger.info("getting raw spectrum...")
 
         # Option to read in binned data from hdf5 file:
         if binned_data:
@@ -384,8 +380,8 @@ class BinnedData(UnBinnedData):
             Prefix of output files. Writes both pdf and dat file. 
         """
 
-        # Make print statement:
-        print("getting raw lightcurve...")
+        # Log message:
+        logger.info("getting raw lightcurve...")
 
         # Option to read in binned data from hdf5 file:
         if binned_data:
