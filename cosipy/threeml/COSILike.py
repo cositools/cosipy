@@ -114,11 +114,11 @@ class COSILike(PluginPrototype):
         # consistent way for point srcs and extended srcs. 
         self.precomputed_psr_file = precomputed_psr_file
         if self.precomputed_psr_file != None:
-            print("... loading the pre-computed image response ...")
+            logger.info("... loading the pre-computed image response ...")
             self.image_response = DetectorResponse.open(self.precomputed_psr_file)
             # in the near future, we will implement ExtendedSourceResponse class, which should be used here (HY).
             # probably, it is better to move this loading part outside of this class. Then, we don't have to load the response everytime we start the fitting (HY).
-            print("--> done")
+            logger.info("--> done")
         
     def set_model(self, model):
         """
@@ -195,7 +195,7 @@ class COSILike(PluginPrototype):
         
             if self._psr is None or len(point_sources) != len(self._psr):
 
-                print("... Calculating point source responses ...")
+                logger.info("... Calculating point source responses ...")
 
                 self._psr = {}
                 self._source_location = {} # Should the poition information be in the point source response? (HY)
@@ -214,15 +214,15 @@ class COSILike(PluginPrototype):
                     else:
                         raise RuntimeError("Unknown coordinate system")
 
-                    print(f"--> done (source name : {name})")
+                    logger.info(f"--> done (source name : {name})")
 
-                print(f"--> all done")
+                logger.info(f"--> all done")
         
         # check if the source location is updated or not
         for name, source in point_sources.items():
 
             if source.position.sky_coord != self._source_location[name]:
-                print(f"... Re-calculating the point source response of {name} ...")
+                logger.info(f"... Re-calculating the point source response of {name} ...")
                 coord = source.position.sky_coord
 
                 self._source_location[name] = copy.deepcopy(coord) # to avoid same memory issue
@@ -236,7 +236,7 @@ class COSILike(PluginPrototype):
                 else:
                     raise RuntimeError("Unknown coordinate system")
 
-                print(f"--> done (source name : {name})")
+                logger.info(f"--> done (source name : {name})")
 
         # Get expectation for point sources:
         for name,source in point_sources.items():

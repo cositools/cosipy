@@ -23,6 +23,7 @@ import os
 import time
 logger = logging.getLogger(__name__)
 
+
 class UnBinnedData(DataIO):
     """Handles unbinned data."""
 
@@ -128,7 +129,7 @@ class UnBinnedData(DataIO):
         if run_test == True:
             c_E0 = 510.999
 
-        print("Preparing to read file...")
+        logger.info("Preparing to read file...")
 
         # Open .tra.gz file:
         if self.data_file.endswith(".gz"):
@@ -143,8 +144,8 @@ class UnBinnedData(DataIO):
 
             # If fast method fails, use long method, which should work in all cases.
             except:
-                print("Initial attempt failed.")
-                print("Using long method...")
+                logger.info("Initial attempt failed.")
+                logger.info("Using long method...")
                 g = gzip.open(self.data_file,"rt")
                 num_lines = sum(1 for line in g)
                 g.close()
@@ -159,21 +160,19 @@ class UnBinnedData(DataIO):
                 num_lines = float(proc.communicate()[0])
                 
             except:
-                print("Initial attempt failed.")
-                print("Using long method...")
+                logger.info("Initial attempt failed.")
+                logger.info("Using long method...")
                 g = open(self.data_file,"rt")
                 num_lines = sum(1 for line in g)
                 g.close()
 
         else: 
-            print()
-            print("ERROR: Input data file must have '.tra' or '.gz' extenstion.")
-            print()
+            logger.error("ERROR: Input data file must have '.tra' or '.gz' extenstion.")
             sys.exit()
         
         
         # Read tra file line by line:
-        print("Reading file...")
+        logger.info("Reading file...")
         N_events = 0 # number of events
         pbar = tqdm(total=num_lines) # start progress bar
         for line in f:
@@ -196,7 +195,7 @@ class UnBinnedData(DataIO):
             if event_max != None:
                 if N_events >= event_max:
                     pbar.close()
-                    print("Stopping here: only reading a subset of events")
+                    logger.info("Stopping here: only reading a subset of events")
                     break
 
             # Total photon energy and Compton angle: 
@@ -258,14 +257,14 @@ class UnBinnedData(DataIO):
 
         # Close progress bar:
         pbar.close()
-        print("Making COSI data set...")
-        print("total events to procecss: " + str(len(erg)))
+        logger.info("Making COSI data set...")
+        logger.info("total events to procecss: " + str(len(erg)))
 
         # Clear unused memory:
         gc.collect()
 
         # Initialize arrays:
-        print("Initializing arrays...")
+        logger.info("Initializing arrays...")
         erg = np.array(erg)
         phi = np.array(phi)
         tt = np.array(tt)
@@ -281,8 +280,8 @@ class UnBinnedData(DataIO):
         # Check if the input data has pointing information, 
         # if not, get it from the spacecraft file:
         if (use_ori == False) & (len(lonZ)==0):
-            print("WARNING: No pointing information in input data.")
-            print("Getting pointing information from spacecraft file.")
+            logger.warning("WARNING: No pointing information in input data.")
+            logger.warning("Getting pointing information from spacecraft file.")
             use_ori = True
 
         # Option to get X and Z pointing information from orientation file:
@@ -346,7 +345,7 @@ class UnBinnedData(DataIO):
         self.chi_gal_test = chi_gal_rad - np.pi
         
         # Make observation dictionary
-        print("Making dictionary...")
+        logger.info("Making dictionary...")
         cosi_dataset = {'Energies':erg,
                         'TimeTags':tt,
                         'Xpointings (glon,glat)':np.array([lonX,latX]).T,
@@ -362,13 +361,13 @@ class UnBinnedData(DataIO):
 
         # Option to write unbinned data to file (either fits or hdf5):
         if output_name != None:
-            print("Saving file...")
+            logger.info("Saving file...")
             self.write_unbinned_output(output_name) 
         
         # Get processing time:
         end_time = time.time()
         processing_time = end_time - start_time
-        print("total processing time [s]: " + str(processing_time))
+        logger.info("total processing time [s]: " + str(processing_time))
         
         return 
 
@@ -592,7 +591,7 @@ class UnBinnedData(DataIO):
         Only cuts in time are allowed for now. 
         """
         
-        print("Making data selections...")
+        logger.info("Making data selections...")
 
         # Option to read in unbinned data file:
         if unbinned_data:
@@ -612,7 +611,7 @@ class UnBinnedData(DataIO):
 
         # Write unbinned data to file (either fits or hdf5):
         if output_name != None:
-            print("Saving file...")
+            logger.info("Saving file...")
             self.write_unbinned_output(output_name)
 
         return
@@ -633,9 +632,7 @@ class UnBinnedData(DataIO):
         counter = 0
         for each in input_files:
 
-            print()
-            print("adding %s..." %each)
-            print()
+            logger.info("adding %s..." % each)
     
             # Read dict from hdf5 or fits:
             if self.unbinned_output == 'hdf5':
