@@ -9,6 +9,9 @@ from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
 from scoords import Attitude, SpacecraftFrame
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
+import logging
+logger = logging.getLogger(__name__)
+
 class CoordsysConversionMatrix(Histogram):
     """
     A class for coordinate conversion matrix (ccm).
@@ -24,7 +27,7 @@ class CoordsysConversionMatrix(Histogram):
         self.binning_method = binning_method #'Time' or 'ScAtt'
 
     @classmethod
-    def time_binning_ccm(cls, full_detector_response, orientation, time_intervals, nside_model = None, is_nest_model = False):
+    def time_binning_ccm(cls, full_detector_response, orientation, time_intervals, nside_model = None, is_nest_model = False, earth_horizon_angle = None):
         """
         Calculate a ccm from a given orientation.
         
@@ -40,6 +43,12 @@ class CoordsysConversionMatrix(Histogram):
             If it is None, it will be the same as the NSIDE in the response.
         is_nest_model : bool, default False
             If scheme of the model map is nested, it should be False while it is rare.
+        earth_horizon_angle : None or float, default None
+            If it is float, the earth occultation will be considered. 
+            We assume that the satellite points to the zenith.
+            The exposure time for events coming below the earth horizon will be set to zero.
+            This parameter determines the earth horizon angle measured from the zenith.
+            If the satellite altitude is 550 km, it is 113 degrees.
 
         Returns
         -------
@@ -75,10 +84,10 @@ class CoordsysConversionMatrix(Histogram):
                                                                              quiet = True,
                                                                              save = False)
 
-                time_diff = filtered_orientation.get_time_delta()
+#                time_diff = filtered_orientation.get_time_delta()
 
                 dwell_time_map = filtered_orientation.get_dwell_map(response = full_detector_response.filename,
-                                                                    dts = time_diff,
+#                                                                    dts = time_diff,
                                                                     src_path = pixel_movement,
                                                                     save = False)
 
@@ -89,14 +98,28 @@ class CoordsysConversionMatrix(Histogram):
 
             contents.append(ccm_thispix_sparse)
 
-        coordsys_conv_matrix = cls(axis_coordsys_conv_matrix, contents = sparse.concatenate(contents), unit = u.s, sparse = True)
+        contents = sparse.concatenate(contents)
+        
+        # earth occultation
+        if not earth_horizon_angle is None:
+            logger.warning(f"The zenith angle of the earth horizon is assumed to be {earth_horizon_angle.to('deg').value} deg. Note that currently we assume that the satellite points to the zenith.")
+
+            theta, phi = hp.pix2ang(axis_local_map.nside, np.arange(axis_local_map.npix), 
+                                    nest = True if axis_local_map.scheme == 'nest' else False,
+                                    lonlat = False) # they are in radian, but have no units
+
+            earth_occultation_mask = theta * u.rad < earth_horizon_angle
+            
+            contents *= earth_occultation_mask.reshape((1, 1, axis_local_map.npix))
+
+        coordsys_conv_matrix = cls(axis_coordsys_conv_matrix, contents = contents, unit = u.s, sparse = True)
         
         coordsys_conv_matrix.binning_method = "Time"
 
         return coordsys_conv_matrix
 
     @classmethod
-    def spacecraft_attitude_binning_ccm(cls, full_detector_response, exposure_table, nside_model = None, use_averaged_pointing = False):
+    def spacecraft_attitude_binning_ccm(cls, full_detector_response, exposure_table, nside_model = None, use_averaged_pointing = False, earth_horizon_angle = None):
         """
         Calculate a ccm from a given exposure_table.
 
@@ -115,6 +138,12 @@ class CoordsysConversionMatrix(Histogram):
             Then the calculated dwell time maps are summed up. 
             In the former case, the computation is fast but may lose the angular resolution. 
             In the latter case, the conversion matrix is more accurate but it takes a long time to calculate it.
+        earth_horizon_angle : None or float, default None
+            If it is float, the earth occultation will be considered. 
+            We assume that the satellite points to the zenith.
+            The exposure time for events coming below the earth horizon will be set to zero.
+            This parameter determines the earth horizon angle measured from the zenith.
+            If the satellite altitude is 550 km, it is 113 degrees.
 
         Returns
         -------
@@ -190,7 +219,21 @@ class CoordsysConversionMatrix(Histogram):
 
             contents.append(ccm_thispix_sparse)
 
-        coordsys_conv_matrix = cls(axis_coordsys_conv_matrix, contents = sparse.concatenate(contents), unit = u.s, sparse = True)
+        contents = sparse.concatenate(contents)
+        
+        # earth occultation
+        if not earth_horizon_angle is None:
+            logger.warning(f"The zenith angle of the earth horizon is assumed to be {earth_horizon_angle.to('deg').value} deg. Note that currently we assume that the satellite points to the zenith.")
+
+            theta, phi = hp.pix2ang(axis_local_map.nside, np.arange(axis_local_map.npix), 
+                                    nest = True if axis_local_map.scheme == 'nest' else False,
+                                    lonlat = False) # they are in radian, but have no units
+
+            earth_occultation_mask = theta * u.rad < earth_horizon_angle
+            
+            contents *= earth_occultation_mask.reshape((1, 1, axis_local_map.npix))
+
+        coordsys_conv_matrix = cls(axis_coordsys_conv_matrix, contents = contents, unit = u.s, sparse = True)
 
         coordsys_conv_matrix.binning_method = 'ScAtt'
         
