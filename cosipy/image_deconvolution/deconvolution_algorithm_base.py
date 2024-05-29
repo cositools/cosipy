@@ -1,4 +1,5 @@
 import gc
+import copy
 from tqdm.autonotebook import tqdm
 import numpy as np
 import healpy as hp
@@ -39,6 +40,13 @@ class DeconvolutionAlgorithmBase(object):
         self.data = data 
 
         self.parameter = parameter 
+
+        # mask for zero-exposure pixels
+        if np.any(data.image_response_dense_projected.contents == 0) == True:
+            self.mask_zero_exposure_pixels = data.image_response_dense_projected.contents > 0
+            initial_model_map[:] *= self.mask_zero_exposure_pixels 
+        else:
+            self.mask_zero_exposure_pixels = None
 
         self.initial_model_map = initial_model_map
 
@@ -131,7 +139,7 @@ class DeconvolutionAlgorithmBase(object):
         Perform one iteration of image deconvolution.
         This method should not be overrided in subclasses.
         """
-        self.model_map = self.initial_model_map
+        self.model_map = copy.deepcopy(self.initial_model_map)
 
         stop_iteration = False
         for i_iteration in tqdm(range(1, self.iteration_max + 1)):

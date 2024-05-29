@@ -13,9 +13,12 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
     """
 
     def __init__(self, initial_model_map, data, parameter):
+
         DeconvolutionAlgorithmBase.__init__(self, initial_model_map, data, parameter)
 
         self.loglikelihood = None
+
+        self.do_acceleration = parameter.get('acceleration', False)
 
         self.alpha_max = parameter.get('alpha_max', 1.0)
 
@@ -103,6 +106,12 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
         self.delta_map = delta_map_part1 * delta_map_part2
 
+        # mask for zero-exposure pixels
+        if self.mask_zero_exposure_pixels is not None:
+            _delta_map = self.delta_map.contents
+            _delta_map[np.invert(self.mask_zero_exposure_pixels)] = 0
+            self.delta_map[:] = _delta_map
+
         if self.do_bkg_norm_fitting:
             self.bkg_norm += self.bkg_norm * np.sum(diff * self.data.bkg_dense) / np.sum(self.data.bkg_dense)
 
@@ -124,8 +133,11 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
         if self.do_smoothing:
             self.delta_map[:,:] = np.tensordot(self.gaussian_filter.contents, self.delta_map.contents, axes = [[0], [0]])
-
-        self.alpha = self.calc_alpha(self.delta_map, self.model_map)
+        
+        if self.do_acceleration:
+            self.alpha = self.calc_alpha(self.delta_map, self.model_map)
+        else:
+            self.alpha = 1.0
 
         self.processed_delta_map = self.delta_map * self.alpha
 
@@ -193,8 +205,16 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         float
             Acceleration parameter
         """
-        alpha = -1.0 / np.min( delta / model_map ) * (1 - almost_zero)
+       
+        diff = (delta / model_map).contents
+
+        if self.mask_zero_exposure_pixels is not None:
+            diff[np.invert(self.mask_zero_exposure_pixels)] = np.inf
+
+        alpha = -1.0 / np.min(diff) * (1 - almost_zero)
         alpha = min(alpha, self.alpha_max)
+
         if alpha < 1.0:
             alpha = 1.0
+
         return alpha
