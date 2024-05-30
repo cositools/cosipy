@@ -84,8 +84,6 @@ class CoordsysConversionMatrix(Histogram):
                                                                              quiet = True,
                                                                              save = False)
 
-#                time_diff = filtered_orientation.get_time_delta()
-
                 dwell_time_map = filtered_orientation.get_dwell_map(response = full_detector_response.filename,
 #                                                                    dts = time_diff,
                                                                     src_path = pixel_movement,
@@ -96,11 +94,14 @@ class CoordsysConversionMatrix(Histogram):
 
             ccm_thispix_sparse = sparse.COO.from_numpy( ccm_thispix.reshape((1, axis_model_map.nbins, axis_local_map.nbins)) )
 
+            # TODO: add the earth occultation masking here once the orientation includes information about the altitude and the zenith direction.
+            # something like: ccm_thispix_sparse = mask_earth_occulation(ccm_thispix_sparse, filtered_orientation)
+
             contents.append(ccm_thispix_sparse)
 
         contents = sparse.concatenate(contents)
         
-        # earth occultation
+        # earth occultation (tentetive for DC2)
         if not earth_horizon_angle is None:
             logger.warning(f"The zenith angle of the earth horizon is assumed to be {earth_horizon_angle.to('deg').value} deg. Note that currently we assume that the satellite points to the zenith.")
 
@@ -217,11 +218,14 @@ class CoordsysConversionMatrix(Histogram):
 
             ccm_thispix_sparse = sparse.COO.from_numpy( ccm_thispix.reshape((1, axis_model_map.nbins, axis_local_map.nbins)) )
 
+            # TODO: add the earth occultation masking here once the orientation includes information about the altitude and the zenith direction.
+            # something like: ccm_thispix_sparse = mask_earth_occulation(ccm_thispix_sparse, altitude, zenith_direction)
+
             contents.append(ccm_thispix_sparse)
 
         contents = sparse.concatenate(contents)
         
-        # earth occultation
+        # earth occultation (tentetive for DC2)
         if not earth_horizon_angle is None:
             logger.warning(f"The zenith angle of the earth horizon is assumed to be {earth_horizon_angle.to('deg').value} deg. Note that currently we assume that the satellite points to the zenith.")
 
@@ -265,4 +269,5 @@ class CoordsysConversionMatrix(Histogram):
 
         return new
 
+# TODO
 #   def calc_exposure_map(self, full_detector_response): #once the response file format is fixed, I will implement this function
