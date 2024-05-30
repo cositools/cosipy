@@ -219,13 +219,7 @@ class DeconvolutionAlgorithmBase(object):
         # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
         # the unit of map_rotated is 1/cm2 ( = s * 1/cm2/s/sr * sr)
 
-        if data.response_on_memory == True:
-            expectation[:] = np.tensordot( map_rotated, data.image_response_dense.contents, axes = ([1,2], [0,1]))
-        else:
-            for ipix in tqdm(range(self.npix_local)):
-                response_this_pix = np.sum(data.full_detector_response[ipix].to_dense(), axis = (4,5)) # ['Ei', 'Em', 'Phi', 'PsiChi', 'SigmaTau', 'Dist'] -> ['Ei', 'Em', 'Phi', 'PsiChi']
-                expectation += np.tensordot(map_rotated[:,ipix,:], response_this_pix, axes = ([1], [0]))
-
+        expectation[:] = np.tensordot( map_rotated, data.image_response_dense.contents, axes = ([1,2], [0,1]))
         expectation += data.bkg_dense * self.bkg_norm
         expectation += almost_zero
         

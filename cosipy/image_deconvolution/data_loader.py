@@ -324,30 +324,6 @@ class DataLoader(object):
 
         print(f"The axes in the event and background files are redefined. Now they are consistent with those of the response file.")
 
-    '''
-    def _check_sc_orientation_coverage(self):
-
-        init_time_orientation = self.orientation.get_time()[0]
-        init_time_event = Time(self.event_dense.axes["Time"].edges[0], format = 'unix')
-
-        if not init_time_orientation <= init_time_event:
-            print(f"Warning: the orientation file does not cover the observation")
-            print(f"         initial time of the orientation file = {init_time_orientation}")
-            print(f"         initial time of the event file       = {init_time_event}")
-            return False
-
-        end_time_orientation = self.orientation.get_time()[-1]
-        end_time_event = Time(self.event_dense.axes["Time"].edges[-1], format = 'unix')
-
-        if not end_time_event <= end_time_orientation:
-            print(f"Warning: the orientation file does not cover the observation")
-            print(f"         the end time of the orientation file = {end_time_orientation}")
-            print(f"         the end time of the event file       = {end_time_event}")
-            return False
-
-        return True
-    '''
-
     def load_full_detector_response_on_memory(self):
         """
         Load a response file on the computer memory.
@@ -370,118 +346,6 @@ class DataLoader(object):
 
         self.response_on_memory = True
 
-    ''' 
-    def calc_coordsys_conv_matrix(self): 
-
-        if not self._check_file_registration():
-            print("Please load all files!")
-            return 
-    
-        if not self._check_axis_consistency():
-            print("Please the axes of the input files!")
-            return 
-
-#        if not self._check_sc_orientation_coverage():
-#            print("Please the axes of the input files!")
-#            return 
-
-        print("... (DataLoader) calculating a coordinate conversion matrix...")
-        
-        # make an empty histogram for the response calculation
-        axis_model_map = HealpixAxis(nside = self.full_detector_response.axes["NuLambda"].nside, 
-                                     coordsys = "galactic", label = "lb")
-
-        axis_coordsys_conv_matrix = [ axis_model_map, self.event_dense.axes["Time"], self.full_detector_response.axes["NuLambda"] ] #lb, Time, NuLambda
-
-        self.coordsys_conv_matrix = Histogram(axis_coordsys_conv_matrix, unit = u.s, sparse = True)
-
-        # calculate a dwell time map at each time bin and sky location
-        nside = self.full_detector_response.axes["NuLambda"].nside
-        npix = self.full_detector_response.axes["NuLambda"].npix 
-
-        for ipix in tqdm(range(npix)):
-            theta, phi = hp.pix2ang(nside, ipix)
-            l, b = phi, np.pi/2 - theta
-
-            pixel_coord = SkyCoord(l, b, unit = u.rad, frame = 'galactic')
-
-            for i_time, [init_time, end_time] in enumerate(self.coordsys_conv_matrix.axes["Time"].bounds):
-                init_time = Time(init_time, format = 'unix')
-                end_time = Time(end_time, format = 'unix')
-    
-                filtered_orientation = self.orientation.source_interval(init_time, end_time)
-                pixel_movement = filtered_orientation.get_target_in_sc_frame(target_name = f"pixel_{ipix}_{i_time}",
-                                                                             target_coord = pixel_coord,
-                                                                             quiet = True)
-
-                time_diff = filtered_orientation.get_time_delta()
-
-                dwell_time_map = filtered_orientation.get_dwell_map(response = self.full_detector_response.filename.resolve(),
-                                                                    dts = time_diff,
-                                                                    src_path = pixel_movement,
-                                                                    quiet = True)
-
-                self.coordsys_conv_matrix[ipix,i_time] = dwell_time_map.data * dwell_time_map.unit
-                # (HealpixMap).data returns the numpy array without its unit.
-
-        self.calc_image_response_projected()
-
-    def save_coordsys_conv_matrix(self, filename = "coordsys_conv_matrix.hdf5"): 
-        self.coordsys_conv_matrix.write(filename, overwrite = True)
-
-    def load_coordsys_conv_matrix_from_filepath(self, filepath):
-
-        if not self._check_file_registration():
-            print("Please load all files!")
-            return 
-    
-        if not self._check_axis_consistency():
-            print("Please the axes of the input files!")
-            return 
-
-#        if not self._check_sc_orientation_coverage():
-#            print("Please the axes of the input files!")
-#            return 
-
-        print("... (DataLoader) loading a coordinate conversion matrix...")
-
-        self.coordsys_conv_matrix = Histogram.open(filepath)
-
-        if not self.coordsys_conv_matrix.is_sparse:
-            self.coordsys_conv_matrix = self.coordsys_conv_matrix.to_sparse()
-
-        print(f"... checking the axes of the coordinate conversion matrix ...")
-
-        if self.coordsys_conv_matrix.unit == u.s:
-            print(f"    --> pass (unit)")
-        else:
-            print(f"Warning: the unit is wrong {self.coordsys_conv_matrix.unit}")
-            return False
-
-        axis_model_map = HealpixAxis(nside = self.full_detector_response.axes["NuLambda"].nside, 
-                                     coordsys = "galactic", label = "lb")
-
-        if self.coordsys_conv_matrix.axes['lb'] == axis_model_map:
-            print(f"    --> pass (axis lb)")
-        else:
-            print(f"Warning: the axis of lb is inconsistent")
-            return False
-
-        if self.coordsys_conv_matrix.axes['Time'] == self.event_dense.axes["Time"]:
-            print(f"    --> pass (axis Time)")
-        else:
-            print(f"Warning: the axis of Time is inconsistent")
-            return False
-
-        if self.coordsys_conv_matrix.axes['NuLambda'] == self.full_detector_response.axes['NuLambda']:
-            print(f"    --> pass (axis NuLambda)")
-        else:
-            print(f"Warning: the axis of NuLambda is inconsistent")
-            return False
-
-        self.calc_image_response_projected()
-    '''
-
     def calc_image_response_projected(self):
         """
         Calculate image_response_dense_projected, which is an intermidiate matrix used in RL algorithm.
@@ -492,25 +356,12 @@ class DataLoader(object):
         self.image_response_dense_projected = Histogram([ self.coordsys_conv_matrix.axes["lb"], self.full_detector_response.axes["Ei"] ],
                                                         unit = self.full_detector_response.unit * self.coordsys_conv_matrix.unit)
 
-        if self.response_on_memory:
+        if self.response_on_memory == False:
+            self.load_full_detector_response_on_memory()
 
-            self.image_response_dense_projected[:] = np.tensordot( np.sum(self.coordsys_conv_matrix, axis = (0)), 
-                                                                   np.sum(self.image_response_dense, axis = (2,3,4)),
-                                                                   axes = ([1], [0]) ) * self.full_detector_response.unit * self.coordsys_conv_matrix.unit
-            # [Time/ScAtt, lb, NuLambda] -> [lb, NuLambda]
-            # [NuLambda, Ei, Em, Phi, PsiChi] -> [NuLambda, Ei]
-            # [lb, NuLambda] x [NuLambda, Ei] -> [lb, Ei]
-
-        else:
-            npix = self.full_detector_response.axes["NuLambda"].npix 
-
-            for ipix in tqdm(range(npix)):
-                if self.is_miniDC2_format:
-                    full_detector_response_projected_Ei = np.sum(self.full_detector_response[ipix].to_dense(), axis = (1,2,3,4,5)) #Ei
-                    # when np.sum is applied to a dense histogram, the unit is restored. when it is a sparse histogram, the unit is not restored. 
-                else:
-                    full_detector_response_projected_Ei = np.sum(self.full_detector_response[ipix].to_dense(), axis = (1,2,3)) #Ei
-    
-                coordsys_conv_matrix_projected_lb = np.sum(self.coordsys_conv_matrix[:,:,ipix], axis = (0)).todense() * self.coordsys_conv_matrix.unit #lb
-    
-                self.image_response_dense_projected += np.outer(coordsys_conv_matrix_projected_lb, full_detector_response_projected_Ei)
+        self.image_response_dense_projected[:] = np.tensordot( np.sum(self.coordsys_conv_matrix, axis = (0)), 
+                                                               np.sum(self.image_response_dense, axis = (2,3,4)),
+                                                               axes = ([1], [0]) ) * self.full_detector_response.unit * self.coordsys_conv_matrix.unit
+        # [Time/ScAtt, lb, NuLambda] -> [lb, NuLambda]
+        # [NuLambda, Ei, Em, Phi, PsiChi] -> [NuLambda, Ei]
+        # [lb, NuLambda] x [NuLambda, Ei] -> [lb, Ei]

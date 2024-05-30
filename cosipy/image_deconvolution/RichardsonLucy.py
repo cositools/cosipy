@@ -77,33 +77,22 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
 
         diff = self.data.event_dense / self.expectation - 1
-
+        
+        # part1
         delta_map_part1 = self.model_map / self.data.image_response_dense_projected
+
+        # part2
         delta_map_part2 = Histogram(self.model_map.axes, unit = self.data.image_response_dense_projected.unit)
 
-        if self.data.response_on_memory == True:
-            diff_x_response = np.tensordot(diff.contents, self.data.image_response_dense.contents, axes = ([1,2,3], [2,3,4])) 
+        diff_x_response = np.tensordot(diff.contents, self.data.image_response_dense.contents, axes = ([1,2,3], [2,3,4])) 
             # [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, NuLambda, Ei]
 
-            delta_map_part2[:] = np.tensordot(self.data.coordsys_conv_matrix.contents, diff_x_response, axes = ([0,2], [0,1])) \
-                                 * diff_x_response.unit * self.data.coordsys_conv_matrix.unit
+        delta_map_part2[:] = np.tensordot(self.data.coordsys_conv_matrix.contents, diff_x_response, axes = ([0,2], [0,1])) \
+                             * diff_x_response.unit * self.data.coordsys_conv_matrix.unit
             # [Time/ScAtt, lb, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
             # note that coordsys_conv_matrix is the sparse, so the unit should be recovered.
-
-        else:
-            for ipix in tqdm(range(self.npix_local)):
-                if self.data.is_miniDC2_format == True:
-                    response_this_pix = np.sum(self.data.full_detector_response[ipix].to_dense(), axis = (4,5)) # [Ei, Em, Phi, PsiChi]
-                else:
-                    response_this_pix = self.data.full_detector_response[ipix].to_dense() # [Ei, Em, Phi, PsiChi]
-
-                diff_x_response_this_pix = np.tensordot(diff.contents, response_this_pix, axes = ([1,2,3], [1,2,3]))
-                # [Time/ScAtt, Em, Phi, PsiChi] x [Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Ei]
-
-                delta_map_part2 += np.tensordot(self.data.coordsys_conv_matrix[:,:,ipix], diff_x_response_this_pix, axes = ([0],[0])) \
-                                   * diff_x_response_this_pix.unit * self.data.coordsys_conv_matrix.unit #lb, Ei
-                # [Time/ScAtt, lb] x [Time/ScAtt, Ei] -> [lb, Ei]
-
+        
+        # delta map
         self.delta_map = delta_map_part1 * delta_map_part2
 
         # mask for zero-exposure pixels
