@@ -126,9 +126,12 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         else:
             self.alpha = 1.0
 
-        self.processed_delta_map = self.delta_map * self.alpha
+        model_map_new = self.model_map + self.delta_map * self.alpha
+        model_map_new[:] = np.where(model_map_new.contents < self.minimum_flux * model_map_new.unit, 
+                                    self.minimum_flux * model_map_new.unit, model_map_new.contents)
 
-        self.model_map += self.processed_delta_map 
+        self.processed_delta_map = model_map_new - self.model_map
+        self.model_map = model_map_new
 
         print("... calculating the expected events with the updated model map ...")
         self.expectation = self.calc_expectation(self.model_map, self.data)
@@ -183,7 +186,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         print(f'    loglikelihood: {self.result["loglikelihood"]}')
         print(f'    background_normalization: {self.result["background_normalization"]}')
 
-    def calc_alpha(self, delta, model_map, almost_zero = 1e-5): #almost_zero is needed to prevent producing a flux below zero
+    def calc_alpha(self, delta, model_map):
         """
         Calculate the acceleration parameter in RL algorithm.
 
@@ -198,7 +201,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         if self.data.mask is not None:
             diff[np.invert(self.data.mask.contents)] = np.inf
 
-        alpha = -1.0 / np.min(diff) * (1 - almost_zero)
+        alpha = -1.0 / np.min(diff)
         alpha = min(alpha, self.alpha_max)
 
         if alpha < 1.0:
