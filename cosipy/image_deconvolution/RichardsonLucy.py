@@ -96,10 +96,8 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         self.delta_map = delta_map_part1 * delta_map_part2
 
         # mask for zero-exposure pixels
-        if self.mask_zero_exposure_pixels is not None:
-            _delta_map = self.delta_map.contents
-            _delta_map[np.invert(self.mask_zero_exposure_pixels)] = 0
-            self.delta_map[:] = _delta_map
+        if self.data.mask is not None:
+            self.delta_map.mask_pixels(self.data.mask, 0)
 
         if self.do_bkg_norm_fitting:
             self.bkg_norm += self.bkg_norm * np.sum(diff * self.data.bkg_dense) / np.sum(self.data.bkg_dense)
@@ -197,8 +195,8 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
        
         diff = (delta / model_map).contents
 
-        if self.mask_zero_exposure_pixels is not None:
-            diff[np.invert(self.mask_zero_exposure_pixels)] = np.inf
+        if self.data.mask is not None:
+            diff[np.invert(self.data.mask.contents)] = np.inf
 
         alpha = -1.0 / np.min(diff) * (1 - almost_zero)
         alpha = min(alpha, self.alpha_max)

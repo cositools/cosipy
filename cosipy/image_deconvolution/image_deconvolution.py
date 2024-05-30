@@ -148,6 +148,9 @@ class ImageDeconvolution:
         self._initial_model_map.set_values_from_parameters(algorithm_name, 
                                                            parameter_model_initialization['parameter_'+algorithm_name])
 
+        if self._data.mask is not None:
+            self._initial_model_map.mask_pixels(self._data.mask, 0)
+
         if not self._check_model_response_consistency():
             return
 
