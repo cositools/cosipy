@@ -93,3 +93,18 @@ class ModelMap(Histogram):
         normalized_map = extendedmodel.spatial_shape(coords.l.deg, coords.b.deg) / u.sr
 
         self[:] = np.tensordot(normalized_map, integrated_flux.contents, axes = 0) 
+
+    def mask_pixels(self, mask, fill_value = 0):
+        """
+        Mask pixels
+
+        Parameters
+        ----------
+        mask: :py:class:`histpy.histogram.Histogram`
+        fill_value: float or :py:class:`astropy.units.quantity.Quantity`
+        """
+
+        if not isinstance(fill_value, u.quantity.Quantity):
+            fill_value *= self.contents.unit
+
+        self[:] = np.where(mask.contents, self.contents, fill_value)

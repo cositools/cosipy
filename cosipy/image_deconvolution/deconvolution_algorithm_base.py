@@ -41,13 +41,6 @@ class DeconvolutionAlgorithmBase(object):
 
         self.parameter = parameter 
 
-        # mask for zero-exposure pixels
-        if np.any(data.image_response_dense_projected.contents == 0) == True:
-            self.mask_zero_exposure_pixels = data.image_response_dense_projected.contents > 0
-            initial_model_map[:] *= self.mask_zero_exposure_pixels 
-        else:
-            self.mask_zero_exposure_pixels = None
-
         self.initial_model_map = initial_model_map
 
         # image axis (model space)

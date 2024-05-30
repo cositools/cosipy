@@ -24,6 +24,7 @@ class DataLoader(object):
         self.bkg_dense = None
         self.full_detector_response = None
         self.coordsys_conv_matrix = None
+        self.mask = None
 
         self.is_miniDC2_format = False
 
@@ -365,3 +366,11 @@ class DataLoader(object):
         # [Time/ScAtt, lb, NuLambda] -> [lb, NuLambda]
         # [NuLambda, Ei, Em, Phi, PsiChi] -> [NuLambda, Ei]
         # [lb, NuLambda] x [NuLambda, Ei] -> [lb, Ei]
+
+        if np.any(self.image_response_dense_projected.contents == 0):
+            print("... There are zero-exposure pixels. Preparing a mask to ignore them ...")
+            self.mask = Histogram(self.image_response_dense_projected.axes, \
+                                  contents = self.image_response_dense_projected.contents > 0)
+
+
+
