@@ -67,6 +67,8 @@ class DeconvolutionAlgorithmBase(object):
         self.processed_delta_map = None
         self.bkg_norm = 1.0
 
+        self.minimum_flux = parameter.get('minimum_flux', 0.0)
+
         self.result = None
 
         self.expectation = None
