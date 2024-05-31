@@ -249,34 +249,3 @@ class DeconvolutionAlgorithmBase(object):
         loglikelood = np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)
 
         return loglikelood
-
-    def calc_gaussian_filter(self, sigma):
-        """
-        Calculate a gaussian filter for post-processing.
-
-        Parameters
-        ----------
-        sigma: float
-            Sigma for Gaussian function. It should be in degrees, but unitless.
-
-        Returns
-        -------
-        :py:class:`histpy.Histogram`
-            Gaussian filter. 2-dimensional histogram.
-        """
-
-        gaussian_filter = Histogram( Axes( [Axis(edges = np.arange(self.npix_model+1)), Axis(edges = np.arange(self.npix_model+1))] ), sparse = False)
-
-        for ipix in tqdm(range(self.npix_model)):
-
-            lon_ref, lat_ref = hp.pix2ang(self.nside_model, ipix, nest = False, lonlat = True)
-
-            lon, lat = hp.pix2ang(self.nside_model, np.arange(self.npix_model), nest = False, lonlat = True)
-
-            delta_ang = angular_separation(lon_ref * u.deg, lat_ref * u.deg, lon * u.deg, lat * u.deg).to('deg').value
-    
-            gaussian_filter[ipix,:] = np.exp( - 0.5 * delta_ang**2 / sigma**2)
-    
-            gaussian_filter[ipix,:] /= np.sum(gaussian_filter[ipix,:])  
-
-        return gaussian_filter

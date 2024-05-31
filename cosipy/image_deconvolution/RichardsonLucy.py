@@ -1,5 +1,6 @@
 import copy
 import numpy as np
+import astropy.units as u
 from tqdm.autonotebook import tqdm
 
 from histpy import Histogram
@@ -44,11 +45,8 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             self.response_weighting_filter = self.response_weighting_filter**response_weighting_index
 
         if self.do_smoothing:
-            print("... calculating the gaussian filter...")
-
-            self.smoothing_sigma = parameter['smoothing_FWHM'] / 2.354820 # degree
-
-            self.gaussian_filter = self.calc_gaussian_filter(self.smoothing_sigma)
+            self.smoothing_fwhm = parameter['smoothing_FWHM'] * u.deg
+            print(f"... We will apply the Gaussian filter with FWHM of {self.smoothing_fwhm} to delta images ...")
 
     def pre_processing(self):
         pass
@@ -119,7 +117,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             self.delta_map[:,:] *= self.response_weighting_filter
 
         if self.do_smoothing:
-            self.delta_map[:,:] = np.tensordot(self.gaussian_filter.contents, self.delta_map.contents, axes = [[0], [0]])
+            self.delta_map = self.delta_map.smoothing(fwhm = self.smoothing_fwhm)
         
         if self.do_acceleration:
             self.alpha = self.calc_alpha(self.delta_map, self.model_map)
@@ -195,15 +193,6 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         float
             Acceleration parameter
         """
-       
-#        diff = (delta / model_map).contents
-#
-#        if self.data.mask is not None:
-#            diff[np.invert(self.data.mask.contents)] = np.inf
-#
-#        alpha = -1.0 / np.min(diff)
-#        alpha = min(alpha, self.alpha_max)
-
         diff = -1 * (model_map / delta).contents
 
         diff[(diff <= 0) | (delta.contents == 0)] = np.inf
