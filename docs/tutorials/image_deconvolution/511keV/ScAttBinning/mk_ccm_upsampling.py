@@ -1,3 +1,4 @@
+import astropy.units as u
 from cosipy.response import FullDetectorResponse
 from cosipy.image_deconvolution import SpacecraftAttitudeExposureTable, CoordsysConversionMatrix
 
@@ -6,5 +7,5 @@ full_detector_response = FullDetectorResponse.open(full_detector_response_filena
 
 exposure_table = SpacecraftAttitudeExposureTable.from_fits("exposure_table_nside32.fits")
 
-coordsys_conv_matrix = CoordsysConversionMatrix.spacecraft_attitude_binning_ccm(full_detector_response, exposure_table, nside_model = 32, use_averaged_pointing = True)
+coordsys_conv_matrix = CoordsysConversionMatrix.spacecraft_attitude_binning_ccm(full_detector_response, exposure_table, nside_model = 32, use_averaged_pointing = True, earth_horizon_angle = 113.0 * u.deg)
 coordsys_conv_matrix.write("ccm_nside32.hdf5", overwrite = True)
