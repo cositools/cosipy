@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import pandas as pd
+import logging
+logger = logging.getLogger(__name__)
 
 try:
     # Load MEGAlib into ROOT
@@ -61,15 +63,14 @@ class ReadTraTest(UnBinnedData):
         # tra file to use:
         tra_file = self.data_file
 
-        # Make print statement:
-        print()
-        print("Read tra test...")
-        print()
+        # Log message:
+        logger.info("Read tra test...")
+        
          
         # Check if file exists:
         Reader = M.MFileEventsTra()
         if Reader.Open(M.MString(tra_file)) == False:
-            print("Unable to open file %s. Aborting!" %self.data_file)
+            logger.error("Unable to open file %s. Aborting!" %self.data_file)
             sys.exit()
 
         # Initialise empty lists:
