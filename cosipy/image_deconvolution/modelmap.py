@@ -1,6 +1,8 @@
 import warnings
 import astropy.units as u
 import numpy as np
+import healpy as hp
+import copy
 
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
@@ -50,6 +52,23 @@ class ModelMap(Histogram):
         axes = Axes([self.image_axis, self.energy_axis])
 
         super().__init__(axes, sparse = False, unit = 1 / u.s / u.cm**2 / u.sr) # unit might be specified in the input parameter.
+
+    @classmethod
+    def open(cls, filename, name = 'hist'):
+
+        hist = Histogram.open(filename, name)
+
+        modelmap = ModelMap(nside = hist.axes[0].nside, 
+                            energy_edges = hist.axes[1].edges,
+                            scheme = hist.axes[0].scheme, 
+                            coordsys = hist.axes[0].coordsys.name, 
+                            label_image = hist.axes[0].label, 
+                            label_energy = hist.axes[1].label)
+
+        modelmap[:] = hist.contents
+
+        del hist
+        return modelmap
 
     def set_values_from_parameters(self, algorithm_name, parameter):
         """
@@ -108,3 +127,25 @@ class ModelMap(Histogram):
             fill_value *= self.contents.unit
 
         self[:] = np.where(mask.contents, self.contents, fill_value)
+
+    def smoothing(self, fwhm = 0.0 * u.deg, sigma = None):
+        """
+        Smooth a map with a Gaussian filter
+
+        Parameters
+        ----------
+        fwhm: :py:class:`astropy.units.quantity.Quantity`
+            The FWHM of the Gaussian (with a unit of deg or rad).
+        sigma: :py:class:`astropy.units.quantity.Quantity`
+            The sigma of the Gaussian (with a unit of deg or rad). Override fwhm.
+        """
+
+        if sigma is not None:
+            fwhm = 2.354820 * sigma
+
+        modelmap_new = copy.deepcopy(self)
+        
+        for i in range(self.axes['Ei'].nbins):
+            modelmap_new[:,i] = hp.smoothing(self[:,i].value, fwhm = fwhm.to('rad').value) * self.unit
+
+        return modelmap_new
