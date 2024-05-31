@@ -196,13 +196,22 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             Acceleration parameter
         """
        
-        diff = (delta / model_map).contents
+#        diff = (delta / model_map).contents
+#
+#        if self.data.mask is not None:
+#            diff[np.invert(self.data.mask.contents)] = np.inf
+#
+#        alpha = -1.0 / np.min(diff)
+#        alpha = min(alpha, self.alpha_max)
+
+        diff = -1 * (model_map / delta).contents
+
+        diff[(diff <= 0) | (delta.contents == 0)] = np.inf
 
         if self.data.mask is not None:
             diff[np.invert(self.data.mask.contents)] = np.inf
 
-        alpha = -1.0 / np.min(diff)
-        alpha = min(alpha, self.alpha_max)
+        alpha = min(np.min(diff), self.alpha_max)
 
         if alpha < 1.0:
             alpha = 1.0
