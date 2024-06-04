@@ -8,7 +8,6 @@ from mhealpy import HealpixMap, HealpixBase
 import healpy as hp
 import pandas as pd
 import matplotlib.pyplot as plt
-from cosipy.data_io.make_plots import MakePlots
 from cosipy.data_io import UnBinnedData
 import logging
 import astropy.units as u
@@ -20,7 +19,8 @@ class BinnedData(UnBinnedData):
     """Handles binned data."""
 
     def get_binned_data(self, unbinned_data=None, output_name=None, \
-            make_binning_plots=False, psichi_binning="galactic", event_range=None):
+            make_binning_plots=False, show_plots=False, \
+            psichi_binning="galactic", event_range=None):
 
         """Bin the data using histpy and mhealpy.
         
@@ -34,6 +34,8 @@ class BinnedData(UnBinnedData):
             Prefix of output file.
         make_binning_plots : bool, optional
             Option to make basic plots of the binning (default is False).
+        show_plots : bool, optional
+            Option to show plots (default is False).
         psichi_binning : str, optional
             'galactic' for binning psichi in Galactic coordinates, or 
             'local' for binning in local coordinates. Default is Galactic. 
@@ -55,13 +57,10 @@ class BinnedData(UnBinnedData):
         
         # Log message:
         logger.info("binning data...")
-      
+
         # Option to read in unbinned data file:
         if unbinned_data:
-            if self.unbinned_output == 'fits':
-                self.cosi_dataset = self.get_dict_from_fits(unbinned_data)
-            if self.unbinned_output == 'hdf5':
-                self.cosi_dataset = self.get_dict_from_hdf5(unbinned_data)
+            self.cosi_dataset = self.get_dict(unbinned_data)
 
         # Get time bins:
         min_time = self.tmin
@@ -133,8 +132,8 @@ class BinnedData(UnBinnedData):
 
         # Plot the binned data:
         if make_binning_plots == True:
-            self.plot_binned_data()  
-            self.plot_psichi_map()
+            self.plot_binned_data(show_plots=show_plots)  
+            self.plot_psichi_map(show_plots=show_plots)
 
         return
 
@@ -180,7 +179,7 @@ class BinnedData(UnBinnedData):
        
         # Print units of axes:
         for each in self.binned_data.axes:
-            print(each.label + " unit: " + str(each.unit))
+            logger.info(each.label + " unit: " + str(each.unit))
 
         # Get time binning information:
         self.time_hist = self.binned_data.project('Time').contents.todense()
@@ -213,7 +212,7 @@ class BinnedData(UnBinnedData):
          
         return
 
-    def plot_binned_data(self, binned_data=None):
+    def plot_binned_data(self, binned_data=None, show_plots=True):
 
         """Plot binnned data for all axes.
         
@@ -221,6 +220,8 @@ class BinnedData(UnBinnedData):
         ----------
         binned_data : histpy:Histogram, optional
             Name of binned histogram to use. 
+        show_plots : bool, optional
+            Option to show plots (default is True).
         """
         
         # Option to read in binned data from hdf5 file:
@@ -247,15 +248,21 @@ class BinnedData(UnBinnedData):
             plt.xlabel(each["xlabel"],fontsize=12)
             plt.ylabel(each["ylabel"], fontsize=12)
             plt.savefig(each["savefig"])
-            plt.show()
+            if show_plots == True:
+                plt.show()
             plt.close() 
  
         return
 
-    def plot_psichi_map(self):
+    def plot_psichi_map(self, show_plots=True):
         
         """
         Plot psichi healpix map.
+
+        Parameters
+        ----------
+        show_plots : bool, optional
+            Option to show plot (default is True).
         """
 
         logger.info("plotting psichi in Galactic coordinates...")
@@ -264,12 +271,14 @@ class BinnedData(UnBinnedData):
         ax.get_figure().set_figheight(3)
         plt.title("PsiChi Binning (counts)")
         plt.savefig("psichi_default.png",bbox_inches='tight')
-        plt.show()
+        if show_plots == True:
+            plt.show()
         plt.close()
 
         return
 
-    def plot_psichi_map_slices(self, Em, phi, output, binned_data=None, coords=None):
+    def plot_psichi_map_slices(self, Em, phi, output, binned_data=None, \
+            coords=None, show_plots=True):
 
         """Plot psichi map in slices of Em and phi.
         
@@ -287,6 +296,8 @@ class BinnedData(UnBinnedData):
             Coordinates of source position. Galactic longitude and 
             latidude for Galactic coordinates. Azimuthal and latitude 
             for local coordinates. 
+        show_plots : bool, optional
+            Option to show plots (default is True).
         """
 
         # Option to read in binned data from hdf5 file:
@@ -305,7 +316,8 @@ class BinnedData(UnBinnedData):
         ax.get_figure().set_figwidth(6)
         ax.get_figure().set_figheight(3)
         plt.savefig("%s.pdf" %output,bbox_inches='tight')
-        plt.show()
+        if show_plots == True:
+            plt.show()
         plt.close()
 
         # Plot rotated view:
@@ -316,12 +328,74 @@ class BinnedData(UnBinnedData):
             ax.get_figure().set_figwidth(6)
             ax.get_figure().set_figheight(3)
             plt.savefig("%s_rotated.pdf" %output,bbox_inches='tight')
-            plt.show()
+            if show_plots == True:
+                plt.show()
             plt.close()
 
         return
 
-    def get_raw_spectrum(self, binned_data=None, time_rate=False, output_name=None):
+    def make_basic_plot(self, x, y, plt_scale='loglog', output_name=None,\
+        x_error=[], plot_kwargs={}, fig_kwargs={}, show_plots=True):
+
+        """Make a basic plot.
+
+        Parameters
+        ----------
+        x : list or array
+            x-axis data to be plotted
+        y : list or array 
+            y-axis data to be plotted
+        plt_scale : str, optional
+            scale of axes: loglog, semilogx, or semilogy.
+            Default is loglog.
+        x_error : list or array, optional 
+            x error bars
+        output_name : str, optional
+            Prefix of saved figure (default is None).
+        plot_kwargs : dict, optional
+            Pass any kwargs to plt.plot().
+        fig_kwargs : dict, optional 
+            Pass any kwargs to plt.gca().set().
+        show_plots : bool
+            Wether or not to show plot (default is True).
+        """
+        
+        # Setup figure:
+        ax = plt.gca()
+
+        # Main plot:
+        if plt_scale == "loglog":
+            plt.loglog(x, y, **plot_kwargs)
+        if plt_scale == "semilogx":
+            plt.semilogx(x, y, **plot_kwargs)
+        if plt_scale == "semilogy":
+            plt.semilogy(x, y, **plot_kwargs)
+
+        # Include x error bars:
+        if len(x_error) != 0:
+            
+            # Remove label if defined:
+            if "label" in plot_kwargs.keys():
+                plot_kwargs["label"] = "_nolabel_"
+
+            plt.errorbar(x, y, xerr=x_error, **plot_kwargs)
+
+        # axes and labels:
+        plt.grid(color="grey",alpha=0.3,ls="--")
+        ax.set(**fig_kwargs)
+        if "label" in plot_kwargs.keys():
+            plt.legend(loc=1,frameon=True)
+        
+        # Save and show:
+        if output_name != None:
+            plt.savefig("%s.pdf" %output_name)
+        if show_plots == True:
+            plt.show()
+        plt.close()
+
+        return
+    
+    def get_raw_spectrum(self, binned_data=None, time_rate=False, output_name=None, show_plots=False):
 
         """Calculates raw spectrum of binned data, plots, and writes to file. 
         
@@ -333,6 +407,8 @@ class BinnedData(UnBinnedData):
             Prefix of output files. Writes both pdf and dat file. 
         time_rate : bool, optional
             If True, calculates ct/keV/s. The defualt is ct/keV. 
+        show_plot : bool, optional
+            Wether or not to show plot (default is False).
         """
 
         # Log message:
@@ -356,9 +432,9 @@ class BinnedData(UnBinnedData):
         # Plot:
         plot_kwargs = {"label":"raw spectrum", "ls":"", "marker":"o", "color":"black"}
         fig_kwargs = {"xlabel":"Energy [keV]", "ylabel":ylabel}
-        MakePlots().make_basic_plot(self.energy_bin_centers, raw_rate,\
-            x_error=self.energy_bin_widths/2.0, savefig="%s.pdf" %output_name,\
-            plot_kwargs=plot_kwargs, fig_kwargs=fig_kwargs)
+        self.make_basic_plot(self.energy_bin_centers, raw_rate,\
+            x_error=self.energy_bin_widths/2.0, output_name=output_name,\
+            plot_kwargs=plot_kwargs, fig_kwargs=fig_kwargs, show_plots=show_plots)
 
         # Write data:
         if output_name != None:
@@ -368,7 +444,7 @@ class BinnedData(UnBinnedData):
         
         return
 
-    def get_raw_lightcurve(self, binned_data=None, output_name=None):
+    def get_raw_lightcurve(self, binned_data=None, output_name=None, show_plots=False):
 
         """Calculates raw lightcurve of binned data, plots, and writes data to file.
         
@@ -378,6 +454,8 @@ class BinnedData(UnBinnedData):
             Name of binnned hdf5 data file to use.
         output_name : str, optional
             Prefix of output files. Writes both pdf and dat file. 
+        show_plots : bool, optional
+            Wether or not to show plot (default is False).
         """
 
         # Log message:
@@ -394,8 +472,9 @@ class BinnedData(UnBinnedData):
         # Plot:
         plot_kwargs = {"ls":"-", "marker":"", "color":"black", "label":"raw lightcurve"}
         fig_kwargs = {"xlabel":"Time [s]", "ylabel":"Rate [$\mathrm{ct \ s^{-1}}$]"}
-        MakePlots().make_basic_plot(self.time_bin_centers - self.time_bin_centers[0], raw_lc,\
-            savefig="%s.pdf" %output_name, plt_scale="semilogy", plot_kwargs=plot_kwargs, fig_kwargs=fig_kwargs)
+        self.make_basic_plot(self.time_bin_centers - self.time_bin_centers[0], raw_lc,\
+            output_name=output_name, plt_scale="semilogy", 
+            plot_kwargs=plot_kwargs, fig_kwargs=fig_kwargs, show_plots=show_plots)
             
         # Write data:
         if output_name != None:

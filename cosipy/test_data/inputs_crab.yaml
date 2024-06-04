@@ -2,14 +2,16 @@
 # Data I/O:
 
 # data files available on the COSI Sharepoint: https://drive.google.com/drive/folders/1UdLfuLp9Fyk4dNussn1wt7WEOsTWrlQ6
-data_file: "GalacticScan.inc1.id1.crab2hr.extracted.testsample.tra.gz" # full path
-ori_file: "NA" # full path
+# The tra file is the first 10 seconds of the crab sim from mini-DC2,
+# and the ori file is the corresponding ori from mini-DC2.
+data_file: "GalacticScan.inc1.id1.crab10sec.extracted.testsample.tra.gz" # full path
+ori_file: "20280301_first_10sec.ori" # full path
 unbinned_output: 'hdf5' # 'fits' or 'hdf5'
-time_bins: 60 # time bin size in seconds. Takes int, float, or list of bin edges.
+time_bins: 5 # time bin size in seconds. Takes int, float, or list of bin edges.
 energy_bins: [100.,  200.,  500., 1000., 2000., 5000.] # Takes list. Needs to match response.
 phi_pix_size: 6 # binning of Compton scattering anlge [deg]
 nside: 8 # healpix binning of psi chi local
 scheme: 'ring' # healpix binning of psi chi local
 tmin: 1835478000.0 # Min time cut in seconds.
-tmax: 1835485200.0 # Max time cut in seconds.
+tmax: 1835478010.0 # Max time cut in seconds.
 #----------#
