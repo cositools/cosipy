@@ -30,7 +30,7 @@ class DeconvolutionAlgorithmBase(object):
         Initial values for reconstructed images
     data : :py:class:`cosipy.image_deconvolution.DataLoader`
         COSI data set 
-    parameter : py:class:`cosipy.config.Configurator`
+    parameter : py:class:`yayc.Configurator`
         Parameters for a deconvolution algorithm
     """
 

@@ -4,7 +4,7 @@ import os
 import yaml
 import argparse
 import cosipy.data_io
-from cosipy.config import Configurator
+from yayc import Configurator
 
 class DataIO:
 
