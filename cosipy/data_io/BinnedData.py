@@ -19,7 +19,7 @@ class BinnedData(UnBinnedData):
     """Handles binned data."""
 
     def get_binned_data(self, unbinned_data=None, output_name=None, \
-            make_binning_plots=False, show_plots=True, \
+            make_binning_plots=False, show_plots=False, \
             psichi_binning="galactic", event_range=None):
 
         """Bin the data using histpy and mhealpy.
@@ -35,7 +35,7 @@ class BinnedData(UnBinnedData):
         make_binning_plots : bool, optional
             Option to make basic plots of the binning (default is False).
         show_plots : bool, optional
-            Option to show plots (default is True).
+            Option to show plots (default is False).
         psichi_binning : str, optional
             'galactic' for binning psichi in Galactic coordinates, or 
             'local' for binning in local coordinates. Default is Galactic. 
@@ -395,7 +395,7 @@ class BinnedData(UnBinnedData):
 
         return
     
-    def get_raw_spectrum(self, binned_data=None, time_rate=False, output_name=None, show_plots=True):
+    def get_raw_spectrum(self, binned_data=None, time_rate=False, output_name=None, show_plots=False):
 
         """Calculates raw spectrum of binned data, plots, and writes to file. 
         
@@ -408,7 +408,7 @@ class BinnedData(UnBinnedData):
         time_rate : bool, optional
             If True, calculates ct/keV/s. The defualt is ct/keV. 
         show_plot : bool, optional
-            Wether or not to show plot (default is True).
+            Wether or not to show plot (default is False).
         """
 
         # Log message:
@@ -444,7 +444,7 @@ class BinnedData(UnBinnedData):
         
         return
 
-    def get_raw_lightcurve(self, binned_data=None, output_name=None, show_plots=True):
+    def get_raw_lightcurve(self, binned_data=None, output_name=None, show_plots=False):
 
         """Calculates raw lightcurve of binned data, plots, and writes data to file.
         
@@ -455,7 +455,7 @@ class BinnedData(UnBinnedData):
         output_name : str, optional
             Prefix of output files. Writes both pdf and dat file. 
         show_plots : bool, optional
-            Wether or not to show plot (default is True).
+            Wether or not to show plot (default is False).
         """
 
         # Log message:
