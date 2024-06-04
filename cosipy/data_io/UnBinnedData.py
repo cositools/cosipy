@@ -503,8 +503,7 @@ class UnBinnedData(DataIO):
             table = Table(list(self.cosi_dataset.values()),\
                     names=list(self.cosi_dataset.keys()), \
                     units=units, \
-                    meta={'data file':os.path.basename(self.data_file), \
-                    'version':1.0})
+                    meta={'version':cosipy.__version__})
             table.write("%s.fits" %output_name, overwrite=True)
             os.system('gzip -f %s.fits' %output_name)
 
