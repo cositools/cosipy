@@ -5,6 +5,7 @@ from astropy.io import fits
 from scipy import interpolate
 import h5py
 import time
+import cosipy
 from cosipy.data_io import DataIO
 from cosipy.spacecraftfile import SpacecraftFile
 import gzip
