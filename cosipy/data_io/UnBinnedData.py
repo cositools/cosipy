@@ -278,11 +278,14 @@ class UnBinnedData(DataIO):
         dg_z = np.array(dg_z)
  
         # Check if the input data has pointing information, 
-        # if not, get it from the spacecraft file:
+        # if not, set dummy values:
         if (use_ori == False) & (len(lonZ)==0):
-            logger.warning("WARNING: No pointing information in input data.")
-            logger.warning("Getting pointing information from spacecraft file.")
-            use_ori = True
+             logger.warning("WARNING: No pointing information in input data and no ori file.")
+             logger.warning("Setting pointing to arbitrary location (Galactic center).")
+             lonX = np.array([0]*len(tt))
+             latX = np.array([0]*len(tt))
+             lonZ = np.array([0]*len(tt))
+             latZ = np.array([0]*len(tt))
 
         # Option to get X and Z pointing information from orientation file:
         if use_ori == True:
@@ -312,8 +315,11 @@ class UnBinnedData(DataIO):
         psi_gal = np.array(c_rotated.b.deg)
 
         # Change longitudes from 0..360 deg to -180..180 deg
-        lonX[lonX > np.pi] -= 2*np.pi
-        lonZ[lonZ > np.pi] -= 2*np.pi
+        try:
+            lonX[lonX > np.pi] -= 2*np.pi
+            lonZ[lonZ > np.pi] -= 2*np.pi
+        except:
+            logger.warning("Warning: No pointing info to rotate.")
 
         # Construct Y direction from X and Z direction
         lonlatY = self.construct_scy(np.rad2deg(lonX),np.rad2deg(latX),
