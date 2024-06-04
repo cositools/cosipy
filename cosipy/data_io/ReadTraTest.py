@@ -34,6 +34,8 @@ class ReadTraTest(UnBinnedData):
 
         Parameters
         ----------
+        output_name : str
+            Prefix of output file.
         make_plots : bool, optional
             Option to make binning plot.
 

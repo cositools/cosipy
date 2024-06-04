@@ -1,6 +1,7 @@
 # Imports:
 from cosipy import UnBinnedData
 from cosipy import test_data
+from cosipy import ReadTraTest
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -22,10 +23,10 @@ def compare(original,new,title,make_plots=False):
 
     return diff
 
-def test_unbinned_data_with_MEGAlib():
+def test_unbinned_data_with_MEGAlib(tmp_path):
 
     # Read tra file with dataIO class.
-    # Note: this is the crab sim from DC2. 
+    # Note: this is the first 10 seconds of the crab sim from mini-DC2.
     yaml = os.path.join(test_data.path,"inputs_crab.yaml")
     analysis = UnBinnedData(yaml)
     analysis.data_file = os.path.join(test_data.path,analysis.data_file)
@@ -96,3 +97,16 @@ def test_unbinned_data_with_MEGAlib():
                             f"Max difference: {np.amax(np.absolute(diff))}  {each['units']}")
         else:
             print("Passed: %s" %each["name"])
+
+    # Also test the old MEGAlib parser:
+    # This will only run for users with MEGAlib,
+    # otherwise this test will be skipped. 
+    yaml = os.path.join(test_data.path,"inputs_crab.yaml")
+    analysis = ReadTraTest(yaml)
+    analysis.data_file = os.path.join(test_data.path,analysis.data_file)
+    try:
+        # Test reader:
+        analysis.read_tra_old(tmp_path/"megatest",make_plots=False)
+
+    except:
+        pass
