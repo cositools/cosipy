@@ -579,6 +579,28 @@ class UnBinnedData(DataIO):
 
         return this_dict
 
+    def get_dict(self, input_file):
+
+        """Constructs dictionary from input file.
+        
+        Parameters
+        ----------
+        input_file : str
+            Name of input file. 
+
+        Returns
+        -------
+        dict
+            Dictionary constructed from input file.
+        """
+
+        if self.unbinned_output == 'fits':
+            this_dict = self.get_dict_from_fits(input_file)
+        if self.unbinned_output == 'hdf5':
+            this_dict = self.get_dict_from_hdf5(input_file)
+
+        return this_dict
+
     def select_data(self, output_name=None, unbinned_data=None):
 
         """Applies cuts to unbinnned data dictionary. 
@@ -600,10 +622,7 @@ class UnBinnedData(DataIO):
 
         # Option to read in unbinned data file:
         if unbinned_data:
-            if self.unbinned_output == 'fits':
-                self.cosi_dataset = self.get_dict_from_fits(unbinned_data)
-            if self.unbinned_output == 'hdf5':
-                self.cosi_dataset = self.get_dict_from_hdf5(unbinned_data)
+            self.cosi_dataset = self.get_dict(unbinned_data)
 
         # Get time cut index:
         time_array = self.cosi_dataset["TimeTags"]
@@ -640,10 +659,7 @@ class UnBinnedData(DataIO):
             logger.info("adding %s..." % each)
     
             # Read dict from hdf5 or fits:
-            if self.unbinned_output == 'hdf5':
-                this_dict = self.get_dict_from_hdf5(each)
-            if self.unbinned_output == 'fits':
-                this_dict = self.get_dict_from_fits(each)
+            this_dict = self.get_dict(each)
 
             # Combine dictionaries:
             if counter == 0:
