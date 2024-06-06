@@ -30,7 +30,7 @@ class DataLoader(object):
 
         self.response_on_memory = False
 
-        self.image_response_dense_projected = None
+        self.exposure_map = None
 
     @classmethod
     def load(cls, event_binned_data, bkg_binned_data, rsp, coordsys_conv_matrix, is_miniDC2_format = False):
@@ -347,30 +347,87 @@ class DataLoader(object):
 
         self.response_on_memory = True
 
-    def calc_image_response_projected(self):
+    def calc_exposure_map(self):
         """
-        Calculate image_response_dense_projected, which is an intermidiate matrix used in RL algorithm.
+        Calculate exposure_map, which is an intermidiate matrix used in RL algorithm.
         """
 
         print("... (DataLoader) calculating a projected image response ...")
 
-        self.image_response_dense_projected = Histogram([ self.coordsys_conv_matrix.axes["lb"], self.full_detector_response.axes["Ei"] ],
+        self.exposure_map = Histogram([ self.coordsys_conv_matrix.axes["lb"], self.full_detector_response.axes["Ei"] ],
                                                         unit = self.full_detector_response.unit * self.coordsys_conv_matrix.unit)
 
         if self.response_on_memory == False:
             self.load_full_detector_response_on_memory()
 
-        self.image_response_dense_projected[:] = np.tensordot( np.sum(self.coordsys_conv_matrix, axis = (0)), 
+        self.exposure_map[:] = np.tensordot( np.sum(self.coordsys_conv_matrix, axis = (0)), 
                                                                np.sum(self.image_response_dense, axis = (2,3,4)),
                                                                axes = ([1], [0]) ) * self.full_detector_response.unit * self.coordsys_conv_matrix.unit
         # [Time/ScAtt, lb, NuLambda] -> [lb, NuLambda]
         # [NuLambda, Ei, Em, Phi, PsiChi] -> [NuLambda, Ei]
         # [lb, NuLambda] x [NuLambda, Ei] -> [lb, Ei]
 
-        if np.any(self.image_response_dense_projected.contents == 0):
+        if np.any(self.exposure_map.contents == 0):
             print("... There are zero-exposure pixels. Preparing a mask to ignore them ...")
-            self.mask = Histogram(self.image_response_dense_projected.axes, \
-                                  contents = self.image_response_dense_projected.contents > 0)
+            self.mask = Histogram(self.exposure_map.axes, \
+                                  contents = self.exposure_map.contents > 0)
 
+    def calc_expectation(self, model_map, bkg_norm = 1.0, almost_zero = 1e-12):
+        """
+        Calculate expected counts from a given model map.
 
+        Parameters
+        ----------
+        model_map : :py:class:`cosipy.image_deconvolution.ModelMap`
+            Model map
+        almost_zero : float, default 1e-12
+            In order to avoid zero components in extended count histogram, a tiny offset is introduced.
+            It should be small enough not to effect statistics.
 
+        Returns
+        -------
+        :py:class:`histpy.Histogram`
+            Expected count histogram
+
+        Notes
+        -----
+        This method should be implemented in a more general class, for example, extended source response class in the future.
+        """
+        # Currenly (2024-01-12) this method can work for both local coordinate CDS and in galactic coordinate CDS.
+        # This is just because in DC2 the rotate response for galactic coordinate CDS does not have an axis for time/scatt binning.
+        # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
+        # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
+
+        expectation = Histogram(self.event_dense.axes) 
+
+        map_rotated = np.tensordot(self.coordsys_conv_matrix.contents, model_map.contents, axes = ([1], [0])) 
+        # ['Time/ScAtt', 'lb', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
+        map_rotated *= self.coordsys_conv_matrix.unit * model_map.unit
+        map_rotated *= model_map.axes['lb'].pixarea()
+        # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
+        # the unit of map_rotated is 1/cm2 ( = s * 1/cm2/s/sr * sr)
+
+        expectation[:] = np.tensordot( map_rotated, self.image_response_dense.contents, axes = ([1,2], [0,1]))
+        expectation += self.bkg_dense * bkg_norm
+        expectation += almost_zero
+        
+        return expectation
+
+    def calc_T_product(self, dataspace_matrix):
+
+        hist_unit = self.exposure_map.unit
+        if dataspace_matrix.unit is not None:
+            hist_unit *= dataspace_matrix.unit
+
+        hist = Histogram(self.exposure_map.axes, \
+                         unit = hist_unit)
+
+        _ = np.tensordot(dataspace_matrix.contents, self.image_response_dense.contents, axes = ([1,2,3], [2,3,4])) 
+            # [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, NuLambda, Ei]
+
+        hist[:] = np.tensordot(self.coordsys_conv_matrix.contents, _, axes = ([0,2], [0,1])) \
+                             * _.unit * self.coordsys_conv_matrix.unit
+            # [Time/ScAtt, lb, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
+            # note that coordsys_conv_matrix is the sparse, so the unit should be recovered.
+
+        return hist

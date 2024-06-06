@@ -100,10 +100,10 @@ class ImageDeconvolution:
         -----
         It will be implemented in the future. Currently it always returns true.
         """
-        #self._initial_model_map.axes["Ei"].axis_scale = self._data.image_response_dense_projected.axes["Ei"].axis_scale
+        #self._initial_model_map.axes["Ei"].axis_scale = self._data.exposure_map.axes["Ei"].axis_scale
 
-        #return self._initial_model_map.axes["lb"] == self._data.image_response_dense_projected.axes["lb"] \
-        #       and self._initial_model_map.axes["Ei"] == self._data.image_response_dense_projected.axes["Ei"]
+        #return self._initial_model_map.axes["lb"] == self._data.exposure_map.axes["lb"] \
+        #       and self._initial_model_map.axes["Ei"] == self._data.exposure_map.axes["Ei"]
         return True
 
     def initialize(self):
@@ -125,10 +125,10 @@ class ImageDeconvolution:
             warnings.warn("In the image deconvolution, the option to not load the response on memory is currently not supported. Performing DataLoader.load_full_detector_response_on_memory().")
             self._data.load_full_detector_response_on_memory()
 
-        if self._data.image_response_dense_projected is None:
+        if self._data.exposure_map is None:
 
-            warnings.warn("The image_response_dense_projected has not been calculated. Performing DataLoader.calc_image_response_projected().")
-            self._data.calc_image_response_projected()
+            warnings.warn("The exposure_map has not been calculated. Performing DataLoader.calc_exposure_map().")
+            self._data.calc_exposure_map()
         
         print("1. generating a model map") 
         parameter_model_property = Configurator(self._parameter['model_property'])

@@ -66,6 +66,7 @@ class DeconvolutionAlgorithmBase(object):
         self.delta_map = None
         self.processed_delta_map = None
         self.bkg_norm = 1.0
+        self.loglikelihood = None
 
         self.minimum_flux = parameter.get('minimum_flux', 0.0)
 
@@ -176,49 +177,49 @@ class DeconvolutionAlgorithmBase(object):
             gc.collect()
 
             yield self.result
-    
-    def calc_expectation(self, model_map, data, almost_zero = 1e-12):
-        """
-        Calculate expected counts from a given model map.
 
-        Parameters
-        ----------
-        model_map : :py:class:`cosipy.image_deconvolution.ModelMap`
-            Model map
-        data : :py:class:`cosipy.image_deconvolution.DataLoader`
-            COSI data set 
-        almost_zero : float, default 1e-12
-            In order to avoid zero components in extended count histogram, a tiny offset is introduced.
-            It should be small enough not to effect statistics.
-
-        Returns
-        -------
-        :py:class:`histpy.Histogram`
-            Expected count histogram
-
-        Notes
-        -----
-        This method should be implemented in a more general class, for example, extended source response class in the future.
-        """
-        # Currenly (2024-01-12) this method can work for both local coordinate CDS and in galactic coordinate CDS.
-        # This is just because in DC2 the rotate response for galactic coordinate CDS does not have an axis for time/scatt binning.
-        # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
-        # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
-
-        expectation = Histogram(data.event_dense.axes) 
-
-        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([1], [0])) 
-        # ['Time/ScAtt', 'lb', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
-        map_rotated *= data.coordsys_conv_matrix.unit * model_map.unit
-        map_rotated *= self.pixelarea_model
-        # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
-        # the unit of map_rotated is 1/cm2 ( = s * 1/cm2/s/sr * sr)
-
-        expectation[:] = np.tensordot( map_rotated, data.image_response_dense.contents, axes = ([1,2], [0,1]))
-        expectation += data.bkg_dense * self.bkg_norm
-        expectation += almost_zero
-        
-        return expectation
+#    def calc_expectation(self, model_map, data, almost_zero = 1e-12):
+#        """
+#        Calculate expected counts from a given model map.
+#
+#        Parameters
+#        ----------
+#        model_map : :py:class:`cosipy.image_deconvolution.ModelMap`
+#            Model map
+#        data : :py:class:`cosipy.image_deconvolution.DataLoader`
+#            COSI data set 
+#        almost_zero : float, default 1e-12
+#            In order to avoid zero components in extended count histogram, a tiny offset is introduced.
+#            It should be small enough not to effect statistics.
+#
+#        Returns
+#        -------
+#        :py:class:`histpy.Histogram`
+#            Expected count histogram
+#
+#        Notes
+#        -----
+#        This method should be implemented in a more general class, for example, extended source response class in the future.
+#        """
+#        # Currenly (2024-01-12) this method can work for both local coordinate CDS and in galactic coordinate CDS.
+#        # This is just because in DC2 the rotate response for galactic coordinate CDS does not have an axis for time/scatt binning.
+#        # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
+#        # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
+#
+#        expectation = Histogram(data.event_dense.axes) 
+#
+#        map_rotated = np.tensordot(data.coordsys_conv_matrix.contents, model_map.contents, axes = ([1], [0])) 
+#        # ['Time/ScAtt', 'lb', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
+#        map_rotated *= data.coordsys_conv_matrix.unit * model_map.unit
+#        map_rotated *= self.pixelarea_model
+#        # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
+#        # the unit of map_rotated is 1/cm2 ( = s * 1/cm2/s/sr * sr)
+#
+#        expectation[:] = np.tensordot( map_rotated, data.image_response_dense.contents, axes = ([1,2], [0,1]))
+#        expectation += data.bkg_dense * self.bkg_norm
+#        expectation += almost_zero
+#        
+#        return expectation
 
     def calc_loglikelihood(self, data, model_map, expectation = None):
         """
@@ -244,7 +245,7 @@ class DeconvolutionAlgorithmBase(object):
         The parameter expectation may be a mandatory parameter in the future.
         """
         if expectation is None:
-            expectation = self.calc_expectation(model_map, data)
+            expectation = data.calc_expectation(model_map)
 
         loglikelood = np.sum( data.event_dense * np.log(expectation) ) - np.sum(expectation)
 
