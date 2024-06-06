@@ -1,8 +1,10 @@
-import warnings
 import astropy.units as u
 import numpy as np
 import healpy as hp
 import copy
+
+import logging
+logger = logging.getLogger(__name__)
 
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
@@ -39,17 +41,17 @@ class ModelMap(Histogram):
 
         if energy_edges.unit != u.keV:
 
-            warnings.warn(f"The unit of the given energy_edges is {energy_edges.unit}. It is converted to keV.")
+            logger.warning(f"The unit of the given energy_edges is {energy_edges.unit}. It is converted to keV.")
             energy_edges = energy_edges.to('keV')
 
-        self.image_axis = HealpixAxis(nside = nside,
-                                      scheme = scheme,
-                                      coordsys = coordsys,
-                                      label = label_image)
+        image_axis = HealpixAxis(nside = nside,
+                                 scheme = scheme,
+                                 coordsys = coordsys,
+                                 label = label_image)
 
-        self.energy_axis = Axis(edges = energy_edges, label = label_energy, scale = "log")
+        energy_axis = Axis(edges = energy_edges, label = label_energy, scale = "log")
 
-        axes = Axes([self.image_axis, self.energy_axis])
+        axes = Axes([image_axis, energy_axis])
 
         super().__init__(axes, sparse = False, unit = 1 / u.s / u.cm**2 / u.sr) # unit might be specified in the input parameter.
 
@@ -70,14 +72,22 @@ class ModelMap(Histogram):
         del hist
         return modelmap
 
-    def set_values_from_parameters(self, algorithm_name, parameter):
+    @classmethod
+    def instantiate_from_parameters(cls, parameter):
+
+        new = cls(nside = parameter['nside'],
+                  energy_edges = parameter['energy_edges'] * u.keV, 
+                  scheme = parameter['scheme'], 
+                  coordsys = parameter['coordinate'])
+
+        return new
+
+    def set_values_from_parameters(self, parameter):
         """
         Set the values of this model map accordinng to the specified algorithm. 
 
         Parameters
         ----------
-        algorithm_name : str
-            Algorithm name to fill the values.  
         parameter : py:class:`cosipy.config.Configurator`
             Parameters for the specified algorithm.
 
@@ -87,8 +97,11 @@ class ModelMap(Histogram):
         parameter should be {'values': [ flux value at 1st energy bin (without unit), flux value at 2nd energy bin, ...]}.
         """
 
+        algorithm_name = parameter['algorithm']
+        algorithm_parameter = parameter['parameter_'+algorithm_name]
+
         if algorithm_name == "flat":
-            for idx, value in enumerate(parameter['values']):
+            for idx, value in enumerate(algorithm_parameter['values']):
                 self[:,idx:idx+1] = value * self.unit
     #    elif algorithm_name == ... 
     #       ...
@@ -126,7 +139,10 @@ class ModelMap(Histogram):
         if not isinstance(fill_value, u.quantity.Quantity):
             fill_value *= self.contents.unit
 
-        self[:] = np.where(mask.contents, self.contents, fill_value)
+        modelmap_new = copy.deepcopy(self)
+        modelmap_new[:] = np.where(mask.contents, modelmap_new.contents, fill_value)
+
+        return modelmap_new
 
     def smoothing(self, fwhm = 0.0 * u.deg, sigma = None):
         """
