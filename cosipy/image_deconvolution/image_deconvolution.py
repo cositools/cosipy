@@ -1,11 +1,15 @@
-import warnings
-import astropy.units as u
+from tqdm.autonotebook import tqdm
+
+import logging
+logger = logging.getLogger(__name__)
 
 from cosipy.config import Configurator
 
 from .modelmap import ModelMap
-# import image deconvolution algorithms
+model_classes = {"ModelMap": ModelMap}
+
 from .RichardsonLucy import RichardsonLucy
+deconvolution_algorithm_classes = {"RL": RichardsonLucy}
 
 class ImageDeconvolution:
     """
@@ -13,26 +17,38 @@ class ImageDeconvolution:
     """
 
     def __init__(self):
-        self._initial_model_map = None
+        self._dataset = None
+        self._initial_model = None
+        self._mask = None
+        self._parameter = None
+        self._model_class = None
+        self._deconvolution_class = None
 
-    def set_data(self, data):
+    def set_dataset(self, dataset):
         """
-        Set COSI dataset
+        Set dataset
 
         Parameters
         ----------
-        data : :py:class:`cosipy.image_deconvolution.DataLoader`
-            Data loader contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.
-
-        Notes
-        -----
-        cosipy.image_deconvolution.DataLoader may be removed in the future once the formats of event/background/response are fixed.
-        In this case, this method will be also modified in the future.
+        dataset : list of :py:class:`cosipy.image_deconvolution.DataLoader`
+            Each data loader contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.
         """
 
-        self._data = data
+        self._dataset = dataset
         
-        print("data for image deconvolution was set -> ", data)
+        logger.debug(f"dataset for image deconvolution was set -> {self._dataset}")
+
+    def set_mask(self, mask):
+        """
+        Set dataset
+
+        Parameters
+        ----------
+        mask: :py:class:`histpy.Histogram`
+            A mask which will be applied to a model 
+        """
+
+        self._mask = mask
 
     def read_parameterfile(self, parameter_filepath):
         """
@@ -46,19 +62,19 @@ class ImageDeconvolution:
 
         self._parameter = Configurator.open(parameter_filepath)
 
-        print("parameter file for image deconvolution was set -> ", parameter_filepath)
+        logger.debug(f"parameter file for image deconvolution was set -> {parameter_filepath}")
 
     @property
-    def data(self):
+    def dataset(self):
         """
-        Return the set data.
+        Return the dataset.
         """
-        return self._data
+        return self._dataset
 
     @property
     def parameter(self):
         """
-        Return the set parameter.
+        Return the parameter set to DataLoader.
         """
         return self._parameter
 
@@ -78,145 +94,121 @@ class ImageDeconvolution:
         self._parameter.override(args)
 
     @property
-    def initial_model_map(self):
+    def initial_model(self):
         """
         Return the initial model map.
         """
-        if self._initial_model_map is None:
-            warnings.warn("Need to initialize model map in the image_deconvolution instance")
+        if self._initial_model is None:
+            logger.warning("Need to initialize model map in the image_deconvolution instance!")
 
-        return self._initial_model_map
+        return self._initial_model
 
-    def _check_model_response_consistency(self):
+    @property
+    def mask(self):
         """
-        Check whether the axes of model map are consistent with those of the response matrix.
-
-        Returns
-        -------
-        bool
-            If True, their axes are consistent with each other.
-
-        Notes
-        -----
-        It will be implemented in the future. Currently it always returns true.
+        Return the mask.
         """
-        #self._initial_model_map.axes["Ei"].axis_scale = self._data.exposure_map.axes["Ei"].axis_scale
+        return self._mask
 
-        #return self._initial_model_map.axes["lb"] == self._data.exposure_map.axes["lb"] \
-        #       and self._initial_model_map.axes["Ei"] == self._data.exposure_map.axes["Ei"]
-        return True
+    @property
+    def results(self):
+        """
+        Return the results.
+        """
+        return self._deconvolution.results
 
     def initialize(self):
         """
-        Initialize an image_deconvolution instance. It is mandatory to execute this method before running the image deconvolution.
-
-        This method has three steps:
-        1. generate a model map with properties (nside, energy bins, etc.) given in the parameter file.
-        2. initialize a model map following an initial condition given in the parameter file
-        3. load parameters for the image deconvolution
+        Initialize an initial model and an image deconvolution algorithm.
+        It is mandatory to execute this method before running the image deconvolution.
         """
 
-        print("#### Initialization ####")
-
-        ### check self._data ###
-        ### this part will be removed in the future ###
-        if self._data.response_on_memory == False:
-
-            warnings.warn("In the image deconvolution, the option to not load the response on memory is currently not supported. Performing DataLoader.load_full_detector_response_on_memory().")
-            self._data.load_full_detector_response_on_memory()
-
-        if self._data.exposure_map is None:
-
-            warnings.warn("The exposure_map has not been calculated. Performing DataLoader.calc_exposure_map().")
-            self._data.calc_exposure_map()
+        logger.info("#### Initialization Starts ####")
         
-        print("1. generating a model map") 
-        parameter_model_property = Configurator(self._parameter['model_property'])
-        self._initial_model_map = ModelMap(nside = parameter_model_property['nside'],
-                                           energy_edges = parameter_model_property['energy_edges'] * u.keV, 
-                                           scheme = parameter_model_property['scheme'], 
-                                           coordsys = parameter_model_property['coordinate'])
+        done_with_success = self.model_initialization()        
+        if not done_with_success:
+            return 
 
-        print("---- parameters ----")
-        print(parameter_model_property.dump())
-        
-        print("2. initializing the model map ...")
-        parameter_model_initialization = Configurator(self._parameter['model_initialization'])
+        done_with_success = self.register_deconvolution_algorithm()        
+        if not done_with_success:
+            return 
 
-        algorithm_name = parameter_model_initialization['algorithm']
+        logger.info("#### Initialization Finished ####")
 
-        self._initial_model_map.set_values_from_parameters(algorithm_name, 
-                                                           parameter_model_initialization['parameter_'+algorithm_name])
+    def model_initialization(self):
+        """
+        Create an instance of the model class and set initial values of it.
 
-        if self._data.mask is not None:
-            self._initial_model_map.mask_pixels(self._data.mask, 0)
+        Returns
+        -------
+        bool 
+            whether the instantiation and initialization are successfully done.
+        """
+        # set self._model_class
+        model_name = self.parameter['model_definition']['class']
 
+        if not model_name in model_classes.keys():
+            logger.error(f'The model class "{model_name}" does not exist!')
+            return False
+
+        self._model_class = model_classes[model_name]
+
+        # instantiate the model class
+        logger.info(f"<< Instantiating the model class {model_name} >>")
+        parameter_model_property = Configurator(self.parameter['model_definition']['property'])
+        self._initial_model = self._model_class.instantiate_from_parameters(parameter_model_property)
+
+        logger.info("---- parameters ----")
+        logger.info(parameter_model_property.dump())
+
+        # setting initial values
+        logger.info("<< Setting initial values of the created model object >>")
+        parameter_model_initialization = Configurator(self.parameter['model_definition']['initialization'])
+        self._initial_model.set_values_from_parameters(parameter_model_initialization)
+
+        # applying a mask to the model if needed
+        if self.mask is not None:
+            self._initial_model = self._initial_model.mask_pixels(self.mask, 0)
+
+        # axes check
         if not self._check_model_response_consistency():
-            return
+            logger.warning("The model axes mismatches with the reponse in the dataset!")
+            return False
 
-        print("---- parameters ----")
-        print(parameter_model_initialization.dump())
+        logger.info("---- parameters ----")
+        logger.info(parameter_model_initialization.dump())
 
-        print("3. registering the deconvolution algorithm ...")
-        parameter_deconvolution = Configurator(self._parameter['deconvolution'])
-        self._deconvolution = self.register_deconvolution_algorithm(parameter_deconvolution)
+        return True
 
-        print("---- parameters ----")
-        print(parameter_deconvolution.dump())
-
-        print("#### Done ####")
-        print("")
-
-    def register_deconvolution_algorithm(self, parameter_deconvolution):
+    def register_deconvolution_algorithm(self):
         """
-        Register parameters for image deconvolution on a deconvolution instance.
+        Register the deconvolution algorithm
 
-        Parameters
-        ----------
-        parameter_deconvolution : :py:class:`cosipy.config.Configurator`
-            Parameters for the image deconvolution methods.
-
-        Notes
-        -----
-        Currently only RichardsonLucy algorithm is implemented.
-
-        ***An example of parameters for RL algorithm***
-        algorithm: "RL"
-        parameter_RL:
-            iteration: 10 
-            # number of iterations
-            acceleration: True 
-            # whether the accelerated ML-EM algorithm (Knoedlseder+99) is used
-            alpha_max: 10.0 
-            # the maximum value for the acceleration alpha parameter
-            save_results_each_iteration: False 
-            # whether a updated model map, detal map, likelihood etc. are save at the end of each iteration
-            response_weighting: True 
-            # whether a factor $w_j = (\sum_{i} R_{ij})^{\beta}$ for weighting the delta image is introduced 
-            # see Knoedlseder+05, Siegert+20
-            response_weighting_index: 0.5 
-            # $\beta$ in the above equation
-            smoothing: True 
-            # whether a Gaussian filter is used (see Knoedlseder+05, Siegert+20)
-            smoothing_FWHM: 2.0 #deg 
-            # the FWHM of the Gaussian in the filter 
-            background_normalization_fitting: False 
-            # whether the background normalization is optimized at each iteration. 
-            # As for now, the same single background normalization factor is used in all of the time bins
-            background_normalization_range: [0.01, 10.0]
-            # the range of the normalization factor. it should be positive.
+        Returns
+        -------
+        bool 
+            whether the deconvolution algorithm is successfully registered.
         """
+        logger.info("<< Registering the deconvolution algorithm >>")
+        parameter_deconvolution = Configurator(self.parameter['deconvolution'])
 
         algorithm_name = parameter_deconvolution['algorithm']
+        algorithm_parameter = Configurator(parameter_deconvolution['parameter'])
 
-        if algorithm_name == 'RL':
-            parameter_RL = Configurator(parameter_deconvolution['parameter_RL'])
-            _deconvolution = RichardsonLucy(self._initial_model_map, self._data, parameter_RL)
-#        elif algorithm_name == 'MaxEnt':
-#            parameter = self.parameter['deconvolution']['parameter_MaxEnt']
-#            self.deconvolution == ...
+        if not algorithm_name in deconvolution_algorithm_classes.keys():
+            logger.error(f'The algorithm "{algorithm_name}" does not exist!')
+            return False
 
-        return _deconvolution
+        self._deconvolution_class = deconvolution_algorithm_classes[algorithm_name]
+        self._deconvolution = self._deconvolution_class(initial_model = self.initial_model, 
+                                                        dataset = self.dataset, 
+                                                        mask = self.mask, 
+                                                        parameter = algorithm_parameter)
+
+        logger.info("---- parameters ----")
+        logger.info(parameter_deconvolution.dump()) 
+
+        return True
 
     def run_deconvolution(self):
         """
@@ -227,18 +219,33 @@ class ImageDeconvolution:
         list
             List containing results (reconstructed image, likelihood etc) at each iteration. 
         """
-        print("#### Deconvolution Starts ####")
+        logger.info("#### Image Deconvolution Starts ####")
+       
+        logger.info(f"<< Initialization >>")
+        self._deconvolution.initialization()
         
-        all_result = []
-        for result in self._deconvolution.iteration():
-            all_result.append(result)
-            ### can perform intermediate check ###
-            #...
-            ###
+        stop_iteration = False
+        for i in tqdm(range(self._deconvolution.iteration_max)):
+            if stop_iteration:
+                break
+            stop_iteration = self._deconvolution.iteration()
 
-        print("#### Done ####")
-        print("")
-        return all_result
+        logger.info(f"<< Finalization >>")
+        self._deconvolution.finalization()
 
-#    def analyze_result(self):
-#        pass
+        logger.info("#### Image Deconvolution Finished ####")
+
+    def _check_model_response_consistency(self):
+        """
+        Check if the model axes is consistent with the dataset
+
+        Returns
+        -------
+        bool 
+            whether the axes of dataset are consistent with the model.
+        """
+        
+        for data in self.dataset:
+            if data.model_axes != self.initial_model.axes:
+                return False
+        return True
