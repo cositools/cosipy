@@ -320,7 +320,7 @@ class SpacecraftFile():
             The name of the target object.
         target_coord : astropy.coordinates.SkyCoord
             The coordinates of the target object.
-        attitude: cosipy.coordinates.attitude.Attitude, optional
+        attitude: scoords.Attitude, optional
             The attitude of the spacecraft (the default is `None`, which implies the attitude will be taken from the instance).
         quiet : bool, default=False
             Setting `True` to stop printing the messages.

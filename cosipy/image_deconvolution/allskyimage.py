@@ -94,7 +94,7 @@ class AllSkyImageModel(ModelBase):
 
         Parameters
         ----------
-        parameter : py:class:`cosipy.config.Configurator`
+        parameter : py:class:`yayc.Configurator`
         
         Returns
         -------
@@ -128,7 +128,7 @@ class AllSkyImageModel(ModelBase):
 
         Parameters
         ----------
-        parameter : py:class:`cosipy.config.Configurator`
+        parameter : py:class:`yayc.Configurator`
             Parameters for the specified algorithm.
 
         Notes

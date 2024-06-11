@@ -3,7 +3,7 @@ from tqdm.autonotebook import tqdm
 import logging
 logger = logging.getLogger(__name__)
 
-from cosipy.config import Configurator
+from yayc import Configurator
 
 from .allskyimage import AllSkyImageModel
 model_classes = {"AllSkyImage": AllSkyImageModel}

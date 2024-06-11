@@ -27,7 +27,7 @@ class DeconvolutionAlgorithmBase(ABC):
     ----------
     initial_model: :py:class:`cosipy.image_deconvolution.ModelMap`
     dataset: list of :py:class:`cosipy.image_deconvolution.DataLoader`
-    parameter : py:class:`cosipy.config.Configurator`
+    parameter : py:class:`yayc.Configurator`
     results: list of results
     dict_bkg_norm: the dictionary of background normalizations
     dict_dataset_indexlist_for_bkg_models: the indices of data corresponding to each background model in the dataset

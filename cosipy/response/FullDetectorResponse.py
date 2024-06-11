@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import mhealpy as hp
 from mhealpy import HealpixBase, HealpixMap
-from cosipy.config import Configurator
+from yayc import Configurator
 
 from scoords import SpacecraftFrame, Attitude
 
@@ -1096,9 +1096,8 @@ def cosi_response(argv=None):
             # Spectrum
             model = ModelParser(model_dict=config['sources']).get_model()
 
-            for src_name, src in model.point_sources.items():
-                for comp_name, component in src.components.items():
-                    logger.info(f"Using spectrum:\n {component.shape}")
+            spectrum = model.point_sources['source'].components['main'].shape
+            logger.info(f"Using spectrum:\n {spectrum}")
 
             # Expectation
             expectation = psr.get_expectation(spectrum).project('Em')

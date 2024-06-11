@@ -23,7 +23,7 @@ class ReadTraTest(UnBinnedData):
 
     """Old method for reading tra file, used for unit testing."""
     
-    def read_tra_old(self,make_plots=True):
+    def read_tra_old(self, output_name, make_plots=True):
         
         """Reads in MEGAlib .tra (or .tra.gz) file.
        
@@ -34,6 +34,8 @@ class ReadTraTest(UnBinnedData):
 
         Parameters
         ----------
+        output_name : str
+            Prefix of output file.
         make_plots : bool, optional
             Option to make binning plot.
 
@@ -203,7 +205,7 @@ class ReadTraTest(UnBinnedData):
         self.cosi_dataset = cosi_dataset
 
         # Write unbinned data to file (either fits or hdf5):
-        self.write_unbinned_output() 
+        self.write_unbinned_output(output_name) 
         
         return 
 

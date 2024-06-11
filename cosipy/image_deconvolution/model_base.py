@@ -29,7 +29,7 @@ class ModelBase(Histogram, ABC):
 
         Parameters
         ----------
-        parameter : py:class:`cosipy.config.Configurator`
+        parameter : py:class:`yayc.Configurator`
             Parameters for the specified algorithm.
 
         Returns
@@ -46,7 +46,7 @@ class ModelBase(Histogram, ABC):
 
         Parameters
         ----------
-        parameter : py:class:`cosipy.config.Configurator`
+        parameter : py:class:`yayc.Configurator`
             Parameters for the specified algorithm.
         """
 
