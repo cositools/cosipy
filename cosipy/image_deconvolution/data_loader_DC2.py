@@ -11,59 +11,24 @@ from cosipy.response import FullDetectorResponse
 from cosipy.data_io import BinnedData
 from .coordsys_conversion_matrix import CoordsysConversionMatrix
 
-class DataLoader(object):
+from .data_loader_base import DataLoaderBase
+
+class DataLoaderDC2(DataLoaderBase):
     """
-    A class to manage data for image analysis, 
-    namely event data, background models, response, coordsys conversion matrix.
-    Ideally, these data should be input directly to ImageDeconvolution class,
-    but considering their data formats are not fixed, this class is introduced.
-    The purpose of this class is to check the consistency between input data and calculate intermediate files etc.
-    In the future, this class may be removed or hidden in ImageDeconvolution class.
+    A subclass of DataLoaderBase for the COSI data challenge 2.
     """
 
     def __init__(self, name = None):
-        self._name = name
 
-        # must assign them in DataLoader.load
-        self._event = None # histpy.Histogram (dense)
-        self._bkg_models = {} # a dictionary of histpy.Histogram (dense)
+        DataLoaderBase.__init__(self, name)
+
         self._image_response = None # histpy.Histogram (dense)
-        self._exposure_map = None
-
-        self._data_axes = None # histpy.Axes
-        self._model_axes = None # histpy.Axes
 
         # None if using Galactic CDS, mandotary if using local CDS
         self._coordsys_conv_matrix = None 
 
         # optional
         self.is_miniDC2_format = False #should be removed in the future
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def event(self):
-        return self._event
-
-    @property
-    def exposure_map(self):
-        return self._exposure_map
-
-    @property
-    def model_axes(self):
-        return self._model_axes
-
-    @property
-    def data_axes(self):
-        return self._data_axes
-
-    def keys_bkg_models(self):
-        return list(self._bkg_models.keys())
-
-    def bkg_model(self, key):
-        return self._bkg_models[key]
 
     @classmethod
     def load(cls, name, event_binned_data, dict_bkg_binned_data, rsp, coordsys_conv_matrix = None, is_miniDC2_format = False):
@@ -269,7 +234,7 @@ class DataLoader(object):
         model_map : :py:class:`cosipy.image_deconvolution.ModelMap`
             Model map
         dict_bkg_norm : dict, default None
-            background normalization for each background model, e.g, {'albedo': 1}
+            background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}
         almost_zero : float, default 1e-12
             In order to avoid zero components in extended count histogram, a tiny offset is introduced.
             It should be small enough not to effect statistics.

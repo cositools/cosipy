@@ -1,4 +1,4 @@
-from .data_loader import DataLoader
+from .data_loader_DC2 import DataLoaderDC2
 from .modelmap import ModelMap
 from .image_deconvolution import ImageDeconvolution
 from .exposure_table import SpacecraftAttitudeExposureTable
