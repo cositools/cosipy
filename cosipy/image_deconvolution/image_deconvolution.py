@@ -6,7 +6,8 @@ logger = logging.getLogger(__name__)
 from cosipy.config import Configurator
 
 from .modelmap import ModelMap
-model_classes = {"ModelMap": ModelMap}
+from .allskyimage import AllSkyImageModel
+model_classes = {"AllSkyImage": AllSkyImageModel, "ModelMap": ModelMap}
 
 from .RichardsonLucy import RichardsonLucy
 deconvolution_algorithm_classes = {"RL": RichardsonLucy}
