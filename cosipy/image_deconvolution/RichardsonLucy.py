@@ -3,7 +3,6 @@ import copy
 import numpy as np
 import astropy.units as u
 import astropy.io.fits as fits
-from tqdm.autonotebook import tqdm
 import logging
 logger = logging.getLogger(__name__)
 
@@ -15,6 +14,26 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
     """
     A class for the RichardsonLucy algorithm. 
     The algorithm here is based on Knoedlseder+99, Knoedlseder+05, Siegert+20.
+    
+    An example of parameter is as follows.
+
+    iteration_max: 100
+    minimum_flux:
+        value: 0.0
+        unit: "cm-2 s-1 sr-1"
+    acceleration: True
+    alpha_max: 10.0
+    response_weighting: True 
+    response_weighting_index: 0.5
+    smoothing: True 
+    smoothing_FWHM: 
+      value: 2.0
+      unit: "deg"
+    background_normalization_optimization: True 
+    background_normalization_range: {"albedo": [0.9, 1.1]}
+    save_results: True
+    save_results_directory: "./results"
+
     """
 
     def __init__(self, initial_model, dataset, mask, parameter):
@@ -34,7 +53,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             self.smoothing_fwhm = parameter['smoothing_FWHM']['value'] * u.Unit(parameter['smoothing_FWHM']['unit'])
             logger.info(f"Gaussian filter with FWHM of {self.smoothing_fwhm} will be applied to delta images ...")
 
-        self.do_bkg_norm_fitting = parameter.get('background_normalization_fitting', False)
+        self.do_bkg_norm_optimization = parameter.get('background_normalization_optimization', False)
         if self.do_bkg_norm_fitting:
             self.dict_bkg_norm_range = parameter.get('background_normalization_range', {key: [0.0, 100.0] for key in self.dict_bkg_norm.keys()})
 
@@ -49,7 +68,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
     def initialization(self):
         """
-        pre-processing for each iteration
+        initialization before running the image deconvolution
         """
         # clear counter 
         self.iteration_count = 0
@@ -85,21 +104,21 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
                 self.dict_summed_bkg_model[key] = self.calc_summed_bkg_model(key)
 
     def pre_processing(self):
+        """
+        pre-processing for each iteration
+        """
         pass
 
     def Estep(self):
-        # Note that self.expectation_list is updated in self.post_processing().
+        """
+        E-step (but it will be skipped).
+        Note that self.expectation_list is updated in self.post_processing().
+        """
         pass
 
     def Mstep(self):
         """
         M-step in RL algorithm.
-
-        Notes
-        -----
-        Background normalization is also optimized based on a generalized RL algirithm.
-        Currenly we use a signle normalization parameter. 
-        In the future, the normalization will be optimized for each background group defined in some file.
         """
 
         ratio_list = [ data.event / expectation for data, expectation in zip(self.dataset, self.expectation_list) ]

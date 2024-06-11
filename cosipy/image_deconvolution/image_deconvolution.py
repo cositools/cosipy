@@ -9,7 +9,8 @@ from .allskyimage import AllSkyImageModel
 model_classes = {"AllSkyImage": AllSkyImageModel}
 
 from .RichardsonLucy import RichardsonLucy
-deconvolution_algorithm_classes = {"RL": RichardsonLucy}
+from .RichardsonLucySimple import RichardsonLucySimple
+deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple}
 
 class ImageDeconvolution:
     """

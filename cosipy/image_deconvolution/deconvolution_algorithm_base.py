@@ -1,5 +1,4 @@
 import gc
-import copy
 import numpy as np
 import functools
 from abc import ABC, abstractmethod
@@ -68,14 +67,14 @@ class DeconvolutionAlgorithmBase(ABC):
         """
         initialization before running the image deconvolution
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def pre_processing(self):
         """
         pre-processing for each iteration
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def Estep(self):
@@ -85,7 +84,7 @@ class DeconvolutionAlgorithmBase(ABC):
         If it will be performed in other step, typically post_processing() or check_stopping_criteria(),
         this step can be skipped.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def Mstep(self):
@@ -95,17 +94,17 @@ class DeconvolutionAlgorithmBase(ABC):
         If you want to apply some operations to self.delta_model,
         these should be performed in post_processing().
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def post_processing(self):
         """
-        Post-processing. 
+        Post-processing for each iteration. 
         In this step, if needed, you can apply some filters to self.delta_model and set it as self.processed_delta_model.
         Then, the updated model should be calculated as self.model.
         For example, Gaussian smoothing can be applied to self.delta_model in this step.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def register_result(self):
@@ -113,7 +112,7 @@ class DeconvolutionAlgorithmBase(ABC):
         Register results at the end of each iteration. 
         Users can define what kinds of values are stored in this method.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def check_stopping_criteria(self) -> bool:
@@ -121,14 +120,14 @@ class DeconvolutionAlgorithmBase(ABC):
         Check if the iteration process should be continued or stopped.
         When it returns True, the iteration will stopped.
         """
-        return True
+        raise NotImplementedError
 
     @abstractmethod
     def finalization(self):
         """
         finalization after running the image deconvolution
         """
-        pass
+        raise NotImplementedError
 
 ### A subclass should not override the methods below. ###
 
