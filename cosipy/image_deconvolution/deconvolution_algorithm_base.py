@@ -173,8 +173,8 @@ class DeconvolutionAlgorithmBase(ABC):
 
         Parameters
         ----------
-        model_map : :py:class:`cosipy.image_deconvolution.ModelMap`
-            Model map
+        model: :py:class:`cosipy.image_deconvolution.ModelMap`
+            Model
         dict_bkg_norm : dict, default None
             background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}
         almost_zero : float, default 1e-12

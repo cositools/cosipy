@@ -5,9 +5,8 @@ logger = logging.getLogger(__name__)
 
 from cosipy.config import Configurator
 
-from .modelmap import ModelMap
 from .allskyimage import AllSkyImageModel
-model_classes = {"AllSkyImage": AllSkyImageModel, "ModelMap": ModelMap}
+model_classes = {"AllSkyImage": AllSkyImageModel}
 
 from .RichardsonLucy import RichardsonLucy
 deconvolution_algorithm_classes = {"RL": RichardsonLucy}
@@ -97,10 +96,10 @@ class ImageDeconvolution:
     @property
     def initial_model(self):
         """
-        Return the initial model map.
+        Return the initial model.
         """
         if self._initial_model is None:
-            logger.warning("Need to initialize model map in the image_deconvolution instance!")
+            logger.warning("Need to initialize model in the image_deconvolution instance!")
 
         return self._initial_model
 

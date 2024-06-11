@@ -124,7 +124,7 @@ class AllSkyImageModel(ModelBase):
 
     def set_values_from_parameters(self, parameter):
         """
-        Set the values of this model map accordinng to the specified algorithm. 
+        Set the values accordinng to the specified algorithm. 
 
         Parameters
         ----------
@@ -157,7 +157,7 @@ class AllSkyImageModel(ModelBase):
 
     def set_values_from_extendedmodel(self, extendedmodel):
         """
-        Set the values of this model map accordinng to the given astromodels.ExtendedSource.
+        Set the values accordinng to the given astromodels.ExtendedSource.
 
         Parameters
         ----------
