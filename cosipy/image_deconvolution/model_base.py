@@ -10,9 +10,9 @@ class ModelBase(Histogram, ABC):
 
     Subclasses must override these methods. The `ImageDeconvolution` class will use them in the initialization process.
 
-    Attributes:
+    Methods:
     - instantiate_from_parameters(cls, parameter)
-    - set_values_from_parameters(self, parameter):
+    - set_values_from_parameters(self, parameter)
     """
 
     def __init__(self, edges, contents = None, sumw2 = None,

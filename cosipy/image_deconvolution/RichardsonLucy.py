@@ -54,7 +54,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             logger.info(f"Gaussian filter with FWHM of {self.smoothing_fwhm} will be applied to delta images ...")
 
         self.do_bkg_norm_optimization = parameter.get('background_normalization_optimization', False)
-        if self.do_bkg_norm_fitting:
+        if self.do_bkg_norm_optimization:
             self.dict_bkg_norm_range = parameter.get('background_normalization_range', {key: [0.0, 100.0] for key in self.dict_bkg_norm.keys()})
 
         self.save_results = parameter.get('save_results', False)
@@ -98,7 +98,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         logger.info("The expected count histograms were calculated with the initial model map.")
 
         # calculate summed background models for M-step
-        if self.do_bkg_norm_fitting:
+        if self.do_bkg_norm_optimization:
             self.dict_summed_bkg_model = {}
             for key in self.dict_bkg_norm.keys():
                 self.dict_summed_bkg_model[key] = self.calc_summed_bkg_model(key)
@@ -128,7 +128,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         self.delta_model = self.model * (sum_T_product/self.summed_exposure_map - 1)
         
         # background normalization optimization
-        if self.do_bkg_norm_fitting:
+        if self.do_bkg_norm_optimization:
             for key in self.dict_bkg_norm.keys():
 
                 sum_bkg_T_product = self.calc_summed_bkg_model_product(key, ratio_list)
