@@ -1,0 +1,14 @@
+#----------#
+# Data I/O:
+
+data_file: "data/" # full path
+ori_file: "data/20280301_3_month.ori" # full path to orientation file
+unbinned_output: 'fits' # 'fits' or 'hdf5'
+time_bins: 3600 # time bin size in seconds. Takes int or list of bin edges. 
+energy_bins: [1150.0, 1164.0] # Takes list. Needs to match response.
+phi_pix_size: 3 # binning of Compton scattering angle [deg]
+nside: 16 # healpix binning of psi chi local
+scheme: 'ring' # healpix binning of psi chi local
+tmin: 1835487300.0 # Min time cut in seconds.
+tmax: 1843467255.0 # Max time cut in seconds.
+#----------#
