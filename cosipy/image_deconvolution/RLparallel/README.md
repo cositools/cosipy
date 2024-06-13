@@ -1,5 +1,7 @@
 # Richardson-Lucy Algorithm
 
+Original repository location: https://github.com/avalluvan/Richardson-Lucy/
+
 ## Directory Contents
 
 Richardson-Lucy is abbreviated to RL.
