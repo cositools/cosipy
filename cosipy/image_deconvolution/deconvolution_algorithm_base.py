@@ -1,4 +1,3 @@
-import gc
 import numpy as np
 import functools
 from abc import ABC, abstractmethod
@@ -142,15 +141,12 @@ class DeconvolutionAlgorithmBase(ABC):
 
         logger.info("<< Pre-processing >>")
         self.pre_processing()
-        gc.collect()
 
         logger.info("<< E-step >>")
         self.Estep()
-        gc.collect()
 
         logger.info("<< M-step >>")
         self.Mstep()
-        gc.collect()
             
         logger.info("<< Post-processing >>")
         self.post_processing()
@@ -161,8 +157,6 @@ class DeconvolutionAlgorithmBase(ABC):
         logger.info("<< Checking Stopping Criteria >>")
         stop_iteration = self.check_stopping_criteria()
         logger.info("--> {}".format("Stop" if stop_iteration else "Continue"))
-
-        gc.collect()
 
         return stop_iteration
 
