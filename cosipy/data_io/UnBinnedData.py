@@ -22,6 +22,8 @@ import subprocess
 import gc
 import os
 import time
+import tempfile
+
 logger = logging.getLogger(__name__)
 
 
@@ -642,9 +644,8 @@ class UnBinnedData(DataIO):
         return
 
     def combine_unbinned_data(self, input_files, output_name=None):
-
         """Combines input unbinned data files.
-        
+
         Parameters
         ----------
         input_files : list
@@ -655,29 +656,61 @@ class UnBinnedData(DataIO):
 
         self.cosi_dataset = {}
         counter = 0
-        for each in input_files:
 
-            logger.info("adding %s..." % each)
-    
-            # Read dict from hdf5 or fits:
-            this_dict = self.get_dict(each)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for each in input_files:
+                logger.info("adding %s..." % each)
 
-            # Combine dictionaries:
-            if counter == 0:
-                for key in this_dict:
-                    self.cosi_dataset[key] = this_dict[key]
-            
-            if counter > 0:
-                for key in this_dict:
-                    self.cosi_dataset[key] = np.concatenate((self.cosi_dataset[key],this_dict[key]))
-                    
-            counter =+ 1
-            
-            # Clear unused memory:
-            gc.collect()
+                # Read dict from hdf5 or fits:
+                if self.unbinned_output == "hdf5":
+                    this_dict = self.get_dict_from_hdf5(each)
+                elif self.unbinned_output == "fits":
+                    this_dict = self.get_dict_from_fits(each)
 
-        # Write unbinned data to file (either fits or hdf5):
-        if output_name != None:
-            self.write_unbinned_output(output_name)
+                # Create a memory-mapped file for the first dictionary:
+                if counter == 0:
+                    for key in this_dict:
+                        temp_file_path = os.path.join(tmpdir, f"{key}.dat")
+                        self.cosi_dataset[key] = np.memmap(
+                            temp_file_path,
+                            dtype=this_dict[key].dtype,
+                            mode="w+",
+                            shape=this_dict[key].shape,
+                        )
+                        self.cosi_dataset[key][:] = this_dict[key][:]
+                else:
+                    for key in this_dict:
+                        # Expand the memory-mapped file to accommodate new data
+                        original_shape = self.cosi_dataset[key].shape
+                        new_shape = (
+                            original_shape[0] + this_dict[key].shape[0],
+                        ) + original_shape[1:]
+
+                        # Create a new memory-mapped file with the new shape
+                        temp_file_path = os.path.join(tmpdir, f"{key}.dat")
+                        new_memmap = np.memmap(
+                            temp_file_path,
+                            dtype=this_dict[key].dtype,
+                            mode="w+",
+                            shape=new_shape,
+                        )
+
+                        # Copy old data to the new memory-mapped file
+                        new_memmap[: original_shape[0]] = self.cosi_dataset[key][:]
+                        # Append new data
+                        new_memmap[original_shape[0] :] = this_dict[key][:]
+
+                        # Update the reference to the new memory-mapped file
+                        self.cosi_dataset[key] = new_memmap
+
+                counter += 1
+
+                # Clear unused memory:
+                del this_dict  # Dereference the dictionary
+                gc.collect()
+
+            # Write unbinned data to file (either fits or hdf5):
+            if output_name is not None:
+                self.write_unbinned_output(output_name)
 
         return
