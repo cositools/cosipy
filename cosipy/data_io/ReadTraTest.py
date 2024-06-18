@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys
 import pandas as pd
+import logging
+logger = logging.getLogger(__name__)
 
 try:
     # Load MEGAlib into ROOT
@@ -21,7 +23,7 @@ class ReadTraTest(UnBinnedData):
 
     """Old method for reading tra file, used for unit testing."""
     
-    def read_tra_old(self,make_plots=True):
+    def read_tra_old(self, output_name, make_plots=True):
         
         """Reads in MEGAlib .tra (or .tra.gz) file.
        
@@ -32,6 +34,8 @@ class ReadTraTest(UnBinnedData):
 
         Parameters
         ----------
+        output_name : str
+            Prefix of output file.
         make_plots : bool, optional
             Option to make binning plot.
 
@@ -61,15 +65,14 @@ class ReadTraTest(UnBinnedData):
         # tra file to use:
         tra_file = self.data_file
 
-        # Make print statement:
-        print()
-        print("Read tra test...")
-        print()
+        # Log message:
+        logger.info("Read tra test...")
+        
          
         # Check if file exists:
         Reader = M.MFileEventsTra()
         if Reader.Open(M.MString(tra_file)) == False:
-            print("Unable to open file %s. Aborting!" %self.data_file)
+            logger.error("Unable to open file %s. Aborting!" %self.data_file)
             sys.exit()
 
         # Initialise empty lists:
@@ -202,7 +205,7 @@ class ReadTraTest(UnBinnedData):
         self.cosi_dataset = cosi_dataset
 
         # Write unbinned data to file (either fits or hdf5):
-        self.write_unbinned_output() 
+        self.write_unbinned_output(output_name) 
         
         return 
 

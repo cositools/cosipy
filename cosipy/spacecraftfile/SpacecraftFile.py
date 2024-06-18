@@ -14,6 +14,9 @@ from cosipy.response import FullDetectorResponse
 
 from .scatt_map import SpacecraftAttitudeMap
 
+import logging
+logger = logging.getLogger(__name__)
+
 class SpacecraftFile():
 
     def __init__(self, time, x_pointings = None, y_pointings = None, z_pointings = None, attitude = None,
@@ -101,9 +104,11 @@ class SpacecraftFile():
             The SpacecraftFile object.
         """
 
-        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1, comments=("#","EN"))
-        axis_1 = np.loadtxt(file, usecols = (3,2), delimiter = ' ', skiprows = 1, comments=("#","EN"))
-        axis_2 = np.loadtxt(file, usecols = (5,4), delimiter = ' ', skiprows = 1, comments=("#","EN"))
+
+        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5), delimiter=' ', skiprows=1, comments=("#", "EN"))
+        time_stamps = orientation_file[:, 0]
+        axis_1 = orientation_file[:, [2, 1]]
+        axis_2 = orientation_file[:, [4, 3]]
 
         time = Time(time_stamps, format = "unix")
         xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
@@ -315,7 +320,7 @@ class SpacecraftFile():
             The name of the target object.
         target_coord : astropy.coordinates.SkyCoord
             The coordinates of the target object.
-        attitude: cosipy.coordinates.attitude.Attitude, optional
+        attitude: scoords.Attitude, optional
             The attitude of the spacecraft (the default is `None`, which implies the attitude will be taken from the instance).
         quiet : bool, default=False
             Setting `True` to stop printing the messages.
@@ -335,7 +340,7 @@ class SpacecraftFile():
 
         self.target_name = target_name
         if quiet == False:
-            print("Now converting to the Spacecraft frame...")
+            logger.info("Now converting to the Spacecraft frame...")
         self.src_path_cartesian = SkyCoord(np.dot(self.attitude.rot.inv().as_matrix(), target_coord.cartesian.xyz.value),
                                            representation_type = 'cartesian',
                                            frame = SpacecraftFrame())
@@ -346,7 +351,7 @@ class SpacecraftFile():
                                                          self.src_path_cartesian.y,
                                                          self.src_path_cartesian.z)
         if quiet == False:
-            print(f"Conversion completed!")
+            logger.info(f"Conversion completed!")
 
         # generate the numpy array of l and b to save to a npy file
         l = np.array(self.src_path_spherical[2].deg)  # note that 0 is Quanty, 1 is latitude and 2 is longitude and they are in rad not deg
@@ -541,12 +546,12 @@ class SpacecraftFile():
             self.Em_hi = np.float32(self.Em_edges[1:])
 
          # get the effective area and matrix
-        print("Getting the effective area ...")
+        logger.info("Getting the effective area ...")
         self.areas = np.float32(np.array(self.psr.project('Ei').to_dense().contents))/self.dts.to_value(u.second).sum()
         spectral_response = np.float32(np.array(self.psr.project(['Ei','Em']).to_dense().contents))
         self.matrix = np.float32(np.zeros((self.Ei_lo.size,self.Em_lo.size))) # initate the matrix
 
-        print("Getting the energy redistribution matrix ...")
+        logger.info("Getting the energy redistribution matrix ...")
         for i in np.arange(self.Ei_lo.size):
             new_raw = spectral_response[i,:]/spectral_response[i,:].sum()
             self.matrix[i,:] = new_raw

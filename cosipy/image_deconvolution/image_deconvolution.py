@@ -1,7 +1,7 @@
 import warnings
 import astropy.units as u
 
-from cosipy.config import Configurator
+from yayc import Configurator
 
 from .modelmap import ModelMap
 # import image deconvolution algorithms
@@ -170,7 +170,7 @@ class ImageDeconvolution:
 
         Parameters
         ----------
-        parameter_deconvolution : :py:class:`cosipy.config.Configurator`
+        parameter_deconvolution : :py:class:`yayc.Configurator`
             Parameters for the image deconvolution methods.
 
         Notes
