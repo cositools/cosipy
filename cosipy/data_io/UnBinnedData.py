@@ -662,10 +662,7 @@ class UnBinnedData(DataIO):
                 logger.info("adding %s..." % each)
 
                 # Read dict from hdf5 or fits:
-                if self.unbinned_output == "hdf5":
-                    this_dict = self.get_dict_from_hdf5(each)
-                elif self.unbinned_output == "fits":
-                    this_dict = self.get_dict_from_fits(each)
+                this_dict = self.get_dict(each)
 
                 # Create a memory-mapped file for the first dictionary:
                 if counter == 0:
