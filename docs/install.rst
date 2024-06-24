@@ -9,13 +9,14 @@ Optional but recommended step: install a conda environment::
   conda create -n <cosipy_env_name> python=3.10 pip
   conda activate <cosipy_env_name>
 
-Note: currently cosipy is not compatible with Python 3.11 and 3.12, mainly due to
-installation issues with a dependency (astromodels, see issues `#201 <https://github.com/threeML/astromodels/issues/201>`_ and `#204 <https://github.com/threeML/astromodels/issues/204>`_)
+Note: currently cosipy is not compatible with Python 3.12 due to
+installation issues with dependencies (`threeML <https://github.com/threeML/threeML/pull/631>`_ and `astromodels <https://github.com/threeML/astromodels/issues/204>`_)
 
 Install with pip::
   
-  pip install cosipy
-  
+  pip install --use-pep517 cosipy
+
+Note: ``--use-pep517`` is a temporary workaround to install `astromodels with new setuptools versions<https://github.com/threeML/astromodels/issues/209>`_. 
 
 From source (for developers)
 ----------------------------
@@ -35,7 +36,7 @@ Do the following (preferably inside a conda environment)::
 
     git clone git@github.com:cositools/cosipy.git
     cd cosipy
-    pip install -e .
+    pip install --use-pep517 -e .
 
 The flag ``-e`` (``--editable``) allows you to make changes and try them without
 having to run ``pip`` again.
