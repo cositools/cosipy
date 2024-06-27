@@ -174,7 +174,7 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
             dataFlux = np.genfromtxt(self.dat.value,comments = "#",usecols = (2),skip_footer=1,skip_header=5)
             dataEn = np.genfromtxt(self.dat.value,comments = "#",usecols = (1),skip_footer=1,skip_header=5)
             
-            fun = interp1d(dataEn,dataFlux,fill_value=(dataFlux[0], dataFlux[-1]),bounds_error=False)
+            fun = interp1d(dataEn,dataFlux,fill_value=0,bounds_error=False)
             
             if self._x_unit != None:
                 dataEn *= self._x_unit
