@@ -160,11 +160,15 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
                 min : 1e-30
                 max : 1e3
                 delta : 0.1
+                units: Unitless
         properties:
             dat:
                 desc: the data file to load
                 initial value: test.dat
                 defer: True
+                units: 
+                    energy: keV
+                    flux: 1/cm2/s/kev
         """            
         def _set_units(self, x_unit, y_unit):
             
@@ -173,8 +177,6 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
         def evaluate(self, x, K):
             dataFlux = np.genfromtxt(self.dat.value,comments = "#",usecols = (2),skip_footer=1,skip_header=5)
             dataEn = np.genfromtxt(self.dat.value,comments = "#",usecols = (1),skip_footer=1,skip_header=5)
-
-            dataFlux = dataFlux / sum(dataFlux) #normalized since the dat file has one point per keV
             
             fun = interp1d(dataEn,dataFlux,fill_value=0,bounds_error=False)
             
