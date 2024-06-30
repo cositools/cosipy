@@ -160,11 +160,15 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
                 min : 1e-30
                 max : 1e3
                 delta : 0.1
+                units: Unitless
         properties:
             dat:
                 desc: the data file to load
                 initial value: test.dat
                 defer: True
+                units: 
+                    energy: keV
+                    flux: 1/cm2/s/kev
         """            
         def _set_units(self, x_unit, y_unit):
             
