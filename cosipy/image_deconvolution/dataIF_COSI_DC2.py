@@ -8,19 +8,17 @@ logger = logging.getLogger(__name__)
 from histpy import Histogram, Axes
 
 from cosipy.response import FullDetectorResponse
-from cosipy.data_io import BinnedData
-from .coordsys_conversion_matrix import CoordsysConversionMatrix
 
-from .data_loader_base import DataLoaderBase
+from .data_deconvolution_algorithm_interface_base import DataDeconvolutionAlgorithmInterfaceBase
 
-class DataLoaderDC2(DataLoaderBase):
+class DataIF_COSI_DC2(DataDeconvolutionAlgorithmInterfaceBase):
     """
-    A subclass of DataLoaderBase for the COSI data challenge 2.
+    A subclass of DataDeconvolutionAlgorithmInterfaceBase for the COSI data challenge 2.
     """
 
     def __init__(self, name = None):
 
-        DataLoaderBase.__init__(self, name)
+        DataDeconvolutionAlgorithmInterfaceBase.__init__(self, name)
 
         self._image_response = None # histpy.Histogram (dense)
 
@@ -52,8 +50,8 @@ class DataLoaderDC2(DataLoaderBase):
 
         Returns
         -------
-        :py:class:`cosipy.image_deconvolution.DataLoader`
-            An instance of DataLoader containing the input data set
+        :py:class:`cosipy.image_deconvolution.DataIF_COSI_DC2`
+            An instance of DataIF_COSI_DC2 containing the input data set
         """
 
         new = cls(name)
@@ -103,7 +101,7 @@ class DataLoaderDC2(DataLoaderBase):
         Modify the axes of data. This method will be removed in the future.
         """
 
-        logger.warning("Note that _modify_axes() in DataLoader was implemented for a temporary use. It will be removed in the future.")
+        logger.warning("Note that _modify_axes() in DataIF_COSI_DC2 was implemented for a temporary use. It will be removed in the future.")
 
         if self._coordsys_conv_matrix is None:
             axis_name = ['Em', 'Phi', 'PsiChi']

@@ -31,8 +31,8 @@ class ImageDeconvolution:
 
         Parameters
         ----------
-        dataset : list of :py:class:`cosipy.image_deconvolution.DataLoader`
-            Each data loader contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.
+        dataset : list of :py:class:`cosipy.image_deconvolution.DataDeconvolutionAlgorithmInterfaceBase` or its subclass
+            Each component contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.
         """
 
         self._dataset = dataset
@@ -75,7 +75,7 @@ class ImageDeconvolution:
     @property
     def parameter(self):
         """
-        Return the parameter set to DataLoader.
+        Return the registered parameter.
         """
         return self._parameter
 
