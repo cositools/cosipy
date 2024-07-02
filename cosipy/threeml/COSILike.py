@@ -5,7 +5,7 @@ from threeML.exceptions.custom_exceptions import FitFailed
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
-from cosipy.image_deconvolution import ModelMap
+from cosipy.image_deconvolution import AllSkyImageModel
 
 from scoords import SpacecraftFrame, Attitude
 
@@ -154,11 +154,11 @@ class COSILike(PluginPrototype):
             # Note: the spectral parameters are updated internally by 3ML
             # during the likelihood scan. 
 
-            model_map = ModelMap(nside = self.image_response.axes['NuLambda'].nside, 
-                                energy_edges = self.image_response.axes['Ei'].edges,
-                                coordsys = 'galactic',
-                                label_image = 'NuLambda', # I think the label should be something like 'lb' to distiguish the photon direction in the local/galactic coordinates 
-                                label_energy = 'Ei')
+            model_map = AllSkyImageModel(nside = self.image_response.axes['NuLambda'].nside, 
+                                         energy_edges = self.image_response.axes['Ei'].edges,
+                                         coordsys = 'galactic',
+                                         label_image = 'NuLambda', # I think the label should be something like 'lb' to distiguish the photon direction in the local/galactic coordinates 
+                                         label_energy = 'Ei')
 
             model_map.set_values_from_extendedmodel(source)
 
