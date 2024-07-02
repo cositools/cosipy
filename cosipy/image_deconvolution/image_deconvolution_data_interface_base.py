@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class DataDeconvolutionAlgorithmInterfaceBase(ABC):
+class ImageDeconvolutionDataInterfaceBase(ABC):
     """
     A base class for managing data for image analysis, i.e., 
     event data, background models, response, coordsys conversion matrix etc.

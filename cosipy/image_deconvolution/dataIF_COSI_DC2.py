@@ -9,16 +9,16 @@ from histpy import Histogram, Axes
 
 from cosipy.response import FullDetectorResponse
 
-from .data_deconvolution_algorithm_interface_base import DataDeconvolutionAlgorithmInterfaceBase
+from .image_deconvolution_data_interface_base import ImageDeconvolutionDataInterfaceBase
 
-class DataIF_COSI_DC2(DataDeconvolutionAlgorithmInterfaceBase):
+class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
     """
-    A subclass of DataDeconvolutionAlgorithmInterfaceBase for the COSI data challenge 2.
+    A subclass of ImageDeconvolutionDataInterfaceBase for the COSI data challenge 2.
     """
 
     def __init__(self, name = None):
 
-        DataDeconvolutionAlgorithmInterfaceBase.__init__(self, name)
+        ImageDeconvolutionDataInterfaceBase.__init__(self, name)
 
         self._image_response = None # histpy.Histogram (dense)
 

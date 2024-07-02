@@ -1,6 +1,6 @@
 from .image_deconvolution import ImageDeconvolution, model_classes, deconvolution_algorithm_classes 
 
-from .data_deconvolution_algorithm_interface_base import DataDeconvolutionAlgorithmInterfaceBase
+from .image_deconvolution_data_interface_base import ImageDeconvolutionDataInterfaceBase
 from .dataIF_COSI_DC2 import DataIF_COSI_DC2
 
 from .model_base import ModelBase

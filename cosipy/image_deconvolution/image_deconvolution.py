@@ -31,7 +31,7 @@ class ImageDeconvolution:
 
         Parameters
         ----------
-        dataset : list of :py:class:`cosipy.image_deconvolution.DataDeconvolutionAlgorithmInterfaceBase` or its subclass
+        dataset : list of :py:class:`cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase` or its subclass
             Each component contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.
         """
 
