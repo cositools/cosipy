@@ -1,4 +1,6 @@
-import warnings
+import logging
+logger = logging.getLogger(__name__)
+
 import pandas as pd
 from tqdm.autonotebook import tqdm
 import numpy as np
@@ -43,7 +45,7 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         if scheme == 'ring' or scheme == 'nested':
             self.scheme = scheme
         else:
-            warnings.warn('The scheme should be "ring" or "nested" in SpacecraftAttitudeExposureTable. It will be set to "ring".')
+            logger.warning('The scheme should be "ring" or "nested" in SpacecraftAttitudeExposureTable. It will be set to "ring".')
             self.scheme = 'ring'
 
     def __eq__(self, other):
@@ -144,7 +146,7 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         :py:class:`pd.DataFrame`
         """
 
-        print("angular resolution: ", hp.nside2resol(nside) * 180 / np.pi, "deg.")    
+        logger.info("angular resolution: ", hp.nside2resol(nside) * 180 / np.pi, "deg.")    
     
         indices_healpix = [] # (idx_z, idx_x)
         delta_times = []
@@ -154,13 +156,15 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         if start is not None and stop is not None:
             orientation = orientation.source_interval(start, stop)
         elif start is not None:
-            print("please specify the stop time")
+            logger.error("please specify the stop time")
+            return
         elif stop is not None:
-            print("please specify the start time")
+            logger.error("please specify the start time")
+            return
         
         ori_time = orientation.get_time()
             
-        print("duration: ", (ori_time[-1] - ori_time[0]).to("day"))
+        logger.info("duration: ", (ori_time[-1] - ori_time[0]).to("day"))
         
         attitude = orientation.get_attitude()
         
@@ -179,7 +183,7 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         elif scheme == 'nested':
             nest = True
         else:
-            print('Warning: the scheme should be "ring" or "nested". It was set to "ring".')
+            logger.warning('Warning: the scheme should be "ring" or "nested". It was set to "ring".')
             nest = False
 
         idx_x = hp.ang2pix(nside, l_x, b_x, nest=nest, lonlat=True)
@@ -254,8 +258,8 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         hdu = infile[1]
     
         if hdu.name != "EXPOSURETABLE":
-            print("cannot find EXPOSURETABLE")
-            return 0
+            logger.error("cannot find EXPOSURETABLE")
+            return
     
         indices_scatt_binning = hdu.data['scatt_binning_index']
         indices_healpix = [ (z, x) for (z, x) in zip(hdu.data['healpix_index_z_pointing'], hdu.data['healpix_index_x_pointing']) ]
