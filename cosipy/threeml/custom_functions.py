@@ -160,7 +160,7 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
                 min : 1e-30
                 max : 1e3
                 delta : 0.1
-                units: Unitless
+                units: ph/cm2/s
         properties:
             dat:
                 desc: the data file to load
@@ -168,7 +168,7 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
                 defer: True
                 units: 
                     energy: keV
-                    flux: 1/cm2/s/kev
+                    flux: ph/cm2/s/kev
         """            
         def _set_units(self, x_unit, y_unit):
             
@@ -177,6 +177,12 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
         def evaluate(self, x, K):
             dataFlux = np.genfromtxt(self.dat.value,comments = "#",usecols = (2),skip_footer=1,skip_header=5)
             dataEn = np.genfromtxt(self.dat.value,comments = "#",usecols = (1),skip_footer=1,skip_header=5)
+            
+            # Calculate the widths of the energy bins
+            ewidths = np.diff(dataEn, append=dataEn[-1])
+
+            # Normalize dataFlux using the energy bin widths
+            dataFlux = dataFlux  / np.sum(dataFlux * ewidths)
             
             fun = interp1d(dataEn,dataFlux,fill_value=0,bounds_error=False)
             
