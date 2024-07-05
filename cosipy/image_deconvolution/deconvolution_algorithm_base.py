@@ -1,4 +1,5 @@
 import numpy as np
+import astropy.units as u
 import functools
 from abc import ABC, abstractmethod
 import logging
@@ -23,7 +24,7 @@ class DeconvolutionAlgorithmBase(ABC):
 
     Attributes
     ----------
-    initial_model: :py:class:`cosipy.image_deconvolution.ModelMap`
+    initial_model: :py:class:`cosipy.image_deconvolution.ModelBase` or its subclass
     dataset: list of :py:class:`cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase` or its subclass
     parameter : py:class:`yayc.Configurator`
     results: list of results
@@ -55,7 +56,7 @@ class DeconvolutionAlgorithmBase(ABC):
         logger.debug(f'dict_bkg_norm: {self.dict_bkg_norm}')
         logger.debug(f'dict_dataset_indexlist_for_bkg_models: {self.dict_dataset_indexlist_for_bkg_models}')
 
-        self.minimum_flux = parameter.get('minimum_flux:value', 0.0) * parameter.get('minimum_flux:unit', initial_model.unit)
+        self.minimum_flux = parameter.get('minimum_flux:value', 0.0) * u.Unit(parameter.get('minimum_flux:unit', initial_model.unit))
 
         # parameters of the iteration
         self.iteration_count = 0
@@ -166,7 +167,7 @@ class DeconvolutionAlgorithmBase(ABC):
 
         Parameters
         ----------
-        model: :py:class:`cosipy.image_deconvolution.ModelMap`
+        model: :py:class:`cosipy.image_deconvolution.ModelBase` or its subclass
             Model
         dict_bkg_norm : dict, default None
             background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}

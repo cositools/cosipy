@@ -126,13 +126,9 @@ class ImageDeconvolution:
 
         logger.info("#### Initialization Starts ####")
         
-        done_with_success = self.model_initialization()        
-        if not done_with_success:
-            return 
+        self.model_initialization()        
 
-        done_with_success = self.register_deconvolution_algorithm()        
-        if not done_with_success:
-            return 
+        self.register_deconvolution_algorithm()        
 
         logger.info("#### Initialization Finished ####")
 
@@ -150,7 +146,7 @@ class ImageDeconvolution:
 
         if not model_name in model_classes.keys():
             logger.error(f'The model class "{model_name}" does not exist!')
-            return False
+            raise ValueError
 
         self._model_class = model_classes[model_name]
 
@@ -173,13 +169,11 @@ class ImageDeconvolution:
 
         # axes check
         if not self._check_model_response_consistency():
-            logger.warning("The model axes mismatches with the reponse in the dataset!")
-            return False
+            logger.error("The model axes mismatches with the reponse in the dataset!")
+            raise ValueError
 
         logger.info("---- parameters ----")
         logger.info(parameter_model_initialization.dump())
-
-        return True
 
     def register_deconvolution_algorithm(self):
         """
@@ -198,7 +192,7 @@ class ImageDeconvolution:
 
         if not algorithm_name in deconvolution_algorithm_classes.keys():
             logger.error(f'The algorithm "{algorithm_name}" does not exist!')
-            return False
+            raise ValueError
 
         self._deconvolution_class = deconvolution_algorithm_classes[algorithm_name]
         self._deconvolution = self._deconvolution_class(initial_model = self.initial_model, 
@@ -208,8 +202,6 @@ class ImageDeconvolution:
 
         logger.info("---- parameters ----")
         logger.info(parameter_deconvolution.dump()) 
-
-        return True
 
     def run_deconvolution(self):
         """

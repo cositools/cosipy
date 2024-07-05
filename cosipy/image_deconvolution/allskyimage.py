@@ -166,10 +166,10 @@ class AllSkyImageModel(ModelBase):
         """
 
         integrated_flux = get_integrated_spectral_model(spectrum = extendedmodel.spectrum.main.shape,
-                                                        eaxis = self.energy_axis)
+                                                        eaxis = self.axes[1])
         
-        npix = self.image_axis.npix
-        coords = self.image_axis.pix2skycoord(np.arange(npix))
+        npix = self.axes[0].npix
+        coords = self.axes[0].pix2skycoord(np.arange(npix))
 
         normalized_map = extendedmodel.spatial_shape(coords.l.deg, coords.b.deg) / u.sr
 

@@ -88,7 +88,7 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
 
         Parameters
         ----------
-        model : :py:class:`cosipy.image_deconvolution.ModelMap`
+        model : :py:class:`cosipy.image_deconvolution.ModelBase` or its subclass
             Model
         dict_bkg_norm : dict, default None
             background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}

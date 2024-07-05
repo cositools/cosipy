@@ -76,10 +76,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
             new._image_response = rsp
         
         # We modify the axes in event, bkg_models, response. This is only for DC2.
-        result = new._modify_axes()
-        if result == False:
-            logger.warning('Please rerun after checking the axes of the input histograms')
-            return 
+        new._modify_axes()
         
         new._data_axes = new._event.axes
         
@@ -125,18 +122,10 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
                 if np.all(event_edges == bkg_edges):
                     logger.info(f"    --> pass (edges)") 
                 else:
-                    logger.warning(f"Warning: the edges of the axis {name} are not consistent between the event and the background model {key}!")
-                    logger.warning(f"         event      : {event_edges}")
-                    logger.warning(f"         background : {bkg_edges}")
-                    return False
-
-                if event_unit == bkg_unit:
-                    logger.info(f"    --> pass (unit)") 
-                else:
-                    logger.warning(f"Warning: the unit of the axis {name} are not consistent between the event and the background model {key}!")
-                    logger.warning(f"         event      : {event_unit}")
-                    logger.warning(f"         background : {bkg_unit}")
-                    return False
+                    logger.error(f"Warning: the edges of the axis {name} are not consistent between the event and the background model {key}!")
+                    logger.error(f"         event      : {event_edges}")
+                    logger.error(f"         background : {bkg_edges}")
+                    raise ValueError
 
         # check the axes of the event/response files. 
         # Note that currently (2023-08-29) no unit is stored in the binned data. So only the edges are compared. This should be modified in the future.
@@ -150,16 +139,17 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
             event_edges, event_unit = self._event.axes[name].edges, self._event.axes[name].unit
             response_edges, response_unit = self._image_response.axes[name].edges, self._image_response.axes[name].unit
             
-            if type(response_edges) == u.quantity.Quantity and self.is_miniDC2_format == True:
+#            if type(response_edges) == u.quantity.Quantity and self.is_miniDC2_format == True:
+            if event_unit is None and response_unit is not None and self.is_miniDC2_format == True: # this is only for the old data in the miniDC2 challenge. I will remove them in the near future (or in the final dataIF).
                 response_edges = response_edges.value
 
             if np.all(event_edges == response_edges):
                 logger.info(f"    --> pass (edges)") 
             else:
-                logger.warning(f"Warning: the edges of the axis {name} are not consistent between the event and background!")
-                logger.warning(f"        event      : {event_edges}")
-                logger.warning(f"        response : {response_edges}")
-                return False
+                logger.error(f"Warning: the edges of the axis {name} are not consistent between the event and background!")
+                logger.error(f"        event      : {event_edges}")
+                logger.error(f"        response : {response_edges}")
+                raise ValueError
 
         if self._coordsys_conv_matrix is None:
             axes_cds = Axes([self._image_response.axes["Em"], \
@@ -223,13 +213,13 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
 
         logger.info("Finished...")
 
-    def calc_expectation(self, model_map, dict_bkg_norm = None, almost_zero = 1e-12):
+    def calc_expectation(self, model, dict_bkg_norm = None, almost_zero = 1e-12):
         """
-        Calculate expected counts from a given model map.
+        Calculate expected counts from a given model.
 
         Parameters
         ----------
-        model_map : :py:class:`cosipy.image_deconvolution.ModelMap`
+        model : :py:class:`cosipy.image_deconvolution.AllSkyImageModel`
             Model map
         dict_bkg_norm : dict, default None
             background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}
@@ -254,13 +244,13 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         expectation = Histogram(self.data_axes)
         
         if self._coordsys_conv_matrix is None:
-            expectation[:] = np.tensordot( model_map.contents, self._image_response.contents, axes = ([0,1],[0,1])) * model_map.axes['lb'].pixarea()
+            expectation[:] = np.tensordot( model.contents, self._image_response.contents, axes = ([0,1],[0,1])) * model.axes['lb'].pixarea()
             # ['lb', 'Ei'] x [NuLambda(lb), Ei, Em, Phi, PsiChi] -> [Em, Phi, PsiChi]
         else:
-            map_rotated = np.tensordot(self._coordsys_conv_matrix.contents, model_map.contents, axes = ([1], [0])) 
+            map_rotated = np.tensordot(self._coordsys_conv_matrix.contents, model.contents, axes = ([1], [0])) 
             # ['Time/ScAtt', 'lb', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
-            map_rotated *= self._coordsys_conv_matrix.unit * model_map.unit
-            map_rotated *= model_map.axes['lb'].pixarea()
+            map_rotated *= self._coordsys_conv_matrix.unit * model.unit
+            map_rotated *= model.axes['lb'].pixarea()
             # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
             # the unit of map_rotated is 1/cm2 ( = s * 1/cm2/s/sr * sr)
             expectation[:] = np.tensordot( map_rotated, self._image_response.contents, axes = ([1,2], [0,1]))
