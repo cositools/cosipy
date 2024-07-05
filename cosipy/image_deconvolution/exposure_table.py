@@ -61,31 +61,6 @@ class SpacecraftAttitudeExposureTable(pd.DataFrame):
         return (self.nside == other.nside) and (self.scheme == other.scheme)
 
     @classmethod
-    def from_pickle(cls, filename, nside, scheme = 'ring'):
-        """
-        Read exposure table from pickle.
-
-        Parameters
-        ----------
-        filename : str
-            Path to file
-        nside : int
-            Healpix NSIDE parameter.
-        scheme : str, default 'ring'
-            Healpix scheme. Either 'ring', 'nested'.
-        
-        Returns
-        -------
-        :py:class:`cosipy.spacecraftfile.SpacecraftAttitudeExposureTable`
-        """
-
-        df = pd.read_pickle(filename)
-
-        new = cls(df, nside, scheme)
-
-        return new
-
-    @classmethod
     def from_orientation(cls, orientation, nside, scheme = 'ring', start = None, stop = None, min_exposure = None, min_num_pointings = None):
         """
         Produce exposure table from orientation.

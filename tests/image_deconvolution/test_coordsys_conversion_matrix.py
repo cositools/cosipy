@@ -1,4 +1,5 @@
 import astropy.units as u
+import numpy as np
 
 from cosipy import test_data
 from cosipy.response import FullDetectorResponse
@@ -7,7 +8,7 @@ from cosipy.image_deconvolution import SpacecraftAttitudeExposureTable
 
 from cosipy.image_deconvolution import CoordsysConversionMatrix
 
-def test_coordsys_conversion_matrix_time():
+def test_coordsys_conversion_matrix_time(tmp_path):
 
     full_detector_response = FullDetectorResponse.open(test_data.path / "test_full_detector_response.h5")
 
@@ -20,10 +21,10 @@ def test_coordsys_conversion_matrix_time():
     ccm_test = CoordsysConversionMatrix.open(test_data.path / "image_deconvolution/ccm_time_test.hdf5")
 
     assert ccm.axes     == ccm_test.axes
-    assert ccm.contents == ccm_test.contents
+    assert np.all(ccm.contents == ccm_test.contents)
     assert ccm.unit     == ccm_test.unit
 
-def test_coordsys_conversion_matrix_scatt():
+def test_coordsys_conversion_matrix_scatt(tmp_path):
 
     full_detector_response = FullDetectorResponse.open(test_data.path / "test_full_detector_response.h5")
 
@@ -36,7 +37,7 @@ def test_coordsys_conversion_matrix_scatt():
     ccm_test = CoordsysConversionMatrix.open(test_data.path / "image_deconvolution/ccm_scatt_use_averaged_pointing_False_test.hdf5")
 
     assert ccm.axes     == ccm_test.axes
-    assert ccm.contents == ccm_test.contents
+    assert np.all(ccm.contents == ccm_test.contents)
     assert ccm.unit     == ccm_test.unit
 
     ccm = CoordsysConversionMatrix.spacecraft_attitude_binning_ccm(full_detector_response, exposure_table, use_averaged_pointing = True)
@@ -46,5 +47,5 @@ def test_coordsys_conversion_matrix_scatt():
     ccm_test = CoordsysConversionMatrix.open(test_data.path / "image_deconvolution/ccm_scatt_use_averaged_pointing_True_test.hdf5")
 
     assert ccm.axes     == ccm_test.axes
-    assert ccm.contents == ccm_test.contents
+    assert np.all(ccm.contents == ccm_test.contents)
     assert ccm.unit     == ccm_test.unit

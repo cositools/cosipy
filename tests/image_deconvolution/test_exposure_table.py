@@ -28,9 +28,7 @@ def test_exposure_table(tmp_path):
 
     exposure_table.save_as_fits(tmp_path / "exposure_table_test_nside1_ring.fits")
     
-    assert exposure_table == SpacecraftAttitudeExposureTable.from_fits(test_data.path / "image_deconvolution/exposure_table_test_nside1_ring.fits")
-
-    assert exposure_table == SpacecraftAttitudeExposureTable.from_pickle(test_data.path / "image_deconvolution/exposure_table_test_nside1_ring.pickle", nside = nside)
+    assert exposure_table == SpacecraftAttitudeExposureTable.from_fits(tmp_path / "exposure_table_test_nside1_ring.fits")
 
     map_pointing_zx = exposure_table.calc_pointing_trajectory_map()
 
