@@ -82,7 +82,7 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
         return self._bkg_models[key]
 
     @abstractmethod
-    def calc_expectation(self, model, dict_bkg_norm = None):
+    def calc_expectation(self, model, dict_bkg_norm = None, almost_zero = 1e-12):
         """
         Calculate expected counts from a given model map.
 
@@ -92,6 +92,9 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
             Model
         dict_bkg_norm : dict, default None
             background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}
+        almost_zero : float, default 1e-12
+            In order to avoid zero components in extended count histogram, a tiny offset is introduced.
+            It should be small enough not to effect statistics.
 
         Returns
         -------
