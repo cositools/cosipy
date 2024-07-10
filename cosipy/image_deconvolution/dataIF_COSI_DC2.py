@@ -64,6 +64,8 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
             if new._bkg_models[key].is_sparse:
                 new._bkg_models[key] = new._bkg_models[key].to_dense()
 
+            new._summed_bkg_models[key] = np.sum(new._bkg_models[key])
+
         new._coordsys_conv_matrix = coordsys_conv_matrix
 
         new.is_miniDC2_format = is_miniDC2_format

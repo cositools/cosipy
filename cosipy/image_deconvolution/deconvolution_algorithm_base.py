@@ -227,7 +227,7 @@ class DeconvolutionAlgorithmBase(ABC):
         
         indexlist = self.dict_dataset_indexlist_for_bkg_models[key]
         
-        return np.sum([np.sum(self.dataset[i].bkg_model(key)) for i in indexlist])
+        return np.sum([self.dataset[i].summed_bkg_model(key) for i in indexlist])
 
     def calc_summed_T_product(self, dataspace_histogram_list):
         """

@@ -14,6 +14,8 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
         A dictionary of binned histograms of background models.
         It is a dictionary of histpy.Histogram with keys of names of background models.
         Their axes must be the same of self._model_axes.
+    - self._summed_bkg_models
+        A dictionary of summed values of the background model histograms.
     - self._exposure_map 
         A binned histogram of the exposures at each pixel in the model space.
         It is an instance of histpy.Histogram.
@@ -28,6 +30,8 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
         It returns a list of names of background models.
     - bkg_model(key)
         It returns a binned histogram of a background model with the given key.
+    - summed_bkg_model(key)
+        It returns the summed value of the background histogram with the given key.
     - calc_expectation(model)
         It returns a histogram of expected counts from the given model.
     - calc_T_product(dataspace_histogram)
@@ -51,6 +55,7 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
         # must assign data to them somewhere
         self._event = None # histpy.Histogram
         self._bkg_models = {} # a dictionary of histpy.Histogram
+        self._summed_bkg_models = {} # a dictionary of float
         self._exposure_map = None # histpy.Histogram
         self._model_axes = None # histpy.Axes
         self._data_axes = None # histpy.Axes
@@ -80,6 +85,9 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
 
     def bkg_model(self, key):
         return self._bkg_models[key]
+
+    def summed_bkg_model(self, key):
+        return self._summed_bkg_models[key]
 
     @abstractmethod
     def calc_expectation(self, model, dict_bkg_norm = None, almost_zero = 1e-12):
