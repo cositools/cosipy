@@ -4,7 +4,7 @@ import numpy as np
 
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
-from cosipy.threeml.custom_functions import get_integrated_spectral_model
+from cosipy.response.functions import get_integrated_extended_model
 
 class ModelMap(Histogram):
     """
@@ -83,13 +83,4 @@ class ModelMap(Histogram):
         extendedmodel : :py:class:`astromodels.ExtendedSource`
             Extended source model
         """
-
-        integrated_flux = get_integrated_spectral_model(spectrum = extendedmodel.spectrum.main.shape,
-                                                        eaxis = self.energy_axis)
-        
-        npix = self.image_axis.npix
-        coords = self.image_axis.pix2skycoord(np.arange(npix))
-
-        normalized_map = extendedmodel.spatial_shape(coords.l.deg, coords.b.deg) / u.sr
-
-        self[:] = np.tensordot(normalized_map, integrated_flux.contents, axes = 0) 
+        self[:] = get_integrated_extended_model(extendedmodel, image_axis = self.axes[0], energy_axis = self.axes[1]).contents
