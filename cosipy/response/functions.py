@@ -14,7 +14,7 @@ def get_integrated_spectral_model(spectrum, energy_axis):
         
     Parameters
     ----------
-    spectrum : astromodels.Function
+    spectrum : astromodels.functions
         One-dimensional spectral function from astromodels.
     energy_axis : histpy.Axis
         Energy axis defining the energy bins for integration.
@@ -78,8 +78,9 @@ def get_integrated_extended_model(extendedmodel, image_axis, energy_axis):
 
     Parameters
     ----------
-    extendedmodel : object
-        Extended source model object containing spatial and spectral information.
+    extendedmodel : astromodels.ExtendedSource
+        An astromodels extended source model object. This model represents
+        the spatial and spectral distribution of an extended astronomical source.
     image_axis : histpy.HealpixAxis
         Spatial axis for the image.
     energy_axis : histpy.Axis
