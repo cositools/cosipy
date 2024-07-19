@@ -419,7 +419,7 @@ class FullDetectorResponse(HealpixBase):
 
         #if we have one single bin, treat the gaussian norm like the mono one
         #also check that the gaussian spectrum is fully contained in that bin 
-        if len(ewidth) == 1 :
+        if len(ewidth) == 1 and norm == "Gaussian":
             edges = dr.axes['Ei'].edges
             gauss_int = 0.5 * (1 + erf( (edges[0]-Gauss_mean)/(4*np.sqrt(2)) ) ) + 0.5 * (1 + erf( (edges[1]-Gauss_mean)/(4*np.sqrt(2)) ) )
             
