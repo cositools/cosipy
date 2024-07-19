@@ -202,13 +202,13 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         logger.info("Calculating an exposure map...")
         
         if self._coordsys_conv_matrix is None:
-            self._exposure_map = Histogram(self._model_axes, unit = self._image_response.unit)
-            self._exposure_map[:] = np.sum(self._image_response.contents, axis = (2,3,4))
+            self._exposure_map = Histogram(self._model_axes, unit = self._image_response.unit * u.sr)
+            self._exposure_map[:] = np.sum(self._image_response.contents, axis = (2,3,4)) * self.model_axes['lb'].pixarea()
         else:
-            self._exposure_map = Histogram(self._model_axes, unit = self._image_response.unit * self._coordsys_conv_matrix.unit)
+            self._exposure_map = Histogram(self._model_axes, unit = self._image_response.unit * self._coordsys_conv_matrix.unit * u.sr)
             self._exposure_map[:] = np.tensordot(np.sum(self._coordsys_conv_matrix, axis = (0)), 
                                                  np.sum(self._image_response, axis = (2,3,4)),
-                                                 axes = ([1], [0]) ) * self._image_response.unit * self._coordsys_conv_matrix.unit
+                                                 axes = ([1], [0]) ) * self._image_response.unit * self._coordsys_conv_matrix.unit * self.model_axes['lb'].pixarea()
             # [Time/ScAtt, lb, NuLambda] -> [lb, NuLambda]
             # [NuLambda, Ei, Em, Phi, PsiChi] -> [NuLambda, Ei]
             # [lb, NuLambda] x [NuLambda, Ei] -> [lb, Ei]
@@ -291,14 +291,14 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         hist = Histogram(self.model_axes, unit = hist_unit)
 
         if self._coordsys_conv_matrix is None:
-            hist[:] = np.tensordot(dataspace_histogram.contents, self._image_response.contents, axes = ([0,1,2], [2,3,4])) 
+            hist[:] = np.tensordot(dataspace_histogram.contents, self._image_response.contents, axes = ([0,1,2], [2,3,4])) * self.model_axes['lb'].pixarea()
             # [Em, Phi, PsiChi] x [NuLambda (lb), Ei, Em, Phi, PsiChi] -> [NuLambda (lb), Ei]
         else:
             _ = np.tensordot(dataspace_histogram.contents, self._image_response.contents, axes = ([1,2,3], [2,3,4])) 
             # [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, NuLambda, Ei]
 
             hist[:] = np.tensordot(self._coordsys_conv_matrix.contents, _, axes = ([0,2], [0,1])) \
-                        * _.unit * self._coordsys_conv_matrix.unit
+                        * _.unit * self._coordsys_conv_matrix.unit * self.model_axes['lb'].pixarea()
             # [Time/ScAtt, lb, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
             # note that coordsys_conv_matrix is the sparse, so the unit should be recovered.
 
