@@ -1,26 +1,13 @@
 # cosipy
-The COSI high-level data analysis tools
 
-## Installation from source
+[![unit_tests](https://github.com/cositools/cosipy/actions/workflows/unit_tests.yml/badge.svg?branch=develop)](https://github.com/cositools/cosipy/actions/workflows/unit_tests.yml)
+[![codecov](https://codecov.io/gh/cositools/cosipy/branch/develop/graph/badge.svg?token=FQGI2VG4OY)](https://codecov.io/gh/cositools/cosipy)
 
-Meant for developers. Currently the only option.
+The cosipy library is [COSI](https://cosi.ssl.berkeley.edu)'s high-level analysis software.
 
-1. Clone the repository into your local machine
+The main repository is hosted in https://github.com/cositools/cosipy
 
-```
-git clone git@github.com:cositools/cosipy.git
-```
+For the cosipy installation and usage instructions please refer to the main [cosipy documentation](https://cositools.github.io/cosipy/).
 
-2. Move to the cosipy folder
 
-```
-cd cosipy
-```
 
-3. Create a new conda environment. Optional but highly encouranged.
-
-4. Install it:
-
-```
-pip install -e .
-```

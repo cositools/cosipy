@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.io import fits
-from astropy.time import Time
+from astropy.time import Time, TimeDelta
 from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
 from mhealpy import HealpixMap
 import matplotlib.pyplot as plt
@@ -14,19 +14,33 @@ from cosipy.response import FullDetectorResponse
 
 from .scatt_map import SpacecraftAttitudeMap
 
+import logging
+logger = logging.getLogger(__name__)
+
 class SpacecraftFile():
 
     def __init__(self, time, x_pointings = None, y_pointings = None, z_pointings = None, attitude = None,
                  instrument = "COSI", frame = "galactic"):
 
         """
-        Time: astropy.Time; The time stamp for each pointings. Note this is NOT the time duration.
-        x_pointings: astropy.coordinates.SkyCoord; The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft.
-        y_pointings: astropy.coordinates.SkyCoord; The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft.
-        z_pointings: astropy.coordinates.SkyCoord; The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft.
-        attitude: numpy.ndarray: the attitude of the spacecraft.
-        instrument: string; the instrument name.
-        frame: string; the frame on which the analysis will be based.
+        Handles the spacecraft orientation. Calculates the dwell time map and point source response over a certain orientation period. Exports the point source response as RMF and ARF files that can be read by XSPEC.
+        
+        Parameters
+        ----------
+        Time : astropy.time.Time
+            The time stamps for each pointings. Note this is NOT the time duration.
+        x_pointings : astropy.coordinates.SkyCoord, optional
+            The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies no input for the x pointings).
+        y_pointings : astropy.coordinates.SkyCoord, optional
+            The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies no input for the y pointings).
+        z_pointings : astropy.coordinates.SkyCoord, optional
+            The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies no input for the z pointings).
+        attitude: numpy.ndarray, optional
+            The attitude of the spacecraft (the default is `None`, which implies no input for the attitude of the spacecraft).
+        instrument : str, optional
+            The instrument name (the default is "COSI").
+        frame : str, optional
+            The frame on which the analysis will be based (the default is "galactic").
         """
 
         # check if the inputs are valid
@@ -76,11 +90,25 @@ class SpacecraftFile():
     @classmethod
     def parse_from_file(cls, file):
 
-        #parses timestamps, axis positions from file and returns to __init__
+        """
+        Parses timestamps, axis positions from file and returns to __init__.
 
-        time_stamps = np.loadtxt(file, usecols = 1, delimiter = ' ', skiprows = 1, comments=("#","EN"))
-        axis_1 = np.loadtxt(file, usecols = (3,2), delimiter = ' ', skiprows = 1, comments=("#","EN"))
-        axis_2 = np.loadtxt(file, usecols = (5,4), delimiter = ' ', skiprows = 1, comments=("#","EN"))
+        Parameters
+        ----------
+        file : str
+            The file path of the pointings.
+
+        Returns
+        -------
+        cosipy.spacecraftfile.SpacecraftFile
+            The SpacecraftFile object.
+        """
+
+
+        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5), delimiter=' ', skiprows=1, comments=("#", "EN"))
+        time_stamps = orientation_file[:, 0]
+        axis_1 = orientation_file[:, [2, 1]]
+        axis_2 = orientation_file[:, [4, 3]]
 
         time = Time(time_stamps, format = "unix")
         xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
@@ -95,11 +123,13 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        time_array: None or np.array; If None, the time array will be taken from the instance
+        time_array : numpy.ndarray, optional
+            The time array (the default is `None`, which implies the time array will be taken from the instance).
 
         Returns
         -------
-        astropy.Time
+        astropy.time.Time
+            The time stamps of the orientation.
         """
 
         if time_array == None:
@@ -112,15 +142,17 @@ class SpacecraftFile():
     def get_time_delta(self, time_array = None):
 
         """
-        Return an array of the time period between neighbouring time points
+        Return an array of the time period between neighbouring time points.
 
         Parameters
         ----------
-        time_array: None or np.array; If None, the time array will be taken from the instance
+        time_array : numpy.ndarray, optional
+           The time delta array (the default is `None`, which implies the time array will be taken from the instance).
 
         Returns
         -------
-        astropy.Time
+        time_delta : astropy.time.Time
+            The time difference between the neighbouring time stamps.
         """
 
         if time_array == None:
@@ -128,24 +160,28 @@ class SpacecraftFile():
         else:
             self._time_delta = np.diff(time_array)
 
-        time_delta = Time(self._time_delta, format='unix')
+        time_delta = TimeDelta(self._time_delta * u.second)
 
         return time_delta
 
     def interpolate_direction(self, trigger, idx, direction):
 
         """
-        Linearly interpolates position at a given time between two timestamps
+        Linearly interpolates position at a given time between two timestamps.
 
         Parameters
         ----------
-        trigger:
-        idx:
-        direction
+        trigger : astropy.time.Time
+            The time of the event.
+        idx : int
+            The closest index in the pointing to the trigger time.
+        direction : numpy.ndarray
+            The pointing axis (x,z).
 
         Returns
         -------
         numpy.ndarray
+            The interpolated positions.
         """
 
         new_direction_lat = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 1])
@@ -160,16 +196,18 @@ class SpacecraftFile():
     def source_interval(self, start, stop):
 
         """
-        Returns the SpacecraftFile file class object for the source time
+        Returns the SpacecraftFile file class object for the source interval.
 
         Parameters
         ----------
-        start:
-        stop:
+        start : astropy.time.Time
+            The star time of the orientation period.
+        stop : astropy.time.Time
+            The end time of the orientation period.
 
         Returns
         -------
-        cosipy.SpacecraftFile
+        cosipy.spacecraft.SpacecraftFile
         """
 
         if(start.format != 'unix' or stop.format != 'unix'):
@@ -230,14 +268,17 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        x_pointings : SkyCoord object; the pointings of the x axis of the spacecraft.
-        y_pointings : SkyCoord object; the pointings of the y axis of the spacecraft.
-        z_pointings : SkyCoord object; the pointings of the z axis of the spacecraft.
-        frame : :py:class:`astropy.coordinates.BaseCoordinateFrame`; Inertial reference frame
+        x_pointings : astropy.coordinates.SkyCoord, optional
+            The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies that the x pointings will be taken from the instance).
+        y_pointings : astropy.coordinates.SkyCoord, optional
+            The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies that the y pointings will be taken from the instance).
+        z_pointings : astropy.coordinates.SkyCoord, optional
+            The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies that the z pointings will be taken from the instance).
 
         Returns
         -------
-        cosipy.attitude
+        scoords.attitude.Attitude
+            The attitude of the spacecraft.
         """
         if self.attitude is None:
             # the attitude is None, we will calculate from the x, y and z pointings
@@ -275,13 +316,21 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        target_name: str; the name of the target object
-        target_coord: astropy.Skycoord; the coordinates of the target object
-        attitude: None or cosipy.Attitude; If not, the attitude will be taken from the instance
+        target_name : str
+            The name of the target object.
+        target_coord : astropy.coordinates.SkyCoord
+            The coordinates of the target object.
+        attitude: scoords.Attitude, optional
+            The attitude of the spacecraft (the default is `None`, which implies the attitude will be taken from the instance).
+        quiet : bool, default=False
+            Setting `True` to stop printing the messages.
+        save : bool, default=False
+            Setting `True` to save the target coordinates in the spacecraft frame.
 
         Returns
         -------
-        SkyCoord object
+        astropy.coordinates.SkyCoord
+            The target coordinates in the spacecraft frame.
         """
 
         if attitude != None:
@@ -291,7 +340,7 @@ class SpacecraftFile():
 
         self.target_name = target_name
         if quiet == False:
-            print("Now converting to the Spacecraft frame...")
+            logger.info("Now converting to the Spacecraft frame...")
         self.src_path_cartesian = SkyCoord(np.dot(self.attitude.rot.inv().as_matrix(), target_coord.cartesian.xyz.value),
                                            representation_type = 'cartesian',
                                            frame = SpacecraftFrame())
@@ -302,7 +351,7 @@ class SpacecraftFile():
                                                          self.src_path_cartesian.y,
                                                          self.src_path_cartesian.z)
         if quiet == False:
-            print(f"Conversion completed!")
+            logger.info(f"Conversion completed!")
 
         # generate the numpy array of l and b to save to a npy file
         l = np.array(self.src_path_spherical[2].deg)  # note that 0 is Quanty, 1 is latitude and 2 is longitude and they are in rad not deg
@@ -317,33 +366,35 @@ class SpacecraftFile():
 
         return self.src_path_skycoord
 
-    def get_dwell_map(self, response, dts = None, dt_format = None, src_path = None, save = False):
+
+    def get_dwell_map(self, response, src_path = None, save = False):
 
         """
         Generates the dwell time map for the source.
 
         Parameters
         ----------
-        response : str; .h5 file, the response for the observation
-        dts : None or numpy.ndarray; the elapsed time for each pointing. It must has the same size as the pointings
-        src_path : SkyCoord object; the movement of source in the detector frame.
+        response : str or pathlib.Path
+            The path to the response file.
+        src_path : astropy.coordinates.SkyCoord, optional
+            The movement of source in the detector frame (the default is `None`, which implies that the `src_path` will be read from the instance).
+        save : bool, default=False
+            Set True to save the dwell time map.
 
         Returns
         -------
         mhealpy.containers.healpix_map.HealpixMap
+            The dwell time map.
         """
 
         # Define the response
         self.response_file = response
 
         # Define the dts
-        if dts == None:
-            self.dts = self.get_time_delta()
-        else:
-            self.dts = Time(dts, format = dt_format)
-
+        self.dts = self.get_time_delta()
+        
         # define the target source path in the SC frame
-        if src_path == None:
+        if src_path is None:
             path = self.src_path_skycoord
         else:
             path = src_path
@@ -356,14 +407,37 @@ class SpacecraftFile():
 
         with FullDetectorResponse.open(self.response_file) as response:
             self.dwell_map = HealpixMap(base = response,
-                                        unit = u.s,
                                         coordsys = SpacecraftFrame())
 
-            for duration, coord in zip(self.dts, path):
-                pixels, weights = self.dwell_map.get_interp_weights(coord)
-                for p, w in zip(pixels, weights):
-                    self.dwell_map[p] += w*(duration.unix*u.s)
+        # Get the unique pixels to weight, and sum all the correspondint weights first, so
+        # each pixels needs to be called only once.
+        # Based on https://stackoverflow.com/questions/23268605/grouping-indices-of-unique-elements-in-numpy
+        
+        # remove the last value. Effectively a 0th order interpolations
+        pixels, weights = self.dwell_map.get_interp_weights(theta = self.src_path_skycoord[:-1])  
 
+        weighted_duration = weights * self.dts.to_value(u.second)[None]
+
+        pixels = pixels.flatten()
+        weighted_duration = weighted_duration.flatten()
+
+        pixels_argsort = np.argsort(pixels)
+
+        pixels = pixels[pixels_argsort]
+        weighted_duration = weighted_duration[pixels_argsort]
+
+        first_unique = np.concatenate(([True], pixels[1:] != pixels[:-1]))
+        
+        pixel_unique = pixels[first_unique]
+
+        splits =  np.nonzero(first_unique)[0][1:]
+        pixel_durations = [np.sum(weighted_duration[start:stop]) for start,stop in zip(np.append(0,splits), np.append(splits, pixels.size))]
+        
+        for pix, dur in zip(pixel_unique, pixel_durations):
+            self.dwell_map[pix] += dur
+
+        self.dwell_map.to(u.second, update = False, copy = False)
+            
         if save == True:
             self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)
 
@@ -376,6 +450,20 @@ class SpacecraftFile():
                        ):
         """
         Bin the spacecraft attitude history into a 4D histogram that contains the accumulated time the axes of the spacecraft where looking at a given direction. 
+
+        Parameters
+        ----------
+        nside : int
+            The nside of the scatt map.
+        scheme : str, optional
+            The scheme of the scatt map (the default is "ring")
+        coordsys : str, optional
+            The coordinate system used in the scatt map (the default is "galactic).
+
+        Returns
+        -------
+        h_ori : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
+            The spacecraft attitude map.
         """
         
         # Get orientations
@@ -402,22 +490,31 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        response : .h5 file; the response for the observation
-        dwell_map : None or str; the time dwell map for the source, you can load saved dwell time map
-                    using this parameterif you've saved it before
-        dts : numpy array or the file path; the elapsed time for each pointing. It must has the same
-              size as the pointings. If you have saved this array, you can load it using this parameter
+        response : str or pathlib.Path, optional
+            The response for the observation (the defaul is `None`, which implies that the `response` will be read from the instance).
+        dwell_map : str, optional
+            The time dwell map for the source, you can load saved dwell time map using this parameter if you've saved it before (the defaul is `None`, which implies that the `dwell_map` will be read from the instance).
+        dts : numpy.ndarray or str, optional
+            The elapsed time for each pointing. It must has the same size as the pointings. If you have saved this array, you can load it using this parameter (the defaul is `None`, which implies that the `dts` will be read from the instance).
 
         Returns
         -------
-        Ei_edges : numpy array; the edges of the incident energy
-        Ei_lo : numpy array; the lower edges of the incident energy
-        Ei_hi : numpy array; the upper edges of the incident energy
-        Em_edges : numpy array; the edges of the measured energy
-        Em_lo : numpy array; the lower edges of the measured energy
-        Em_hi : numpy array; the upper edges of the measured energy
-        areas " numpy array; the effective area of each energy bin
-        matrix : numpy.array; the energy dispersion matrix
+        Ei_edges : numpy.ndarray
+            The edges of the incident energy.
+        Ei_lo : numpy.ndarray
+            The lower edges of the incident energy.
+        Ei_hi : numpy.ndarray
+            The upper edges of the incident energy.
+        Em_edges : numpy.ndarray
+            The edges of the measured energy.
+        Em_lo : numpy.ndarray
+            The lower edges of the measured energy.
+        Em_hi : numpy.ndarray
+            The upper edges of the measured energy.
+        areas : numpy.ndarray
+            The effective area of each energy bin.
+        matrix : numpy.ndarray
+            The energy dispersion matrix.
         """
 
         if response == None:
@@ -433,7 +530,7 @@ class SpacecraftFile():
         if dts == None:
             self.dts = self.get_time_delta()
         else:
-            self.dts = Time(dts, format = "unix")
+            self.dts = TimeDelta(dts*u.second)
 
         with FullDetectorResponse.open(self.response_file) as response:
 
@@ -449,12 +546,12 @@ class SpacecraftFile():
             self.Em_hi = np.float32(self.Em_edges[1:])
 
          # get the effective area and matrix
-        print("Getting the effective area ...")
-        self.areas = np.float32(np.array(self.psr.project('Ei').to_dense().contents))/self.dts.unix.sum()
+        logger.info("Getting the effective area ...")
+        self.areas = np.float32(np.array(self.psr.project('Ei').to_dense().contents))/self.dts.to_value(u.second).sum()
         spectral_response = np.float32(np.array(self.psr.project(['Ei','Em']).to_dense().contents))
         self.matrix = np.float32(np.zeros((self.Ei_lo.size,self.Em_lo.size))) # initate the matrix
 
-        print("Getting the energy redistribution matrix ...")
+        logger.info("Getting the energy redistribution matrix ...")
         for i in np.arange(self.Ei_lo.size):
             new_raw = spectral_response[i,:]/spectral_response[i,:].sum()
             self.matrix[i,:] = new_raw
@@ -466,15 +563,12 @@ class SpacecraftFile():
     def get_arf(self, out_name = None):
 
         """
-        Converts the point source response to an arf file that can be read by XSPEC
+        Converts the point source response to an arf file that can be read by XSPEC.
 
         Parameters
         ----------
-        out_name: str; the name of the arf file to save
-
-        Returns
-        -------
-        None
+        out_name: str, optional
+            The name of the arf file to save. (the default is `None`, which implies that the saving name will be the target name of the instance).
         """
 
         if out_name == None:
@@ -523,15 +617,12 @@ class SpacecraftFile():
     def get_rmf(self, out_name = None):
 
         """
-        Converts the point source response to an rmf file that can be read by XSPEC
+        Converts the point source response to an rmf file that can be read by XSPEC.
 
         Parameters
         ----------
-        out_name: str; the name of the rmf file to save
-
-        Returns
-        -------
-        None
+        out_name: str, optional
+            The name of the arf file to save. (the default is None, which implies that the saving name will be the target name of the instance).
         """
 
         if out_name == None:
@@ -660,32 +751,41 @@ class SpacecraftFile():
 
         return
 
-    def get_pha(self, src_counts, errors, rmf_file = None, arf_file = None, bkg_file = "None", exposure_time = None, dts = None, telescope="COSI", instrument="COSI"):
+    def get_pha(self, src_counts, errors, rmf_file = None, arf_file = None, bkg_file = None, exposure_time = None, dts = None, telescope="COSI", instrument="COSI"):
 
         """
-        Generate the pha file that can be read by XSPEC. This file stores the counts info of the source
+        Generate the pha file that can be read by XSPEC. This file stores the counts info of the source.
 
         Parameters
         ----------
-        src_counts : np.array; the counts in each energy band. If you have src_counts with unit counts/kev/s, you must
-                     convert it to counts by multiplying it with exposure time and the energy band width
-        errors : np.array; the error for counts. It has the same unit requirement as src_counts
-        rmf_file : str; the rmf file name
-        arf_file : str; the arf file name
-        bkg_file : str; the background file name. If the src_counts is source counts only, you don't need to edit this parameter
-        exposure_time : number; the exposure time for this source observation
-        dts : numpy array or str; it's used to calculate the exposure time. It has the same effect as exposure_time. If both
-              exposure_time and dts are given, dts will write over the exposure_time
-        telescope : str; the name of the telecope. Default is COSI.
-        instrument : str; the name of the instrument. Default is COSI.
-
-        Returns
-        -------
-        None
+        src_counts : numpy.ndarray
+            The counts in each energy band. If you have src_counts with unit counts/kev/s, you must convert it to counts by multiplying it with exposure time and the energy band width.
+        errors : numpy.ndarray
+            The error for counts. It has the same unit requirement as src_counts.
+        rmf_file : str, optional
+            The rmf file name to be written into the pha file (the default is `None`, which implies that it uses the rmf file generate by function `get_rmf`)
+        arf_file : str, optional
+            The arf file name to be written into the pha file (the default is `None`, which implies that it uses the arf file generate by function `get_arf`)
+        bkg_file : str, optional
+            The background file name (the default is `None`, which implied the `src_counts` is source counts only).
+        exposure_time : float, optional
+            The exposure time for this source observation (the default is `None`, which implied that the exposure time will be calculated by `dts`).
+        dts : numpy.ndarray, optional
+            It's used to calculate the exposure time. It has the same effect as `exposure_time`. If both `exposure_time` and `dts` are given, `dts` will write over the exposure_time (the default is `None`, which implies that the `dts` will be read from the instance).
+        telescope : str, optional
+            The name of the telecope (the default is "COSI").
+        instrument : str, optional
+            The instrument name (the default is "COSI").
         """
 
         self.src_counts = src_counts
         self.errors = errors
+
+        if bkg_file != None:
+            self.bkg_file = bkg_file
+        else:
+            self.bkg_file = "None"
+        
         self.bkg_file = bkg_file
 
         if rmf_file != None:
@@ -774,13 +874,12 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        file_name: str; the directory if the arf fits file.
-        save_name: str; the name of the saved image of effective area
-        dpi: int; the dpi of the saved image
-
-        Returns
-        -------
-        None
+        file_name: str, optional
+            The directory if the arf fits file (the default is `None`, which implies the file name will be read from the instance).
+        save_name: str, optional
+            The name of the saved image of effective area (the default is `None`, which implies the file name will be read from the instance).
+        dpi: int, optional
+            The dpi of the saved image (the default is 300).
         """
 
         if file_name != None:
@@ -827,13 +926,12 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        file_name: str; the directory if the rmf fits file.
-        save_name: str; the name of the saved image of effective area
-        dpi: int; the dpi of the saved image
-
-        Returns
-        -------
-        None
+        file_name: str, optional
+            The directory if the arf fits file (the default is `None`, which implies the file name will be read from the instance).
+        save_name: str, optional
+            The name of the saved image of effective area (the default is `None`, which implies the file name will be read from the instance).
+        dpi: int, optional
+            The dpi of the saved image (the default is 300).
         """
 
         if file_name != None:

@@ -4,7 +4,7 @@ import os
 import yaml
 import argparse
 import cosipy.data_io
-from cosipy.config import Configurator
+from yayc import Configurator
 
 class DataIO:
 
@@ -25,12 +25,6 @@ class DataIO:
         to allow for much more flexibility. 
         """
         
-        # Load housekeeping inputs:
-        housekeeping_path_prefix = os.path.split(cosipy.data_io.__file__)[0]
-        housekeeping_dir = os.path.join(housekeeping_path_prefix,"housekeeping_files")
-        housekeeping_file = os.path.join(housekeeping_dir,"housekeeping_data_io.yaml")
-        housekeeping_inputs = Configurator().open(housekeeping_file)
-
         # Data I/O:
         inputs = Configurator().open(input_yaml)
         self.data_file = inputs['data_file'] # Full path to input data file.

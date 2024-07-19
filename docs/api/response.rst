@@ -5,24 +5,7 @@ Different matrices that charaterize the response of the instrument. These encode
 area and the various detector effects seens in the data, and allow to compute
 the expected counts given a source hypothesis.
 
-FullDetectorResponse
---------------------
-
-.. autoclass:: cosipy.response.FullDetectorResponse
-   :show-inheritance:
+.. automodule:: cosipy.response
+   :imported-members:
    :members:
-
-DetectorResponse
-----------------
-
-.. autoclass:: cosipy.response.DetectorResponse
-   :show-inheritance:
-   :members:
-
-PointSourceResponse
--------------------
-
-.. autoclass:: cosipy.response.PointSourceResponse
-   :show-inheritance:
-   :members:
-
+   :undoc-members:

@@ -10,4 +10,4 @@ import os
 yaml = os.path.join(test_data.path,"inputs_crab.yaml")
 analysis = ReadTraTest(yaml)
 analysis.data_file = os.path.join(test_data.path,analysis.data_file)
-analysis.read_tra_old(make_plots=False)
+analysis.read_tra_old(output_name = test_data.path/"unbinned_data_MEGAlib_calc", make_plots=False)
