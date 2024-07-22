@@ -1,8 +1,11 @@
 class PriorBase:
 
-    allowerd_model_class = []
+    usable_model_classes = []
 
     def __init__(self, coefficient, model):
+
+        if not self.is_calculable(model):
+            raise TypeError
         
         self.coefficient = coefficient
 
@@ -10,7 +13,7 @@ class PriorBase:
 
     def is_calculable(self, model):
 
-        if type(model) in self.allowerd_model_class:
+        if type(model) in self.usable_model_classes:
 
             return True
 
