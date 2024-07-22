@@ -6,17 +6,17 @@ logger = logging.getLogger(__name__)
 from yayc import Configurator
 
 from .allskyimage import AllSkyImageModel
-model_classes = {"AllSkyImage": AllSkyImageModel}
 
 from .RichardsonLucy import RichardsonLucy
 from .RichardsonLucySimple import RichardsonLucySimple
 from .MAP_RichardsonLucy import MAP_RichardsonLucy
-deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple, "MAP_RL": MAP_RichardsonLucy}
 
 class ImageDeconvolution:
     """
     A class to reconstruct all-sky images from COSI data based on image deconvolution methods.
     """
+    model_classes = {"AllSkyImage": AllSkyImageModel}
+    deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple, "MAP_RL": MAP_RichardsonLucy}
 
     def __init__(self):
         self._dataset = None
@@ -145,11 +145,11 @@ class ImageDeconvolution:
         # set self._model_class
         model_name = self.parameter['model_definition']['class']
 
-        if not model_name in model_classes.keys():
+        if not model_name in self.model_classes.keys():
             logger.error(f'The model class "{model_name}" does not exist!')
             raise ValueError
 
-        self._model_class = model_classes[model_name]
+        self._model_class = self.model_classes[model_name]
 
         # instantiate the model class
         logger.info(f"<< Instantiating the model class {model_name} >>")
@@ -191,11 +191,11 @@ class ImageDeconvolution:
         algorithm_name = parameter_deconvolution['algorithm']
         algorithm_parameter = Configurator(parameter_deconvolution['parameter'])
 
-        if not algorithm_name in deconvolution_algorithm_classes.keys():
+        if not algorithm_name in self.deconvolution_algorithm_classes.keys():
             logger.error(f'The algorithm "{algorithm_name}" does not exist!')
             raise ValueError
 
-        self._deconvolution_class = deconvolution_algorithm_classes[algorithm_name]
+        self._deconvolution_class = self.deconvolution_algorithm_classes[algorithm_name]
         self._deconvolution = self._deconvolution_class(initial_model = self.initial_model, 
                                                         dataset = self.dataset, 
                                                         mask = self.mask, 
