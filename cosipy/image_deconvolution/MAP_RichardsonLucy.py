@@ -8,11 +8,11 @@ logger = logging.getLogger(__name__)
 
 from histpy import Histogram
 
-from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
+from .RichardsonLucySimple import RichardsonLucySimple
 
 from .prior_tsv import PriorTSV
 
-class MAP_RichardsonLucy(DeconvolutionAlgorithmBase):
+class MAP_RichardsonLucy(RichardsonLucySimple):
     """
     A class for the RichardsonLucy algorithm using prior distributions. 
     
@@ -53,18 +53,8 @@ class MAP_RichardsonLucy(DeconvolutionAlgorithmBase):
 
     def __init__(self, initial_model, dataset, mask, parameter):
 
-        DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
+        super().__init__(initial_model, dataset, mask, parameter)
         
-        # response weighting filter
-        self.do_response_weighting = parameter.get('response_weighting:activate', False)
-        if self.do_response_weighting:
-            self.response_weighting_index = parameter.get('response_weighting:index', 0.5)
-
-        # background normalization optimization
-        self.do_bkg_norm_optimization = parameter.get('background_normalization_optimization:activate', False)
-        if self.do_bkg_norm_optimization:
-            self.dict_bkg_norm_range = parameter.get('background_normalization_optimization:range', {key: [0.0, 100.0] for key in self.dict_bkg_norm.keys()})
-
         # Prior distribution 
         self.prior_key_list = list(parameter.get('prior', {}).keys())
         self.priors = {}
@@ -83,17 +73,6 @@ class MAP_RichardsonLucy(DeconvolutionAlgorithmBase):
 
             coefficient = parameter['prior'][prior_name]['coefficient']
             self.priors[prior_name] = self.prior_classes[prior_name](coefficient, initial_model)
-        
-        # saving results
-        self.save_results = parameter.get('save_results:activate', False)
-        self.save_results_directory = parameter.get('save_results:directory', './results')
-        self.save_results_only_final = parameter.get('save_results:only_final_result', False)
-
-        if self.save_results is True:
-            if os.path.isdir(self.save_results_directory):
-                logger.warning(f"A directory {self.save_results_directory} already exists. Files in {self.save_results_directory} may be overwritten. Make sure that is not a problem.")
-            else:
-                os.makedirs(self.save_results_directory)
 
     def load_gamma_prior(self, parameter):
 
@@ -135,38 +114,12 @@ class MAP_RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         initialization before running the image deconvolution
         """
-        # clear counter 
-        self.iteration_count = 0
 
-        # clear results
-        self.results.clear()
-
-        # copy model
-        self.model = copy.deepcopy(self.initial_model)
-
-        # calculate exposure map
-        self.summed_exposure_map = self.calc_summed_exposure_map()
-
-        # mask setting
-        if self.mask is None and np.any(self.summed_exposure_map.contents == 0):
-            self.mask = Histogram(self.model.axes, contents = self.summed_exposure_map.contents > 0)
-            self.model = self.model.mask_pixels(self.mask)
-            logger.info("There are zero-exposure pixels. A mask to ignore them was set.")
-
-        # response-weighting filter
-        if self.do_response_weighting:
-            self.response_weighting_filter = (self.summed_exposure_map.contents / np.max(self.summed_exposure_map.contents))**self.response_weighting_index
-            logger.info("The response weighting filter was calculated.")
+        super().initialization()
 
         # expected count histograms
         self.expectation_list = self.calc_expectation_list(model = self.initial_model, dict_bkg_norm = self.dict_bkg_norm)
         logger.info("The expected count histograms were calculated with the initial model map.")
-
-        # calculate summed background models for M-step
-        if self.do_bkg_norm_optimization:
-            self.dict_summed_bkg_model = {}
-            for key in self.dict_bkg_norm.keys():
-                self.dict_summed_bkg_model[key] = self.calc_summed_bkg_model(key)
 
     def pre_processing(self):
         """
@@ -310,45 +263,28 @@ class MAP_RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         finalization after running the image deconvolution
         """
+
         if self.save_results == True:
-            logger.info('Saving results in {self.save_results_directory}')
+            logger.info(f'Saving results in {self.save_results_directory}')
 
+            counter_name = "iteration"
+               
             # model
-            self.results[-1]["model"].write(f"{self.save_results_directory}/model.hdf5", name = 'result', overwrite = True)
+            histkey_filename = [("model", f"{self.save_results_directory}/model.hdf5"), 
+                                ("prior_filter", f"{self.save_results_directory}/prior_filter.hdf5")]
 
-            self.results[-1]["prior_filter"].write(f"{self.save_results_directory}/prior_filter.hdf5", name = 'result', overwrite = True)
+            for key, filename in histkey_filename:
 
-            for this_result in self.results:
-
-                iteration_count = this_result["iteration"]
-
-                this_result["model"].write(f"{self.save_results_directory}/model.hdf5", name = f'iteration{iteration_count}', overwrite = True)
-
-                this_result["prior_filter"].write(f"{self.save_results_directory}/prior_filter.hdf5", name = f'iteration{iteration_count}', overwrite = True)
-
+                self.save_histogram(filename = filename, 
+                                    counter_name = counter_name,
+                                    histogram_key = key,
+                                    only_final_result = self.save_only_final_result)
+            
             #fits
-            primary_hdu = fits.PrimaryHDU()
+            fits_filename = f'{self.save_results_directory}/results.fits'
 
-            col_iteration = fits.Column(name='iteration', array=[float(result['iteration']) for result in self.results], format='K')
-            cols_bkg_norm = [fits.Column(name=key, array=[float(result['background_normalization'][key]) for result in self.results], format='D') 
-                             for key in self.dict_bkg_norm.keys()]
-            cols_loglikelihood = [fits.Column(name=f"{self.dataset[i].name}", array=[float(result['loglikelihood'][i]) for result in self.results], format='D') 
-                                  for i in range(len(self.dataset))]
-            cols_log_prior = [fits.Column(name=key, array=[float(result['log_prior'][key]) for result in self.results], format='D') 
-                              for key in self.results[0]['log_prior'].keys()]
-            cols_posterior = fits.Column(name = 'posterior', array=[float(result['posterior']) for result in self.results], format='D')
-
-            table_bkg_norm = fits.BinTableHDU.from_columns([col_iteration] + cols_bkg_norm)
-            table_bkg_norm.name = "bkg_norm"
-
-            table_loglikelihood = fits.BinTableHDU.from_columns([col_iteration] + cols_loglikelihood)
-            table_loglikelihood.name = "loglikelihood"
-
-            table_log_prior = fits.BinTableHDU.from_columns([col_iteration] + cols_log_prior)
-            table_log_prior.name = "log_prior"
-
-            table_posterior = fits.BinTableHDU.from_columns([col_iteration, cols_posterior])
-            table_posterior.name = "posterior"
-
-            hdul = fits.HDUList([primary_hdu, table_bkg_norm, table_loglikelihood, table_log_prior, table_posterior])
-            hdul.writeto(f'{self.save_results_directory}/results.fits',  overwrite=True)
+            self.save_results_as_fits(filename = fits_filename,
+                                      counter_name = counter_name,
+                                      values_key_name_format = [("posterior", "POSTERIOR", "D")],
+                                      dicts_key_name_format = [("background_normalization", "BKG_NORM", "D"), ("log_prior", "LOG_PRIOR", "D")],
+                                      lists_key_name_format = [("loglikelihood", "LOGLIKELIHOOD", "D")])
