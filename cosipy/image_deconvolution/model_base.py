@@ -62,7 +62,7 @@ class ModelBase(Histogram, ABC):
         fill_value: float or :py:class:`astropy.units.quantity.Quantity`
         """
 
-        if not isinstance(fill_value, u.quantity.Quantity):
+        if not isinstance(fill_value, u.quantity.Quantity) and self.unit is not None:
             fill_value *= self.contents.unit
 
         model_new = copy.deepcopy(self)
