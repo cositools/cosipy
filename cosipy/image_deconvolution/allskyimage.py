@@ -39,7 +39,7 @@ class AllSkyImageModel(ModelBase):
                  coordsys = 'galactic',
                  label_image = 'lb',
                  label_energy = 'Ei',
-                 unit = 1 / u.s / u.cm**2 / u.sr
+                 unit = '1/(s*cm*cm*sr)'
                  ):
 
         if energy_edges.unit != u.keV:
