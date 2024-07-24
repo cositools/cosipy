@@ -32,6 +32,9 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         activate: True
         directory: "./results"
         only_final_result: True
+    stopping_criteria:
+        statistics: "loglikelihood"
+        threshold: 1e-2
     prior:
       TSV:
         coefficient: 1.e+6
@@ -73,6 +76,13 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
 
             coefficient = parameter['prior'][prior_name]['coefficient']
             self.priors[prior_name] = self.prior_classes[prior_name](coefficient, initial_model)
+
+        # stopping criteria
+        self.stopping_criteria_statistics = parameter.get('stopping_criteria:statistics', "posterior")
+        self.stopping_criteria_threshold  = parameter.get('stopping_criteria:threshold', 1e-2)
+
+        if not self.stopping_criteria_statistics in ["loglikelihood", "posterior"]:
+            raise ValueError
 
     def load_gamma_prior(self, parameter):
 
@@ -255,9 +265,29 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         -------
         bool
         """
-        if self.iteration_count < self.iteration_max:
+
+        if self.iteration_count == 1:
             return False
-        return True
+        elif self.iteration_count == self.iteration_max:
+            return True
+
+        if self.stopping_criteria_statistics == "loglikelihood":
+
+            loglikelihood = np.sum(self.results[-1]["loglikelihood"])
+            loglikelihood_before = np.sum(self.results[-2]["loglikelihood"])
+            
+            if loglikelihood - loglikelihood_before < self.stopping_criteria_threshold:
+                return True
+
+        elif self.stopping_criteria_statistics == "posterior":
+            
+            posterior = self.results[-1]["posterior"]
+            posterior_before = self.results[-2]["posterior"]
+
+            if posterior - posterior_before < self.stopping_criteria_threshold:
+                return True
+
+        return False
 
     def finalization(self):
         """

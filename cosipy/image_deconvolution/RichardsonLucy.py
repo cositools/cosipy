@@ -32,6 +32,9 @@ class RichardsonLucy(RichardsonLucySimple):
         FWHM: 
             value: 2.0
             unit: "deg"
+    stopping_criteria:
+        statistics: "loglikelihood"
+        threshold: 1e-2
     background_normalization_optimization:
         activate: True 
         range: {"albedo": [0.9, 1.1]}
@@ -55,6 +58,13 @@ class RichardsonLucy(RichardsonLucySimple):
         if self.do_smoothing:
             self.smoothing_fwhm = parameter.get('smoothing:FWHM:value') * u.Unit(parameter.get('smoothing:FWHM:unit'))
             logger.info(f"Gaussian filter with FWHM of {self.smoothing_fwhm} will be applied to delta images ...")
+
+        # stopping criteria
+        self.stopping_criteria_statistics = parameter.get('stopping_criteria:statistics', "loglikelihood")
+        self.stopping_criteria_threshold  = parameter.get('stopping_criteria:threshold', 1e-2)
+
+        if not self.stopping_criteria_statistics in ["loglikelihood"]:
+            raise ValueError
 
     def initialization(self):
         """
@@ -157,9 +167,20 @@ class RichardsonLucy(RichardsonLucySimple):
         -------
         bool
         """
-        if self.iteration_count < self.iteration_max:
+        if self.iteration_count == 1:
             return False
-        return True
+        elif self.iteration_count == self.iteration_max:
+            return True
+
+        if self.stopping_criteria_statistics == "loglikelihood":
+
+            loglikelihood = np.sum(self.results[-1]["loglikelihood"])
+            loglikelihood_before = np.sum(self.results[-2]["loglikelihood"])
+            
+            if loglikelihood - loglikelihood_before < self.stopping_criteria_threshold:
+                return True
+
+        return False
 
     def finalization(self):
         """
