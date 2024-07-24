@@ -166,7 +166,7 @@ class RichardsonLucy(RichardsonLucySimple):
         finalization after running the image deconvolution
         """
         if self.save_results == True:
-            logger.info('Saving results in {self.save_results_directory}')
+            logger.info(f'Saving results in {self.save_results_directory}')
 
             counter_name = "iteration"
                
