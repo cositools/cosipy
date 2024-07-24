@@ -17,7 +17,36 @@ class MAP_RichardsonLucy(DeconvolutionAlgorithmBase):
     A class for the RichardsonLucy algorithm using prior distributions. 
     
     An example of parameter is as follows.
-    (need to fill here in the future)
+
+    iteration_max: 100
+    minimum_flux:
+        value: 0.0
+        unit: "cm-2 s-1 sr-1"
+    response_weighting:
+        activate: True
+        index: 0.5
+    background_normalization_optimization:
+        activate: True
+        range: {"albedo": [0.01, 10.0]}
+    save_results:
+        activate: True
+        directory: "./results"
+        only_final_result: True
+    prior:
+      TSV:
+        coefficient: 1.e+6
+      gamma:
+        model:
+          theta:
+            value: .inf
+            unit: "cm-2 s-1 sr-1"
+          k:
+            value: 0.9
+        background:
+          theta:
+            value: .inf
+          k:
+            value: 1.0
     """
 
     prior_classes = {"TSV": PriorTSV}

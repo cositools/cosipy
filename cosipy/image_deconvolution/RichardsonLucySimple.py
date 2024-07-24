@@ -19,15 +19,15 @@ class RichardsonLucySimple(DeconvolutionAlgorithmBase):
     minimum_flux:
         value: 0.0
         unit: "cm-2 s-1 sr-1"
-    background_normalization_optimization: True 
-
+    background_normalization_optimization:
+        activate: True
     """
 
     def __init__(self, initial_model, dataset, mask, parameter):
 
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
 
-        self.do_bkg_norm_optimization = parameter.get('background_normalization_optimization', False)
+        self.do_bkg_norm_optimization = parameter.get('background_normalization_optimization:activate', False)
 
     def initialization(self):
         """

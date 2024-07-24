@@ -21,44 +21,55 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
     minimum_flux:
         value: 0.0
         unit: "cm-2 s-1 sr-1"
-    acceleration: True
-    alpha_max: 10.0
-    response_weighting: True 
-    response_weighting_index: 0.5
-    smoothing: True 
-    smoothing_FWHM: 
-      value: 2.0
-      unit: "deg"
-    background_normalization_optimization: True 
-    background_normalization_range: {"albedo": [0.9, 1.1]}
-    save_results: True
-    save_results_directory: "./results"
-
+    acceleration: 
+        activate: True
+        alpha_max: 10.0
+    response_weighting:
+        activate: True 
+        index: 0.5
+    smoothing:
+        activate: True 
+        FWHM: 
+            value: 2.0
+            unit: "deg"
+    background_normalization_optimization:
+        activate: True 
+        range: {"albedo": [0.9, 1.1]}
+    save_results: 
+        activate: True
+        directory: "/results"
+        only_final_result: True
     """
 
     def __init__(self, initial_model, dataset, mask, parameter):
 
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
+        
+        # acceleration
+        self.do_acceleration = parameter.get('acceleration:activate', False)
+        if self.do_acceleration == True:
+            self.alpha_max = parameter.get('acceleration:alpha_max', 1.0)
 
-        self.do_acceleration = parameter.get('acceleration', False)
-
-        self.alpha_max = parameter.get('alpha_max', 1.0)
-
-        self.do_response_weighting = parameter.get('response_weighting', False)
+        # response_weighting
+        self.do_response_weighting = parameter.get('response_weighting:activate', False)
         if self.do_response_weighting:
-            self.response_weighting_index = parameter.get('response_weighting_index', 0.5)
+            self.response_weighting_index = parameter.get('response_weighting:index', 0.5)
 
-        self.do_smoothing = parameter.get('smoothing', False)
+        # smoothing
+        self.do_smoothing = parameter.get('smoothing:activate', False)
         if self.do_smoothing:
-            self.smoothing_fwhm = parameter['smoothing_FWHM']['value'] * u.Unit(parameter['smoothing_FWHM']['unit'])
+            self.smoothing_fwhm = parameter.get('smoothing:FWHM:value') * u.Unit(parameter.get('smoothing:FWHM:unit'))
             logger.info(f"Gaussian filter with FWHM of {self.smoothing_fwhm} will be applied to delta images ...")
 
-        self.do_bkg_norm_optimization = parameter.get('background_normalization_optimization', False)
+        # background normalization optimization
+        self.do_bkg_norm_optimization = parameter.get('background_normalization_optimization:activate', False)
         if self.do_bkg_norm_optimization:
-            self.dict_bkg_norm_range = parameter.get('background_normalization_range', {key: [0.0, 100.0] for key in self.dict_bkg_norm.keys()})
+            self.dict_bkg_norm_range = parameter.get('background_normalization_optimization:range', {key: [0.0, 100.0] for key in self.dict_bkg_norm.keys()})
 
-        self.save_results = parameter.get('save_results', False)
-        self.save_results_directory = parameter.get('save_results_directory', './results')
+        # saving results
+        self.save_results = parameter.get('save_results:activate', False)
+        self.save_results_directory = parameter.get('save_results:directory', './results')
+        self.save_results_only_final = parameter.get('save_results:only_final_result', False)
 
         if self.save_results is True:
             if os.path.isdir(self.save_results_directory):
@@ -228,13 +239,13 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         if self.save_results == True:
             logger.info('Saving results in {self.save_results_directory}')
 
-            # model
             for this_result in self.results:
+
                 iteration_count = this_result["iteration"]
 
-                this_result["model"].write(f"{self.save_results_directory}/model_itr{iteration_count}.hdf5", overwrite = True)
-                this_result["delta_model"].write(f"{self.save_results_directory}/delta_model_itr{iteration_count}.hdf5", overwrite = True)
-                this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model_itr{iteration_count}.hdf5", overwrite = True)
+                this_result["model"].write(f"{self.save_results_directory}/model.hdf5", name = f'iteration{iteration_count}', overwrite = True)
+                this_result["delta_model"].write(f"{self.save_results_directory}/delta_model.hdf5", name = f'iteration{iteration_count}', overwrite = True)
+                this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model.hdf5", name = f'iteration{iteration_count}', overwrite = True)
 
             #fits
             primary_hdu = fits.PrimaryHDU()
