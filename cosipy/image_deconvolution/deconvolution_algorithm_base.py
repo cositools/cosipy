@@ -1,5 +1,6 @@
 import numpy as np
 import astropy.units as u
+import astropy.io.fits as fits
 import functools
 from abc import ABC, abstractmethod
 import logging
@@ -39,7 +40,8 @@ class DeconvolutionAlgorithmBase(ABC):
         self.mask = mask 
         self.parameter = parameter 
         self.results = []
-
+        
+        # background normalization
         self.dict_bkg_norm = {}
         self.dict_dataset_indexlist_for_bkg_models = {}
         for data in self.dataset:
@@ -55,7 +57,8 @@ class DeconvolutionAlgorithmBase(ABC):
 
         logger.debug(f'dict_bkg_norm: {self.dict_bkg_norm}')
         logger.debug(f'dict_dataset_indexlist_for_bkg_models: {self.dict_dataset_indexlist_for_bkg_models}')
-
+        
+        # minimum flux
         self.minimum_flux = parameter.get('minimum_flux:value', 0.0) * u.Unit(parameter.get('minimum_flux:unit', initial_model.unit))
 
         # parameters of the iteration
@@ -264,3 +267,67 @@ class DeconvolutionAlgorithmBase(ABC):
         indexlist = self.dict_dataset_indexlist_for_bkg_models[key]
 
         return functools.reduce(lambda x, y: x + y, map(lambda i: self.dataset[i].calc_bkg_model_product(key = key, dataspace_histogram = dataspace_histogram_list[i]), indexlist))
+
+    def save_histogram(self, filename, counter_name, histogram_key, only_final_result = False):
+        
+        # save last result
+        self.results[-1][histogram_key].write(filename, name = 'result', overwrite = True)
+        
+        # save all results
+        if not only_final_result:
+
+            for result in self.results:
+
+                counter = result[counter_name]
+
+                result[histogram_key].write(filename, name = f'{counter_name}{counter}', overwrite = True)
+
+    def save_results_as_fits(self, filename, counter_name, values_key_name_format, dicts_key_name_format, lists_key_name_format):
+
+        hdu_list = []
+        
+        # primary HDU
+        primary_hdu = fits.PrimaryHDU()
+
+        hdu_list.append(primary_hdu)
+        
+        # counter
+        col_counter = fits.Column(name=counter_name, array=[int(result[counter_name]) for result in self.results], format = 'K') #64bit integer
+        
+        # values
+        for key, name, fits_format in values_key_name_format:
+
+            col_value = fits.Column(name=key, array=[result[key] for result in self.results], format=fits_format)
+
+            hdu = fits.BinTableHDU.from_columns([col_counter, col_value])
+
+            hdu.name = name
+
+            hdu_list.append(hdu)
+
+        # dictionary
+        for key, name, fits_format in dicts_key_name_format:
+            
+            dict_keys = self.results[0][key].keys()
+
+            cols_dict = [fits.Column(name=dict_key, array=[result[key][dict_key] for result in self.results], format=fits_format) for dict_key in dict_keys]
+
+            hdu = fits.BinTableHDU.from_columns([col_counter] + cols_dict)
+
+            hdu.name = name
+
+            hdu_list.append(hdu)
+
+        # list
+        for key, name, fits_format in lists_key_name_format:
+            
+            cols_list = [fits.Column(name=f"{self.dataset[i].name}", array=[result[key][i] for result in self.results], format=fits_format) for i in range(len(self.dataset))]
+
+            hdu = fits.BinTableHDU.from_columns([col_counter] + cols_list)
+
+            hdu.name = name
+
+            hdu_list.append(hdu)
+        
+        # write
+        fits.HDUList(hdu_list).writeto(filename, overwrite=True)
