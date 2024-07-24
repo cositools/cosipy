@@ -8,6 +8,7 @@ from scipy import integrate
 
 from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
 
+from .functions import get_integrated_spectral_model
 
 class PointSourceResponse(Histogram):
     """
@@ -59,43 +60,10 @@ class PointSourceResponse(Histogram):
              Histogram with the expected counts on each analysis bin
         """
         
-        eaxis = self.photon_energy_axis
-        
-        spectrum_unit = None
+        energy_axis = self.photon_energy_axis
 
-        for item in spectrum.parameters:
-            if getattr(spectrum, item).is_normalization == True:
-                spectrum_unit = getattr(spectrum, item).unit
-                break
-                
-        if spectrum_unit == None:
-            if isinstance(spectrum, Constant):
-                spectrum_unit = spectrum.k.unit
-            elif isinstance(spectrum, Line) or isinstance(spectrum, Quadratic) or isinstance(spectrum, Cubic) or isinstance(spectrum, Quartic):
-                spectrum_unit = spectrum.a.unit
-            elif isinstance(spectrum, StepFunction) or isinstance(spectrum, StepFunctionUpper) or isinstance(spectrum, Cosine_Prior) or isinstance(spectrum, Uniform_prior) or isinstance(spectrum, DiracDelta): 
-                spectrum_unit = spectrum.value.unit
-            elif isinstance(spectrum, PhAbs):
-                spectrum_unit = u.dimensionless_unscaled
-            elif isinstance(spectrum, Gaussian):
-                spectrum_unit = spectrum.F.unit / spectrum.sigma.unit 
-            else:
-                try:
-                    spectrum_unit = spectrum.K.unit
-                except:
-                    raise RuntimeError("Spectrum not yet supported because units of spectrum are unknown.")
-                    
-        if isinstance(spectrum, DiracDelta):
-            flux = Quantity([spectrum.value.value * spectrum_unit * lo_lim.unit if spectrum.zero_point.value >= lo_lim/lo_lim.unit and spectrum.zero_point.value <= hi_lim/hi_lim.unit else 0 * spectrum_unit * lo_lim.unit
-                             for lo_lim,hi_lim
-                             in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
-        else:
-            flux = Quantity([integrate.quad(spectrum, lo_lim/lo_lim.unit, hi_lim/hi_lim.unit)[0] * spectrum_unit * lo_lim.unit
-                             for lo_lim,hi_lim
-                             in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
+        flux = get_integrated_spectral_model(spectrum, energy_axis)
         
-        flux = self.expand_dims(flux.value, 'Ei') * flux.unit
-
-        expectation = self * flux
+        expectation = self * self.expand_dims(flux.contents.value, 'Ei') * flux.contents.unit
         
-        return expectation
+        return expectation.project(self.axes.labels[self.axes.labels != 'Ei'])
