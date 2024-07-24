@@ -3,7 +3,7 @@
 
 # data files available on the COSI Sharepoint: https://drive.google.com/drive/folders/1UdLfuLp9Fyk4dNussn1wt7WEOsTWrlQ6
 data_file: "GalacticScan.inc1.id1.crab2hr.extracted.tra.gz" # full path
-ori_file: "dc2.ori" # full path
+ori_file: "NA" # full path
 unbinned_output: 'hdf5' # 'fits' or 'hdf5'
 time_bins: 60 # time bin size in seconds. Takes int, float, or list of bin edges.
 energy_bins: [100.,  200.,  500., 1000., 2000., 5000.] # Takes list. Needs to match response.

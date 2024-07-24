@@ -1,0 +1,14 @@
+#----------#
+# Data I/O:
+
+data_file: 
+ori_file: "/Users/yoneda/Work/Exp/COSI/cosipy-2/data_challenge/DC2/prework/data/orientation/20280301_3_month.ori"
+unbinned_output: 'fits' # 'fits' or 'hdf5'
+time_bins: 7979955 # time bin size in seconds. Takes int or list of bin edges.
+tmin: 1835487300.0
+tmax: 1843467255.0
+energy_bins: [100.0 , 158.489 , 251.189 , 398.107 , 630.957 , 1000.0 , 1584.89 , 2511.89 , 3981.07 , 6309.57 , 10000.0 ]
+phi_pix_size: 5 # binning of Compton scattering anlge [deg]
+nside: 8 # healpix binning of psi chi local
+scheme: 'ring' # healpix binning of psi chi local
+#----------#

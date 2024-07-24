@@ -88,7 +88,7 @@ def test_cosi_response(tmp_path):
 
     cosi_response(['dump', 'expectation', str(response_path),
                    '-c', str(test_data.path/'cosi-response-config-example.yaml'),
-                   '--config-override', 'source:spectrum:kwargs:index=3'])
+                   '--config-override', 'sources:source (point source):spectrum:main:Powerlaw:index:value=-3'])
 
     cosi_response(['plot', 'expectation', str(response_path),
                    '-c', str(test_data.path/'cosi-response-config-example.yaml'),

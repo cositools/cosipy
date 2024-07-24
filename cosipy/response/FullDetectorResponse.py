@@ -11,8 +11,11 @@ from pathlib import Path
 import numpy as np
 import mhealpy as hp
 from mhealpy import HealpixBase, HealpixMap
-from cosipy.config import Configurator
+
 from scipy.special import erf
+
+from yayc import Configurator
+
 from scoords import SpacecraftFrame, Attitude
 
 from histpy import Histogram, Axes, Axis, HealpixAxis
@@ -416,7 +419,7 @@ class FullDetectorResponse(HealpixBase):
 
         #if we have one single bin, treat the gaussian norm like the mono one
         #also check that the gaussian spectrum is fully contained in that bin 
-        if len(ewidth) == 1 :
+        if len(ewidth) == 1 and norm == "Gaussian":
             edges = dr.axes['Ei'].edges
             gauss_int = 0.5 * (1 + erf( (edges[0]-Gauss_mean)/(4*np.sqrt(2)) ) ) + 0.5 * (1 + erf( (edges[1]-Gauss_mean)/(4*np.sqrt(2)) ) )
             
@@ -849,7 +852,7 @@ class FullDetectorResponse(HealpixBase):
             Effective time spent by the source at each pixel location in spacecraft coordinates
         coord : :py:class:`astropy.coordinates.SkyCoord`
             Source coordinate
-        scatt_map : :py:cass:`SpacecraftAttitudeMap`
+        scatt_map : :py:class:`SpacecraftAttitudeMap`
             Spacecraft attitude map
         
         Returns
@@ -1110,9 +1113,8 @@ def cosi_response(argv=None):
             # Spectrum
             model = ModelParser(model_dict=config['sources']).get_model()
 
-            for src_name, src in model.point_sources.items():
-                for comp_name, component in src.components.items():
-                    logger.info(f"Using spectrum:\n {component.shape}")
+            spectrum = model.point_sources['source'].components['main'].shape
+            logger.info(f"Using spectrum:\n {spectrum}")
 
             # Expectation
             expectation = psr.get_expectation(spectrum).project('Em')
