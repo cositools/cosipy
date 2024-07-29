@@ -20,7 +20,6 @@ class RichardsonLucySimple(DeconvolutionAlgorithmBase):
         value: 0.0
         unit: "cm-2 s-1 sr-1"
     background_normalization_optimization: True 
-
     """
 
     def __init__(self, initial_model, dataset, mask, parameter):
