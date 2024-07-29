@@ -75,10 +75,7 @@ class CoordsysConversionMatrix(Histogram):
                                                                              quiet = True,
                                                                              save = False)
 
-                time_diff = filtered_orientation.get_time_delta()
-
                 dwell_time_map = filtered_orientation.get_dwell_map(response = full_detector_response.filename,
-                                                                    dts = time_diff,
                                                                     src_path = pixel_movement,
                                                                     save = False)
 
@@ -222,4 +219,5 @@ class CoordsysConversionMatrix(Histogram):
 
         return new
 
+# TODO
 #   def calc_exposure_map(self, full_detector_response): #once the response file format is fixed, I will implement this function
