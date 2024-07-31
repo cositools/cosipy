@@ -53,10 +53,11 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Pre-computing a response in galactic coordinates for all-sky
   - Fitting an extended source
     
-8. Image deconvolution `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/image_deconvolution/511keV/ScAttBinning/511keV-DC2-ScAtt-ImageDeconvolution.ipynb>`_
+8. Image deconvolution `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/image_deconvolution/511keV/GalacticCDS/511keV-DC2-Galactic-ImageDeconvolution.ipynb>`_
   - Explain the RL algorithm. Reference the previous example. Explain the difference with a TS map.
-  - Scatt binning and its advantages/disadvantages
   - Fitting the 511 diffuse emission.
+  - Analyze data in the Compton data space with galactic coordinates.
+  - Link to a notebook using Scatt binning which shows its advantages/disadvantages.
     
 9. TODO: Source injector
   - Nice to have: allow theorist to test the sensitivity of their models
