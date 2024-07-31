@@ -39,7 +39,7 @@ class AllSkyImageModel(ModelBase):
                  coordsys = 'galactic',
                  label_image = 'lb',
                  label_energy = 'Ei',
-                 unit = 1 / u.s / u.cm**2 / u.sr
+                 unit = '1/(s*cm*cm*sr)'
                  ):
 
         if energy_edges.unit != u.keV:
@@ -175,18 +175,21 @@ class AllSkyImageModel(ModelBase):
 
         self[:] = np.tensordot(normalized_map, integrated_flux.contents, axes = 0) 
 
-    def smoothing(self, fwhm = 0.0 * u.deg, sigma = None):
+    def smoothing(self, fwhm = None, sigma = None):
         """
         Smooth a map with a Gaussian filter
 
         Parameters
         ----------
         fwhm: :py:class:`astropy.units.quantity.Quantity`
-            The FWHM of the Gaussian (with a unit of deg or rad).
+            The FWHM of the Gaussian (with a unit of deg or rad). Default: 0 deg
         sigma: :py:class:`astropy.units.quantity.Quantity`
             The sigma of the Gaussian (with a unit of deg or rad). Override fwhm.
         """
 
+        if fwhm is None:
+            fwhm = 0.0 * u.deg
+        
         if sigma is not None:
             fwhm = 2.354820 * sigma
 

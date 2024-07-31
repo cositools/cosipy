@@ -59,7 +59,11 @@ class DeconvolutionAlgorithmBase(ABC):
         logger.debug(f'dict_dataset_indexlist_for_bkg_models: {self.dict_dataset_indexlist_for_bkg_models}')
         
         # minimum flux
-        self.minimum_flux = parameter.get('minimum_flux:value', 0.0) * u.Unit(parameter.get('minimum_flux:unit', initial_model.unit))
+        self.minimum_flux = parameter.get('minimum_flux:value', 0.0)
+
+        minimum_flux_unit = parameter.get('minimum_flux:unit', initial_model.unit)
+        if minimum_flux_unit is not None:
+            self.minimum_flux = self.minimum_flux*u.Unit(minimum_flux_unit)
 
         # parameters of the iteration
         self.iteration_count = 0

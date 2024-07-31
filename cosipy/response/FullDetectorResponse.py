@@ -11,6 +11,9 @@ from pathlib import Path
 import numpy as np
 import mhealpy as hp
 from mhealpy import HealpixBase, HealpixMap
+
+from scipy.special import erf
+
 from yayc import Configurator
 
 from scoords import SpacecraftFrame, Attitude
@@ -200,9 +203,12 @@ class FullDetectorResponse(HealpixBase):
                     if norm =="Linear" :
                         emin = int(line[2])
                         emax = int(line[3])
-                        
-             
-		
+                    
+                    if norm == "Gaussian" :
+                        Gauss_mean = float(line[2])   
+                        Gauss_sig = float(line[3])
+                        Gauss_cutoff = float(line[4])          
+  	
                 elif key == "MS":
                     if line[1] == "true" :
                         sparse = True
@@ -243,7 +249,7 @@ class FullDetectorResponse(HealpixBase):
                     break
         
         #check if the type of spectrum is known
-        assert norm=="powerlaw" or norm=="Mono" or norm=="Linear","unknown normalisation !" 
+        assert norm=="powerlaw" or norm=="Mono" or norm=="Linear" or norm=="Gaussian",f"unknown normalisation ! {norm}" 
          
         #check the number of simulated events is not 0
         assert nevents_sim != 0,"number of simulated events is 0 !" 
@@ -256,7 +262,6 @@ class FullDetectorResponse(HealpixBase):
         else :
             print("Sparse matrice ? {0}".format(sparse))
         edges = ()
-        #print(axes_edges)
 
         for axis_edges, axis_type in zip(axes_edges, axes_types):
 
@@ -412,6 +417,16 @@ class FullDetectorResponse(HealpixBase):
         #print(ewidth)
         #print(ecenters)
 
+        #if we have one single bin, treat the gaussian norm like the mono one
+        #also check that the gaussian spectrum is fully contained in that bin 
+        if len(ewidth) == 1 and norm == "Gaussian":
+            edges = dr.axes['Ei'].edges
+            gauss_int = 0.5 * (1 + erf( (edges[0]-Gauss_mean)/(4*np.sqrt(2)) ) ) + 0.5 * (1 + erf( (edges[1]-Gauss_mean)/(4*np.sqrt(2)) ) )
+            
+            assert gauss_int == 1, "The gaussian spectrum is not fully contained in this single bin !"
+            print("Only one bin so we will use the Mono normalisation")
+            norm ="Mono"
+
         if Spectrumfile is not None and norm=="file":
             print("normalisation : spectrum file")
             # From spectrum file
@@ -458,7 +473,11 @@ class FullDetectorResponse(HealpixBase):
             print("normalisation : mono")
 
             nperchannel_norm = np.array([1.])
-            
+        
+        elif norm == "Gaussian" :
+            raise NotImplementedError("Gausssian norm for multiple bins not yet implemented")
+
+
         nperchannel = nperchannel_norm * nevents_sim
         # Full-sky?
         if not single_pixel:
@@ -487,9 +506,7 @@ class FullDetectorResponse(HealpixBase):
             pass
 
         # create a .h5 file with the good structure
-        filename = filename.replace(
-        ".rsp.gz", "_nside{0}.area.h5".format(nside))
-        
+        filename = filename.replace(".rsp.gz","_nside{0}.area.h5".format(nside))
         f = h5.File(filename, mode='w')
 
         drm = f.create_group('DRM')

@@ -67,7 +67,9 @@ autodoc_mock_imports = ["histpy",
                         'tqdm',
                         'scipy',
                         'psutil',
-                        'awscli']
+                        'awscli',
+                        'yayc'
+                        ]
 
 # There seems to be a conflict between unittest.mock (used by sphinx) and metaclasses
 # The cosipy.threeml.custom_functions.Band_Eflux includes a metaclass from

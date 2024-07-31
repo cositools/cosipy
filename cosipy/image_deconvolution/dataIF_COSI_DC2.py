@@ -5,6 +5,8 @@ import astropy.units as u
 import logging
 logger = logging.getLogger(__name__)
 
+import warnings
+
 from histpy import Histogram, Axes
 
 from cosipy.response import FullDetectorResponse
@@ -100,7 +102,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         Modify the axes of data. This method will be removed in the future.
         """
 
-        logger.warning("Note that _modify_axes() in DataIF_COSI_DC2 was implemented for a temporary use. It will be removed in the future.")
+        warnings.warn("Note that _modify_axes() in DataIF_COSI_DC2 was implemented for a temporary use. It will be removed in the future.", DeprecationWarning)
 
         if self._coordsys_conv_matrix is None:
             axis_name = ['Em', 'Phi', 'PsiChi']
