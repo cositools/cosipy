@@ -163,7 +163,7 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         for key in self.priors.keys():
             sum_grad_log_prior += self.priors[key].grad_log_prior(model_EM)
 
-        self.prior_filter = Histogram(self.model.axes, contents = np.exp(-1.0 * sum_grad_log_prior / self.summed_exposure_map.contents) )
+        self.prior_filter = Histogram(self.model.axes, contents = np.exp( sum_grad_log_prior / self.summed_exposure_map.contents ) )
 
         self.model[:] = self.prior_filter.contents * model_EM.contents
 
@@ -221,8 +221,7 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         self.log_priors['gamma_model'], self.log_priors['gamma_bkg'] = self.log_gamma_prior(self.model)
 
         for key in self.priors.keys():
-            self.log_priors[key] = -1.0 * self.priors[key].log_prior(self.model)
-            # NOTE: the log_prior is defined as the negative of log of prior function
+            self.log_priors[key] = self.priors[key].log_prior(self.model)
 
         # log-posterior
         self.log_posterior = np.sum(self.loglikelihood_list) + np.sum([self.log_priors[key] for key in self.log_priors.keys()])
