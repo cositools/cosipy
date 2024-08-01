@@ -33,7 +33,7 @@ class RichardsonLucy(RichardsonLucySimple):
             value: 2.0
             unit: "deg"
     stopping_criteria:
-        statistics: "loglikelihood"
+        statistics: "log-likelihood"
         threshold: 1e-2
     background_normalization_optimization:
         activate: True 
@@ -60,10 +60,10 @@ class RichardsonLucy(RichardsonLucySimple):
             logger.info(f"Gaussian filter with FWHM of {self.smoothing_fwhm} will be applied to delta images ...")
 
         # stopping criteria
-        self.stopping_criteria_statistics = parameter.get('stopping_criteria:statistics', "loglikelihood")
+        self.stopping_criteria_statistics = parameter.get('stopping_criteria:statistics', "log-likelihood")
         self.stopping_criteria_threshold  = parameter.get('stopping_criteria:threshold', 1e-2)
 
-        if not self.stopping_criteria_statistics in ["loglikelihood"]:
+        if not self.stopping_criteria_statistics in ["log-likelihood"]:
             raise ValueError
 
     def initialization(self):
@@ -127,9 +127,9 @@ class RichardsonLucy(RichardsonLucySimple):
         self.expectation_list = self.calc_expectation_list(self.model, dict_bkg_norm = self.dict_bkg_norm)
         logger.debug("The expected count histograms were updated with the new model map.")
 
-        # update loglikelihood_list
-        self.loglikelihood_list = self.calc_loglikelihood_list(self.expectation_list)
-        logger.debug("The loglikelihood list was updated with the new expected count histograms.")
+        # update log_likelihood_list
+        self.log_likelihood_list = self.calc_log_likelihood_list(self.expectation_list)
+        logger.debug("The log-likelihood list was updated with the new expected count histograms.")
 
     def register_result(self):
         """
@@ -140,7 +140,7 @@ class RichardsonLucy(RichardsonLucySimple):
         - processed_delta_model: delta map after post-processing
         - alpha: acceleration parameter in RL algirithm
         - background_normalization: optimized background normalization
-        - loglikelihood: log-likelihood
+        - log-likelihood: log-likelihood
         """
         
         this_result = {"iteration": self.iteration_count, 
@@ -149,12 +149,12 @@ class RichardsonLucy(RichardsonLucySimple):
                        "processed_delta_model": copy.deepcopy(self.processed_delta_model),
                        "background_normalization": copy.deepcopy(self.dict_bkg_norm),
                        "alpha": self.alpha, 
-                       "loglikelihood": copy.deepcopy(self.loglikelihood_list)}
+                       "log-likelihood": copy.deepcopy(self.log_likelihood_list)}
 
         # show intermediate results
         logger.info(f'  alpha: {this_result["alpha"]}')
         logger.info(f'  background_normalization: {this_result["background_normalization"]}')
-        logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
+        logger.info(f'  log-likelihood: {this_result["log-likelihood"]}')
         
         # register this_result in self.results
         self.results.append(this_result)
@@ -172,12 +172,12 @@ class RichardsonLucy(RichardsonLucySimple):
         elif self.iteration_count == self.iteration_max:
             return True
 
-        if self.stopping_criteria_statistics == "loglikelihood":
+        if self.stopping_criteria_statistics == "log-likelihood":
 
-            loglikelihood = np.sum(self.results[-1]["loglikelihood"])
-            loglikelihood_before = np.sum(self.results[-2]["loglikelihood"])
+            log_likelihood = np.sum(self.results[-1]["log-likelihood"])
+            log_likelihood_before = np.sum(self.results[-2]["log-likelihood"])
             
-            if loglikelihood - loglikelihood_before < self.stopping_criteria_threshold:
+            if log_likelihood - log_likelihood_before < self.stopping_criteria_threshold:
                 return True
 
         return False
@@ -210,7 +210,7 @@ class RichardsonLucy(RichardsonLucySimple):
                                       counter_name = counter_name,
                                       values_key_name_format = [("alpha", "ALPHA", "D")],
                                       dicts_key_name_format = [("background_normalization", "BKG_NORM", "D")],
-                                      lists_key_name_format = [("loglikelihood", "LOGLIKELIHOOD", "D")])
+                                      lists_key_name_format = [("log-likelihood", "LOG-LIKELIHOOD", "D")])
 
     def calc_alpha(self, delta_model, model):
         """

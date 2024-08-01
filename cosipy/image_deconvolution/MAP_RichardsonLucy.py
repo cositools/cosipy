@@ -33,7 +33,7 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         directory: "./results"
         only_final_result: True
     stopping_criteria:
-        statistics: "loglikelihood"
+        statistics: "log-likelihood"
         threshold: 1e-2
     prior:
       TSV:
@@ -81,7 +81,7 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         self.stopping_criteria_statistics = parameter.get('stopping_criteria:statistics', "log-posterior")
         self.stopping_criteria_threshold  = parameter.get('stopping_criteria:threshold', 1e-2)
 
-        if not self.stopping_criteria_statistics in ["loglikelihood", "log-posterior"]:
+        if not self.stopping_criteria_statistics in ["log-likelihood", "log-posterior"]:
             raise ValueError
 
     def load_gamma_prior(self, parameter):
@@ -211,9 +211,9 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         self.expectation_list = self.calc_expectation_list(self.model, dict_bkg_norm = self.dict_bkg_norm)
         logger.debug("The expected count histograms were updated with the new model map.")
 
-        # update loglikelihood_list
-        self.loglikelihood_list = self.calc_loglikelihood_list(self.expectation_list)
-        logger.debug("The loglikelihood list was updated with the new expected count histograms.")
+        # update log_likelihood_list
+        self.log_likelihood_list = self.calc_log_likelihood_list(self.expectation_list)
+        logger.debug("The log-likelihood list was updated with the new expected count histograms.")
 
         # update log priors
         self.log_priors = {}
@@ -224,7 +224,7 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
             self.log_priors[key] = self.priors[key].log_prior(self.model)
 
         # log-posterior
-        self.log_posterior = np.sum(self.loglikelihood_list) + np.sum([self.log_priors[key] for key in self.log_priors.keys()])
+        self.log_posterior = np.sum(self.log_likelihood_list) + np.sum([self.log_priors[key] for key in self.log_priors.keys()])
 
     def register_result(self):
         """
@@ -233,7 +233,7 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         - model: updated image
         - prior_filter: prior filter
         - background_normalization: optimized background normalization
-        - loglikelihood: log-likelihood
+        - log-likelihood: log-likelihood
         - log-prior: log-prior
         - log-posterior: log-posterior
         """
@@ -242,14 +242,14 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
                        "model": copy.deepcopy(self.model), 
                        "prior_filter": copy.deepcopy(self.prior_filter),
                        "background_normalization": copy.deepcopy(self.dict_bkg_norm),
-                       "loglikelihood": copy.deepcopy(self.loglikelihood_list),
+                       "log-likelihood": copy.deepcopy(self.log_likelihood_list),
                        "log-prior": copy.deepcopy(self.log_priors),
                        "log-posterior": copy.deepcopy(self.log_posterior),
                        }
 
         # show intermediate results
         logger.info(f'  background_normalization: {this_result["background_normalization"]}')
-        logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
+        logger.info(f'  log-likelihood: {this_result["log-likelihood"]}')
         logger.info(f'  log-prior: {this_result["log_prior"]}')
         logger.info(f'  log-posterior: {this_result["log_posterior"]}')
         
@@ -270,12 +270,12 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         elif self.iteration_count == self.iteration_max:
             return True
 
-        if self.stopping_criteria_statistics == "loglikelihood":
+        if self.stopping_criteria_statistics == "log-likelihood":
 
-            loglikelihood = np.sum(self.results[-1]["loglikelihood"])
-            loglikelihood_before = np.sum(self.results[-2]["loglikelihood"])
+            log_likelihood = np.sum(self.results[-1]["log-likelihood"])
+            log_likelihood_before = np.sum(self.results[-2]["log-likelihood"])
             
-            if loglikelihood - loglikelihood_before < self.stopping_criteria_threshold:
+            if log_likelihood - log_likelihood_before < self.stopping_criteria_threshold:
                 return True
 
         elif self.stopping_criteria_statistics == "log-posterior":
@@ -316,4 +316,4 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
                                       counter_name = counter_name,
                                       values_key_name_format = [("log-posterior", "LOG-POSTERIOR", "D")],
                                       dicts_key_name_format  = [("background_normalization", "BKG_NORM", "D"), ("log-prior", "LOG-PRIOR", "D")],
-                                      lists_key_name_format  = [("loglikelihood", "LOGLIKELIHOOD", "D")])
+                                      lists_key_name_format  = [("log-likelihood", "LOG-LIKELIHOOD", "D")])

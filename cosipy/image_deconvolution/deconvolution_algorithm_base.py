@@ -190,9 +190,9 @@ class DeconvolutionAlgorithmBase(ABC):
         
         return [data.calc_expectation(model, dict_bkg_norm = dict_bkg_norm, almost_zero = almost_zero) for data in self.dataset]
 
-    def calc_loglikelihood_list(self, expectation_list):
+    def calc_log_likelihood_list(self, expectation_list):
         """
-        Calculate a list of loglikelihood from each data in the registered dataset and the corresponding given expected count histogram.
+        Calculate a list of log-likelihood from each data in the registered dataset and the corresponding given expected count histogram.
 
         Parameters
         ----------
@@ -202,10 +202,10 @@ class DeconvolutionAlgorithmBase(ABC):
         Returns
         -------
         list of float
-            List of Log-likelood
+            List of Log-likelihood
         """
 
-        return [data.calc_loglikelihood(expectation) for data, expectation in zip(self.dataset, expectation_list)]
+        return [data.calc_log_likelihood(expectation) for data, expectation in zip(self.dataset, expectation_list)]
 
     def calc_summed_exposure_map(self):
         """
