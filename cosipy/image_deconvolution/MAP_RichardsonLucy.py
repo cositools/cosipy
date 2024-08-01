@@ -250,8 +250,8 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         # show intermediate results
         logger.info(f'  background_normalization: {this_result["background_normalization"]}')
         logger.info(f'  log-likelihood: {this_result["log-likelihood"]}')
-        logger.info(f'  log-prior: {this_result["log_prior"]}')
-        logger.info(f'  log-posterior: {this_result["log_posterior"]}')
+        logger.info(f'  log-prior: {this_result["log-prior"]}')
+        logger.info(f'  log-posterior: {this_result["log-posterior"]}')
         
         # register this_result in self.results
         self.results.append(this_result)
