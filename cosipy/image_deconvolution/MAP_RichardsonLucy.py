@@ -78,10 +78,10 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
             self.priors[prior_name] = self.prior_classes[prior_name](coefficient, initial_model)
 
         # stopping criteria
-        self.stopping_criteria_statistics = parameter.get('stopping_criteria:statistics', "posterior")
+        self.stopping_criteria_statistics = parameter.get('stopping_criteria:statistics', "log-posterior")
         self.stopping_criteria_threshold  = parameter.get('stopping_criteria:threshold', 1e-2)
 
-        if not self.stopping_criteria_statistics in ["loglikelihood", "posterior"]:
+        if not self.stopping_criteria_statistics in ["loglikelihood", "log-posterior"]:
             raise ValueError
 
     def load_gamma_prior(self, parameter):
@@ -224,8 +224,8 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
             self.log_priors[key] = -1.0 * self.priors[key].log_prior(self.model)
             # NOTE: the log_prior is defined as the negative of log of prior function
 
-        # posterior
-        self.posterior = np.sum(self.loglikelihood_list) + np.sum([self.log_priors[key] for key in self.log_priors.keys()])
+        # log-posterior
+        self.log_posterior = np.sum(self.loglikelihood_list) + np.sum([self.log_priors[key] for key in self.log_priors.keys()])
 
     def register_result(self):
         """
@@ -235,8 +235,8 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         - prior_filter: prior filter
         - background_normalization: optimized background normalization
         - loglikelihood: log-likelihood
-        - log_prior: log-prior
-        - posterior: posterior
+        - log-prior: log-prior
+        - log-posterior: log-posterior
         """
         
         this_result = {"iteration": self.iteration_count, 
@@ -244,15 +244,15 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
                        "prior_filter": copy.deepcopy(self.prior_filter),
                        "background_normalization": copy.deepcopy(self.dict_bkg_norm),
                        "loglikelihood": copy.deepcopy(self.loglikelihood_list),
-                       "log_prior": copy.deepcopy(self.log_priors),
-                       "posterior": copy.deepcopy(self.posterior),
+                       "log-prior": copy.deepcopy(self.log_priors),
+                       "log-posterior": copy.deepcopy(self.log_posterior),
                        }
 
         # show intermediate results
         logger.info(f'  background_normalization: {this_result["background_normalization"]}')
         logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
-        logger.info(f'  log_prior: {this_result["log_prior"]}')
-        logger.info(f'  posterior: {this_result["posterior"]}')
+        logger.info(f'  log-prior: {this_result["log_prior"]}')
+        logger.info(f'  log-posterior: {this_result["log_posterior"]}')
         
         # register this_result in self.results
         self.results.append(this_result)
@@ -279,12 +279,12 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
             if loglikelihood - loglikelihood_before < self.stopping_criteria_threshold:
                 return True
 
-        elif self.stopping_criteria_statistics == "posterior":
+        elif self.stopping_criteria_statistics == "log-posterior":
             
-            posterior = self.results[-1]["posterior"]
-            posterior_before = self.results[-2]["posterior"]
+            log_posterior = self.results[-1]["log-posterior"]
+            log_posterior_before = self.results[-2]["log-posterior"]
 
-            if posterior - posterior_before < self.stopping_criteria_threshold:
+            if log_posterior - log_posterior_before < self.stopping_criteria_threshold:
                 return True
 
         return False
@@ -315,6 +315,6 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
 
             self.save_results_as_fits(filename = fits_filename,
                                       counter_name = counter_name,
-                                      values_key_name_format = [("posterior", "POSTERIOR", "D")],
-                                      dicts_key_name_format = [("background_normalization", "BKG_NORM", "D"), ("log_prior", "LOG_PRIOR", "D")],
-                                      lists_key_name_format = [("loglikelihood", "LOGLIKELIHOOD", "D")])
+                                      values_key_name_format = [("log-posterior", "LOG-POSTERIOR", "D")],
+                                      dicts_key_name_format  = [("background_normalization", "BKG_NORM", "D"), ("log-prior", "LOG-PRIOR", "D")],
+                                      lists_key_name_format  = [("loglikelihood", "LOGLIKELIHOOD", "D")])
