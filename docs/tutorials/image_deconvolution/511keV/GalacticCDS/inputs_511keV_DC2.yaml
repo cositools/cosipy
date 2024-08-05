@@ -2,7 +2,7 @@
 # Data I/O:
 
 data_file: 
-ori_file: "/Users/yoneda/Work/Exp/COSI/cosipy-2/data_challenge/DC2/prework/data/orientation/20280301_3_month.ori"
+ori_file: "/Users/penguin/Documents/Grad School/Research/COSI/COSIpy/docs/tutorials/data/orientation/20280301_3_month.ori"
 unbinned_output: 'fits' # 'fits' or 'hdf5'
 time_bins: 7979955 # time bin size in seconds. Takes int or list of bin edges.
 tmin: 1835487300.0
