@@ -9,14 +9,14 @@ from .allskyimage import AllSkyImageModel
 
 from .RichardsonLucy import RichardsonLucy
 from .RichardsonLucySimple import RichardsonLucySimple
-from .RLparallel import RLparallel
+from .RichardsonLucyParallel import RichardsonLucyParallel
 
 class ImageDeconvolution:
     """
     A class to reconstruct all-sky images from COSI data based on image deconvolution methods.
     """
     model_classes = {"AllSkyImage": AllSkyImageModel}
-    deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple, "RLparallel": RLparallel}
+    deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple, "RLparallel": RichardsonLucyParallel}
 
     def __init__(self):
         self._dataset = None
