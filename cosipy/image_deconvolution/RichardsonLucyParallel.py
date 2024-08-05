@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 # Import third party libraries
 import numpy as np
-# from mpi4py import MPI
+from mpi4py import MPI
 import h5py
 from histpy import Histogram
 
