@@ -6,14 +6,15 @@ logger = logging.getLogger(__name__)
 
 # Import third party libraries
 import numpy as np
-from mpi4py import MPI
+# from mpi4py import MPI
 import h5py
 from histpy import Histogram
 
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
 
-class RLparallel(DeconvolutionAlgorithmBase):
+class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
     """
+    NOTE: Comments copied from RichardsonLucy.py
     A class for a parallel implementation of the Richardson-
     Lucy algorithm. 
     
@@ -27,10 +28,13 @@ class RLparallel(DeconvolutionAlgorithmBase):
     """
 
     def __init__(self, initial_model, dataset, mask, parameter):
+        """
+        NOTE: Copied from RichardsonLucy.py
+        """
 
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
 
-        # TODO: these RL algorithm improvements are yet to be implemented in RLparallel
+        # TODO: these RL algorithm improvements are yet to be implemented/utilized in this file
         # self.do_acceleration = parameter.get('acceleration', False)
 
         # self.alpha_max = parameter.get('alpha_max', 1.0)
@@ -57,6 +61,86 @@ class RLparallel(DeconvolutionAlgorithmBase):
             else:
                 os.makedirs(self.save_results_directory)
 
+    def initialization(self):
+        """
+        initialization before running the image deconvolution
+        """
+        # clear counter 
+        self.iteration_count = 0
+
+        # clear results
+        self.results.clear()
+
+        # copy model
+        self.model = copy.deepcopy(self.initial_model)
+
+    def pre_processing(self):
+        """
+        pre-processing for each iteration
+        """
+        pass
+
+    def Estep(self):
+        pass
+
+    def Mstep(self):
+        pass
+
+    def post_processing(self):
+        """
+        pre-processing for each iteration
+        """
+        pass
+
+    def check_stopping_criteria(self):
+        """
+        NOTE: Copied from RichardsonLucy.py
+        If iteration_count is smaller than iteration_max, the iterative process will continue.
+
+        Returns
+        -------
+        bool
+        """
+        if self.iteration_count < self.iteration_max:
+            return False
+        return True
+
+    def register_result(self):
+        """
+        NOTE: Copied from RichardsonLucy.py
+        The values below are stored at the end of each iteration.
+        - iteration: iteration number
+        - model: updated image
+        - delta_model: delta map after M-step 
+        - processed_delta_model: delta map after post-processing
+        - alpha: acceleration parameter in RL algirithm
+        - background_normalization: optimized background normalization
+        - loglikelihood: log-likelihood
+        """
+        
+        this_result = {"iteration": self.iteration_count, 
+                       "model": copy.deepcopy(self.model), 
+                    #    "delta_model": copy.deepcopy(self.delta_model),
+                    #    "processed_delta_model": copy.deepcopy(self.processed_delta_model),
+                       "background_normalization": copy.deepcopy(self.dict_bkg_norm),
+                    #    "alpha": self.alpha, 
+                    #    "loglikelihood": copy.deepcopy(self.loglikelihood_list)
+                    }
+
+        # show intermediate results
+        # logger.info(f'  alpha: {this_result["alpha"]}')
+        logger.info(f'  background_normalization: {this_result["background_normalization"]}')
+        # logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
+        
+        # register this_result in self.results
+        self.results.append(this_result)
+
+    def finalization(self):
+        """
+        finalization after running the image deconvolution
+        """
+
+"""
 # Define the number of rows and columns
 NUMROWS = 184320        # TODO: Ideally, for row-major form to exploit caching, NUMROWS must be smaller than NUMCOLS
 NUMCOLS = 3072
@@ -332,3 +416,4 @@ def main():
     
 if __name__ == "__main__":
     main()
+"""

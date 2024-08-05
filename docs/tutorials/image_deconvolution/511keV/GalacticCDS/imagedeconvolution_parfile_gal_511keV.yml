@@ -1,7 +1,9 @@
 author: Hiroki Yoneda 
 date: 2024-06-12
+
 model_definition:
   class: "AllSkyImage"
+
   property:
     coordinate: "galactic"
     nside: 16
@@ -10,13 +12,16 @@ model_definition:
       value: [509.0, 513.0]
       unit: "keV"
     unit: "cm-2 s-1 sr-1" # do not change it as for now
+
   initialization:
     algorithm: "flat" # more methods, e.g., simple-backprojection, user-defined, would be implemented.
     parameter:
       value: [1e-4] #the number of these values should be the same as "the number of energy_edges - 1".
       unit: "cm-2 s-1 sr-1"  # do not change it as for now
+
 deconvolution:
-  algorithm: "RL"
+  algorithm: "RLparallel"
+
   parameter:
     iteration_max: 10
     acceleration: True
