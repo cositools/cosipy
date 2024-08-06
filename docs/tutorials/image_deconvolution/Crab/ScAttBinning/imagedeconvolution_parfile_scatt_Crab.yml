@@ -1,25 +1,33 @@
 author: Hiroki Yoneda 
-date: 2024-01-23
-model_property:
-  coordinate: "galactic"
-  nside: 8
-  scheme: "ring"
-  energy_edges: [100.0 , 158.489 , 251.189 , 398.107 , 630.957 , 1000.0 , 1584.89 , 2511.89 , 3981.07 , 6309.57 , 10000.0 ] #keV, shoud be the same as the response matrix
-model_initialization:
-  algorithm: "flat" # more methods, e.g., simple-backprojection, user-defined, would be implemented.
-  parameter_flat:
-    values: [1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4] #cm-2 s-1 sr-1, the number of these values should be the same as "the number of energy_edges - 1".
+date: 2024-06-12
+model_definition:
+  class: "AllSkyImage"
+  property:
+    coordinate: "galactic"
+    nside: 8
+    scheme: "ring"
+    energy_edges: # shoud be the same as the response matrix
+      value: [100.0 , 158.489 , 251.189 , 398.107 , 630.957 , 1000.0 , 1584.89 , 2511.89 , 3981.07 , 6309.57 , 10000.0 ] 
+      unit: "keV"
+    unit: "cm-2 s-1 sr-1" # do not change it as for now
+  initialization:
+    algorithm: "flat" # more methods, e.g., simple-backprojection, user-defined, would be implemented.
+    parameter:
+      value: [1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4, 1e-4] #the number of these values should be the same as "the number of energy_edges - 1".
+      unit: "cm-2 s-1 sr-1"  # do not change it as for now
 deconvolution:
   algorithm: "RL"
-  parameter_RL:
-    iteration: 10
+  parameter:
+    iteration_max: 10
     acceleration: True
     alpha_max: 10.0
-    save_results_each_iteration: False
-    response_weighting: True 
+    response_weighting: True
     response_weighting_index: 0.5
-    smoothing: True 
-    smoothing_FWHM: 2.0 #deg
-      #    stopping_criterion: "TBD"
-    background_normalization_fitting: False 
-    background_normalization_range: [0.01, 10.0]
+    smoothing: True
+    smoothing_FWHM:
+      value: 2.0
+      unit: "deg"
+    background_normalization_optimization: True
+    background_normalization_range: {"albedo": [0.01, 10.0]}
+    save_results: False
+    save_results_directory: "./results"
