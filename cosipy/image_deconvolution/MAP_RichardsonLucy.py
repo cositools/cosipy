@@ -163,7 +163,7 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
         for key in self.priors.keys():
             sum_grad_log_prior += self.priors[key].grad_log_prior(model_EM)
 
-        self.prior_filter = Histogram(self.model.axes, contents = np.exp( sum_grad_log_prior / self.summed_exposure_map.contents ) )
+        self.prior_filter = Histogram(self.model.axes, contents = np.exp( sum_grad_log_prior / (self.summed_exposure_map.contents + 1.0 / self.prior_gamma_model_theta)))
 
         self.model[:] = self.prior_filter.contents * model_EM.contents
 
