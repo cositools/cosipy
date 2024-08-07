@@ -35,7 +35,6 @@ class PriorTSV(PriorBase):
 
             diff = (model[:] - model[self.neighbour_pixel_index]).value
             # Its shape is (8, num. of pixels, num. of energies)
-            diff /= self.num_neighbour_pixels.reshape((1,-1,1))
 
             return -1.0 * self.coefficient * np.sum(diff**2)
     
@@ -44,6 +43,5 @@ class PriorTSV(PriorBase):
         if self.model_class == AllSkyImageModel:
 
             diff = (model[:] - model[self.neighbour_pixel_index]).value
-            diff /= self.num_neighbour_pixels.reshape((1,-1,1))
 
             return -1.0 * self.coefficient * 4 * np.sum(diff, axis = 0) / model.unit
