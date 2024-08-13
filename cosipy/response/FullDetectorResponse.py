@@ -298,7 +298,7 @@ class FullDetectorResponse(HealpixBase):
 
             # If fast method fails, use long method, which should work in all cases.
             except:
-                logger.error("Initial attempt failed.")
+                logger.info("Initial attempt failed.")
                 logger.info("Using long method...")
                 nlines = sum(1 for _ in gzip.open(filename,"rt"))
                 
