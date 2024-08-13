@@ -85,7 +85,8 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
                              "--iteration_max", str(self.iteration_max), 
                              "--data_dir", self.data_dir,
                              "--save_results", str(self.save_results),
-                             "--results_dir", self.save_results_directory])
+                             "--results_dir", self.save_results_directory],
+                        text=True)
 
         # RLparallelscript already contains check_stopping_criteria and iteration_max break condition. 
         # NOTE: RichardsonLucy.py currently does not support a sophisticated break condition. 
@@ -97,37 +98,6 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
         """
         # TODO: Write bkg and data to scratch space
         pass
-
-    def register_result(self):
-        """
-        TODO: Port this to RLparallelscript.py
-        NOTE: Copied from RichardsonLucy.py
-        The values below are stored at the end of each iteration.
-        - iteration: iteration number
-        - model: updated image
-        - delta_model: delta map after M-step 
-        - processed_delta_model: delta map after post-processing
-        - alpha: acceleration parameter in RL algirithm
-        - background_normalization: optimized background normalization
-        - loglikelihood: log-likelihood
-        """
-        
-        this_result = {"iteration": self.iteration_count, 
-                       "model": copy.deepcopy(self.model), 
-                    #    "delta_model": copy.deepcopy(self.delta_model),
-                    #    "processed_delta_model": copy.deepcopy(self.processed_delta_model),
-                       "background_normalization": copy.deepcopy(self.dict_bkg_norm),
-                    #    "alpha": self.alpha, 
-                    #    "loglikelihood": copy.deepcopy(self.loglikelihood_list)
-                    }
-
-        # show intermediate results
-        # logger.info(f'  alpha: {this_result["alpha"]}')
-        logger.info(f'  background_normalization: {this_result["background_normalization"]}')
-        # logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
-        
-        # register this_result in self.results
-        self.results.append(this_result)
 
     def finalization(self):
         """
@@ -144,4 +114,6 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
     def post_processing(self):
         pass
     def check_stopping_criteria(self):
+        pass
+    def register_result(self):
         pass

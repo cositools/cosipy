@@ -1,21 +1,32 @@
 import os
 from pathlib import Path
-# import logging
-# logger = logging.getLogger(__name__)
+import logging
 import argparse
+
+# logging
+logger = logging.getLogger(__name__)
+
+# argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("--numrows", type=int, dest='numrows', help="Number of rows in the response matrix")
 parser.add_argument("--numcols", type=int, dest='numcols', help="Number of columns in the response matrix")
 parser.add_argument("--iteration_max", type=int, dest='iteration_max', help="Maximum number of iterations in RL deconvolution")
 parser.add_argument("--data_dir", type=str, dest='data_dir', help="Directory where data lies")
-parser.add_argument("--save_results", type=bool, dest='save_results', help="Should the results be saved?")
-parser.add_argument("--results_dir", type=str, dest='results_dir', help="Directory to save results (only enabled if --save_results is set to True)")
+parser.add_argument("--save_results", type=bool, dest='save_results_flag', help="Should the results be saved?")
+parser.add_argument("--results_dir", type=str, dest='results_dir', help="Directory to save results (only enabled if --save_results_flag is set to True)")
 args = parser.parse_args()
+logger.info(args.numrows)
+logger.info(args.numcols)
+logger.info(args.iteration_max)
+logger.info(args.data_dir)
+logger.info(args.save_results_flag)
+logger.info(args.results_dir)
 
 # Import third party libraries
 import numpy as np
 from mpi4py import MPI
 import h5py
+from tqdm.autonotebook import tqdm
 
 # Define the number of rows and columns
 NUMROWS = args.numrows        # TODO: Ideally, for row-major form to exploit caching, NUMROWS must be smaller than NUMCOLS
@@ -81,6 +92,69 @@ def load_signal_counts(filename='data/Ti44_CasA_x50_dense.hdf5'):
     with h5py.File(DATA_DIR / filename) as hf_signal:
         signal = hf_signal['contents'][:]
     return signal
+
+def register_result(iter, M, delta, ):
+    """
+    The values below are stored at the end of each iteration.
+    - iteration: iteration number
+    - model: updated image
+    - delta_model: delta map after M-step 
+    - processed_delta_model: delta map after post-processing
+    - alpha: acceleration parameter in RL algirithm
+    - background_normalization: optimized background normalization
+    - loglikelihood: log-likelihood
+    """
+    
+    this_result = {"iteration": iter, 
+                    "model": M, 
+                    "delta_model": delta,
+                    # "processed_delta_model": copy.deepcopy(self.processed_delta_model), TODO: The RL parallel implementation does not currently support smooth convergence through weighting, background normalization, or likelihood calculation
+                    # "background_normalization": copy.deepcopy(self.dict_bkg_norm),
+                    # "alpha": self.alpha, 
+                    # "loglikelihood": copy.deepcopy(self.loglikelihood_list)
+                    }
+
+    # # show intermediate results
+    # logger.info(f'  alpha: {this_result["alpha"]}')
+    # logger.info(f'  background_normalization: {this_result["background_normalization"]}')
+    # logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
+    
+    return this_result
+
+def save_results():
+    '''
+    NOTE: Copied from RichardsonLucy.py
+    '''
+    logger.info('Saving results in {RESULTS_DIR}')
+    # model
+    for this_result in results:
+        iteration_count = this_result["iteration"]
+        # this_result["model"].write(f"{RESULTS_DIR}/model_itr{iteration_count}.hdf5", overwrite = True)    TODO: numpy arrays do not support write_to_hdf5 as a method. Need to ensure rest of code is modified to support cosipy.image_deconvolution.allskyimage.AllSkyImageModel
+        # this_result["delta_model"].write(f"{RESULTS_DIR}/delta_model_itr{iteration_count}.hdf5", overwrite = True)
+        # this_result["processed_delta_model"].write(f"{RESULTS_DIR}/processed_delta_model_itr{iteration_count}.hdf5", overwrite = True)    TODO: processed_delta_model here is not different from delta_model
+
+    # TODO: The following will be enabled once the respective calculations are incorporated
+    # #fits
+    # primary_hdu = fits.PrimaryHDU()
+
+    # col_iteration = fits.Column(name='iteration', array=[float(result['iteration']) for result in self.results], format='K')
+    # col_alpha = fits.Column(name='alpha', array=[float(result['alpha']) for result in self.results], format='D')
+    # cols_bkg_norm = [fits.Column(name=key, array=[float(result['background_normalization'][key]) for result in self.results], format='D') 
+    #                 for key in self.dict_bkg_norm.keys()]
+    # cols_loglikelihood = [fits.Column(name=f"{self.dataset[i].name}", array=[float(result['loglikelihood'][i]) for result in self.results], format='D') 
+    #                     for i in range(len(self.dataset))]
+
+    # table_alpha = fits.BinTableHDU.from_columns([col_iteration, col_alpha])
+    # table_alpha.name = "alpha"
+
+    # table_bkg_norm = fits.BinTableHDU.from_columns([col_iteration] + cols_bkg_norm)
+    # table_bkg_norm.name = "bkg_norm"
+
+    # table_loglikelihood = fits.BinTableHDU.from_columns([col_iteration] + cols_loglikelihood)
+    # table_loglikelihood.name = "loglikelihood"
+
+    # hdul = fits.HDUList([primary_hdu, table_alpha, table_bkg_norm, table_loglikelihood])
+    # hdul.writeto(f'{RESULTS_DIR}/results.fits',  overwrite=True)
 
 def main():
     # Set up MPI
@@ -153,6 +227,9 @@ def main():
         # Initialise update delta vector. Explicit variable declaration.
         delta = np.empty(NUMCOLS, dtype=np.float64)
 
+        # Initialise list for results. See function register_result() for list elements. 
+        results = []
+
     '''*************** Worker ***************'''
 
     if taskid > MASTER:
@@ -182,7 +259,7 @@ def main():
     # Exit if:
     ## 1. Max iterations are reached
     ## 2. M vector converges
-    for iter in range(MAXITER):
+    for iter in tqdm(range(MAXITER)):
 
         '''*************** Master ***************'''
         if taskid == MASTER:
@@ -263,13 +340,8 @@ def main():
             print(linebreak_dashes)
 
             # Save iteration
-            # np.savetxt(RESULTS_DIR / f'Mstep{iter+1}.csv', M)
-
-            # MAXITER
-            if iter == (MAXITER - 1):
-                print(f'Reached maximum iterations = {MAXITER}')
-                print(linebreak_stars)
-                print()
+            if args.save_results_flag == True:
+                results.append(register_result())
   
     '''****************** End Iterative Segment ******************'''
 
@@ -282,8 +354,14 @@ def main():
         print(np.sum(M))
         print()
 
-        # Save final output
-        # np.savetxt(RESULTS_DIR / f'ConvergedM.csv', M)
+        if args.save_results_flag == True:
+            save_results(results)
+
+        # MAXITER
+        if iter == (MAXITER - 1):
+            print(f'Reached maximum iterations = {MAXITER}')
+            print(linebreak_stars)
+            print()
 
     # MPI Shutdown
     MPI.Finalize()
