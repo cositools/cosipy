@@ -18,7 +18,6 @@ args = parser.parse_args()
 import numpy as np
 from mpi4py import MPI
 import h5py
-# from tqdm.autonotebook import tqdm
 from yayc import Configurator
 
 # Load configuration file

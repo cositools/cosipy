@@ -93,10 +93,14 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
         new_shape = (self.numrows, self.numcols)
         ndim = image_response.contents.ndim
         with h5py.File(self.base_dir + '/response_matrix.h5', 'w') as output_file:
-            dset1 = output_file.create_dataset('response_matrix', data=np.transpose(image_response.contents, np.take(np.arange(ndim), range(ndim-3, 2*ndim-3), mode='wrap')).reshape((184320, 3072)))  # NOTE: Change the "ndim-3" if more general model space definitions are expected
-            print(dset1.shape)
+            dset1 = output_file.create_dataset('response_matrix', data=np.transpose(image_response.contents, 
+                                                                                    np.take(np.arange(ndim), 
+                                                                                            range(ndim-3, 2*ndim-3), 
+                                                                                            mode='wrap')
+                                                                                    ).reshape(new_shape))  # NOTE: Change the "ndim-3" if more general model space definitions are expected
+            logger.info(f'Shape of response matrix {dset1.shape}')
             dset2 = output_file.create_dataset('response_vector', data=np.sum(dset1, axis=0))
-            print(dset2.shape)
+            logger.info(f'Shape of response vector summed along axis=0 {dset2.shape}')
 
     def iteration(self):
         """
@@ -105,12 +109,19 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
         """
         
         # All arguments must be passed as type=str. Explicitly type cast boolean and number to string.
-        subprocess.run(args=["mpiexec", "-n", str(self.numproc), "python", "mpitest.py", 
-                             "--numrows", str(self.numrows),
-                             "--numcols", str(self.numcols),
-                             "--base_dir", str(self.base_dir),
-                             "--config_file", str(self.config_file)
-                             ], text=True)
+        # FILE_DIR = os.path.dirname(os.path.abspath(__file__))               # Path to directory containing RichardsonLucyParallel.py
+        # logger.info(f'Subprocess call to run RLparallelscript.py at {FILE_DIR}')
+
+        # stdout = subprocess.check_output(args=["mpiexec", "-n", str(self.numproc), 
+        #                      "python", "mpitest.py",   # RLparallelscript.py will be installed in the same directory as RichardsonLucyParallel.py
+        #                      "--numrows", str(self.numrows),
+        #                      "--numcols", str(self.numcols),
+        #                      "--base_dir", str(self.base_dir),
+        #                      "--config_file", str(self.config_file)
+        #                      ], text=True)
+        # print(stdout)
+
+        subprocess.run()
 
         # RLparallelscript already contains check_stopping_criteria and iteration_max break condition. 
         # NOTE: RichardsonLucy.py currently does not support a sophisticated break condition. 
