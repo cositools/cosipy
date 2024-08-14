@@ -62,6 +62,7 @@ class ImageDeconvolution:
             Path of parameter file.
         """
 
+        self._parameter_filepath = parameter_filepath
         self._parameter = Configurator.open(parameter_filepath)
 
         logger.debug(f"parameter file for image deconvolution was set -> {parameter_filepath}")
@@ -79,6 +80,13 @@ class ImageDeconvolution:
         Return the registered parameter.
         """
         return self._parameter
+
+    @property
+    def parameter_filepath(self):
+        """
+        Return the registered parameter filepath.
+        """
+        return self._parameter_filepath
 
     def override_parameter(self, *args):
         """
@@ -199,7 +207,8 @@ class ImageDeconvolution:
         self._deconvolution = self._deconvolution_class(initial_model = self.initial_model, 
                                                         dataset = self.dataset, 
                                                         mask = self.mask, 
-                                                        parameter = algorithm_parameter)
+                                                        parameter = algorithm_parameter,
+                                                        parameter_filepath = self.parameter_filepath)
 
         logger.info("---- parameters ----")
         logger.info(parameter_deconvolution.dump()) 

@@ -1,6 +1,4 @@
 import os
-from pathlib import Path
-import copy
 import subprocess
 import logging
 logger = logging.getLogger(__name__)
@@ -8,7 +6,7 @@ logger = logging.getLogger(__name__)
 # Import third party libraries
 import numpy as np
 import h5py
-from histpy import Histogram
+# from histpy import Histogram
 
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
 
@@ -27,7 +25,7 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
     background_normalization_optimization: True 
     """
 
-    def __init__(self, initial_model, dataset, mask, parameter):
+    def __init__(self, initial_model, dataset, mask, parameter, parameter_filepath):
         """
         NOTE: Copied from RichardsonLucy.py
         """
@@ -62,48 +60,75 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
                 os.makedirs(self.save_results_directory)
 
         # Specific to parallel implementation
+        image_response = self.dataset[0]._image_response
         self.numproc = parameter.get('numproc', 1)
         self.iteration_max = parameter.get('iteration_max', 10)
         self.base_dir = os.getcwd()
         self.data_dir = parameter.get('data_dir', './data')     # NOTE: Data should ideally be present in disk scratch space.
-
-        image_response = self.dataset[0]._image_response
-        self.numrows = np.product(image_response.contents.shape[1:])
-        self.numcols = np.product(image_response.contents.shape[:1])
-
-    def iteration(self):
-        """
-        Performs all iterations of image deconvolution.
-
-        NOTE: Overriding implementation in deconvolution_algorithm_base.py and invoking external script
-        """
-
-        # All arguments must be passed as type=str. Explicitly type cast boolean and number to string.
-        subprocess.run(args=["mpiexec", "-n", str(self.numproc), "python", "mpitest.py", 
-                             "--numrows", str(self.numrows),
-                             "--numcols", str(self.numcols),
-                             "--iteration_max", str(self.iteration_max), 
-                             "--data_dir", self.data_dir,
-                             "--save_results", str(self.save_results),
-                             "--results_dir", self.save_results_directory],
-                        text=True)
-
-        # RLparallelscript already contains check_stopping_criteria and iteration_max break condition. 
-        # NOTE: RichardsonLucy.py currently does not support a sophisticated break condition. 
-        return True
+        self.numrows = np.product(image_response.contents.shape[-3:])   # Em, Phi, PsiChi. NOTE: Change the "-3" if more general model space definitions are expected
+        self.numcols = np.product(image_response.contents.shape[:-3])   # Remaining columns
+        self.config_file = parameter_filepath
 
     def initialization(self):
         """
         initialization before running the image deconvolution
         """
-        # TODO: Write bkg and data to scratch space
-        pass
+        # Flatten and write dense bkg and events to scratch space. 
+        self.write_intermediate_files_to_disk()
+
+    def write_intermediate_files_to_disk(self):
+        # Event
+        event = self.dataset[0].event.contents.flatten()
+        np.savetxt(self.base_dir + '/event.csv', event)
+
+        # Background
+        bg = np.zeros(len(event))
+        bg_models = self.dataset[0]._bkg_models
+        for key in bg_models:
+            bg += bg_models[key].contents.flatten()
+        np.savetxt(self.base_dir + '/bg.csv', bg)
+
+        # Response matrix
+        image_response = self.dataset[0]._image_response
+        new_shape = (self.numrows, self.numcols)
+        ndim = image_response.contents.ndim
+        with h5py.File(self.base_dir + '/response_matrix.h5', 'w') as output_file:
+            dset1 = output_file.create_dataset('response_matrix', data=np.transpose(image_response.contents, np.take(np.arange(ndim), range(ndim-3, 2*ndim-3), mode='wrap')).reshape((184320, 3072)))  # NOTE: Change the "ndim-3" if more general model space definitions are expected
+            print(dset1.shape)
+            dset2 = output_file.create_dataset('response_vector', data=np.sum(dset1, axis=0))
+            print(dset2.shape)
+
+    def iteration(self):
+        """
+        Performs all iterations of image deconvolution.
+        NOTE: Overrides implementation in deconvolution_algorithm_base.py and invokes an external script
+        """
+        
+        # All arguments must be passed as type=str. Explicitly type cast boolean and number to string.
+        subprocess.run(args=["mpiexec", "-n", str(self.numproc), "python", "mpitest.py", 
+                             "--numrows", str(self.numrows),
+                             "--numcols", str(self.numcols),
+                             "--base_dir", str(self.base_dir),
+                             "--config_file", str(self.config_file)
+                             ], text=True)
+
+        # RLparallelscript already contains check_stopping_criteria and iteration_max break condition. 
+        # NOTE: RichardsonLucy.py currently does not support a sophisticated break condition. 
+        return True
 
     def finalization(self):
         """
         finalization after running the image deconvolution
         """
-        pass
+        # Delete intermediate files
+        self.remove_intermediate_files_from_disk()
+
+    def remove_intermediate_files_from_disk(self):
+        # Ensure that the number of deletions corresponds to the 
+        # number of file creations in write_... function
+        os.remove(self.base_dir + '/event.csv')
+        os.remove(self.base_dir + '/bg.csv')
+        os.remove(self.base_dir + '/response_matrix.h5')
 
     def pre_processing(self):
         pass
