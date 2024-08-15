@@ -956,7 +956,7 @@ class SpacecraftFile():
 
         # Read the MATRIX extension
         matrix_ext = self.rmf['MATRIX']
-        #print(repr(matrix_hdu.header[:60]))
+        #logger.info(repr(matrix_hdu.header[:60]))
         energy_low = matrix_ext.data["ENERG_LO"] # energy bin lower edges for measured energies
         energy_high = matrix_ext.data["ENERG_HI"] # energy bin higher edges for measured energies
         data = matrix_ext.data
@@ -988,13 +988,13 @@ class SpacecraftFile():
         energy_all_edges = np.append(energy_low,energy_high[-1])
         #bin_edges = np.array([incident_energy_bins,incident_energy_bins]) # doesn't work
         bin_edges = np.vstack((energy_all_edges, energy_all_edges))
-        #print(bin_edges)
+        #logger.info(bin_edges)
 
         self.probability = []
         for i in np.arange(10):
             for j in np.arange(10):
                 self.probability.append(rmf_matrix[i][j])
-        #print(type(probability))
+        #logger.info(type(probability))
 
         plt.hist2d(x=x_center_coords,y=y_center_coords,weights=self.probability,bins=bin_edges, norm=LogNorm())
         plt.xscale('log')
