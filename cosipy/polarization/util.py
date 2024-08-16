@@ -1,7 +1,6 @@
 import numpy as np
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
-
 
 # Base class for polarization conventions
 class PolarizationConvention:
@@ -12,19 +11,16 @@ class PolarizationConvention:
         else:
             self.ref_vector = ref_vector
 
-    def project(self, source_direction: SkyCoord):
-
-        return None
-
     def transform(self, pa_1, convention2, source_direction: SkyCoord):
-        # Transform polarization angle from convention1 to convention2
+       # Ensure pa_1 is an Angle object
+        pa_1 = Angle(pa_1)
 
         # Get the projection vectors for the source direction in the current convention
         (px1, py1) = self.project(source_direction)
 
         # Calculate the cosine and sine of the polarization angle
-        cos_pa_1 = np.cos(pa_1)
-        sin_pa_1 = np.sin(pa_1)
+        cos_pa_1 = np.cos(pa_1.radian)
+        sin_pa_1 = np.sin(pa_1.radian)
 
         # Calculate the polarization vector in the current convention
         pol_vec = px1 * cos_pa_1 + py1 * sin_pa_1
@@ -37,7 +33,7 @@ class PolarizationConvention:
         b = np.sum(pol_vec * py2, axis=0)
 
         # Calculate the new polarization angle in the new convention
-        pa_2 = np.arctan2(b, a)
+        pa_2 = Angle(np.arctan2(b, a), unit=u.rad)
         return pa_2
 
 
@@ -46,15 +42,19 @@ class OrthographicConvention(PolarizationConvention):
     def project(self, source_direction: SkyCoord):
         # Extract Cartesian coordinates for the source direction and reference vector
         x, y, z = source_direction.cartesian.xyz
+        
         ref_x, ref_y, ref_z = self.ref_vector.cartesian.xyz
 
         # Calculate the dot product between the source direction and the reference vector
         dot_product = x * ref_x + y * ref_y + z * ref_z
 
+        # calculate the norm of the cource vector
+        norm_source = np.linalg.norm([x, y, z])
+
         # Project the reference vector onto the plane perpendicular to the source direction
-        px_x = ref_x - dot_product * x
-        px_y = ref_y - dot_product * y
-        px_z = ref_z - dot_product * z
+        px_x = ref_x - dot_product * x / norm_source
+        px_y = ref_y - dot_product * y / norm_source
+        px_z = ref_z - dot_product * z / norm_source
 
         # Combine the components into the projection vector px
         px = np.array([px_x, px_y, px_z])
@@ -67,7 +67,6 @@ class OrthographicConvention(PolarizationConvention):
         py = np.cross([x, y, z], px, axis=0)
 
         return px, py
-
 
 # Stereographic projection convention
 class StereographicConvention(PolarizationConvention):
@@ -93,5 +92,7 @@ class StereographicConvention(PolarizationConvention):
 
 
 def pa_transformation(pa, convention1, convention2, source_direction: SkyCoord):
+    # Ensure pa is an Angle object
+    pa = Angle(pa)
     # Transform the polarization angle from one convention to another
     return convention1.transform(pa, convention2, source_direction)
