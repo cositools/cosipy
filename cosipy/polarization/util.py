@@ -52,9 +52,9 @@ class OrthographicConvention(PolarizationConvention):
         norm_source = np.linalg.norm([x, y, z])
 
         # Project the reference vector onto the plane perpendicular to the source direction
-        px_x = ref_x - dot_product * x / norm_source
-        px_y = ref_y - dot_product * y / norm_source
-        px_z = ref_z - dot_product * z / norm_source
+        px_x = ref_x - dot_product * x / (norm_source)**2
+        px_y = ref_y - dot_product * y / (norm_source)**2
+        px_z = ref_z - dot_product * z / (norm_source)**2
 
         # Combine the components into the projection vector px
         px = np.array([px_x, px_y, px_z])
@@ -94,5 +94,11 @@ class StereographicConvention(PolarizationConvention):
 def pa_transformation(pa, convention1, convention2, source_direction: SkyCoord):
     # Ensure pa is an Angle object
     pa = Angle(pa)
-    # Transform the polarization angle from one convention to another
-    return convention1.transform(pa, convention2, source_direction)
+      # Transform the polarization angle from one convention to another
+    transformed_pa = convention1.transform(pa, convention2, source_direction)
+    
+    # Normalize the angle to be between 0 and pi
+    if transformed_pa < 0:
+        transformed_pa += Angle(np.pi, unit=u.rad)
+    
+    return transformed_pa
