@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 from cosipy.polarization.util import OrthographicConvention, StereographicConvention, pa_transformation
 
@@ -31,18 +31,18 @@ def test_pa_transformation():
     ortho_convention = OrthographicConvention(ref_vector=custom_ref_vector)
     stereo_convention = StereographicConvention(ref_vector=custom_ref_vector)
     
-    pa_initial = 45 * u.deg.to(u.rad)  # Convert degrees to radians
+    pa_initial = Angle(45 * u.deg)  # Convert degrees to radians
     pa_transformed = pa_transformation(pa_initial, ortho_convention, stereo_convention, source_direction)
     
-    assert isinstance(pa_transformed, float)
-    assert -np.pi <= pa_transformed <= np.pi
+    assert isinstance(pa_transformed, Angle)  # Ensure the result is an Angle object
+    assert -np.pi <= pa_transformed.radian <= np.pi
 
 def test_default_ref_vector():
     ortho_convention_default = OrthographicConvention()
     stereo_convention_default = StereographicConvention()
 
-    pa_initial = 30 * u.deg.to(u.rad)  # Convert degrees to radians
+    pa_initial = Angle(36 * u.deg)  # Convert degrees to radians
     pa_transformed = pa_transformation(pa_initial, ortho_convention_default, stereo_convention_default, source_direction)
 
-    assert isinstance(pa_transformed, float)
-    assert -np.pi <= pa_transformed <= np.pi
+    assert isinstance(pa_transformed, Angle)  # Ensure the result is an Angle object
+    assert -np.pi <= pa_transformed.radian <= np.pi
