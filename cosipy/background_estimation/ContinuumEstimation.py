@@ -1,3 +1,3 @@
-class ContrinuumEstimation():
+class ContinuumEstimation():
 
     print("initial commit")
