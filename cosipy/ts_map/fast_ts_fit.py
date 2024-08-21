@@ -19,6 +19,9 @@ import psutil
 import gc
 import matplotlib.pyplot as plt
 
+import logging
+logger = logging.getLogger(__name__)
+
 class FastTSMap():
     
     def __init__(self, data, bkg_model, response_path, orientation = None, cds_frame = "local", scheme = "RING"):
@@ -236,14 +239,14 @@ class FastTSMap():
                                                                         quiet = True)
             #time_coord_convert_end = time.time()
             #time_coord_convert_used = time_coord_convert_end - time_coord_convert_start
-            #print(f"The time used for coordinate conversion is {time_coord_convert_used}s.")
+            #logger.info(f"The time used for coordinate conversion is {time_coord_convert_used}s.")
 
             #time_dwell_start = time.time()
             # get the dwell time map: the map of the time spent on each pixel in the local frame
             dwell_time_map = orientation.get_dwell_map(response = response_path)
             #time_dwell_end = time.time()
             #time_dwell_used = time_dwell_end - time_dwell_start
-            #print(f"The time used for dwell time map is {time_dwell_used}s.")
+            #logger.info(f"The time used for dwell time map is {time_dwell_used}s.")
             
             #time_psr_start = time.time()
             # convolve the response with the dwell_time_map to get the point source response
@@ -251,7 +254,7 @@ class FastTSMap():
                 psr = response.get_point_source_response(dwell_time_map)
             #time_psr_end = time.time()
             #time_psr_used = time_psr_end - time_psr_start
-            #print(f"The time used for psr is {time_psr_used}s.")
+            #logger.info(f"The time used for psr is {time_psr_used}s.")
 
         elif cds_frame == "galactic":
             
@@ -272,7 +275,7 @@ class FastTSMap():
 
         #time_cds_end = time.time()
         #time_cds_used = time_cds_end - time_cds_start
-        #print(f"The time used for cds is {time_cds_used}s.")
+        #logger.info(f"The time used for cds is {time_cds_used}s.")
         
         return ei_cds_array
     
@@ -304,7 +307,7 @@ class FastTSMap():
         cds_frame : str
             "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame .
         ts_nside : int
-            The nside of the ts map.
+            The nside of the ts map.   
         ts_scheme : str
             The scheme of the Ts map.
 
@@ -315,11 +318,9 @@ class FastTSMap():
         """
         
         start_fast_ts_fit = time.time()
-        
-        # get the pix number of the ts map
-        data_array = np.zeros(hp.nside2npix(ts_nside))
-        ts_temp = HealpixMap(data = data_array, scheme = ts_scheme, coordsys = "galactic")
-        pix = ts_temp.ang2pix(hypothesis_coord)
+
+        # get the indices of the pixels to fit
+        pix = hp.ang2pix(nside = ts_nside, theta = hypothesis_coord.l.deg, phi = hypothesis_coord.b.deg, lonlat = True)
         
         # get the expected counts in the flattened cds array
         start_ei_cds_array = time.time()
@@ -342,7 +343,7 @@ class FastTSMap():
         return [pix, result[0], result[1], result[2], result[3], result[4], time_ei_cds_array, time_fit, time_fast_ts_fit]
 
         
-    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None):
+    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None, ts_nside = None):
         
         """
         Perform parallel computation on all the hypothesis coordinates.
@@ -350,7 +351,7 @@ class FastTSMap():
         Parameters
         ----------
         hypothesis_coords : list
-            A list of the hypothesis coordinates
+            A list of the hypothesis coordinates to fit
         energy_channel : list
             the energy channel you want to use: [lower_channel, upper_channel]. lower_channel is inclusive while upper_channel is exclusive.
         spectrum : astromodels.functions
@@ -361,6 +362,8 @@ class FastTSMap():
             The starting method of the parallel computation (the default is "fork", which implies using the fork method to start parallel computation).
         cpu_cores : int, optional
             The number of cpu cores you wish to use for the parallel computation (the default is `None`, which implies using all the available number of cores -1 to perform the parallel computation).
+        ts_nside : int, optional
+            The nside of the ts map. This must be given if the number of hypothesis_coords isn't equal to the number of pixels of the total ts map, which means that you fit only a portion of the total ts map. (the default is `None`, which means that you fit the full ts map). 
         
         Returns
         -------
@@ -368,8 +371,9 @@ class FastTSMap():
             The result of the ts fit over all the hypothesis coordinates.
         """
         
-        # decide the ts_nside from the list of hypothesis coordinates
-        ts_nside = hp.npix2nside(len(hypothesis_coords))
+        # decide the ts_nside from the list of hypothesis coordinates if not given
+        if ts_nside == None:
+            ts_nside = hp.npix2nside(len(hypothesis_coords))
         
         # get the flattened data_cds_array
         data_cds_array = FastTSMap.get_cds_array(self._data, energy_channel).flatten()
@@ -390,10 +394,10 @@ class FastTSMap():
             # if you don't specify the number of cpu cores to use or the specified number of cpu cores is the same as the total number of cores you have
             # it will use the [total_cores - 1] number of cores to run the parallel computation.
             cores = total_cores - 1
-            print(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
+            logger.info(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
         else:
             cores = cpu_cores
-            print(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
+            logger.info(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
 
         start = time.time()
         multiprocessing.set_start_method(start_method, force = True)
@@ -409,7 +413,7 @@ class FastTSMap():
         
         elapsed_seconds = end - start
         elapsed_minutes = elapsed_seconds/60
-        print(f"The time used for the parallel TS map computation is {elapsed_minutes} minutes")
+        logger.info(f"The time used for the parallel TS map computation is {elapsed_minutes} minutes")
         
         results = np.array(results)  # turn to a numpy array
         results = results[results[:, 0].argsort()]  # arrange the order by the pixel numbering
@@ -447,6 +451,7 @@ class FastTSMap():
             lon = skycoord.l.deg
             lat = skycoord.b.deg
 
+
         # get the ts value
         m_ts = ts_array
         
@@ -462,14 +467,14 @@ class FastTSMap():
             hp.mollview(m_ts[:], max = max_ts, min = max_ts-critical, title = f"Containment {percentage}%", coord = "G", hold = True) 
         elif containment == None:
             hp.mollview(m_ts[:], coord = "G", hold = True) 
-            
-        
+
         if skycoord != None:
             hp.projscatter(lon, lat, marker = "x", linewidths = 0.5, lonlat=True, coord = "G", label = f"True location at l={lon}, b={lat}", color = "fuchsia")
         hp.projscatter(0, 0, marker = "o", linewidths = 0.5, lonlat=True, coord = "G", color = "red")
         hp.projtext(350, 0, "(l=0, b=0)", lonlat=True, coord = "G", color = "red")
 
         if save_plot == True:
+
             fig.savefig(Path(save_dir)/save_name, dpi = dpi)
 
         return
@@ -498,6 +503,7 @@ class FastTSMap():
         if ts_array is not None:
 
             FastTSMap._plot_ts(ts_array = ts_array, skycoord = skycoord, containment = containment, 
+
                                save_plot = save_plot, save_dir = save_dir, save_name = save_name, dpi = dpi)
 
         else:
@@ -533,6 +539,6 @@ class FastTSMap():
     
         info = p.memory_full_info()
         memory = info.uss / 1024. / 1024
-        print('{} memory used: {} MB'.format(hint, memory))
+        logger.info('{} memory used: {} MB'.format(hint, memory))
         
     

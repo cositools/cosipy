@@ -11,6 +11,9 @@ from pathlib import Path
 import numpy as np
 import mhealpy as hp
 from mhealpy import HealpixBase, HealpixMap
+
+from scipy.special import erf
+
 from yayc import Configurator
 
 from scoords import SpacecraftFrame, Attitude
@@ -195,14 +198,17 @@ class FullDetectorResponse(HealpixBase):
                     try :
                         norm = str(line[1])
                     except :
-                        print(f"norm not found in the file ! We assume {norm}")
+                        logger.info(f"norm not found in the file ! We assume {norm}")
 
                     if norm =="Linear" :
                         emin = int(line[2])
                         emax = int(line[3])
-                        
-             
-		
+                    
+                    if norm == "Gaussian" :
+                        Gauss_mean = float(line[2])   
+                        Gauss_sig = float(line[3])
+                        Gauss_cutoff = float(line[4])          
+  	
                 elif key == "MS":
                     if line[1] == "true" :
                         sparse = True
@@ -243,20 +249,19 @@ class FullDetectorResponse(HealpixBase):
                     break
         
         #check if the type of spectrum is known
-        assert norm=="powerlaw" or norm=="Mono" or norm=="Linear","unknown normalisation !" 
+        assert norm=="powerlaw" or norm=="Mono" or norm=="Linear" or norm=="Gaussian",f"unknown normalisation ! {norm}" 
          
         #check the number of simulated events is not 0
         assert nevents_sim != 0,"number of simulated events is 0 !" 
         
         
-        print("normalisation is {0}".format(norm))
+        logger.info("normalisation is {0}".format(norm))
         if sparse == None :
-            print("Sparse paramater not found in the file : We assume this is a non sparse matrice !")
+            logger.info("Sparse paramater not found in the file : We assume this is a non sparse matrice !")
             sparse = False
         else :
-            print("Sparse matrice ? {0}".format(sparse))
+            logger.info("Sparse matrice ? {0}".format(sparse))
         edges = ()
-        #print(axes_edges)
 
         for axis_edges, axis_type in zip(axes_edges, axes_types):
 
@@ -293,8 +298,8 @@ class FullDetectorResponse(HealpixBase):
 
             # If fast method fails, use long method, which should work in all cases.
             except:
-                print("Initial attempt failed.")
-                print("Using long method...")
+                logger.info("Initial attempt failed.")
+                logger.info("Using long method...")
                 nlines = sum(1 for _ in gzip.open(filename,"rt"))
                 
             # Preallocate arrays
@@ -303,7 +308,7 @@ class FullDetectorResponse(HealpixBase):
 
             # Calculate the memory usage in Gigabytes
             memory_size = ((nlines * data.itemsize)+(axes.ndim*nlines*coords.itemsize))/(1024*1024*1024)
-            print(f"Estimated RAM you need to read the file : {memory_size} GB")
+            logger.info(f"Estimated RAM you need to read the file : {memory_size} GB")
 
     
                 
@@ -315,7 +320,7 @@ class FullDetectorResponse(HealpixBase):
 
             # Calculate the memory usage in Gigabytes
             memory_size = (nlines * data.itemsize)/(1024*1024*1024)
-            print(f"Estimated RAM you need to read the file : {memory_size} GB")
+            logger.info(f"Estimated RAM you need to read the file : {memory_size} GB")
 
 
         # Loop
@@ -376,7 +381,7 @@ class FullDetectorResponse(HealpixBase):
                     if binLine :
                         #check we have same number of bin than values read
                         if len(line)!=nbins :
-                            print("nb of bin content read ({0}) != nb of bins {1}".format(len(line),nbins))
+                            logger.info("nb of bin content read ({0}) != nb of bins {1}".format(len(line),nbins))
                             sys.exit()
                         
                         for i in tqdm(range(nbins), desc="Processing", unit="bin"):
@@ -388,7 +393,7 @@ class FullDetectorResponse(HealpixBase):
 
                         break
         
-        print("response file read ! Now we create the histogram and weight in order to "+ 
+        logger.info("response file read ! Now we create the histogram and weight in order to "+ 
                 "get the effective area")
         # create histpy histogram
 
@@ -412,8 +417,18 @@ class FullDetectorResponse(HealpixBase):
         #print(ewidth)
         #print(ecenters)
 
+        #if we have one single bin, treat the gaussian norm like the mono one
+        #also check that the gaussian spectrum is fully contained in that bin 
+        if len(ewidth) == 1 and norm == "Gaussian":
+            edges = dr.axes['Ei'].edges
+            gauss_int = 0.5 * (1 + erf( (edges[0]-Gauss_mean)/(4*np.sqrt(2)) ) ) + 0.5 * (1 + erf( (edges[1]-Gauss_mean)/(4*np.sqrt(2)) ) )
+            
+            assert gauss_int == 1, "The gaussian spectrum is not fully contained in this single bin !"
+            logger.info("Only one bin so we will use the Mono normalisation")
+            norm ="Mono"
+
         if Spectrumfile is not None and norm=="file":
-            print("normalisation : spectrum file")
+            logger.info("normalisation : spectrum file")
             # From spectrum file
             spec = pd.read_csv(Spectrumfile, sep=" ")
             spec = spec.iloc[:-1]
@@ -428,7 +443,7 @@ class FullDetectorResponse(HealpixBase):
             nperchannel_norm = hspec[:]
 
         elif norm=="powerlaw":
-            print("normalisation : powerlaw with index {0} with energy range [{1}-{2}]keV".format(alpha,emin,emax))
+            logger.info("normalisation : powerlaw with index {0} with energy range [{1}-{2}]keV".format(alpha,emin,emax))
             # From powerlaw
 
             e_lo = dr.axes['Ei'].lower_bounds
@@ -451,14 +466,18 @@ class FullDetectorResponse(HealpixBase):
                 nperchannel_norm = (e_hi**a - e_lo**a) / (emax**a - emin**a)            
 
         elif norm =="Linear" :
-            print("normalisation : linear with energy range [{0}-{1}]".format(emin,emax))
+            logger.info("normalisation : linear with energy range [{0}-{1}]".format(emin,emax))
             nperchannel_norm = ewidth / (emax-emin)
             
         elif norm=="Mono" :
-            print("normalisation : mono")
+            logger.info("normalisation : mono")
 
             nperchannel_norm = np.array([1.])
-            
+        
+        elif norm == "Gaussian" :
+            raise NotImplementedError("Gausssian norm for multiple bins not yet implemented")
+
+
         nperchannel = nperchannel_norm * nevents_sim
         # Full-sky?
         if not single_pixel:
@@ -487,9 +506,7 @@ class FullDetectorResponse(HealpixBase):
             pass
 
         # create a .h5 file with the good structure
-        filename = filename.replace(
-        ".rsp.gz", "_nside{0}.area.h5".format(nside))
-        
+        filename = filename.replace(".rsp.gz","_nside{0}.area.h5".format(nside))
         f = h5.File(filename, mode='w')
 
         drm = f.create_group('DRM')
@@ -1146,7 +1163,7 @@ def cosi_response(argv=None):
                 apar.error(f"Argument '{option}' not valid for 'dump' command")
 
             if args.output is None:
-                print(result)
+                logger.info(result)
             else:
                 logger.info(f"Saving result to {Path(args.output).resolve()}")
                 f = open(args.output, 'a')
