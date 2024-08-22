@@ -4,9 +4,10 @@ from cosipy import SpacecraftFile
 import numpy as np
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-
 from astropy.io import fits
 import os
+from pathlib import Path
+from astropy.time import Time 
 
 def test_get_time():
 
@@ -321,3 +322,104 @@ def test_get_rmf():
                          0.04519021138548851])
     
     os.remove("test.rmf")
+
+
+def test_get_pha():
+
+    response_path = test_data.path / "test_full_detector_response.h5"
+    ori_path = test_data.path / "20280301_first_10sec.ori"
+    ori = SpacecraftFile.parse_from_file(ori_path)
+    
+    target_name = "Crab"
+    target_coord = SkyCoord(l=184.5551, b = -05.7877, unit = (u.deg, u.deg), frame = "galactic")
+    
+    path_in_sc = ori.get_target_in_sc_frame(target_name, target_coord)
+    dwell_map = ori.get_dwell_map(response = response_path)
+    _ = ori.get_psr_rsp()
+    ori.get_arf(out_name = "test")
+    ori.get_rmf(out_name = "test")
+    
+    counts = np.array([0.01094232, 0.04728866, 0.06744612, 0.01393708, 0.05420688,
+                       0.03141498, 0.01818584, 0.00717219, 0.00189568, 0.00010503])*1000
+    
+    errors = np.sqrt(counts)
+    
+    ori.get_pha(src_counts=counts, errors=errors, exposure_time=10)
+    
+    os.remove("test.arf")
+    os.remove("test.rmf")
+    
+    fits_file = fits.open("test.pha")
+    os.remove("test.pha")
+    
+    assert np.allclose(fits_file[1].data.field("CHANNEL"), 
+                           np.array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]))
+    
+    assert np.allclose(fits_file[1].data.field("COUNTS"), 
+                           np.array([10, 47, 67, 13, 54, 31, 18,  7,  1,  0]))
+    
+    assert np.allclose(fits_file[1].data.field("STAT_ERR"), 
+                           np.array([3, 6, 8, 3, 7, 5, 4, 2, 1, 0]))
+
+def test_plot_arf():
+
+    response_path = test_data.path / "test_full_detector_response.h5"
+    ori_path = test_data.path / "20280301_first_10sec.ori"
+    ori = SpacecraftFile.parse_from_file(ori_path)
+    
+    target_name = "Crab"
+    target_coord = SkyCoord(l=184.5551, b = -05.7877, unit = (u.deg, u.deg), frame = "galactic")
+    
+    path_in_sc = ori.get_target_in_sc_frame(target_name, target_coord)
+    dwell_map = ori.get_dwell_map(response = response_path)
+    _ = ori.get_psr_rsp()
+    ori.get_arf(out_name = "test")
+    
+    ori.plot_arf()
+    
+    assert Path("Effective_area_for_test.png").exists()
+    
+    os.remove("test.arf")
+    os.remove("Effective_area_for_test.png")
+
+def test_plot_rmf():
+
+    response_path = test_data.path / "test_full_detector_response.h5"
+    ori_path = test_data.path / "20280301_first_10sec.ori"
+    ori = SpacecraftFile.parse_from_file(ori_path)
+    
+    target_name = "Crab"
+    target_coord = SkyCoord(l=184.5551, b = -05.7877, unit = (u.deg, u.deg), frame = "galactic")
+    
+    path_in_sc = ori.get_target_in_sc_frame(target_name, target_coord)
+    dwell_map = ori.get_dwell_map(response = response_path)
+    _ = ori.get_psr_rsp()
+    ori.get_rmf(out_name = "test")
+    
+    ori.plot_rmf()
+    
+    assert Path("Redistribution_matrix_for_test.png").exists()
+    
+    os.remove("test.rmf")
+    os.remove("Redistribution_matrix_for_test.png")
+
+def test_source_interval():
+
+    response_path = test_data.path / "test_full_detector_response.h5"
+    ori_path = test_data.path / "20280301_first_10sec.ori"
+    ori = SpacecraftFile.parse_from_file(ori_path)
+
+    new_ori = ori.source_interval(Time(ori._load_time[0]+0.1, format = "unix"), 
+                                  Time(ori._load_time[0]+2.1, format = "unix"))
+
+    assert np.allclose(new_ori._load_time, 
+                       np.array([1.835478e+09, 1.835478e+09, 1.835478e+09, 1.835478e+09]))
+
+    assert np.allclose(new_ori._x_direction.flatten(), 
+                       np.array([41.86062093, 73.14368765, 41.88225011, 73.09517927, 
+                                 41.90629597, 73.0412838 , 41.9087019 , 73.03589454]))
+
+    assert np.allclose(new_ori._z_direction.flatten(), 
+                       np.array([221.86062093,  16.85631235, 221.88225011,  16.90482073,
+                                221.90629597,  16.9587162 , 221.9087019 ,  16.96410546]))
+    
