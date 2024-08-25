@@ -1,1 +1,2 @@
-from .util import OrthographicConvention, StereographicConvention, pa_transformation
+from .conventions import PolarizationConvention, OrthographicConvention, StereographicConvention, IAUPolarizationConvention
+
