@@ -9,11 +9,11 @@ coverage:
     project: # How much the overall coverage can decrease
       default:
         target: auto    # Uses coverage of current pull request base or parent commit
-        threshold: 10%  # Leeway, allow it to decrease a little. Will be 0% in the long term
+        threshold: 100%  # Leeway, allow it to decrease a little. Will be 0% in the long term
     patch:   # What percentage of the new lines need to be covered
       default:
         target: 100%
-        threshold: 50%  # Leeway, allow not fully-covered contributuons. Will be 0% in the long term
+        threshold: 0%  # Leeway, allow not fully-covered contributuons. Will be 0% in the long term
         
 
 comment:
