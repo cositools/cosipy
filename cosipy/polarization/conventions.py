@@ -53,32 +53,6 @@ class PolarizationConvention:
         """
         return None
         
-    def transform(self, pa_1, convention2, source_direction: SkyCoord):
-        
-        # Ensure pa_1 is an Angle object
-        pa_1 = Angle(pa_1)
-
-        # Get the projection vectors for the source direction in the current convention
-        (px1, py1) = self.get_basis(source_direction)
-
-        # Calculate the cosine and sine of the polarization angle
-        cos_pa_1 = np.cos(pa_1.radian)
-        sin_pa_1 = np.sin(pa_1.radian)
-
-        # Calculate the polarization vector in the current convention
-        pol_vec = px1 * cos_pa_1 + py1 * sin_pa_1
-
-        # Get the projection vectors for the source direction in the new convention
-        (px2, py2) = convention2.get_basis(source_direction)
-
-        # Compute the dot products for the transformation
-        a = np.sum(pol_vec * px2, axis=0)
-        b = np.sum(pol_vec * py2, axis=0)
-
-        # Calculate the new polarization angle in the new convention
-        pa_2 = Angle(np.arctan2(b, a), unit=u.rad)
-        return pa_2
-
     def get_basis(self, source_direction: SkyCoord):
         """
         Get the px,py unit vectors that define the polarization plane on 
@@ -126,6 +100,16 @@ class OrthographicConvention(PolarizationConvention):
 
         self._sign = 1 if clockwise else -1
 
+    def __repr__(self):
+        return f"<OrthographicConvention(starting from {self.ref_vector} and {'clockwise' if self.is_clockwise else 'counter-clockwise'} when looking at the source)>"
+
+    @property
+    def is_clockwise(self):
+        """
+        When looking at the source
+        """
+        return True if self._sign == 1 else False
+    
     @property
     def frame(self):
         return self.ref_vector.frame
@@ -244,7 +228,7 @@ class IAUPolarizationConvention(OrthographicConvention):
         The following resolution was adopted by Commissions 25 and 40: 
         'RESOLVED, that the frame of reference for the Stokes parameters 
         is that of Right Ascension and Declination with the position 
-        angle ofelectric-vector maximum, e, starting from North and 
+        angle of electric-vector maximum, e, starting from North and 
         increasing through East.
         """
         super().__init__(ref_vector = SkyCoord(ra=0 * u.deg, dec=90 * u.deg,
