@@ -88,9 +88,16 @@ class PolarizationConvention:
         ----------
         source_direction : SkyCoord
             The direction of the source
+
+        Return
+        ------
+        px,py : SkyCoord
+            Polarization angle increaes from px to py. pz is always
+            the opposite of the source direction --i.e. in the direction of the
+            particle.
         """
 
-
+        
 # Orthographic projection convention
 class OrthographicConvention(PolarizationConvention):
 
@@ -144,13 +151,102 @@ class OrthographicConvention(PolarizationConvention):
         
         return px, py
 
+
+#https://github.com/zoglauer/megalib/blob/1eaad14c51ec52ad1cb2399a7357fe2ca1074f79/src/cosima/src/MCSource.cc#L3452
+class MEGAlibRelative(OrthographicConvention):
+
+    def __init__(self, axis, attitude = None):
+        """
+        Use a polarization vector which is created the following way: 
+        Create an initial polarization vector which is orthogonal on the 
+        initial flight direction vector of the particle and the given axis vector 
+        (e.g. x-axis for RelativeX). This is a simple crossproduct. Then rotate 
+        the polarization vector (right-hand-way) around the initial flight 
+        direction vector of the particle by the given rotation angle. 
+        """
+
+        if not isinstance(axis, str):
+            raise TypeError("Axis must be a string. 'x', 'y' or 'z'.")
+
+        axis = axis.lower()
+        
+        if axis == 'x':
+            ref_vector = SkyCoord(lon=0 * u.deg, lat=0 * u.deg,
+                                  frame = SpacecraftFrame(attitude = attitude))
+        elif axis == 'y':
+            ref_vector = SkyCoord(lon=90 * u.deg, lat=0 * u.deg,
+                                  frame = SpacecraftFrame(attitude = attitude))
+        elif axis == 'z':
+            ref_vector = SkyCoord(lon=0 * u.deg, lat=90 * u.deg,
+                                  frame = SpacecraftFrame(attitude = attitude))
+        else:
+            raise ValueError("Axis must be 'x', 'y' or 'z'.")
+            
+        super().__init__(ref_vector, clockwise = False)
+        
+    def get_basis(self, source_direction: SkyCoord):
+
+        # The MEGAlib and orthographic definitions are prett much the same, but
+        # they differ on the order of the cross products
+        
+        # In MEGAlib definition
+        # pz = -source_direction = particle_direction
+        # px = particle_direction x ref_vector  = pz x ref_vector
+        # py = pz x px
+
+        # In the base orthographic definition
+        # pz = -source_direction = particle_direction
+        # px = py x pz
+        # py = source_direction x ref_vector = -pz x ref_vector
+
+        # Therefore
+        # px = py_base
+        # py = -px_base
+
+        # MEGAlib's PA is counter-clockwise when looking at the sourse
+
+        # Flip px <-> py
+        py,px = super().get_basis(source_direction)
+
+        # Sign of px
+        py = SkyCoord(-py.cartesian,
+                      representation_type = 'cartesian',
+                      frame = py.frame)
+        
+        return px,py
+
+@PolarizationConvention.register("RelativeX")    
+class MEGAlibRelativeX(MEGAlibRelative):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__('x', *args, **kwargs)
+        
+@PolarizationConvention.register("RelativeY")    
+class MEGAlibRelativeY(MEGAlibRelative):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__('y', *args, **kwargs)
+
+@PolarizationConvention.register("RelativeZ")    
+class MEGAlibRelativeZ(MEGAlibRelative):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__('z', *args, **kwargs)
+
+    
 # https://lambda.gsfc.nasa.gov/product/about/pol_convention.html
 # https://www.iau.org/static/resolutions/IAU1973_French.pdf
-# The following resolution was adopted by Commissions 25 and 40: 'RESOLVED, that the frame of reference for the Stokes parameters is that of Right Ascension and Declination with the position angle ofelectric-vector maximum, e, starting from North and increasing through East.
 @PolarizationConvention.register("IAU")
 class IAUPolarizationConvention(OrthographicConvention):
 
     def __init__(self):
+        """
+        The following resolution was adopted by Commissions 25 and 40: 
+        'RESOLVED, that the frame of reference for the Stokes parameters 
+        is that of Right Ascension and Declination with the position 
+        angle ofelectric-vector maximum, e, starting from North and 
+        increasing through East.
+        """
         super().__init__(ref_vector = SkyCoord(ra=0 * u.deg, dec=90 * u.deg,
                                                frame="icrs"),
                          clockwise = False)
