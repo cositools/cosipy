@@ -54,6 +54,20 @@ Near the z-axis, it is very similar to using an orthographic convention with +x 
   :alt: Stereographic
 
 
+Converting from one convention and/or frame to another
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use the :code:`transform_to` function::
+
+ pa_inertial =  PolarizationAngle(20*u.deg, source_direction, convention = 'IAU')
+
+ pa2_sc = pa.transform_to('RelativeX', attitude = Attitude.from_rotvec([0,10,0]*u.deg))
+
+ print(pa2_sc.angle.degree)
+
+Results in 161.95. Note that in addition to accounting for the difference polarization reference vector, it also transforms from one reference frame to another on the fly.
+
+
 .. automodule:: cosipy.polarization
    :imported-members:
    :members:
