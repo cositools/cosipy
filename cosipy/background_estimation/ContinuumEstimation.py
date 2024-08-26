@@ -11,12 +11,13 @@ import numpy as np
 from sklearn.mixture import GaussianMixture
 from scipy.stats import norm
 import numpy.ma as ma
+from tqdm import tqdm
 import logging
 logger = logging.getLogger(__name__)
 
 class ContinuumEstimation:
     
-    def calc_psr(self, ori_file, detector_response, coord, nside=16):
+    def calc_psr(self, ori_file, detector_response, coord, output_file, nside=16):
 
         """Calculates point source response (PSR) in Galactic coordinates.
         
@@ -30,6 +31,8 @@ class ContinuumEstimation:
             tuple giving Galactic longitude and latitude of source in degrees: (l,b). 
         nside : int, optional
             nside of scatt map (default is 16). 
+        output_file : str
+            Prefix of output file (will have .h5 extension).
         """
 
         # Orientatin file:
@@ -46,6 +49,9 @@ class ContinuumEstimation:
         coord = SkyCoord(l=coord[0],b=coord[1],frame='galactic')
         with FullDetectorResponse.open(dr) as response:
             self.psr = response.get_point_source_response(coord = coord, scatt_map = scatt_map)
+
+        # Save:
+        self.psr.write(output_file + ".h5")
 
         return 
 
@@ -221,12 +227,20 @@ class ContinuumEstimation:
     
         return interp_list
 
-    def continuum_bg_estimation(self, output_file, containment=0.4, make_plot=False):
+    def continuum_bg_estimation(self, data_file, data_yaml, psr_file, \
+            output_file, containment=0.4, make_plots=False,\
+            e_loop="default", s_loop="default"):
 
         """Estimates continuum background.
         
         Parameters
         ----------
+        data_file : str
+            Full path to binned data (must be .h5 file). 
+        data_yaml : str
+            Full path to the dataIO yaml file used for binning the data.  
+        psr_file : str
+            Full path to point source respone file. 
         output_file : str
             Prefix of output file for estimated background (will be 
             saved as .h5 file). 
@@ -237,31 +251,51 @@ class ContinuumEstimation:
         make_plots : bool, optional
             Option to make some plots of the data, response, and masks. 
             Default is False.
+        e_loop : tuple, optional
+            Option to pass tuple specifying which energy range to 
+            loop over. This must coincide with the energy bins. The default
+            is all bins.
+        s_loop : tuple, optional
+            Option to pass tuple specifying which Phi anlge range to
+            loop over. This must coincide with the Phi  bins. The default
+            is all bins.
         """
 
+        # Load data to be used for BG estimation:
+        self.laod_full_data(data_file,data_yaml)
+
+        # Load point source respone:
+        self.load_psr_from_file(psr_file)
+
+        # Defaults for energy and scattering angle loops:
+        if e_loop == "default":
+            e_loop = (0,len(self.psr.axes['Em'].centers))
+        if s_loop == "default":
+            s_loop = (0,len(self.psr.axes['Phi'].centers))
+
+        # Progress bar:
+        e_tot = e_loop[1] - e_loop[0]
+        s_tot = s_loop[1] - s_loop[0]
+        num_lines = e_tot*s_tot
+        pbar = tqdm(total=num_lines)
+
         # Loop through all bins of energy and phi:
-        for E in range(0,len(self.psr.axes['Em'].centers)):
-            for s in range(0,len(self.psr.axes['Phi'].centers)):
+        for E in range(e_loop[0],e_loop[1]):
+            for s in range(s_loop[0],s_loop[1]):
+                
+                pbar.update(1) # update progress bar
+                logger.info("Bin %s %s" %(str(E),str(s)))
 
                 # Get PSR slice:
                 h = self.psr.slice[{'Em':E, 'Phi':s}].project('PsiChi')
 
                 # Get mask:
-                self.mask_from_cumdist(h, containment)       
-
-                # Make sure full data has been loaded:
-                try: 
-                    self.full_data
-                except:
-                    logger.error("ERROR: Full data set has not been loaded.")
-                    sys.exit()
+                self.mask_from_cumdist(h, containment, make_plots=make_plots)       
 
                 # Mask data:
                 h_data = self.full_data.binned_data.project('Em', 'Phi', 'PsiChi').slice[{'Em':E, 'Phi':s}].project('PsiChi')
                 m_data = HealpixMap(base = HealpixBase(npix = h_data.nbins), data = h_data.contents.todense())
                 m_data[self.sorted_indices[self.arm_mask]] = 0
-
-
 
                 # Skip this iteration if map is all zeros:
                 if len(m_data[m_data[:] > 0]) == 0:
@@ -287,7 +321,7 @@ class ContinuumEstimation:
 
                     # Plot masked response:
                     m_dummy[self.sorted_indices[self.arm_mask]] = 0
-                    plot,ax = m_mask.plot('mollview')
+                    plot,ax = m_dummy.plot('mollview')
                     plt.title("Masked Response")
                     plt.show()
                     plt.close()
@@ -311,7 +345,10 @@ class ContinuumEstimation:
                     plt.title("Interpolated Data (Estimated BG)")
                     plt.show()
                     plt.close()
-        
+      
+        # Close progress bar:
+        pbar.close()
+
         # Write estimated BG file:
         logger.info("Writing file...")
         self.estimated_bg.write(output_file,overwrite=True)
