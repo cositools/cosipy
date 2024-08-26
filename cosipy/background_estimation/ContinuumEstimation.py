@@ -8,7 +8,6 @@ from cosipy import BinnedData
 from mhealpy import HealpixMap, HealpixBase
 import matplotlib.pyplot as plt
 import numpy as np
-from sklearn.mixture import GaussianMixture
 from scipy.stats import norm
 import numpy.ma as ma
 from tqdm import tqdm
