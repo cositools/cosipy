@@ -19,5 +19,5 @@ If you are instead interested in an overview on how to use cosipy, see out `tuto
    ts_map
    image_deconvolution
    util          
-   
+   polarization
 
