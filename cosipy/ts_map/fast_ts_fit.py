@@ -19,6 +19,9 @@ import psutil
 import gc
 import matplotlib.pyplot as plt
 
+import logging
+logger = logging.getLogger(__name__)
+
 class FastTSMap():
     
     def __init__(self, data, bkg_model, response_path, orientation = None, cds_frame = "local", scheme = "RING"):
@@ -236,14 +239,14 @@ class FastTSMap():
                                                                         quiet = True)
             #time_coord_convert_end = time.time()
             #time_coord_convert_used = time_coord_convert_end - time_coord_convert_start
-            #print(f"The time used for coordinate conversion is {time_coord_convert_used}s.")
+            #logger.info(f"The time used for coordinate conversion is {time_coord_convert_used}s.")
 
             #time_dwell_start = time.time()
             # get the dwell time map: the map of the time spent on each pixel in the local frame
             dwell_time_map = orientation.get_dwell_map(response = response_path)
             #time_dwell_end = time.time()
             #time_dwell_used = time_dwell_end - time_dwell_start
-            #print(f"The time used for dwell time map is {time_dwell_used}s.")
+            #logger.info(f"The time used for dwell time map is {time_dwell_used}s.")
             
             #time_psr_start = time.time()
             # convolve the response with the dwell_time_map to get the point source response
@@ -251,7 +254,7 @@ class FastTSMap():
                 psr = response.get_point_source_response(dwell_time_map)
             #time_psr_end = time.time()
             #time_psr_used = time_psr_end - time_psr_start
-            #print(f"The time used for psr is {time_psr_used}s.")
+            #logger.info(f"The time used for psr is {time_psr_used}s.")
 
         elif cds_frame == "galactic":
             
@@ -272,7 +275,7 @@ class FastTSMap():
 
         #time_cds_end = time.time()
         #time_cds_used = time_cds_end - time_cds_start
-        #print(f"The time used for cds is {time_cds_used}s.")
+        #logger.info(f"The time used for cds is {time_cds_used}s.")
         
         return ei_cds_array
     
@@ -391,10 +394,10 @@ class FastTSMap():
             # if you don't specify the number of cpu cores to use or the specified number of cpu cores is the same as the total number of cores you have
             # it will use the [total_cores - 1] number of cores to run the parallel computation.
             cores = total_cores - 1
-            print(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
+            logger.info(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
         else:
             cores = cpu_cores
-            print(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
+            logger.info(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
 
         start = time.time()
         multiprocessing.set_start_method(start_method, force = True)
@@ -410,7 +413,7 @@ class FastTSMap():
         
         elapsed_seconds = end - start
         elapsed_minutes = elapsed_seconds/60
-        print(f"The time used for the parallel TS map computation is {elapsed_minutes} minutes")
+        logger.info(f"The time used for the parallel TS map computation is {elapsed_minutes} minutes")
         
         results = np.array(results)  # turn to a numpy array
         results = results[results[:, 0].argsort()]  # arrange the order by the pixel numbering
@@ -536,6 +539,6 @@ class FastTSMap():
     
         info = p.memory_full_info()
         memory = info.uss / 1024. / 1024
-        print('{} memory used: {} MB'.format(hint, memory))
+        logger.info('{} memory used: {} MB'.format(hint, memory))
         
     
