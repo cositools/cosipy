@@ -74,7 +74,9 @@ class FullDetectorResponse(HealpixBase):
 
          emin,emax : float
              emin/emax used in the simulation source file.  
-        
+
+        polarization : bool,
+             True if response includes polarization angle.
         """
         
         filename = Path(filename)
@@ -170,6 +172,8 @@ class FullDetectorResponse(HealpixBase):
          emin,emax : float
              emin/emax used in the simulation source file.
          
+         polarization : bool,
+             True if response includes polarization angle.
         """
 
         if polarization == True:
