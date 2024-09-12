@@ -70,7 +70,7 @@ class ContinuumEstimation:
 
         return
 
-    def laod_full_data(self, data_file, data_yaml):
+    def load_full_data(self, data_file, data_yaml):
 
         """Loads binned data to be used as a template for the background estimate.
         
