@@ -4,7 +4,7 @@ import astropy.units as u
 from astropy.stats import poisson_conf_interval
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from cosipy.polarization import PolarizationAngle
+from cosipy.polarization.polarization_angle import PolarizationAngle
 from cosipy.polarization.conventions import MEGAlibRelativeX, IAUPolarizationConvention
 from cosipy.response import FullDetectorResponse
 from scoords import SpacecraftFrame
