@@ -4,6 +4,7 @@ from astropy import units as u
 from scoords import SpacecraftFrame
 
 from cosipy.polarization import PolarizationASAD, calculate_uncertainties
+from cosipy.polarization.conventions import IAUPolarizationConvention
 from cosipy.spacecraftfile import SpacecraftFile
 from cosipy import UnBinnedData
 from cosipy.threeml.custom_functions import Band_Eflux
@@ -62,6 +63,11 @@ def test_calculate_azimuthal_scattering_angle():
                         polarization.calculate_azimuthal_scattering_angle(np.pi/2, -np.pi/7).rad, polarization.calculate_azimuthal_scattering_angle(np.pi/3, 3*np.pi/2).rad],
                         [1.5707963267948966, -1.5707963267948966, -1.097213841102146, 0.1949572818104049])
     
+def test_polarization_asad_init():
+
+    source_direction_galactic = SkyCoord(0, 0, representation_type='spherical', frame='galactic', attitude=attitude, unit=u.deg)
+    polarization_iau = PolarizationASAD(source_direction_galactic, spectrum, response_path, sc_orientation, fit_convention=IAUPolarizationConvention())
+    
 def test_polarization_fit():
 
     azimuthal_angles = polarization.calculate_azimuthal_scattering_angles(data)
@@ -76,6 +82,14 @@ def test_polarization_fit():
     assert np.allclose([asad['uncertainties'][0][0], asad['uncertainties'][1][3], 
                         asad['uncertainties'][0][6], asad['uncertainties'][1][8]], 
                        [33.37663853655727, 26.962937525425527, 24.228082879171435, 29.715315916207253])
+    
+    asad_int_bins = polarization.create_asad(azimuthal_angles, 10)
+
+    assert np.allclose([asad_int_bins['counts'][0], asad_int_bins['counts'][3], asad_int_bins['counts'][6], asad_int_bins['counts'][8]], [1114, 727, 587, 883])
+    
+    assert np.allclose([asad_int_bins['uncertainties'][0][0], asad_int_bins['uncertainties'][1][3], 
+                        asad_int_bins['uncertainties'][0][6], asad_int_bins['uncertainties'][1][8]], 
+                       [33.37663853655727, 26.962937525425527, 24.228082879171435, 29.715315916207253])
 
     asad_unpolarized = polarization.create_unpolarized_asad()
 
@@ -86,6 +100,26 @@ def test_polarization_fit():
                        asad_unpolarized['uncertainties'][0][6], asad_unpolarized['uncertainties'][1][8]], 
                        [30.53545042791586, 30.11359038477626, 28.188046543303813, 31.61185458189984])
     
+    asad_unpolarized_int_bins = polarization.create_unpolarized_asad(bins=10)
+
+    assert np.allclose([asad_unpolarized_int_bins['counts'][0], asad_unpolarized_int_bins['counts'][3], 
+                        asad_unpolarized_int_bins['counts'][6], asad_unpolarized_int_bins['counts'][8]], 
+                       [932.4137328357068, 906.8283258620892, 794.565967927462, 999.309350107182])
+    
+    assert np.allclose([asad_unpolarized_int_bins['uncertainties'][0][0], asad_unpolarized_int_bins['uncertainties'][1][3], 
+                       asad_unpolarized_int_bins['uncertainties'][0][6], asad_unpolarized_int_bins['uncertainties'][1][8]], 
+                       [30.53545042791586, 30.11359038477626, 28.188046543303813, 31.61185458189984])
+    
+    asad_unpolarized_bin_list = polarization.create_unpolarized_asad(bins=bin_edges)
+
+    assert np.allclose([asad_unpolarized_bin_list['counts'][0], asad_unpolarized_bin_list['counts'][3], 
+                        asad_unpolarized_bin_list['counts'][6], asad_unpolarized_bin_list['counts'][8]], 
+                       [932.4137328357068, 906.8283258620892, 794.565967927462, 999.309350107182])
+    
+    assert np.allclose([asad_unpolarized_bin_list['uncertainties'][0][0], asad_unpolarized_bin_list['uncertainties'][1][3], 
+                       asad_unpolarized_bin_list['uncertainties'][0][6], asad_unpolarized_bin_list['uncertainties'][1][8]], 
+                       [30.53545042791586, 30.11359038477626, 28.188046543303813, 31.61185458189984])
+    
     asad_polarized = polarization.create_polarized_asads()
     
     assert np.allclose([asad_polarized['counts'][0][0], asad_polarized['counts'][1][3], asad_polarized['counts'][2][6], asad_polarized['counts'][3][8]], 
@@ -93,6 +127,26 @@ def test_polarization_fit():
     
     assert np.allclose([asad_polarized['uncertainties'][0][0][0], asad_polarized['uncertainties'][1][1][3], 
                         asad_polarized['uncertainties'][2][0][6], asad_polarized['uncertainties'][3][1][8]], 
+                       [15.1561239401626, 15.210215710411308, 14.069065171695366, 15.608407612946802])
+    
+    asad_polarized_int_bins = polarization.create_polarized_asads(bins=10)
+    
+    assert np.allclose([asad_polarized_int_bins['counts'][0][0], asad_polarized_int_bins['counts'][1][3], 
+                        asad_polarized_int_bins['counts'][2][6], asad_polarized_int_bins['counts'][3][8]], 
+                       [229.70809288956985, 231.350661957243, 197.93859480541153, 243.6223882118957])
+    
+    assert np.allclose([asad_polarized_int_bins['uncertainties'][0][0][0], asad_polarized_int_bins['uncertainties'][1][1][3], 
+                        asad_polarized_int_bins['uncertainties'][2][0][6], asad_polarized_int_bins['uncertainties'][3][1][8]], 
+                       [15.1561239401626, 15.210215710411308, 14.069065171695366, 15.608407612946802])
+    
+    asad_polarized_bin_list = polarization.create_polarized_asads(bins=bin_edges)
+    
+    assert np.allclose([asad_polarized_bin_list['counts'][0][0], asad_polarized_bin_list['counts'][1][3], 
+                        asad_polarized_bin_list['counts'][2][6], asad_polarized_bin_list['counts'][3][8]], 
+                       [229.70809288956985, 231.350661957243, 197.93859480541153, 243.6223882118957])
+    
+    assert np.allclose([asad_polarized_bin_list['uncertainties'][0][0][0], asad_polarized_bin_list['uncertainties'][1][1][3], 
+                        asad_polarized_bin_list['uncertainties'][2][0][6], asad_polarized_bin_list['uncertainties'][3][1][8]], 
                        [15.1561239401626, 15.210215710411308, 14.069065171695366, 15.608407612946802])
 
     mu_100 = polarization.calculate_mu100(asad_polarized, asad_unpolarized)
