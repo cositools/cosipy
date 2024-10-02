@@ -3,7 +3,7 @@ from astropy.coordinates import Angle, SkyCoord
 from astropy import units as u
 from scoords import SpacecraftFrame
 
-from polarization.polarization_asad import PolarizationASAD, calculate_uncertainties
+from cosipy.polarization import PolarizationASAD, calculate_uncertainties
 from cosipy.spacecraftfile import SpacecraftFile
 from cosipy import UnBinnedData
 from cosipy.threeml.custom_functions import Band_Eflux
