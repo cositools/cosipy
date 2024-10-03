@@ -6,7 +6,7 @@ from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.response.ExtendedSourceResponse import ExtendedSourceResponse
-from cosipy.image_deconvolution import ModelMap
+from cosipy.image_deconvolution import AllSkyImageModel
 
 from scoords import SpacecraftFrame, Attitude
 
