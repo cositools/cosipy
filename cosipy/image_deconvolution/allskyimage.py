@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
-from cosipy.threeml.custom_functions import get_integrated_spectral_model
+from cosipy.response.functions import get_integrated_spectral_model
 
 from .model_base import ModelBase
 
