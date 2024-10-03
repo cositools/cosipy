@@ -12,4 +12,4 @@ from .threeml import Band_Eflux
 
 from .spacecraftfile import SpacecraftFile
 
-from .ts_map import FastTSMap
+from .ts_map import FastTSMap, MOCTSMap
