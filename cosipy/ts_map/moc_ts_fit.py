@@ -7,20 +7,15 @@ Created on Wed Oct  2 15:39:42 2024
 """
 
 import numpy as np
-#import healpy as hp
 from mhealpy import HealpixMap
 from mhealpy.pixelfunc.moc import *
 from mhealpy.pixelfunc.single import *
-#import matplotlib.pyplot as plt
 from .fast_ts_fit import FastTSMap
-
+import matplotlib.pyplot as plt
 from copy import deepcopy
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-from copy import deepcopy
-import multiprocessing
-from itertools import product
-import time
+from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
@@ -30,6 +25,21 @@ class MOCTSMap(FastTSMap):
     def __init__(self, data, bkg_model, response_path, orientation = None, cds_frame = "local"):
         
         """
+        Initialize the instance of a MOC TS map fit.
+        
+        Parameters
+        ----------
+        data : histpy.Histogram
+            Observed data, which includes counts from both signal and background.
+        bkg_model : histpy.Histogram
+            Background model, which includes the background counts to model the background in the observed data.
+        response_path : str or pathlib.Path
+            The path to the response file.
+        orientation : cosipy.SpacecraftFile, optional
+            The orientation of the spacecraft when data are collected (the default is `None`, which implies the orientation file is not needed).
+        cds_frame : str, optional
+            "local" or "galactic", it's the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame (the default is "local", which implied that a local frame that attached to the spacecraft).
+        
         """
         
         super().__init__(data, bkg_model, response_path, orientation = orientation, cds_frame = cds_frame)
@@ -52,6 +62,8 @@ class MOCTSMap(FastTSMap):
 
         Returns
         -------
+        tuple
+            The upscaled the map and the unique numbers of the child pixels.
         """
 
         if not m.is_moc:
@@ -95,7 +107,7 @@ class MOCTSMap(FastTSMap):
     def uniq2skycoord(uniq):
 
         """
-        Convert the uniq number to the corresponding central skycoord
+        Convert the uniq number to the corresponding central skycoord.
         
         Parameters
         ----------
@@ -118,7 +130,7 @@ class MOCTSMap(FastTSMap):
     def uniq2pixidx(m, uniq):
         
         """
-        Convert the uniq to the pixel index in the map
+        Convert the uniq to the pixel index in the map.
         
         Parameters
         ----------
@@ -138,7 +150,7 @@ class MOCTSMap(FastTSMap):
     def fill_up_moc_map(pixidx, m, results):
 
         """
-        Fill up the moc map based on the pixidx
+        Fill up the moc map based on the pixidx.
 
         Parameters
         ----------
@@ -170,10 +182,25 @@ class MOCTSMap(FastTSMap):
         return m
 
     
-    def moc_ts_fit(self, max_moc_order, top_number, energy_channel, spectrum, start_method = "fork", cpu_cores = None, ts_nside = None):
+    def moc_ts_fit(self, max_moc_order, top_number, energy_channel, spectrum, start_method = "fork", cpu_cores = None):
         
         """
-        Fit the MOC map
+        Fit the MOC map.
+        
+        Parameters
+        ----------
+        max_moc_order : int
+            The order of the MOC map to stop the fitting.
+        top_number : int
+            The pixels with the top likelihood to will be upscaled. For example, pixels with top eight likelihoods will be considered as mother pixels to be split into the child pixels.
+        energy_channel : list
+            The energy channel to be used for the MOC map fitting.
+        spectrum : 
+            The spectrum model of the source to fit the model.
+        start_method : str, optional
+            The starting method of the parallel computation (the default is "fork", which implies using the fork method to start parallel computation).
+        cpu_cores : int, optional
+            The number of cpu cores you wish to use for the parallel computation (the default is `None`, which implies using all the available number of cores -1 to perform the parallel computation).
         """
         
         # initialize the order 
@@ -190,10 +217,12 @@ class MOCTSMap(FastTSMap):
         
         print(f"fitting order = {order}")
         print(f"fitting {len(hypothesis_coords_list)} hypothesis coordinates")
-        ts_results = self.parallel_ts_fit(hypothesis_coords = hypothesis_coords_list, energy_channel = energy_channel, spectrum = spectrum, pixel_idx = pixidx)
+        results = self.parallel_ts_fit(hypothesis_coords = hypothesis_coords_list, energy_channel = energy_channel, spectrum = spectrum, pixel_idx = pixidx)
+        self.ts_array = results[:,1]
 
         # fill up the 0th order moc map
-        moc_map_ts = MOCTSMap.fill_up_moc_map(pixidx, moc_map_ts, ts_results)
+        moc_map_ts = MOCTSMap.fill_up_moc_map(pixidx, moc_map_ts, results)
+        self.moc_map_ts = moc_map_ts
         
         
         # # if the user requires higher order fit
@@ -220,13 +249,75 @@ class MOCTSMap(FastTSMap):
             hypothesis_coords_list = [i for i in hypothesis_coords]  # have to split the SkyCoord object into SkyCoord object
             child_idx = MOCTSMap.uniq2pixidx(moc_map_ts, child_uniq)  # child_idx is used to make sure that the ts values are filled into the correct pixels
             print(f"fitting order {order} with {len(hypothesis_coords_list)} hypothesis coordinates")
-            ts_results = self.parallel_ts_fit(hypothesis_coords = hypothesis_coords_list, energy_channel = energy_channel, spectrum = spectrum, ts_nside = 2**order, pixel_idx = child_idx)
+            results = self.parallel_ts_fit(hypothesis_coords = hypothesis_coords_list, energy_channel = energy_channel, spectrum = spectrum, ts_nside = 2**order, pixel_idx = child_idx)
+            self.ts_array = results[:,1]
             
             # fill up the child pixels
-            moc_map_ts = MOCTSMap.fill_up_moc_map(child_idx, moc_map_ts, ts_results)
+            moc_map_ts = MOCTSMap.fill_up_moc_map(child_idx, moc_map_ts, results)
+            self.moc_map_ts = moc_map_ts
+    
                 
             order +=1
             print("--------------------------------------------------------------------------------")
             
         
         return moc_map_ts
+    
+    def plot_ts(self, moc_map = None, skycoord = None, containment = None, save_plot = False, save_dir = "", save_name = "ts_map.png", dpi = 300):
+
+        """
+        Plot the containment region of the TS map.
+
+        Parameters
+        ----------
+        ts_array : numpy.ndarray
+            The array of ts values from parallel ts fit.
+        skyoord : astropy.coordinates.SkyCoord, optional
+            The true location of the source (the default is `None`, which implies that there are no coordiantes to be printed on the TS map).
+        containment : float, optional
+            The containment level of the source (the default is `None`, which will plot raw TS values).
+        save_plot : bool, optional
+            Set `True` to save the plot (the default is `False`, which means it won't save the plot.
+        save_dir : str or pathlib.Path, optional
+            The directory to save the plot.
+        save_name : str, optional
+            The file name of the plot to be save.
+        dpi : int, optional
+            The dpi for plotting and saving.
+        """
+
+            
+        if moc_map is None:
+            moc_map = self.moc_map_ts
+ 
+        # decide the critical value
+        if containment is not None:
+            critical = MOCTSMap.get_chi_critical_value(containment = 0.9)
+            max_ts = np.max(moc_map[:])
+        
+        # get plotting canvas
+        fig = plt.figure(dpi = dpi)
+        
+        axMoll = fig.add_subplot(1,1,1, projection = 'mollview')
+        
+        # Plot in one of the axes 
+        if containment is None:
+            plotMoll, projMoll = moc_map.plot(ax = axMoll)
+        else:
+            plotMoll, projMoll = moc_map.plot(ax = axMoll, vmin = max_ts-critical, vmax = max_ts)
+            
+        moc_map.plot_grid(ax = plt.gca(), color = 'grey', linewidth = 0.1);
+        
+        
+        # plot the sky cooordinates if given
+        if skycoord is not None:
+            
+            axMoll.text(skycoord.l.deg, skycoord.b.deg, "x", size = 4, 
+                        horizontalalignment='center',
+                        verticalalignment='center',
+                        transform = axMoll.get_transform('world'), color = "red")
+
+        if save_plot == True:
+
+            fig.savefig(Path(save_dir)/save_name, dpi = dpi)
+    
