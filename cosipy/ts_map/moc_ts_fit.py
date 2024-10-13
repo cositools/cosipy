@@ -223,6 +223,10 @@ class MOCTSMap(FastTSMap):
         # fill up the 0th order moc map
         moc_map_ts = MOCTSMap.fill_up_moc_map(pixidx, moc_map_ts, results)
         self.moc_map_ts = moc_map_ts
+
+        # store all ts maps
+        self.all_maps = []
+        self.all_maps += [moc_map_ts]
         
         
         # # if the user requires higher order fit
@@ -255,6 +259,7 @@ class MOCTSMap(FastTSMap):
             # fill up the child pixels
             moc_map_ts = MOCTSMap.fill_up_moc_map(child_idx, moc_map_ts, results)
             self.moc_map_ts = moc_map_ts
+            self.all_maps += [moc_map_ts]
     
                 
             order +=1
