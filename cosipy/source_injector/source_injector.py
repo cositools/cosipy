@@ -136,6 +136,10 @@ class SourceInjector():
             psr = SourceInjector.get_psr_in_galactic(coordinate = coordinate, response_path = self.response_path, spectrum = spectrum)
 
         injected = psr.get_expectation(spectrum)
+        # setting the Em and Ei scale to linear to match the simulated data
+        # The linear scale of Em and Ei is the default for COSI data
+        injected.axes["Em"].axis_scale = "linear"
+        injected.axes["Ei"].axis_scale = "linear"
 
         if project_axes is not None:
             injected = injected.project(project_axes)
