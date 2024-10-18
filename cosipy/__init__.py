@@ -13,3 +13,5 @@ from .threeml import Band_Eflux
 from .spacecraftfile import SpacecraftFile
 
 from .ts_map import FastTSMap
+
+from .source_injector import SourceInjector
