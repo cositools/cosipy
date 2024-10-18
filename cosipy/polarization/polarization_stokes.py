@@ -10,7 +10,35 @@ from cosipy.response import FullDetectorResponse
 from scoords import SpacecraftFrame
 import scipy.interpolate as interpolate
 
-def calculate_azimuthal_scattering_angle(self, psi, chi):
+
+#we can define all these functions in a separate file to import
+
+def R(x, A, B, C):
+    """
+    """
+    return A + B*(np.cos(x + C)**2)
+
+
+def constant(x, a):
+        """
+        Constant function to fit to mu_100 values.
+        
+        Parameters
+        ----------
+        x : float
+            Mu_100
+        a : float
+            Parameter
+            
+        Returns
+        -------
+        a : float
+            Constant value
+        """
+
+        return a
+
+def calculate_azimuthal_scattering_angle(psi, chi, source_vector, reference_vector):
         """
         Calculate the azimuthal scattering angle of a scattered photon.
         
@@ -27,26 +55,62 @@ def calculate_azimuthal_scattering_angle(self, psi, chi):
             Azimuthal scattering angle defined with respect to given reference vector
         """
         
+        source_vector_cartesian = [source_vector.cartesian.x.value,
+                                   source_vector.cartesian.y.value, 
+                                   source_vector.cartesian.z.value]
+        reference_vector_cartesian = [reference_vector.cartesian.x.value, 
+                                      reference_vector.cartesian.y.value, 
+                                      reference_vector.cartesian.z.value]
+        
         # Convert scattered photon vector from spherical to Cartesian coordinates
         scattered_photon_vector = [np.sin(psi) * np.cos(chi), np.sin(psi) * np.sin(chi), np.cos(psi)]
 
         # Project scattered photon vector onto plane perpendicular to source direction
-        d = np.dot(scattered_photon_vector, self._source_vector_cartesian) / np.dot(self._source_vector_cartesian, self._source_vector_cartesian)
-        projection = [scattered_photon_vector[0] - (d * self._source_vector_cartesian[0]), 
-                      scattered_photon_vector[1] - (d * self._source_vector_cartesian[1]), 
-                      scattered_photon_vector[2] - (d * self._source_vector_cartesian[2])]
+        d = np.dot(scattered_photon_vector, source_vector_cartesian) / np.dot(source_vector_cartesian, source_vector_cartesian)
+        projection = [scattered_photon_vector[0] - (d * source_vector_cartesian[0]), 
+                      scattered_photon_vector[1] - (d * source_vector_cartesian[1]), 
+                      scattered_photon_vector[2] - (d * source_vector_cartesian[2])]
 
         # Calculate angle between scattered photon vector & reference vector on plane perpendicular to source direction
-        cross_product = np.cross(projection, self._reference_vector_cartesian)
-        if np.dot(self._source_vector_cartesian, cross_product) < 0:
+        cross_product = np.cross(projection, reference_vector_cartesian)
+        if np.dot(source_vector_cartesian, cross_product) < 0:
             sign = -1
         else:
             sign = 1
-        normalization = np.sqrt(np.dot(projection, projection)) * np.sqrt(np.dot(self._reference_vector_cartesian, self._reference_vector_cartesian))
+        normalization = np.sqrt(np.dot(projection, projection)) * np.sqrt(np.dot(reference_vector_cartesian, reference_vector_cartesian))
     
-        azimuthal_angle = Angle(sign * np.arccos(np.dot(projection, self._reference_vector_cartesian) / normalization), unit=u.rad)
+        azimuthal_angle = Angle(sign * np.arccos(np.dot(projection, reference_vector_cartesian) / normalization), unit=u.rad)
     
         return azimuthal_angle
+
+def get_modulation(_x, _y, title='Modulation', show=False):
+    """ Function to estimate the modulation factor.
+        _x is the central value of the histogram bins
+        _y is the value of the bins on the histograms
+    """
+    _x = _x[:-1] + (_x[1:] - _x[:-1])/2
+    popt, pcov = curve_fit(R, _x, _y ) #sigma=np.sqrt(_y), absolute_sigma=True
+    pcov[0][0], pcov[1][1], pcov[2][2] = np.sqrt(pcov[0][0]), np.sqrt(pcov[1][1]), np.sqrt(pcov[2][2])
+    print('A = %.2f, B = %.2f, C = %.2f'%(popt[0], popt[1], popt[2]))
+
+    Rmax, Rmin = np.amax(R(_x, *popt)), np.amin(R(_x, *popt))
+    print('Rmax, Rmin:', Rmax, Rmin)
+    mu = (Rmax-Rmin)/(Rmax+Rmin)
+    print('Modulation mu = ', mu)
+    
+    perr = [popt[0]+np.sqrt(pcov[0][0]), popt[1]+np.sqrt(pcov[1][1]), popt[2]]
+    merr = [popt[0]-np.sqrt(pcov[0][0]), popt[1]-np.sqrt(pcov[1][1]), popt[2]]
+    
+    if show:
+        plt.figure()
+        plt.title(title)
+        plt.bar(_x, _y, align='center', width=0.07, alpha=0.5)
+        plt.fill_between(_x, R(_x, *perr), R(_x, *merr), color='red', alpha=0.3)
+        plt.plot(_x, R(_x, *popt), 'r-', label='$\mu=$%.2f'%mu)
+        plt.legend(fontsize=12)
+        plt.ylim(Rmin-500, Rmax+500)
+        plt.xlabel('Azimuthal angle [rad]')
+    return mu, popt, pcov
 
 class PolarizationStokes():
     """
@@ -65,12 +129,9 @@ class PolarizationStokes():
     """
 
     def __init__(self, source_vector, source_spectrum, response_file, sc_orientation):
-        
-        if fit_convention == None:
-            self._convention = MEGAlibRelativeX(attitude=source_vector.attitude)
-        else:
-            self._convention = fit_convention
 
+        # This will need to be changed into IAUPolarizationConvention hardcoded!
+        self._convention = MEGAlibRelativeX(attitude=source_vector.attitude)
         reference_vector = self._convention.get_basis(source_vector)[0] #px
 
         if isinstance(source_vector.frame, SpacecraftFrame):
@@ -82,17 +143,12 @@ class PolarizationStokes():
             self._reference_vector = reference_vector
         else:
             self._reference_vector = reference_vector.transform_to(SpacecraftFrame(attitude=source_vector.attitude))
-
-        self._source_vector_cartesian = [self._source_vector.cartesian.x.value,
-                                         self._source_vector.cartesian.y.value, 
-                                         self._source_vector.cartesian.z.value]
-        self._reference_vector_cartesian = [self._reference_vector.cartesian.x.value, 
-                                            self._reference_vector.cartesian.y.value, 
-                                            self._reference_vector.cartesian.z.value]
         
         self._expectation, self._azimuthal_angle_bins = self.convolve_spectrum(source_spectrum, response_file, sc_orientation)
 
         self._energy_range = [min(self.response.axes['Em'].edges.value), max(self.response.axes['Em'].edges.value)]
+
+        self._binedges = Angle(np.linspace(-np.pi, np.pi, 20), unit=u.rad)
         
     def convolve_spectrum(self, spectrum, response_file, sc_orientation):
         """
@@ -125,7 +181,9 @@ class PolarizationStokes():
         azimuthal_angle_bins = []
 
         for i in range(expectation.axes['PsiChi'].nbins):
-            azimuthal_angle = self.calculate_azimuthal_scattering_angle(expectation.project(['PsiChi']).axes['PsiChi'].pix2ang(i)[0], expectation.project(['PsiChi']).axes['PsiChi'].pix2ang(i)[1])
+            azimuthal_angle = calculate_azimuthal_scattering_angle(expectation.project(['PsiChi']).axes['PsiChi'].pix2ang(i)[0], 
+                                                                   expectation.project(['PsiChi']).axes['PsiChi'].pix2ang(i)[1],
+                                                                   self._source_vector, self._reference_vector)
             azimuthal_angle_bins.append(azimuthal_angle)
 
         return expectation, azimuthal_angle_bins
@@ -149,12 +207,128 @@ class PolarizationStokes():
 
         for i in range(len(unbinned_data['Psi local'])):
             if unbinned_data['Energies'][i] >= self._energy_range[0] and unbinned_data['Energies'][i] <= self._energy_range[1]:
-                azimuthal_angle = self.calculate_azimuthal_scattering_angle(unbinned_data['Psi local'][i], unbinned_data['Chi local'][i])
+                azimuthal_angle = calculate_azimuthal_scattering_angle(unbinned_data['Psi local'][i], 
+                                                                       unbinned_data['Chi local'][i],
+                                                                       self._source_vector, self._reference_vector)
                 azimuthal_angles.append(azimuthal_angle)
 
         return azimuthal_angles
 
-    def compute_pseudo_stokes(self, azimuthal_angles):
+    def create_unpolarized_asad(self, bins=None):
+        """
+        Calculate the azimuthal scattering angles for all bins.
+        
+        Parameters
+        ----------
+        bins : int or np.array, optional
+            Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)
+
+        Returns
+        -------
+        asad : dict
+            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin
+        """
+        print('Creating the unpolarized ASAD...')
+        if not bins == None:
+            if isinstance(bins, int):
+                bin_edges = Angle(np.linspace(-np.pi, np.pi, bins), unit=u.rad)
+                self._binedges = bin_edges
+            else:
+                bin_edges = bins
+                self._binedges = bin_edges
+        else:
+            bin_edges = self._binedges
+
+        unpolarized_asad = []
+        for i in range(len(bin_edges)-1):
+            counts = 0
+            for j in range(self._expectation.project(['PsiChi']).nbins):
+                if self._azimuthal_angle_bins[j] >= bin_edges[i] and self._azimuthal_angle_bins[j] < bin_edges[i+1]:
+                    counts += self._expectation.project(['PsiChi'])[j]
+            unpolarized_asad.append(counts)
+
+        return bin_edges, np.array(unpolarized_asad)
+    
+    def create_polarized100_asad(self, bins=None):
+        """
+        Calculate the azimuthal scattering angles for a 100% polarized source.
+        
+        Parameters
+        ----------
+        bins : int or np.array, optional
+            Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)
+
+        Returns
+        -------
+        qs : list
+            list of pseudo-q parameters for each photon (ordered as input array)
+        us : list
+            list of pseudo-u parameters for each photon (ordered as input array)
+        """
+        print('Creating the 100% polarized ASAD...')
+        if not bins == None:
+            if isinstance(bins, int):
+                bin_edges = Angle(np.linspace(-np.pi, np.pi, bins), unit=u.rad)
+                self._binedges = bin_edges
+            else:
+                bin_edges = bins
+                self._binedges = bin_edges
+        else:
+            bin_edges = self._binedges
+        
+        _polarized100_asad_ = []
+        for k in range(self._expectation.axes['Pol'].nbins):
+            polarized100_asad_ = []
+            for i in range(len(bin_edges)-1):
+                counts = 0
+                for j in range(self._expectation.project(['PsiChi']).nbins):
+                    if self._azimuthal_angle_bins[j] >= bin_edges[i] and self._azimuthal_angle_bins[j] < bin_edges[i+1]:
+                        counts += self._expectation.slice[{'Pol':slice(k,k+1)}].project(['PsiChi'])[j]
+                polarized100_asad_.append(counts)
+            _polarized100_asad_.append(polarized100_asad_)
+
+        return bin_edges, np.array(_polarized100_asad_)
+    
+    def calculate_mu(self, bins=20, show=False):
+        """
+        Calculate the modulation (mu) of an 100% polarized source. This sohuld not depend on the specific events but only on our instrument responses.
+        In this sence we can pre-compute a cube of modulation factors to pull from.
+
+        MN note: I don't think this should depend on a source spectrum: this can be
+        
+        Parameters
+        ----------
+        polarized_asads : list
+            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for each polarization angle bin for 100% polarized source
+        unpolarized_asad : list or np.array
+            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for unpolarized source
+            
+        Returns
+        -------
+        mu : dict
+            Modulation of 100% polarized source and uncertainty of constant function fit to modulation in all polarization angle bins
+        """
+
+        be, polarized100_asad = self.create_polarized100_asad(bins=bins)
+        print(polarized100_asad.shape)
+        be, unpolarized_asad = self.create_unpolarized_asad(bins=bins)
+        print(unpolarized_asad.shape) 
+
+        mu_list = []
+        for pol100asad_pa in polarized100_asad:
+            asad_corrected = pol100asad_pa / np.sum(pol100asad_pa) / unpolarized_asad * np.sum(unpolarized_asad)
+            print('be, asad_corrected:', be, asad_corrected)
+
+            mu, popt, pcov = get_modulation(be, asad_corrected, title='Modulation', show=show)
+            mu_list.append(mu)
+
+        mu_final, popt, pcov = curve_fit(constant, self._expectation.axes['Pol'].centers, mu_list)
+
+        print('mu:', mu_final)
+
+        return mu_final
+    
+    def compute_pseudo_stokes(self, azimuthal_angles, show=False):
         """
         Calculates photon-by-photon pseudo stokes parameters from the photon azimutal angle.
         
@@ -171,46 +345,24 @@ class PolarizationStokes():
             list of pseudo-u parameters for each photon (ordered as input array)
         """
 
-        qs = 2. * np.cos(2. * azimuthal_angles)
-        us = 2. * np.sin(2. * azimuthal_angles)
+        qs, us = [], []
+
+        for a in azimuthal_angles:
+            qs.append(np.cos(a.radian * 2) * 2)
+            us.append(np.sin(a.radian * 2) * 2)
+
+        if show:
+            plt.figure()
+            plt.title('Source Stokes parameters')
+            plt.hist(qs, bins=50, alpha=0.5, label='q$_s$')
+            plt.hist(us, bins=50, alpha=0.5, label='u$_s$')
+            plt.xlabel('Pseudo Stokes parameter')
+            plt.legend()
+            plt.show()
         
         return qs, us
-    
-    def create_unpolarized_asad(self, bins=None):
-        """
-        Calculate the azimuthal scattering angles for all bins.
-        
-        Parameters
-        ----------
-        bins : int or np.array, optional
-            Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)
 
-        Returns
-        -------
-        asad : dict
-            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin
-        """
-
-        if not bins == None:
-            if isinstance(bins, int):
-                bin_edges = Angle(np.linspace(-np.pi, np.pi, bins), unit=u.rad)
-            else:
-                bin_edges = bins
-        else:
-            bin_edges = self._bin_edges
-        
-        unpolarized_asad = []
-
-        for i in range(len(bin_edges)-1):
-            counts = 0
-            for j in range(self._expectation.project(['PsiChi']).nbins):
-                if self._azimuthal_angle_bins[j] >= bin_edges[i] and self._azimuthal_angle_bins[j] < bin_edges[i+1]:
-                    counts += self._expectation.project(['PsiChi'])[j]
-            unpolarized_asad.append(counts)
-
-        return bin_edges, unpolarized_asad
-    
-    def create_unpolarized_pseudo_stokes(self, bin_edges, unpolarized_asad, total_num_events):
+    def create_unpolarized_pseudo_stokes(self, total_num_events, bins=20, show=False):
         """
         Calculate the azimuthal scattering angles for all bins. 
         
@@ -227,14 +379,16 @@ class PolarizationStokes():
             list of pseudo-u parameters for each photon (ordered as input array)
         """
 
+        be, unpolarized_asad = self.create_unpolarized_asad(bins=bins)
+
         # I would like to radomly extract an azimutal angle for each photon based on the unpolarized response.
         # There might be an energy dependence here, so we should thing carfully
 
         # Create teh spline from teh unpol azimutal angle distrib
-        spline_unpol = interpolate.interp1d(bin_edges, unpolarized_asad, bc_type='natural')
+        spline_unpol = interpolate.interp1d(be[:-1], unpolarized_asad)
         
         # Create fine bins and normalize to the area to get a probability density function (PDF)
-        fine_bins = np.linspace(bin_edges[0], bin_edges[-1], 1000)
+        fine_bins = np.linspace(be[0]-0.1*be[0], be[-1]+0.1*be[-1], 1000)
         fine_probabilities = spline_unpol(fine_bins)
         total_area = np.trapz(fine_probabilities, fine_bins)  # Numerical integration using trapezoidal rule
         fine_probabilities /= total_area
@@ -244,64 +398,33 @@ class PolarizationStokes():
         cdf = cdf / cdf[-1]  # Normalize the CDF to make it a proper probability distribution
         
         #Invert the CDF
-        inv_cdf = interpolate.interp1d(cdf, fine_bins, kind='linear', fill_value="extrapolate")
+        inv_cdf = interpolate.interp1d(cdf, fine_bins)
         
         #Generate random samples from a uniform distribution and map them to azimuthal angles
         random_values = np.random.rand(total_num_events)
         unpol_azimuthal_angles = inv_cdf(random_values)
 
-        qs_unpol = 2. * np.cos(2. * unpol_azimuthal_angles)
-        us_unpol = 2. * np.sin(2. * unpol_azimuthal_angles)
+        qs_unpol, us_unpol = self.compute_pseudo_stokes(unpol_azimuthal_angles)
 
+        if show:
+            plt.figure()
+            plt.title('Unpolarized')
+            plt.hist(qs_unpol, bins=50, alpha=0.5, label='q$_s$')
+            plt.hist(us_unpol, bins=50, alpha=0.5, label='u$_s$')
+            plt.xlabel('Pseudo Stokes parameter')
+            plt.legend()
+            plt.show()
+        
         return qs_unpol, us_unpol
     
-    def calculate_mu100(self, polarized_asads, unpolarized_asad):
-        """
-        Calculate the modulation (mu) of an 100% polarized source.
-        
-        Parameters
-        ----------
-        polarized_asads : list
-            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for each polarization angle bin for 100% polarized source
-        unpolarized_asad : list or np.array
-            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for unpolarized source
-            
-        Returns
-        -------
-        mu_100 : dict
-            Modulation of 100% polarized source and uncertainty of constant function fit to modulation in all polarization angle bins
-        """
-
-        mu_100_list = []
-        mu_100_uncertainties = []
-        for i in range(self._expectation.axes['Pol'].nbins):
-            print('Polarization angle bin: ' + str(self._expectation.axes['Pol'].edges[i]) + ' to ' + str(self._expectation.axes['Pol'].edges[i+1]))
-            asad_polarized = {'counts': polarized_asads['counts'][i], 'uncertainties': polarized_asads['uncertainties'][i]}
-            asad_polarized_corrected = self.correct_asad(asad_polarized, unpolarized_asad)
-            mu_100 = self.calculate_mu(asad_polarized_corrected['counts'], bounds=([0, 0, 0], [np.inf,np.inf,np.pi]), sigma=asad_polarized_corrected['uncertainties'])
-            mu_100_list.append(mu_100['mu'])
-            mu_100_uncertainties.append(mu_100['uncertainty'])
-            self.plot_asad(asad_polarized_corrected['counts'], asad_polarized_corrected['uncertainties'], 'Corrected 100% Polarized ASAD', coefficients=self.fit(mu_100, asad_polarized_corrected['counts'], bounds=([0, 0, 0], [np.inf,np.inf,np.pi]), sigma=asad_polarized_corrected['uncertainties'])['best fit parameter values'])
-
-        popt, pcov = curve_fit(self.constant, self._expectation.axes['Pol'].centers, mu_100_list, sigma=mu_100_uncertainties)
-        mu_100 = {'mu': popt[0], 'uncertainty': pcov[0][0]}
-
-        plt.scatter(self._expectation.axes['Pol'].centers, mu_100_list)
-        plt.errorbar(self._expectation.axes['Pol'].centers, mu_100_list, yerr=mu_100_uncertainties, linewidth=0, elinewidth=1)
-        plt.plot([0, 175], [mu_100['mu'], mu_100['mu']])
-        plt.xlabel('Polarization Angle (degrees)')
-        plt.ylabel('mu_100')
-        plt.show()
-
-        print('mu_100:', round(mu_100['mu'], 2))
-
-        return mu_100
-
     def calculate_polarization(I, qs, us, unpol_qs, unpol_us , mu, W2=None):
         #
         #
         #
         # contunue here below
+        # make sure that the output PA is a polarization angle object. E.g.:
+        #    polarization_angle += Angle(180, unit=u.deg)
+        #    polarization_angle = PolarizationAngle(polarization_angle, self._source_vector, convention=self._convention).transform_to(IAUPolarizationConvention())
         #
         #
         #
