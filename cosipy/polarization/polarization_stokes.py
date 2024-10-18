@@ -18,7 +18,6 @@ def R(x, A, B, C):
     """
     return A + B*(np.cos(x + C)**2)
 
-
 def constant(x, a):
         """
         Constant function to fit to mu_100 values.
@@ -98,19 +97,21 @@ def get_modulation(_x, _y, title='Modulation', show=False):
     mu = (Rmax-Rmin)/(Rmax+Rmin)
     print('Modulation mu = ', mu)
     
-    perr = [popt[0]+np.sqrt(pcov[0][0]), popt[1]+np.sqrt(pcov[1][1]), popt[2]]
-    merr = [popt[0]-np.sqrt(pcov[0][0]), popt[1]-np.sqrt(pcov[1][1]), popt[2]]
+    mu_err = 2/(popt[1]+2*popt[0])**2 * np.sqrt(popt[1]**2 * pcov[0][0]**2 + popt[0]**2 * pcov[1][1]**2)
     
     if show:
         plt.figure()
         plt.title(title)
         plt.bar(_x, _y, align='center', width=0.07, alpha=0.5)
+        perr = [popt[0]+np.sqrt(pcov[0][0]), popt[1]+np.sqrt(pcov[1][1]), popt[2]]
+        merr = [popt[0]-np.sqrt(pcov[0][0]), popt[1]-np.sqrt(pcov[1][1]), popt[2]]
         plt.fill_between(_x, R(_x, *perr), R(_x, *merr), color='red', alpha=0.3)
         plt.plot(_x, R(_x, *popt), 'r-', label='$\mu=$%.2f'%mu)
         plt.legend(fontsize=12)
         plt.ylim(Rmin-500, Rmax+500)
         plt.xlabel('Azimuthal angle [rad]')
-    return mu, popt, pcov
+
+    return mu, mu_err
 
 class PolarizationStokes():
     """
@@ -202,6 +203,7 @@ class PolarizationStokes():
         azimuthal_angles : list
             Azimuthal scattering angles. Each angle must be an astropy.coordinates.Angle object
         """
+        print('This tasks takes around 30 seconds... \n')
 
         azimuthal_angles = []
 
@@ -291,7 +293,8 @@ class PolarizationStokes():
     
     def calculate_mu(self, bins=20, show=False):
         """
-        Calculate the modulation (mu) of an 100% polarized source. This sohuld not depend on the specific events but only on our instrument responses.
+        Calculate the modulation (mu) of an 100% polarized source. 
+        This sohuld not depend on the specific events but only on our instrument responses.
         In this sence we can pre-compute a cube of modulation factors to pull from.
 
         MN note: I don't think this should depend on a source spectrum: this can be
@@ -299,34 +302,54 @@ class PolarizationStokes():
         Parameters
         ----------
         polarized_asads : list
-            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for each polarization angle bin for 100% polarized source
+            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for 
+            each polarization angle bin for 100% polarized source
         unpolarized_asad : list or np.array
-            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for unpolarized source
+            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for 
+            unpolarized source
             
         Returns
         -------
         mu : dict
             Modulation of 100% polarized source and uncertainty of constant function fit to modulation in all polarization angle bins
         """
+        print('This task takes a couple of minutes to run... hold on...\n')
 
         be, polarized100_asad = self.create_polarized100_asad(bins=bins)
-        print(polarized100_asad.shape)
         be, unpolarized_asad = self.create_unpolarized_asad(bins=bins)
-        print(unpolarized_asad.shape) 
 
-        mu_list = []
+        mu_, mu_err_ = [], []
         for pol100asad_pa in polarized100_asad:
             asad_corrected = pol100asad_pa / np.sum(pol100asad_pa) / unpolarized_asad * np.sum(unpolarized_asad)
-            print('be, asad_corrected:', be, asad_corrected)
+            # print('be, asad_corrected:', be, asad_corrected)
 
-            mu, popt, pcov = get_modulation(be, asad_corrected, title='Modulation', show=show)
-            mu_list.append(mu)
+            mu, mu_err = get_modulation(be.value, asad_corrected, title='Modulation', show=False)
+            mu_.append(mu)
+            mu_err_.append(mu_err)
 
-        mu_final, popt, pcov = curve_fit(constant, self._expectation.axes['Pol'].centers, mu_list)
+        mu_ = np.array(mu_)
+        mu_err_ = np.array(mu_err_)
 
-        print('mu:', mu_final)
+        popt, pcov = curve_fit(constant, self._expectation.axes['Pol'].centers, mu_)
 
-        return mu_final
+        average_mu = popt[0]
+        average_mu_err = np.sqrt(pcov[0][0])
+
+        print('mu:', average_mu, '+/-', average_mu_err)
+
+        if show:
+            plt.figure()
+            plt.errorbar(np.arange(len(mu_)), mu_, yerr=mu_err_)
+            plt.hlines(average_mu, 0, len(mu_), color='red', linewidth=4,
+                        label=r'$\mu$ = %s +/- %s'%(average_mu, average_mu_err))
+            plt.hlines(average_mu+average_mu_err, 0, len(mu_), color='red', linestyle='--', linewidth=2)
+            plt.hlines(average_mu-average_mu_err, 0, len(mu_), color='red', linestyle='--', linewidth=2)
+            plt.xlabel('Energy bin')
+            plt.ylabel(r'$\mu$')
+            plt.legend()
+            plt.show()
+
+        return average_mu, average_mu_err
     
     def compute_pseudo_stokes(self, azimuthal_angles, show=False):
         """
@@ -347,9 +370,16 @@ class PolarizationStokes():
 
         qs, us = [], []
 
-        for a in azimuthal_angles:
-            qs.append(np.cos(a.radian * 2) * 2)
-            us.append(np.sin(a.radian * 2) * 2)
+        #this is stupid... need to fix!
+        try:
+            for a in azimuthal_angles.value:
+                qs.append(np.cos(a * 2) * 2)
+                us.append(np.sin(a * 2) * 2)
+        except:
+
+            for a in azimuthal_angles:
+                qs.append(np.cos(a.value * 2) * 2)
+                us.append(np.sin(a.value * 2) * 2)
 
         if show:
             plt.figure()
@@ -368,6 +398,8 @@ class PolarizationStokes():
         
         Parameters
         ----------
+        total_num_events: int
+            total number of events that matches your polarized data
         bins : int or np.array, optional
             Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)
 
@@ -378,17 +410,18 @@ class PolarizationStokes():
         us : list
             list of pseudo-u parameters for each photon (ordered as input array)
         """
+        print('this task takes around 25 seconds...\n')
 
         be, unpolarized_asad = self.create_unpolarized_asad(bins=bins)
-
+        be = be.value
         # I would like to radomly extract an azimutal angle for each photon based on the unpolarized response.
         # There might be an energy dependence here, so we should thing carfully
 
-        # Create teh spline from teh unpol azimutal angle distrib
+        # Create teh spline from the unpol azimutal angle distrib
         spline_unpol = interpolate.interp1d(be[:-1], unpolarized_asad)
-        
         # Create fine bins and normalize to the area to get a probability density function (PDF)
-        fine_bins = np.linspace(be[0]-0.1*be[0], be[-1]+0.1*be[-1], 1000)
+        # also, avoiding edges that wouls break the spline
+        fine_bins = np.linspace(be[0]-0.01*be[0], be[-2]-0.01*be[-2], 1000)
         fine_probabilities = spline_unpol(fine_bins)
         total_area = np.trapz(fine_probabilities, fine_bins)  # Numerical integration using trapezoidal rule
         fine_probabilities /= total_area
@@ -401,9 +434,10 @@ class PolarizationStokes():
         inv_cdf = interpolate.interp1d(cdf, fine_bins)
         
         #Generate random samples from a uniform distribution and map them to azimuthal angles
-        random_values = np.random.rand(total_num_events)
-        unpol_azimuthal_angles = inv_cdf(random_values)
-
+        random_values = np.random.uniform(low=np.min(cdf), high=np.max(cdf), size=total_num_events)
+        print('random_values', random_values)
+        unpol_azimuthal_angles = inv_cdf(random_values) * u.rad
+        print('unpol_azimuthal_angles', unpol_azimuthal_angles)
         qs_unpol, us_unpol = self.compute_pseudo_stokes(unpol_azimuthal_angles)
 
         if show:
@@ -417,7 +451,7 @@ class PolarizationStokes():
         
         return qs_unpol, us_unpol
     
-    def calculate_polarization(I, qs, us, unpol_qs, unpol_us , mu, W2=None):
+    def calculate_polarization(self, qs, us, qs_unpol, us_unpol, mu):
         #
         #
         #
@@ -431,75 +465,36 @@ class PolarizationStokes():
         """Calculate the polarization degree and angle, with the associated
         uncertainties, for a given q and u.
 
-        This implements equations (21), (36), (22) and (37) in the paper,
+        This implements equations (21), (36), (22) and (37) in the paper Kislat et al 2015,
         respectively.
 
-        Note that the Stokes parameters passed as the input arguments are assumed
-        to be normalized to the modulation factor (for Q and U) on an
-        event-by-event basis and summed over the proper energy range.
+        # Note that the Stokes parameters passed as the input arguments are assumed
+        # to be normalized to the modulation factor (for Q and U) on an
+        # event-by-event basis and summed over the proper energy range.
 
         Great part of the logic is meant to avoid runtime zero-division errors.
         """
-        if xStokesAnalysis._check_polarization_input(I, Q, U):
-            abort('Invalid input to xStokesAnalysis.calculate_polarization()')
-        # If W2 is not, i.e, we are not passing the sum of weights, we assume
-        # that the analysis is un-weighted, and the acceptance correction is
-        # not applied, in which case W2 = I and the scale for the errors is 1.
-        if W2 is None:
-            W2 = I
-        # Initialize the output arrays.
-        err_scale = np.full(I.shape, 1.)
-        pd = np.full(I.shape, 0.)
-        pd_err = np.full(I.shape, 0.)
-        pa = np.full(I.shape, 0.)
-        pa_err = np.full(I.shape, 0.)
-        # Define the basic mask---we are only overriding the values for the array
-        # elements that pass the underlying selection.
-        # Note we need I > 1., and not simply I > 0., to avoid any possible
-        # zero-division runtime error in the calculations, including the error
-        # propagation.
-        mask = I > 1.
-        # First pass at the polarization degree, which is needed to compute the
-        # modulation, which is in turn one of the ingredients of the error
-        # propagation (remember that Q and U are the reconstructed quantities,
-        # i.e., already divided by the modulation factor).
-        pd[mask] = np.sqrt(Q[mask]**2. + U[mask]**2.) / I[mask]
-        # Convert the polarization to modulation---this is needed later for the
-        # error propagation.
-        m = pd * mu
-        # We want the bins to satify the relation (m^2 < 2), since (2 - m^2)
-        # is one of the factors of the errors on the polarization.
-        mask = np.logical_and(mask, m**2. < 2.)
-        # We also want to make sure that the modulation factor is nonzero--see
-        # formula for the polarization error.
-        # It's not entirely clear to me why that would happen, but I assume that
-        # if you have a bin with a couple of very-low energy events it is maybe
-        # possible?
-        mask = np.logical_and(mask, mu > 0.)
-        # Create a masked version of the necessary arrays.
-        _I = I[mask]
-        _Q = Q[mask]
-        _U = U[mask]
-        _W2 = W2[mask]
-        _mu = mu[mask]
-        _m = m[mask]
-        # Second pass on the polarization with the final mask.
-        pd[mask] = np.sqrt(_Q**2. + _U**2.) / _I
-        # See equations (A.4a) and (A.4b), and compare with equations (17a) and
-        # (17b) for the origin of the factor sqrt(W2 / I). Also note that a
-        # square root is missing in (A.4a) and (A.4b).
-        err_scale[mask] = np.sqrt(_W2 / _I)
-        # Calculate the errors on the polarization degree
-        pd_err[mask] = err_scale[mask] * np.sqrt((2. - _m**2.) / ((_I - 1.) * _mu**2.))
-        assert np.isfinite(pd).all()
-        assert np.isfinite(pd_err).all()
-        # And, finally, the polarization angle and fellow uncertainty.
-        pa[mask] = 0.5 * np.arctan2(_U, _Q)
-        pa_err[mask] = err_scale[mask] / (_m * np.sqrt(2. * (_I - 1.)))
-        assert np.isfinite(pa).all()
-        assert np.isfinite(pa_err).all()
-        # Convert to degrees, if needed.
-        if degrees:
-            pa = np.degrees(pa)
-            pa_err = np.degrees(pa_err)
-        return pd, pd_err, pa, pa_err
+
+        pol_I = len(qs)
+        pol_Q = np.sum(qs) / mu
+        pol_U = np.sum(us) / mu
+        unpol_Q = np.sum(qs) / mu
+        unpol_U = np.sum(us) / mu
+
+        Q = pol_Q - unpol_Q
+        U = pol_U - unpol_U
+
+        pol_PD = np.sqrt(Q**2. + U**2.) / pol_I
+        pol_PA = Angle(0.5 * np.degree(np.arctan2(U, Q)), unit=u.deg)
+
+        pol_modulation = mu * pol_PD
+
+        pol_1sigmaPD = pol_1sigmaQ = pol_1sigmaU = np.sqrt((2. - pol_modulation**2.) / ((pol_I - 1.) * mu**2.))
+        pol_1sigmaPA = np.degrees(1 / (pol_modulation * np.sqrt(2. * (pol_I - 1.))))
+
+
+        return pol_PD, pol_1sigmaPD, pol_PA, pol_1sigmaPA
+
+
+if __name__ == "__main__":
+     pass
