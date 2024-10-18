@@ -1,5 +1,5 @@
 author: Hiroki Yoneda 
-date: 2024-06-12
+date: 2024-06-12    # Modified by Anaya to include deconvolution:parameter:numproc on 2024-08-23
 
 model_definition:
   class: "AllSkyImage"
@@ -20,10 +20,10 @@ model_definition:
       unit: "cm-2 s-1 sr-1"  # do not change it as for now
 
 deconvolution:
-  algorithm: "RLparallel"
+  algorithm: "RL"     # Choose from RL, RLsimple and RLparallel
 
   parameter:
-    iteration_max: 10
+    iteration_max: 50
     acceleration: True
     alpha_max: 10.0
     response_weighting: True

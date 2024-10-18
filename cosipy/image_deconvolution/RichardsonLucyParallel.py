@@ -109,19 +109,18 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
         """
         
         # All arguments must be passed as type=str. Explicitly type cast boolean and number to string.
-        # FILE_DIR = os.path.dirname(os.path.abspath(__file__))               # Path to directory containing RichardsonLucyParallel.py
-        # logger.info(f'Subprocess call to run RLparallelscript.py at {FILE_DIR}')
+        FILE_DIR = os.path.dirname(os.path.abspath(__file__))               # Path to directory containing RichardsonLucyParallel.py
+        logger.info(f"Subprocess call to run RLparallelscript.py at '{FILE_DIR}'")
 
-        # stdout = subprocess.check_output(args=["mpiexec", "-n", str(self.numproc), 
-        #                      "python", "mpitest.py",   # RLparallelscript.py will be installed in the same directory as RichardsonLucyParallel.py
-        #                      "--numrows", str(self.numrows),
-        #                      "--numcols", str(self.numcols),
-        #                      "--base_dir", str(self.base_dir),
-        #                      "--config_file", str(self.config_file)
-        #                      ], text=True)
-        # print(stdout)
-
-        subprocess.run()
+        # RLparallelscript.py will be installed in the same directory as RichardsonLucyParallel.py
+        stdout = subprocess.run(args=["mpiexec", "-n", str(self.numproc), 
+                             "python", FILE_DIR + "/RLparallelscript.py", 
+                             "--numrows", str(self.numrows),
+                             "--numcols", str(self.numcols),
+                             "--base_dir", str(self.base_dir),
+                             "--config_file", str(self.config_file)
+                             ], env=os.environ)
+        logger.info(stdout)
 
         # RLparallelscript already contains check_stopping_criteria and iteration_max break condition. 
         # NOTE: RichardsonLucy.py currently does not support a sophisticated break condition. 
