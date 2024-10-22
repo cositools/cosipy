@@ -1,11 +1,11 @@
 import numpy as np
 from astropy.coordinates import Angle
 import astropy.units as u
-from astropy.stats import poisson_conf_interval
+# from astropy.stats import poisson_conf_interval
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-from cosipy.polarization import PolarizationAngle
-from cosipy.polarization.conventions import MEGAlibRelativeX, IAUPolarizationConvention
+# from cosipy.polarization import PolarizationAngle
+from cosipy.polarization.conventions import MEGAlibRelativeX#, IAUPolarizationConvention
 from cosipy.response import FullDetectorResponse
 from scoords import SpacecraftFrame
 import scipy.interpolate as interpolate
@@ -36,6 +36,38 @@ def constant(x, a):
         """
 
         return a
+
+def rotate_points_to_x_axis(x_, y_, angle_):
+    """
+    Rotate arrays of points (x_, y_) in the QN-UN plane by an angle
+    """    
+    # Create a matrix of rotation matrices for each point
+    cos_vals = np.cos(angle_)
+    sin_vals = np.sin(angle_)
+    
+    # Apply the rotation to each point
+    rotated_x = x_ * cos_vals - y_ * sin_vals
+    rotated_y = x_ * sin_vals + y_ * cos_vals
+    
+    return rotated_x, rotated_y
+
+def polar_chart_backbone(ax):
+    """ Preparing canvas for Stokes chart
+    """        
+    ax.spines['top'].set_visible(True)
+    ax.spines['right'].set_visible(True)
+    c0 = plt.Circle((0,0), radius=0.25, facecolor='none', edgecolor='k', linewidth=1, linestyle='--', alpha=0.3)
+    c1 = plt.Circle((0,0), radius=0.50, facecolor='none', edgecolor='k', linewidth=1, linestyle='--', alpha=0.3)
+    c2 = plt.Circle((0,0), radius=0.75, facecolor='none', edgecolor='k', linewidth=1, linestyle='--', alpha=0.3)
+    c3 = plt.Circle((0,0), radius=1.00, facecolor='none', edgecolor='k', linewidth=1, linestyle='-', alpha=0.5)
+    plt.gca().add_artist(c0)
+    plt.gca().add_artist(c1)
+    plt.gca().add_artist(c2)
+    plt.gca().add_artist(c3)
+    plt.hlines(0, -1, 1, linewidth=1, color='k', linestyle='--', alpha=0.3)
+    plt.vlines(0, -1, 1, linewidth=1, color='k', linestyle='--', alpha=0.3)
+    plt.plot([1,-1], [1,-1], linewidth=1, color='k', linestyle='--', alpha=0.3)
+    plt.plot([1,-1], [-1,1], linewidth=1, color='k', linestyle='--', alpha=0.3)
 
 def calculate_azimuthal_scattering_angle(psi, chi, source_vector, reference_vector):
         """
@@ -100,16 +132,17 @@ def get_modulation(_x, _y, title='Modulation', show=False):
     mu_err = 2/(popt[1]+2*popt[0])**2 * np.sqrt(popt[1]**2 * pcov[0][0]**2 + popt[0]**2 * pcov[1][1]**2)
     
     if show:
+
         plt.figure()
         plt.title(title)
-        plt.bar(_x, _y, align='center', width=0.07, alpha=0.5)
+        plt.step(_x, _y, where='mid')
         perr = [popt[0]+np.sqrt(pcov[0][0]), popt[1]+np.sqrt(pcov[1][1]), popt[2]]
         merr = [popt[0]-np.sqrt(pcov[0][0]), popt[1]-np.sqrt(pcov[1][1]), popt[2]]
         plt.fill_between(_x, R(_x, *perr), R(_x, *merr), color='red', alpha=0.3)
-        plt.plot(_x, R(_x, *popt), 'r-', label='$\mu=$%.2f'%mu)
+        plt.plot(_x, R(_x, *popt), 'r-', label=r'$\mu=$%.3f'%(mu))
         plt.legend(fontsize=12)
-        plt.ylim(Rmin-500, Rmax+500)
         plt.xlabel('Azimuthal angle [rad]')
+        plt.savefig('%s'%title)
 
     return mu, mu_err
 
@@ -128,10 +161,15 @@ class PolarizationStokes():
     sc_orientation : cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile
         Spacecraft orientation
     """
+    
 
     def __init__(self, source_vector, source_spectrum, response_file, sc_orientation):
 
-        # This will need to be changed into IAUPolarizationConvention hardcoded!
+        ###################### This will need to be changed into IAUPolarizationConvention hardcoded!
+        ######################
+        print('This class loading takes around 30 seconds... \n')
+        ######################
+
         self._convention = MEGAlibRelativeX(attitude=source_vector.attitude)
         reference_vector = self._convention.get_basis(source_vector)[0] #px
 
@@ -150,7 +188,7 @@ class PolarizationStokes():
         self._energy_range = [min(self.response.axes['Em'].edges.value), max(self.response.axes['Em'].edges.value)]
 
         self._binedges = Angle(np.linspace(-np.pi, np.pi, 20), unit=u.rad)
-        
+      
     def convolve_spectrum(self, spectrum, response_file, sc_orientation):
         """
         Convolve source spectrum with response and calculate azimuthal scattering angle bins.
@@ -203,7 +241,6 @@ class PolarizationStokes():
         azimuthal_angles : list
             Azimuthal scattering angles. Each angle must be an astropy.coordinates.Angle object
         """
-        print('This tasks takes around 30 seconds... \n')
 
         azimuthal_angles = []
 
@@ -319,13 +356,21 @@ class PolarizationStokes():
         be, unpolarized_asad = self.create_unpolarized_asad(bins=bins)
 
         mu_, mu_err_ = [], []
-        for pol100asad_pa in polarized100_asad:
+        for i, pol100asad_pa in enumerate(polarized100_asad):
+
             asad_corrected = pol100asad_pa / np.sum(pol100asad_pa) / unpolarized_asad * np.sum(unpolarized_asad)
             # print('be, asad_corrected:', be, asad_corrected)
 
-            mu, mu_err = get_modulation(be.value, asad_corrected, title='Modulation', show=False)
+            mu, mu_err = get_modulation(be.value, asad_corrected, title='Modulation PA bin %i'%i, show=True)
             mu_.append(mu)
             mu_err_.append(mu_err)
+
+            # plt.figure()
+            # plt.step(be[:-1], pol100asad_pa / np.sum(pol100asad_pa), where='post')
+            # plt.step(be[:-1], unpolarized_asad / np.sum(unpolarized_asad), where='post')
+            # plt.figure()
+            # plt.step(be[:-1], asad_corrected, where='post', linewidth=3)
+            # plt.show()
 
         mu_ = np.array(mu_)
         mu_err_ = np.array(mu_err_)
@@ -341,10 +386,10 @@ class PolarizationStokes():
             plt.figure()
             plt.errorbar(np.arange(len(mu_)), mu_, yerr=mu_err_)
             plt.hlines(average_mu, 0, len(mu_), color='red', linewidth=4,
-                        label=r'$\mu$ = %s +/- %s'%(average_mu, average_mu_err))
+                        label=r'$\mu$ = %.3f +/- %.3f'%(average_mu, average_mu_err))
             plt.hlines(average_mu+average_mu_err, 0, len(mu_), color='red', linestyle='--', linewidth=2)
             plt.hlines(average_mu-average_mu_err, 0, len(mu_), color='red', linestyle='--', linewidth=2)
-            plt.xlabel('Energy bin')
+            plt.xlabel('bin')
             plt.ylabel(r'$\mu$')
             plt.legend()
             plt.show()
@@ -451,50 +496,126 @@ class PolarizationStokes():
         
         return qs_unpol, us_unpol
     
-    def calculate_polarization(self, qs, us, qs_unpol, us_unpol, mu):
-        #
-        #
-        #
-        # contunue here below
-        # make sure that the output PA is a polarization angle object. E.g.:
-        #    polarization_angle += Angle(180, unit=u.deg)
-        #    polarization_angle = PolarizationAngle(polarization_angle, self._source_vector, convention=self._convention).transform_to(IAUPolarizationConvention())
-        #
-        #
-        #
+    def calculate_mdp(self):
+        """
+        """
+        #############################
+        #############################
+        pass
+
+    def calculate_polarization(self, qs, us, qs_unpol, us_unpol, mu, show=False):
         """Calculate the polarization degree and angle, with the associated
         uncertainties, for a given q and u.
 
         This implements equations (21), (36), (22) and (37) in the paper Kislat et al 2015,
         respectively.
 
-        # Note that the Stokes parameters passed as the input arguments are assumed
-        # to be normalized to the modulation factor (for Q and U) on an
-        # event-by-event basis and summed over the proper energy range.
-
-        Great part of the logic is meant to avoid runtime zero-division errors.
         """
 
         pol_I = len(qs)
         pol_Q = np.sum(qs) / mu
         pol_U = np.sum(us) / mu
-        unpol_Q = np.sum(qs) / mu
-        unpol_U = np.sum(us) / mu
+        unpol_Q = np.sum(qs_unpol) / mu
+        unpol_U = np.sum(us_unpol) / mu
 
-        Q = pol_Q - unpol_Q
-        U = pol_U - unpol_U
+        Q = pol_Q/pol_I - unpol_Q/pol_I
+        U = pol_U/pol_I - unpol_U/pol_I
 
-        pol_PD = np.sqrt(Q**2. + U**2.) / pol_I
-        pol_PA = Angle(0.5 * np.degree(np.arctan2(U, Q)), unit=u.deg)
+        pol_PD = np.sqrt(Q**2. + U**2.)# / pol_I
+        pol_PA = 90 - 0.5 * np.degrees(np.arctan2(U, Q))
 
         pol_modulation = mu * pol_PD
+        ###################### Need to understand why I need this rotation
+        ######################
+        Q, U = rotate_points_to_x_axis( Q, U, pol_PA)
+        print('-------  Q/I, U/I', Q, U)
 
-        pol_1sigmaPD = pol_1sigmaQ = pol_1sigmaU = np.sqrt((2. - pol_modulation**2.) / ((pol_I - 1.) * mu**2.))
+        pol_1sigmaPD = pol_sQ = np.sqrt((2. - pol_modulation**2.) / ((pol_I - 1.) * mu**2.))
         pol_1sigmaPA = np.degrees(1 / (pol_modulation * np.sqrt(2. * (pol_I - 1.))))
 
+        print('PD:', pol_PD, '+/-', pol_1sigmaPD) 
+        print('PA', pol_PA, '+/-', pol_1sigmaPA)
 
+        if show:
+            fig, ax = plt.subplots(figsize=(6.4, 6.4))
+            polar_chart_backbone(ax)
+            plt.plot(Q, U, 'o', markersize=5, color='red',label='Measured')
+            pol_c = plt.Circle((Q, U), radius=pol_1sigmaPD, facecolor='none', edgecolor='red', linewidth=1, label='Polarized source')
+            pol_c2 = plt.Circle((Q, U), radius=2*pol_1sigmaPD, facecolor='none', edgecolor='red', linewidth=1)
+            pol_c3 = plt.Circle((Q, U), radius=3*pol_1sigmaPD, facecolor='none', edgecolor='red', linewidth=1)
+            plt.gca().add_artist(pol_c)
+            plt.gca().add_artist(pol_c2)
+            plt.gca().add_artist(pol_c3)
+            plt.xlim(-1, 1)
+            plt.ylim(-1, 1)
+            plt.xlabel('Q/I')
+            plt.ylabel('U/I')
+            plt.tight_layout()
+
+            plt.xlim(-1, 1)
+            plt.ylim(-1, 1)
+            plt.xlabel('Q/I')
+            plt.ylabel('U/I')
+            plt.tight_layout()
+
+            plt.show()
+
+        pol_PA = Angle(np.radians(pol_PA), unit=u.rad)
         return pol_PD, pol_1sigmaPD, pol_PA, pol_1sigmaPA
 
 
 if __name__ == "__main__":
-     pass
+
+    print('loading files...')
+    print('Simulated PD, PA: 70%, 83 degrees E of N')
+    sim_pd, sim_pa = 0.7, np.radians(83)
+    sim_u = sim_pd / np.sqrt((np.tan(2*sim_pa))**2 + 1)
+    sim_q = sim_pd / np.sqrt((np.tan(2*sim_pa))**2 + 1) * np.tan(2*sim_pa)
+
+    qs, us = np.load('qs.npy'), np.load('us.npy')
+    qs_unpol, us_unpol = np.load('unpol_qs.npy'), np.load('unpol_us.npy')
+
+    mu = 0.31
+
+    pol_I = len(qs)
+    pol_Q = np.sum(qs) / mu
+    pol_U = np.sum(us) / mu
+    unpol_Q = np.sum(qs_unpol) / mu
+    unpol_U = np.sum(us_unpol) / mu
+
+    Q = pol_Q/pol_I - unpol_Q/pol_I
+    U = pol_U/pol_I - unpol_U/pol_I
+
+    pol_PD = np.sqrt(Q**2. + U**2.)# / pol_I
+    pol_PA = 90 - 0.5 * np.degrees(np.arctan2(U, Q))
+
+    pol_modulation = mu * pol_PD
+    ###################### Need to understand why I need this rotation
+    ######################
+    Q, U = rotate_points_to_x_axis( Q, U, pol_PA)
+    print('-------  Q/I, U/I', Q, U)
+
+    pol_1sigmaPD = pol_sQ = np.sqrt((2. - pol_modulation**2.) / ((pol_I - 1.) * mu**2.))
+    pol_1sigmaPA = np.degrees(1 / (pol_modulation * np.sqrt(2. * (pol_I - 1.))))
+
+    print('PD:', pol_PD, '+/-', pol_1sigmaPD) 
+    print('PA', pol_PA, '+/-', pol_1sigmaPA)
+
+
+    fig, ax = plt.subplots(figsize=(6.4, 6.4))
+    polar_chart_backbone(ax)
+    plt.plot(sim_q, sim_u, 'x', markersize=20, color='tab:green',label='Simulated')
+    plt.plot(Q, U, 'o', markersize=5, color='red',label='Measured')
+    pol_c = plt.Circle((Q, U), radius=pol_1sigmaPD, facecolor='none', edgecolor='red', linewidth=1, label='Polarized source')
+    pol_c2 = plt.Circle((Q, U), radius=2*pol_1sigmaPD, facecolor='none', edgecolor='red', linewidth=1)
+    pol_c3 = plt.Circle((Q, U), radius=3*pol_1sigmaPD, facecolor='none', edgecolor='red', linewidth=1)
+    plt.gca().add_artist(pol_c)
+    plt.gca().add_artist(pol_c2)
+    plt.gca().add_artist(pol_c3)
+
+    plt.xlim(-1, 1)
+    plt.ylim(-1, 1)
+    plt.xlabel('Q/I')
+    plt.ylabel('U/I')
+    plt.tight_layout()
+    plt.show()
