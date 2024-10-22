@@ -137,9 +137,8 @@ class SourceInjector():
 
         injected = psr.get_expectation(spectrum)
         # setting the Em and Ei scale to linear to match the simulated data
-        # The linear scale of Em and Ei is the default for COSI data
+        # The linear scale of Em is the default for COSI data
         injected.axes["Em"].axis_scale = "linear"
-        injected.axes["Ei"].axis_scale = "linear"
 
         if project_axes is not None:
             injected = injected.project(project_axes)
