@@ -245,7 +245,7 @@ class SpacecraftFile():
         Parameters
         ----------
         start : astropy.time.Time
-            The star time of the orientation period.
+            The start time of the orientation period.
         stop : astropy.time.Time
             The end time of the orientation period.
 
@@ -277,7 +277,6 @@ class SpacecraftFile():
             x_direction_start = self.interpolate_direction(start, start_idx, self._x_direction)
             z_direction_start = self.interpolate_direction(start, start_idx, self._z_direction)
             earth_direction_start = self.interpolate_direction(start, start_idx, self._earth_direction)
-            earth_altitude_start = self.interpolate_direction(start, start_idx, self._altitude)
 
             new_times = self._load_time[start_idx + 1 : stop_idx + 1]
             new_times = np.insert(new_times, 0, start.value)
@@ -291,8 +290,12 @@ class SpacecraftFile():
             new_earth_direction = self._earth_direction[start_idx + 1 : stop_idx + 1]
             new_earth_direction = np.insert(new_earth_direction, 0, earth_direction_start, axis = 0)
 
-            new_earth_altitude = self._altitude[start_idx + 1 : stop_idx + 1]
-            new_earth_altitude = np.insert(new_earth_altitude, 0, earth_altitude_start, axis = 0)
+            # The altitude does not very much, and so for now I will simply
+            # start with the closest value. A beter solution  would be to do 
+            # a linear interpolation of altitude vs. time, and calculate for 
+            # given starting time. Likewise for the ending time below. 
+            new_earth_altitude = self._altitude[start_idx + 1 : stop_idx + 1]  
+            new_earth_altitude = np.insert(new_earth_altitude, 0, new_earth_altitude[0])
 
 
         if (stop.value % 1 != 0):
@@ -301,7 +304,6 @@ class SpacecraftFile():
             x_direction_stop = self.interpolate_direction(stop, stop_idx, self._x_direction)
             z_direction_stop = self.interpolate_direction(stop, stop_idx, self._z_direction)
             earth_direction_stop = self.interpolate_direction(stop, stop_idx, self._earth_direction)
-            earth_altitude_stop = self.interpolate_direction(stop, stop_idx, self._altitude)
 
             new_times = np.delete(new_times, -1)
             new_times = np.append(new_times, stop.value)
@@ -316,7 +318,7 @@ class SpacecraftFile():
             new_earth_direction = np.append(new_earth_direction, [earth_direction_stop], axis = 0)
             
             new_earth_altitude = new_earth_altitude[:-1]
-            new_earth_altitude = np.append(new_earth_altitude, [earth_altitude_stop], axis = 0)
+            new_earth_altitude = np.append(new_earth_altitude, [new_earth_altitude[-1]])
 
 
 
