@@ -409,11 +409,10 @@ class SpectrumFileProcessor:
 
     def integrate_flux(self):
         """
-        Compute the integrated flux using the sum of flux multiplied by energy bin widths.
-        Also, calculate the normalization constant K based on the desired total flux.
+        Compute the total flux using the sum of flux multiplied by energy bin widths.
         
         Returns:
-        - K: The normalization constant.
+        - K: The total flux.
         """
         if self.df_filtered is None or self.df_filtered.empty:
             raise ValueError("No data to integrate. Please run process_data() first.")
