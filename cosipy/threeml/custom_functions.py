@@ -377,41 +377,60 @@ class SpectrumFileProcessor:
             raise
 
     def process_data(self):
-        """Convert frequency to energy in keV and flux to ph/cm²/sec/keV."""
-        energy_hz = self.data[:, self.energy_col] * u.Hz   # Column defined by user
-        flux_ergs = self.data[:, self.flux_col] * u.erg / (u.cm**2 * u.s)  # Column defined by user
-        
-        # Convert frequency to energy in keV
-        energy_keV = (h * energy_hz).to(u.keV)
+        """Process the data: Convert frequency to energy in keV and flux to ph/cm²/sec/keV if needed."""
+        if self.convert_data:
+            # If conversion is required
+            energy_hz = self.data[:, self.energy_col] * u.Hz   # Column defined by user
+            flux_ergs = self.data[:, self.flux_col] * u.erg / (u.cm**2 * u.s)  # Column defined by user
+            
+            # Convert frequency to energy in keV
+            energy_keV = (h * energy_hz).to(u.keV)
 
-        # Convert flux from ergs to keV
-        flux_keV = flux_ergs.to(u.keV / (u.cm**2 * u.s))
+            # Convert flux from ergs to keV
+            flux_keV = flux_ergs.to(u.keV / (u.cm**2 * u.s))
 
-        # Convert flux to ph/cm²/sec/keV
-        flux_ph = (flux_keV / energy_keV**2)
+            # Convert flux to ph/cm²/sec/keV
+            flux_ph = (flux_keV / energy_keV**2)
         
-        # Create a DataFrame to store the converted data
+        else:
+            # If data is already in keV, assume first column is energy (keV) and second column is flux
+            energy_keV = self.data[:, self.energy_col] * u.keV  # Directly use energy in keV
+            flux_ph = self.data[:, self.flux_col] * u.ph / (u.cm**2 * u.s * u.keV)  # Directly use flux in ph/cm²/sec/keV
+
+        # Create a DataFrame to store the data
         df = pd.DataFrame({
             'Energy (keV)': energy_keV.value,
             'Flux (ph/cm²/sec/keV)': flux_ph.value
         })
-        
+
         # Filter out rows with energy less than 100 keV and more than 10000 keV
         self.df_filtered = df[(df['Energy (keV)'] >= 100) & (df['Energy (keV)'] <= 10000)]
         return self.df_filtered
-    
+
     def integrate_flux(self):
-        """Perform numerical integration of the flux over the energy range using the trapezoidal rule."""
+        """
+        Compute the integrated flux using the sum of flux multiplied by energy bin widths.
+        Also, calculate the normalization constant K based on the desired total flux.
+        
+        Returns:
+        - K: The normalization constant.
+        """
         if self.df_filtered is None or self.df_filtered.empty:
             raise ValueError("No data to integrate. Please run process_data() first.")
         
+        # Get energy and flux from the processed data
         energy = self.df_filtered['Energy (keV)'].values
         flux = self.df_filtered['Flux (ph/cm²/sec/keV)'].values
 
-        integrated_flux = np.trapz(flux, energy)
-        print(f"Integrated Flux (Normalization Constant): {integrated_flux} ph/cm²/sec")
+        # Calculate the energy bin widths
+        ewidths = np.diff(energy, append=energy[-1])
 
-        return integrated_flux
+        # Calculate the current total flux (integral of the spectrum)
+        K = np.sum(flux * ewidths)
+
+        print(f"Calculated Normalization Constant K: {K}")
+        
+        return K
 
     def plot_spectrum(self):
         """Generate a plot of energy vs flux with a log-log scale."""
