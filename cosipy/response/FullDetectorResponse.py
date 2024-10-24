@@ -869,8 +869,9 @@ class FullDetectorResponse(HealpixBase):
         # and interntial coords
         
         if Earth_occ == True:
-            if coord.size > 1:
-                raise ValueError("For Earth occultation you must use the same coordinate as was used for the scatt map!")
+            if coord != None:
+                if coord.size > 1:
+                    raise ValueError("For Earth occultation you must use the same coordinate as was used for the scatt map!")
 
         if exposure_map is not None:
             if not self.conformable(exposure_map):
