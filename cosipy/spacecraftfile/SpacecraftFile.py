@@ -511,44 +511,6 @@ class SpacecraftFile():
         return self.dwell_map
 
     def get_scatt_map(self,
-                       nside,
-                       scheme = 'ring',
-                       coordsys = 'galactic',
-                       ):
-        """
-        Bin the spacecraft attitude history into a 4D histogram that contains the accumulated time the axes of the spacecraft where looking at a given direction. 
-
-        Parameters
-        ----------
-        nside : int
-            The nside of the scatt map.
-        scheme : str, optional
-            The scheme of the scatt map (the default is "ring")
-        coordsys : str, optional
-            The coordinate system used in the scatt map (the default is "galactic).
-
-        Returns
-        -------
-        h_ori : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
-            The spacecraft attitude map.
-        """
-        
-        # Get orientations
-        timestamps = self.get_time()
-        attitudes = self.get_attitude()
-
-        # Fill (only 2 axes needed to fully define the orientation)
-        h_ori = SpacecraftAttitudeMap(nside = nside,
-                                      scheme = scheme,
-                                      coordsys = coordsys)
-        
-        x,y,z = attitudes[:-1].as_axes()
-
-        h_ori.fill(x, y, weight = np.diff(timestamps.gps)*u.s)
-        
-        return h_ori
-
-    def get_scatt_map_earth_occ(self,
                        target_coord,
                        nside,
                        scheme = 'ring',
