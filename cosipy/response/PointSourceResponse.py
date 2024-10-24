@@ -1,9 +1,8 @@
 from histpy import Histogram, Axes, Axis
 
+import numpy as np
 import astropy.units as u
-
 from astropy.units import Quantity
-
 from scipy import integrate
 
 from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
@@ -64,6 +63,7 @@ class PointSourceResponse(Histogram):
 
         flux = get_integrated_spectral_model(spectrum, energy_axis)
         
-        expectation = self * self.expand_dims(flux.contents.value, 'Ei') * flux.contents.unit
+        expectation = np.tensordot(self.contents, flux.contents, axes = ([0], [0])) * self.unit * flux.unit
+        # Note: np.tensordot loses unit.
         
-        return expectation.project(self.axes.labels[self.axes.labels != 'Ei'])
+        return Histogram(self.axes[1:], contents = expectation)
