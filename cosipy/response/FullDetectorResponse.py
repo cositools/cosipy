@@ -839,7 +839,7 @@ class FullDetectorResponse(HealpixBase):
                                   exposure_map = None,
                                   coord = None,
                                   scatt_map = None,
-                                  Earth_occ = False):
+                                  Earth_occ = True):
         """
         Convolve the all-sky detector response with exposure for a source at a given
         sky location.
@@ -857,7 +857,7 @@ class FullDetectorResponse(HealpixBase):
             Spacecraft attitude map
         Earth_occ : bool, optional
             Option to include Earth occultation in the respeonce. 
-            Default is False for now. If True, you can only pass one 
+            Default is True, in which case you can only pass one 
             coord, which must be the same as was used for the scatt map. 
         
         Returns
