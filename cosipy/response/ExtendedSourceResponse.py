@@ -1,6 +1,7 @@
 from histpy import Histogram, Axes, Axis
 import numpy as np
 import astropy.units as u
+import gc
 
 from .functions import get_integrated_extended_model
 
@@ -69,6 +70,8 @@ class ExtendedSourceResponse(Histogram):
                         track_overflow = track_overflow)
         
         del hist
+        gc.collect()
+
         return new
 
     def get_expectation(self, allsky_image_model):
