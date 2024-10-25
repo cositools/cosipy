@@ -23,6 +23,8 @@ def test_get_expectation():
 
     hist = resp.get_expectation(allsky_imagemodel)
 
+    assert isinstance(hist[:], u.quantity.Quantity) == True
+
 def test_get_expectation_from_astromodel():
 
     resp = ExtendedSourceResponse.open(extended_response_path)
@@ -47,3 +49,5 @@ def test_get_expectation_from_astromodel():
     
     # Calculate the expectation
     hist = resp.get_expectation_from_astromodel(extended_model)
+
+    assert isinstance(hist[:], u.quantity.Quantity) == True
