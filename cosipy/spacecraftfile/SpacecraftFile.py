@@ -4,7 +4,6 @@ import astropy.units as u
 from astropy.io import fits
 from astropy.time import Time, TimeDelta
 from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
-from astropy.constants import R_earth
 from mhealpy import HealpixMap
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -518,7 +517,7 @@ class SpacecraftFile():
                        nside,
                        scheme = 'ring',
                        coordsys = 'galactic',
-                       r_earth = 6378,
+                       r_earth = 6378.0,
                        ):
 
         """
