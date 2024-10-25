@@ -14,6 +14,6 @@ from .spacecraftfile import SpacecraftFile
 
 from .ts_map import FastTSMap
 
-from .background_estimation import ContinuumEstimation 
-
 from .source_injector import SourceInjector
+
+from .background_estimation import ContinuumEstimation 
