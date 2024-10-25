@@ -196,7 +196,7 @@ class LineBackgroundEstimation:
         energy_indices = np.where((energy_range[0] <= self.energy_axis.bounds[:, 1]) & (self.energy_axis.bounds[:, 0] <= energy_range[1]))[0]
         integrate_energy_range = [self.energy_axis.lower_bounds[energy_indices[0]].value, self.energy_axis.lower_bounds[energy_indices[-1]].value]
         if integrate_energy_range[0] != energy_range[0].value or integrate_energy_range[1] != energy_range[1].value:
-            print(f"The energy range {energy_range.value} is modified to {integrate_energy_range}")
+            logger.info(f"The energy range {energy_range.value} is modified to {integrate_energy_range}")
         weight = integrate.quad(lambda x: self.bkg_spectrum_model(x, *self.bkg_spectrum_model_parameter), *integrate_energy_range)[0]
         return weight, energy_indices
 
