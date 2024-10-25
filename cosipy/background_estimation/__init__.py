@@ -1,1 +1,1 @@
-from .ContinuumEstimation import ContinuumEstimation
+from .LineBackgroundEstimation import LineBackgroundEstimation
