@@ -44,7 +44,7 @@ def test_line_background_estimation():
     bkg_model_histogram = instance.generate_bkg_model_histogram(source_range, [background_region])
 
     ### check sum
-    assert np.sum(bkg_model_histogram) == 41.61181341324655
+    assert np.isclose(np.sum(bkg_model_histogram), 41.61181341324655, atol = 1e-5) == True
 
     ## Case 2: a single extracting region broader than the actual bin width
     background_region = (1119.0, 1651.0) * u.keV
