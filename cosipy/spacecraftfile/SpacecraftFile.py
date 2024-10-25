@@ -9,6 +9,7 @@ from mhealpy import HealpixMap
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import cm, colors
+from scipy import interpolate
 
 from scoords import Attitude, SpacecraftFrame
 from cosipy.response import FullDetectorResponse
@@ -290,12 +291,11 @@ class SpacecraftFile():
             new_earth_direction = self._earth_direction[start_idx + 1 : stop_idx + 1]
             new_earth_direction = np.insert(new_earth_direction, 0, earth_direction_start, axis = 0)
 
-            # The altitude does not very much, and so for now I will simply
-            # start with the closest value. A beter solution  would be to do 
-            # a linear interpolation of altitude vs. time, and calculate for 
-            # given starting time. Likewise for the ending time below. 
+            # Use linear interpolation to get starting altitude at desired time. 
+            f = interpolate.interp1d(self._time.value, self._altitude, kind="linear")
+            starting_alt = f(start.value)
             new_earth_altitude = self._altitude[start_idx + 1 : stop_idx + 1]  
-            new_earth_altitude = np.insert(new_earth_altitude, 0, new_earth_altitude[0])
+            new_earth_altitude = np.insert(new_earth_altitude, 0, starting_alt)
 
 
         if (stop.value % 1 != 0):
@@ -317,10 +317,11 @@ class SpacecraftFile():
             new_earth_direction = new_earth_direction[:-1]
             new_earth_direction = np.append(new_earth_direction, [earth_direction_stop], axis = 0)
             
+            # Use linear interpolation to get starting altitude at desired time.
+            f = interpolate.interp1d(self._time.value, self._altitude, kind="linear")
+            stop_alt = f(stop.value)
             new_earth_altitude = new_earth_altitude[:-1]
-            new_earth_altitude = np.append(new_earth_altitude, [new_earth_altitude[-1]])
-
-
+            new_earth_altitude = np.append(new_earth_altitude, [stop_alt])
 
         time = Time(new_times, format = "unix")
         xpointings = SkyCoord(l = new_x_direction[:,0]*u.deg, b = new_x_direction[:,1]*u.deg, frame = "galactic")
