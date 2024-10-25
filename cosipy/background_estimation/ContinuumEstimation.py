@@ -26,8 +26,8 @@ class ContinuumEstimation:
             Full path to orienation file.
         detector_response : str
             Full path to detector response file.
-        coord : tuple
-            tuple giving Galactic longitude and latitude of source in degrees: (l,b). 
+        coord : astropy.coordinates.SkyCoord
+            The coordinates of the target object. 
         nside : int, optional
             nside of scatt map (default is 16). 
         output_file : str
@@ -41,11 +41,9 @@ class ContinuumEstimation:
         dr = detector_response
 
         # Scatt map:
-        scatt_map = sc_orientation.get_scatt_map(nside = nside, coordsys = 'galactic')
+        scatt_map = sc_orientation.get_scatt_map(coord, nside = nside, coordsys = 'galactic')
 
         # Calculate PSR:
-        coord = coord*u.deg
-        coord = SkyCoord(l=coord[0],b=coord[1],frame='galactic')
         with FullDetectorResponse.open(dr) as response:
             self.psr = response.get_point_source_response(coord = coord, scatt_map = scatt_map)
 
@@ -261,7 +259,7 @@ class ContinuumEstimation:
         """
 
         # Load data to be used for BG estimation:
-        self.laod_full_data(data_file,data_yaml)
+        self.load_full_data(data_file,data_yaml)
 
         # Load point source respone:
         self.load_psr_from_file(psr_file)
