@@ -193,8 +193,13 @@ class LineBackgroundEstimation:
         tuple
             A tuple containing the calculated weight and the corresponding energy indices.
         """
-        energy_indices = np.where((energy_range[0] <= self.energy_axis.bounds[:, 1]) & (self.energy_axis.bounds[:, 0] <= energy_range[1]))[0]
-        integrate_energy_range = [self.energy_axis.lower_bounds[energy_indices[0]].value, self.energy_axis.lower_bounds[energy_indices[-1]].value]
+        energy_indices = np.where((energy_range[0] <= self.energy_axis.lower_bounds) & (self.energy_axis.upper_bounds <= energy_range[1]))[0]
+
+        if len(energy_indices) == 0:
+            raise ValueError("The input energy range is too narrow to find a corresponding energy bin.")
+
+        integrate_energy_range = [self.energy_axis.lower_bounds[energy_indices[0]].value, self.energy_axis.upper_bounds[energy_indices[-1]].value]
+
         if integrate_energy_range[0] != energy_range[0].value or integrate_energy_range[1] != energy_range[1].value:
             logger.info(f"The energy range {energy_range.value} is modified to {integrate_energy_range}")
         weight = integrate.quad(lambda x: self.bkg_spectrum_model(x, *self.bkg_spectrum_model_parameter), *integrate_energy_range)[0]
