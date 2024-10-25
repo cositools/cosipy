@@ -68,6 +68,9 @@ class ExtendedSourceResponse(Histogram):
                         sumw2 = sumw2,
                         unit = unit,
                         track_overflow = track_overflow)
+
+        if new.is_sparse:
+            new = new.to_dense()
         
         del hist
         gc.collect()
