@@ -49,7 +49,7 @@ class SpacecraftFile():
         earth_zenith : astropy.coordinates.SkyCoord, optional
             The pointings (galactic system) of the Earth zenith (the 
             default is `None`, which implies no input for the earth pointings).
-	    altitude : array, optional 
+	altitude : array, optional 
             Altitude of the spacecraft in km.
         attitude : numpy.ndarray, optional 
             The attitude of the spacecraft (the default is `None`, 
