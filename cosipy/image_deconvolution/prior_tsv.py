@@ -6,6 +6,30 @@ from .prior_base import PriorBase
 from .allskyimage import AllSkyImageModel
 
 class PriorTSV(PriorBase):
+    """
+    Total Squared Variation (TSV) prior for all-sky image models.
+
+    This prior implements a smoothness constraint by penalizing differences between neighboring pixels.
+
+    Parameters
+    ----------
+    coefficient : float
+        Scaling coefficient for the TSV prior.
+    model : AllSkyImageModel
+        All-sky image model to which the prior will be applied.
+
+    Attributes
+    ----------
+    usable_model_classes : list
+        List containing AllSkyImageModel as the only compatible model class.
+    neighbour_pixel_index : numpy.ndarray
+        Array of shape (8, npix) containing indices of neighboring pixels.
+        Some pixels have only 7 neighboring pixels. In this case, healpy returns -1
+        as the index of a neighboring pixel, but it can cause calculation errors in
+        this code. So, such a pixel index is replaced with its own pixel index.
+    num_neighbour_pixels : numpy.ndarray
+        Array of shape (npix,) containing the number of valid neighbors for each pixel.
+    """
 
     usable_model_classes = [AllSkyImageModel]
 
@@ -30,7 +54,19 @@ class PriorTSV(PriorBase):
                 self.neighbour_pixel_index[idx, ipixel] = ipixel
 
     def log_prior(self, model):
+        """
+        Calculate the logarithm of the TSV prior probability.
 
+        Parameters
+        ----------
+        model : AllSkyImageModel
+            Model for which to calculate the log prior.
+
+        Returns
+        -------
+        float
+            The logarithm of the TSV prior probability.
+        """
         if self.model_class == AllSkyImageModel:
 
             diff = (model[:] - model[self.neighbour_pixel_index]).value
@@ -39,7 +75,19 @@ class PriorTSV(PriorBase):
             return -1.0 * self.coefficient * np.sum(diff**2)
     
     def grad_log_prior(self, model): 
+        """
+        Calculate the gradient of the log TSV prior.
 
+        Parameters
+        ----------
+        model : AllSkyImageModel
+            Model for which to calculate the gradient.
+
+        Returns
+        -------
+        numpy.ndarray
+            Gradient of the log prior, with the same units as the model.
+        """
         if self.model_class == AllSkyImageModel:
 
             diff = (model[:] - model[self.neighbour_pixel_index]).value
