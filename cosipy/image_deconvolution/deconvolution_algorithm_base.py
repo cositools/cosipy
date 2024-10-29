@@ -312,15 +312,21 @@ class DeconvolutionAlgorithmBase(ABC):
         # dictionary
         for key, name, fits_format in dicts_key_name_format:
             
-            dict_keys = self.results[0][key].keys()
+            dict_keys = list(self.results[0][key].keys())
+            
+            chunk_size = 998 # when the number of columns >= 1000, the fits file may not be saved.
+            for i_chunk, chunked_dict_keys in enumerate([dict_keys[i:i+chunk_size] for i in range(0, len(dict_keys), chunk_size)]):
 
-            cols_dict = [fits.Column(name=dict_key, array=[result[key][dict_key] for result in self.results], format=fits_format) for dict_key in dict_keys]
+                cols_dict = [fits.Column(name=dict_key, array=[result[key][dict_key] for result in self.results], format=fits_format) for dict_key in chunked_dict_keys]
 
-            hdu = fits.BinTableHDU.from_columns([col_counter] + cols_dict)
+                hdu = fits.BinTableHDU.from_columns([col_counter] + cols_dict)
 
-            hdu.name = name
+                hdu.name = name
 
-            hdu_list.append(hdu)
+                if i_chunk != 0:
+                    hdu.name = name + f"{i_chunk}"
+
+                hdu_list.append(hdu)
 
         # list
         for key, name, fits_format in lists_key_name_format:
