@@ -5,6 +5,7 @@ from threeML.exceptions.custom_exceptions import FitFailed
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
+from cosipy.response.ExtendedSourceResponse import ExtendedSourceResponse
 from cosipy.image_deconvolution import AllSkyImageModel
 
 from scoords import SpacecraftFrame, Attitude
@@ -115,9 +116,7 @@ class COSILike(PluginPrototype):
         self.precomputed_psr_file = precomputed_psr_file
         if self.precomputed_psr_file != None:
             logger.info("... loading the pre-computed image response ...")
-            self.image_response = DetectorResponse.open(self.precomputed_psr_file)
-            # in the near future, we will implement ExtendedSourceResponse class, which should be used here (HY).
-            # probably, it is better to move this loading part outside of this class. Then, we don't have to load the response everytime we start the fitting (HY).
+            self.image_response = ExtendedSourceResponse.open(self.precomputed_psr_file)
             logger.info("--> done")
         
     def set_model(self, model):
@@ -154,22 +153,8 @@ class COSILike(PluginPrototype):
             # Note: the spectral parameters are updated internally by 3ML
             # during the likelihood scan. 
 
-            model_map = AllSkyImageModel(nside = self.image_response.axes['NuLambda'].nside, 
-                                         energy_edges = self.image_response.axes['Ei'].edges,
-                                         coordsys = 'galactic',
-                                         label_image = 'NuLambda', # I think the label should be something like 'lb' to distiguish the photon direction in the local/galactic coordinates 
-                                         label_energy = 'Ei')
-
-            model_map.set_values_from_extendedmodel(source)
-
             # Get expectation using precomputed psr in Galactic coordinates:
-            total_expectation = Histogram(edges = self.image_response.axes[2:],
-                                          contents = np.tensordot(model_map.contents, self.image_response.contents, axes = ([0,1], [0,1])) * model_map.axes['NuLambda'].pixarea())
-            # ['NuLambda', 'Ei'] x ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'] => 'Em', 'Phi', 'PsiChi']
-            # this part should be modified with the future ExtendedSourceResponse class like
-            # total_expectation = self.image_response.get_expectation(model_map)
-            # or 
-            # total_expectation = self.image_response.get_expectation_from_astromodel(source) (HY)
+            total_expectation = self.image_response.get_expectation_from_astromodel(source)
 
             # Save expected counts for source:
             self._expected_counts[name] = copy.deepcopy(total_expectation)
