@@ -184,15 +184,13 @@ class UnBinnedData(DataIO):
             # Make sure line isn't empty:
             if len(this_line) == 0:
                 continue
-
-
-            
+                
             # Event type: 
             if this_line[0] == "ET":
-                #Check we are looking CO evt
-                if this_line[1] == "CO" :
+                # Check that we are looking at CO events
+                if this_line[1] == "CO":
                     et.append(this_line[1])
-                else : 
+                else: 
                     raise ValueError(f"Error: Expected CO event, but got '{this_line[1]}'.")
             
             # Count the number of events:
@@ -228,8 +226,7 @@ class UnBinnedData(DataIO):
             # Time tag in Unix time (seconds):
             if this_line[0] == "TI":
                 tt.append(float(this_line[1]))
-                      
- 
+                
             # X axis of detector orientation in Galactic coordinates:
             if this_line[0] == "GX":
                 this_lonX = np.deg2rad(float(this_line[1])) # radians
