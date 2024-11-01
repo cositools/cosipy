@@ -63,6 +63,9 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Convolve the response, point source model and orientation to obtain the mock data.
   - More types of source (e,g. extended source and polarization) will be suppored.
 
+10. Continuum background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/continuum_estimation/BG_estimation_example.ipynb>`
+  - Estimating the continuum background from the data. 
+
 .. warning::
    Under construction. Some of the explanations described above might be missing. However, the notebooks are fully functional. If you have a question not yet covered by the tutorials, please discuss `issue <https://github.com/cositools/cosipy/discussions>`_ so we can prioritize it.
     
@@ -78,5 +81,5 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    Extended source model fitting <spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>
    Image deconvolution <image_deconvolution/511keV/ScAttBinning/511keV-DC2-ScAtt-ImageDeconvolution.ipynb>
    Source injector <source_injector/Point_source_injector.ipynb>
-
+   Continuum Background Estimation <background_estimation/continuum_estimation/BG_estimation_example.ipynb>
 
