@@ -274,6 +274,8 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
 
             log_likelihood = np.sum(self.results[-1]["log-likelihood"])
             log_likelihood_before = np.sum(self.results[-2]["log-likelihood"])
+
+            logger.debug(f'Delta log-likelihood: {log_likelihood - log_likelihood_before}')
             
             if log_likelihood - log_likelihood_before < self.stopping_criteria_threshold:
                 return True
@@ -282,6 +284,8 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
             
             log_posterior = self.results[-1]["log-posterior"]
             log_posterior_before = self.results[-2]["log-posterior"]
+
+            logger.debug(f'Delta log-posterior: {log_posterior - log_posterior_before}')
 
             if log_posterior - log_posterior_before < self.stopping_criteria_threshold:
                 return True

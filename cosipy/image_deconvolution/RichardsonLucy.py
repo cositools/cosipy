@@ -176,6 +176,8 @@ class RichardsonLucy(RichardsonLucySimple):
 
             log_likelihood = np.sum(self.results[-1]["log-likelihood"])
             log_likelihood_before = np.sum(self.results[-2]["log-likelihood"])
+
+            logger.debug(f'Delta log-likelihood: {log_likelihood - log_likelihood_before}')
             
             if log_likelihood - log_likelihood_before < self.stopping_criteria_threshold:
                 return True
