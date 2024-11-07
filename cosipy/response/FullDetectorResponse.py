@@ -807,7 +807,7 @@ class FullDetectorResponse(HealpixBase):
 
         return Path(self._file.filename)
 
-    def get_interp_response(self, coord):
+    def get_interp_response(self, coord, unbinned=False):
         """
         Get the bilinearly interpolated response at a given coordinate location.
 
@@ -823,9 +823,13 @@ class FullDetectorResponse(HealpixBase):
 
         pixels, weights = self.get_interp_weights(coord)
 
-        
+        if unbinned:
+            dr = ListModeResponse(self.axes[1:],
+                              sparse=self._sparse,
+                              unit=self.unit)            
 
-        dr = DetectorResponse(self.axes[1:],
+        else:
+            dr = DetectorResponse(self.axes[1:],
                               sparse=self._sparse,
                               unit=self.unit)
         
