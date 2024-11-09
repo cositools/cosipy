@@ -22,7 +22,7 @@ class ListModeResponse(Histogram):
     def __init__(self, *args, **kwargs):
         # Overload parent init. Called in class methods.
         super().__init__(*args, **kwargs)
-        self.mapping = {'Ei': 'Ei', 'Em': 'Em', 'Phi': 'Phi', 'PsiChi': 'PsiChi'}   # key_target : label
+        self.mapping = {'Ei': 'Ei', 'Em': 'eps', 'Phi': 'Phi', 'PsiChi': 'PsiChi'}   # key_target : label
 
     def _get_all_interp_weights(self, target: dict):
 
@@ -50,11 +50,11 @@ class ListModeResponse(Histogram):
                 else:
                     raise ValueError(f'Axis type: {axis_type} is not supported')
                 
-            elif axis_scale == 'nonlinear':   
-                pass
+            # elif axis_scale == 'nonlinear':   
+            #     pass
 
             else:
-                raise ValueError(f'Scale: {axis_scale} is not supported')
+                raise ValueError(f'{axis_scale} binning / scale scheme is not supported')
             
             indices.append(idx)
             weights.append(w)
@@ -103,7 +103,6 @@ class ListModeResponse(Histogram):
             for idx, w in zip(perm_indices, perm_weights):
                 i = (Ellipsis,) + idx   # XXX: Assuming 'Ei' is the first index
                 interpolated_response_value += np.prod(w) * self.contents[i]
-            # raise NotImplementedError('Support for len(target) < len(axes) is yet to be implemented')
 
         self.neighbors = self.get_nearest_neighbors(target, indices)
         

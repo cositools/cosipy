@@ -68,6 +68,7 @@ class PointSourceResponse(Histogram):
                 spectrum_unit = getattr(spectrum, item).unit
                 break
                 
+        # Set overall spectrum unit based on model PDF
         if spectrum_unit == None:
             if isinstance(spectrum, Constant):
                 spectrum_unit = spectrum.k.unit
@@ -85,7 +86,7 @@ class PointSourceResponse(Histogram):
                 except:
                     raise RuntimeError("Spectrum not yet supported because units of spectrum are unknown.")
                     
-        if isinstance(spectrum, DiracDelta):
+        if isinstance(spectrum, DiracDelta):        # Special numerical handling for DiracDelta type spectral profiles
             flux = Quantity([spectrum.value.value * spectrum_unit * lo_lim.unit if spectrum.zero_point.value >= lo_lim/lo_lim.unit and spectrum.zero_point.value <= hi_lim/hi_lim.unit else 0 * spectrum_unit * lo_lim.unit
                              for lo_lim,hi_lim
                              in zip(eaxis.lower_bounds, eaxis.upper_bounds)])

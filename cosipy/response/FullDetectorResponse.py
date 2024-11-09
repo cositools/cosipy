@@ -1,6 +1,7 @@
 from .PointSourceResponse import PointSourceResponse
 from .DetectorResponse import DetectorResponse
 from .ListModeResponse import ListModeResponse
+from .ListModePSR import ListModePSR
 from astromodels.core.model_parser import ModelParser
 import matplotlib.pyplot as plt
 from astropy.time import Time
@@ -843,12 +844,13 @@ class FullDetectorResponse(HealpixBase):
     def get_point_source_response(self,
                                   exposure_map = None,
                                   coord = None,
-                                  scatt_map = None):
+                                  scatt_map = None,
+                                  unbinned = False):
         """
         Convolve the all-sky detector response with exposure for a source at a given
         sky location.
 
-        Provide either a exposure map (aka dweel time map) or a combination of a 
+        Provide either a exposure map (aka dwell time map) or a combination of a 
         sky coordinate and a spacecraft attitude map.
 
         Parameters
@@ -867,77 +869,81 @@ class FullDetectorResponse(HealpixBase):
 
         # TODO: deprecate exposure_map in favor of coords + scatt map for both local
         # and interntial coords
-        
-        if exposure_map is not None:
-            if not self.conformable(exposure_map):
-                raise ValueError(
-                    "Exposure map has a different grid than the detector response")
 
-            psr = PointSourceResponse(self.axes[1:],
-                                      sparse=self._sparse,
-                                      unit=u.cm*u.cm*u.s)
-
-            for p in range(self.npix):
-
-                if exposure_map[p] != 0:
-                    psr += self[p]*exposure_map[p]
-
-            return psr
+        if unbinned:
+            pass
 
         else:
+            if exposure_map is not None:
+                if not self.conformable(exposure_map):
+                    raise ValueError(
+                        "Exposure map has a different grid than the detector response")
 
-            # Rotate to inertial coordinates
+                psr = PointSourceResponse(self.axes[1:],
+                                        sparse=self._sparse,
+                                        unit=u.cm*u.cm*u.s)
 
-            if coord is None or scatt_map is None:
-                raise ValueError("Provide either exposure map or coord + scatt_map")
-            
-            if isinstance(coord.frame, SpacecraftFrame):
-                raise ValueError("Local coordinate + scatt_map not currently supported")
+                for p in range(self.npix):
 
-            if self.is_sparse:
-                raise ValueError("Coord +  scatt_map currently only supported for dense responses")
+                    if exposure_map[p] != 0:
+                        psr += self[p]*exposure_map[p]
 
-            axis = "PsiChi"
-
-            coords_axis = Axis(np.arange(coord.size+1), label = 'coords')
-
-            psr = Histogram([coords_axis] + list(deepcopy(self.axes[1:])), 
-                            unit = self.unit * scatt_map.unit)
-            
-            psr.axes[axis].coordsys = coord.frame
-
-            for i,(pixels, exposure) in \
-                enumerate(zip(scatt_map.contents.coords.transpose(),
-                              scatt_map.contents.data)):
-
-                #gc.collect() # HDF5 cache issues
-                
-                att = Attitude.from_axes(x = scatt_map.axes['x'].pix2skycoord(pixels[0]),
-                                         y = scatt_map.axes['y'].pix2skycoord(pixels[1]))
-
-                coord.attitude = att
-
-                #TODO: Change this to interpolation
-                loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord),
-                                               ndmin = 1)
-                
-                dr_pix = Histogram.concatenate(coords_axis, [self[i] for i in loc_nulambda_pixels])
-
-                dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
-
-                self._sum_rot_hist(dr_pix, psr, exposure)
-
-            # Convert to PSR
-            psr = tuple([PointSourceResponse(psr.axes[1:],
-                                             contents = data,
-                                             sparse = psr.is_sparse,
-                                             unit = psr.unit)
-                         for data in psr[:]])
-            
-            if coord.size == 1:
-                return psr[0]
-            else:
                 return psr
+
+            else:
+
+                # Rotate to inertial coordinates
+
+                if coord is None or scatt_map is None:
+                    raise ValueError("Provide either exposure map or coord + scatt_map")
+                
+                if isinstance(coord.frame, SpacecraftFrame):
+                    raise ValueError("Local coordinate + scatt_map not currently supported")
+
+                if self.is_sparse:
+                    raise ValueError("Coord +  scatt_map currently only supported for dense responses")
+
+                axis_label = "PsiChi"
+
+                coords_axis = Axis(np.arange(coord.size+1), label = 'coords')   # Create axis of length number of input coords + 1
+
+                psr = Histogram([coords_axis] + list(deepcopy(self.axes[1:])),  # Create new "NuLambda" axis
+                                unit = self.unit * scatt_map.unit)
+                
+                psr.axes[axis_label].coordsys = coord.frame     # Set coordinate system of PsiChi axis to input coordinate frame. Axis coordsys was set when response file was opened and initialized using HealpixBase.__init__
+
+                for i,(pixels, exposure) in \
+                    enumerate(zip(scatt_map.contents.coords.transpose(),
+                                scatt_map.contents.data)):
+
+                    #gc.collect() # HDF5 cache issues
+                    
+                    att = Attitude.from_axes(x = scatt_map.axes['x'].pix2skycoord(pixels[0]),
+                                            y = scatt_map.axes['y'].pix2skycoord(pixels[1]))
+
+                    coord.attitude = att
+
+                    #TODO: Change this to interpolation
+                    loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord),
+                                                ndmin = 1)
+                    
+                    dr_pix = Histogram.concatenate(coords_axis, [self[i] for i in loc_nulambda_pixels])
+
+                    dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
+
+                    self._sum_rot_hist(dr_pix, psr, exposure)
+
+                # Convert to PSR
+                psr = tuple([PointSourceResponse(psr.axes[1:],
+                                                contents = data,
+                                                sparse = psr.is_sparse,
+                                                unit = psr.unit)
+                            for data in psr[:]])
+                
+                if coord.size == 1:
+                    return psr[0]
+                else:
+                    return psr
             
     @staticmethod
     def _sum_rot_hist(h, h_new, exposure, axis = "PsiChi"):
