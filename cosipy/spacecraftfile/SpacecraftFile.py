@@ -201,7 +201,7 @@ class SpacecraftFile():
         Parameters
         ----------
         start : astropy.time.Time
-            The star time of the orientation period.
+            The start time of the orientation period.
         stop : astropy.time.Time
             The end time of the orientation period.
 
