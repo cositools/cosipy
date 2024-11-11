@@ -799,13 +799,12 @@ class FullDetectorResponse(HealpixBase):
         if unbinned:
             dr = ListModeResponse(self.axes[1:],
                               sparse=self._sparse,
-                              unit=self.unit)            
+                              unit=self.unit)
 
         else:
             dr = DetectorResponse(self.axes[1:],
                               sparse=self._sparse,
                               unit=self.unit)
-        
         
         for p, w in zip(pixels, weights):
 
@@ -896,15 +895,29 @@ class FullDetectorResponse(HealpixBase):
 
                     coord.attitude = att    # Set attitude to given input coordinate. It is used to transform Spacecraft coordinates (scoords) from ICRS to mhealpy pixel
 
-                    #TODO: Change this to interpolation
-                    loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord),   # Pixel corresponding to coord
-                                                ndmin = 1)
+                    # loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord),   # Pixel corresponding to coord
+                    #                             ndmin = 1)
                     
-                    dr_pix = Histogram.concatenate(coords_axis, [self[pixel] for pixel in loc_nulambda_pixels])     # Concatenate Axis object with DetectorResponse Histogram (Histograms if multiple target_coords are provided)
+                    dr_list = []
 
-                    dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)    # Update the attitude of the PsiChi axis from `None` to `att`
+                    if coord.size == 1:
+                        dr = self.get_interp_response(coord)
+                        dr_list.append(dr)
 
-                    self._sum_rot_hist(dr_pix, psr, exposure)   # Rotate PsiChi from local SC to galactic coordinates. (Function only affects Healpix Axis of psr Histogram)
+                    else:
+                        for c in coord:
+                            dr = self.get_interp_response(c)
+                            dr_list.append(dr)                    
+
+                    # dr_pix = Histogram.concatenate(coords_axis, [self[pixel] for pixel in loc_nulambda_pixels])     # Concatenate Axis object with DetectorResponse Histogram (Histograms if multiple target_coords are provided)
+                    dr_pix = Histogram.concatenate(coords_axis, dr_list)
+                    dr_pix_2 = deepcopy(dr_pix)
+                    dr_pix_2.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)  # Update the attitude of the PsiChi axis from `None` to `att`
+                                                                                        # XXX: this line is messing up the coordsys of response. I was 
+                                                                                        # forced to include a deepcopy statement to strictly divide 
+                                                                                        # their relationship. Alternate implementations are welcome.
+
+                    self._sum_rot_hist(dr_pix_2, psr, exposure)   # Rotate PsiChi from local SC to galactic coordinates. (Function only affects Healpix Axis of psr Histogram)
 
                 # Convert to PSR
                 psr = tuple([PointSourceResponse(psr.axes[1:],

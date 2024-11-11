@@ -22,7 +22,7 @@ class ListModeResponse(Histogram):
     def __init__(self, *args, **kwargs):
         # Overload parent init. Called in class methods.
         super().__init__(*args, **kwargs)
-        self.mapping = {'Ei': 'Ei', 'Em': 'eps', 'Phi': 'Phi', 'PsiChi': 'PsiChi'}   # key_target : label
+        self.mapping = {'Ei': 'Ei', 'Em': 'Em', 'Phi': 'Phi', 'PsiChi': 'PsiChi'}   # key_target : label
 
     def _get_all_interp_weights(self, target: dict):
 
