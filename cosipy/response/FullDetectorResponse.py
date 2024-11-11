@@ -912,26 +912,27 @@ class FullDetectorResponse(HealpixBase):
                 
                 psr.axes[axis_label].coordsys = coord.frame     # Set coordinate system of PsiChi axis to input coordinate frame. Axis coordsys was set when response file was opened and initialized using HealpixBase.__init__
 
-                for i,(pixels, exposure) in \
-                    enumerate(zip(scatt_map.contents.coords.transpose(),
-                                scatt_map.contents.data)):
+                for pixels, exposure in \
+                                zip(scatt_map.contents.coords.transpose(),        # Arrays of [[x's], [y's]] --> [[x,y]'s]
+                                scatt_map.contents.data):
 
                     #gc.collect() # HDF5 cache issues
                     
+                    # Calculate attitude of coordinates in scatt_map
                     att = Attitude.from_axes(x = scatt_map.axes['x'].pix2skycoord(pixels[0]),
                                             y = scatt_map.axes['y'].pix2skycoord(pixels[1]))
 
-                    coord.attitude = att
+                    coord.attitude = att    # Set attitude to given input coordinate. It is used to transform Spacecraft coordinates (scoords) from ICRS to mhealpy pixel
 
                     #TODO: Change this to interpolation
-                    loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord),
+                    loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord),   # Pixel corresponding to coord
                                                 ndmin = 1)
                     
-                    dr_pix = Histogram.concatenate(coords_axis, [self[i] for i in loc_nulambda_pixels])
+                    dr_pix = Histogram.concatenate(coords_axis, [self[pixel] for pixel in loc_nulambda_pixels])     # Concatenate Axis object with DetectorResponse Histogram (Histograms if multiple target_coords are provided)
 
-                    dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
+                    dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)    # Update the attitude of the PsiChi axis from `None` to `att`
 
-                    self._sum_rot_hist(dr_pix, psr, exposure)
+                    self._sum_rot_hist(dr_pix, psr, exposure)   # Rotate PsiChi from local SC to galactic coordinates. (Function only affects Healpix Axis of psr Histogram)
 
                 # Convert to PSR
                 psr = tuple([PointSourceResponse(psr.axes[1:],
