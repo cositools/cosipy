@@ -108,7 +108,7 @@ class SpacecraftFile():
         orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5), delimiter=' ', skiprows=1, comments=("#", "EN"))
         time_stamps = orientation_file[:, 0]
         axis_1 = orientation_file[:, [2, 1]]
-        axis_2 = orientation_file[:, [4, 3]]
+        axis_2 = orientation_file[:, [4, 3]]        # MEGAlib saves in (b,l) format. Need to feed (l,b) to SkyCoord().
 
         time = Time(time_stamps, format = "unix")
         xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
@@ -1009,3 +1009,7 @@ class SpacecraftFile():
         #plt.show()
 
         return
+    
+    # len() functionality for SpacecraftFile / ori objects
+    def __len__(self):
+        return len(self._time)
