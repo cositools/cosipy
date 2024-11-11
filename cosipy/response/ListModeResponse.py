@@ -20,9 +20,9 @@ class ListModeResponse(Histogram):
     and supports extensions of list mode analysis
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         # Overload parent init. Called in class methods.
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         
         self.mapping = {'Ei': 'Ei', 'Em': 'eps', 'Phi': 'Phi', 'PsiChi': 'PsiChi'}   # key_target : label
 

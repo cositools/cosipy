@@ -768,7 +768,7 @@ class FullDetectorResponse(HealpixBase):
             data = self._file['DRM']['CONTENTS'][pix]
             contents = data
 
-        return response_cls(self.axes[1:], contents=contents, unit=self.unit)             
+        return response_cls(edges=self.axes[1:], contents=contents, unit=self.unit)             
 
     def close(self):
         """
@@ -820,12 +820,12 @@ class FullDetectorResponse(HealpixBase):
         pixels, weights = self.get_interp_weights(coord)
 
         if self.unbinned:
-            dr = ListModeResponse(self.axes[1:],
+            dr = ListModeResponse(edges=self.axes[1:],
                               sparse=self._sparse,
                               unit=self.unit)
 
         else:
-            dr = DetectorResponse(self.axes[1:],
+            dr = DetectorResponse(edges=self.axes[1:],
                               sparse=self._sparse,
                               unit=self.unit)
         
