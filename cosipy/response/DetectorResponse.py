@@ -31,11 +31,11 @@ class DetectorResponse(Histogram):
         Physical area units, if not specified as part of ``contents``
     """
 
-    def __init__(self, unbinned=False, **kwargs):
+    def __init__(self, interpolated_NuLambda=False, **kwargs):
 
         super().__init__(**kwargs)
         
-        self.unbinned = unbinned
+        self.interpolated_NuLambda = interpolated_NuLambda
         self._set_mapping()
 
         self._spec = None
@@ -152,7 +152,7 @@ class DetectorResponse(Histogram):
         # Cache the spectral response
         if self._spec is None:
             spec = self.project(['Ei','Em'])
-            self._spec = DetectorResponse(spec.axes,
+            self._spec = DetectorResponse(edges=spec.axes,
                                           contents = spec.contents,
                                           unit = spec.unit)
 
@@ -219,6 +219,21 @@ class DetectorResponse(Histogram):
         
         # Normalize column-by-column
         return (spec / norm)
+    
+        # NOTE: When histpy is updated to do away without overflow and
+        # underflow bins, the following lines of code can replace this
+        # function body.
+
+        # # Get spectral response and effective area normalization
+        # spec = self.get_spectral_response(copy = False)
+        # norm = self.get_effective_area().contents
+
+        # # "Broadcast" such that it has the compatible dimensions with the 2D matrix
+        # norm = spec.expand_dims(norm, 'Ei')
+        
+        # # Normalize column-by-column
+        # return (spec / norm)    # XXX: Runtime warning needs to be dealt with in histpy. 
+        #                         # Overflow and underflow bins functionality should be removed.
 
     @property
     def photon_energy_axis(self):
