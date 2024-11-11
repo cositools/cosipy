@@ -1,6 +1,5 @@
 from .PointSourceResponse import PointSourceResponse
 from .DetectorResponse import DetectorResponse
-from .ListModeResponse import ListModeResponse
 from .ListModePSR import ListModePSR
 from astromodels.core.model_parser import ModelParser
 import matplotlib.pyplot as plt
@@ -758,8 +757,6 @@ class FullDetectorResponse(HealpixBase):
         if not isinstance(pix, (int, np.integer)) or pix < 0 or not pix < self.npix:
             raise IndexError("Pixel number out of range, or not an integer")
 
-        response_cls = ListModeResponse if self.unbinned else DetectorResponse
-
         if self._sparse:
             coords = np.reshape(self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim-1, -1))
             data = np.array(self._file['DRM']['CONTENTS'][pix])
@@ -768,7 +765,7 @@ class FullDetectorResponse(HealpixBase):
             data = self._file['DRM']['CONTENTS'][pix]
             contents = data
 
-        return response_cls(edges=self.axes[1:], contents=contents, unit=self.unit)             
+        return DetectorResponse(edges=self.axes[1:], contents=contents, unit=self.unit, interpolated_NuLambda=self.unbinned)
 
     def close(self):
         """
@@ -819,15 +816,10 @@ class FullDetectorResponse(HealpixBase):
 
         pixels, weights = self.get_interp_weights(coord)
 
-        if self.unbinned:
-            dr = ListModeResponse(edges=self.axes[1:],
-                              sparse=self._sparse,
-                              unit=self.unit)
-
-        else:
-            dr = DetectorResponse(edges=self.axes[1:],
-                              sparse=self._sparse,
-                              unit=self.unit)
+        dr = DetectorResponse(edges=self.axes[1:],
+                            sparse=self._sparse,
+                            unit=self.unit,
+                            interpolated_NuLambda=self.unbinned)
         
         for p, w in zip(pixels, weights):
 
