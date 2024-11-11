@@ -20,10 +20,10 @@ model_definition:
       unit: "cm-2 s-1 sr-1"  # do not change it as for now
 
 deconvolution:
-  algorithm: "RL"     # Choose from RL, RLsimple and RLparallel
+  algorithm: "RLparallel"     # Choose from RL, RLsimple and RLparallel
 
   parameter:
-    iteration_max: 50
+    iteration_max: 10
     acceleration: True
     alpha_max: 10.0
     response_weighting: True
