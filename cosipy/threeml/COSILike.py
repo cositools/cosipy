@@ -60,6 +60,8 @@ class COSILike(PluginPrototype):
         attached to them
     precomputed_psr_file : str, optional
         Full path to precomputed point source response in Galactic coordinates
+    earth_occ : bool, optional
+        Option to include Earth occultation in fit (default is True).
     """
     def __init__(self, name, dr, data, bkg, sc_orientation, 
                  nuisance_param=None, coordsys=None, precomputed_psr_file=None, earth_occ=True, **kwargs):
