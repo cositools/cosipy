@@ -209,7 +209,7 @@ class COSILike(PluginPrototype):
                         dwell_time_map = self._get_dwell_time_map(coord)
                         self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
                     elif self._coordsys == 'galactic':
-                        scatt_map = self._get_scatt_map()
+                        scatt_map = self._get_scatt_map(coord)
                         self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
                     else:
                         raise RuntimeError("Unknown coordinate system")
@@ -340,16 +340,21 @@ class COSILike(PluginPrototype):
         
         return dwell_time_map
     
-    def _get_scatt_map(self):
+    def _get_scatt_map(self, coord):
         """
         Get the spacecraft attitude map of the source in the inertial (spacecraft) frame.
         
+        Parameters
+        ----------
+        coord : astropy.coordinates.SkyCoord
+            The coordinates of the target object.
+
         Returns
         -------
         scatt_map : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
         """
         
-        scatt_map = self._sc_orientation.get_scatt_map(nside = self._dr.nside * 2, coordsys = 'galactic')
+        scatt_map = self._sc_orientation.get_scatt_map(coord, nside = self._dr.nside * 2, coordsys = 'galactic')
         
         return scatt_map
     
