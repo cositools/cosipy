@@ -70,3 +70,9 @@ def test_point_source_spectral_fit():
                        [1.0743623124061388, -1.1000643881813548, -2.299033632814098, 449.99790270666415, 1.0], atol=[0.1, 0.1, 0.1, 1.0, 0.1])
     
     assert np.allclose([cosi.get_log_like()], [337.17196587486285], atol=[1.0])
+
+    # Repeat fit in Galactic frame to test functionality: 
+    cosi._coordsys = "galactic"
+    plugins = DataList(cosi)
+    like = JointLikelihood(model, plugins, verbose = False)
+    like.fit()
