@@ -1,0 +1,15 @@
+#----------#
+# Data I/O:
+
+# data files available on the COSI Sharepoint: https://drive.google.com/drive/folders/1UdLfuLp9Fyk4dNussn1wt7WEOsTWrlQ6
+data_file: "/scratch/astrohome/smittal/bkg_data_files/total_bg_3months_unbinned_data.fits.gz" #"GalacticScan.inc1.id1.crab2hr.extracted.tra.gz" # full path
+ori_file: "/scratch/astrohome/smittal/20280301_3_month.ori" # full path
+unbinned_output: 'fits' # 'fits' or 'hdf5'
+time_bins: 7776000 # time bin size in seconds. Takes int, float, or list of bin edges.
+energy_bins: [1805.0, 1812.0]
+phi_pix_size: 3 # binning of Compton scattering anlge [deg]
+nside: 16 # healpix binning of psi chi local
+scheme: 'ring' # healpix binning of psi chi local
+tmin: 1835478000.0 # Min time cut in seconds.
+tmax: 1843254000.0 # Max time cut in seconds.
+#----------#
