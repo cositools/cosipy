@@ -62,7 +62,7 @@ class COSILike(PluginPrototype):
         Full path to precomputed point source response in Galactic coordinates
     """
     def __init__(self, name, dr, data, bkg, sc_orientation, 
-                 nuisance_param=None, coordsys=None, precomputed_psr_file=None, **kwargs):
+                 nuisance_param=None, coordsys=None, precomputed_psr_file=None, earth_occ=True, **kwargs):
         
         # create the hash for the nuisance parameters. We have none for now.
         self._nuisance_parameters = collections.OrderedDict()
@@ -77,6 +77,7 @@ class COSILike(PluginPrototype):
         self._data = data
         self._bkg = bkg
         self._sc_orientation = sc_orientation
+        self.earth_occ = earth_occ
         
         try:
             if data.axes["PsiChi"].coordsys.name != bkg.axes["PsiChi"].coordsys.name:
@@ -354,7 +355,8 @@ class COSILike(PluginPrototype):
         scatt_map : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
         """
         
-        scatt_map = self._sc_orientation.get_scatt_map(coord, nside = self._dr.nside * 2, coordsys = 'galactic')
+        scatt_map = self._sc_orientation.get_scatt_map(coord, nside = self._dr.nside * 2, \
+                coordsys = 'galactic', earth_occ = self.earth_occ)
         
         return scatt_map
     
