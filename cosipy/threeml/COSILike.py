@@ -61,9 +61,11 @@ class COSILike(PluginPrototype):
         attached to them
     precomputed_psr_file : str, optional
         Full path to precomputed point source response in Galactic coordinates
+    earth_occ : bool, optional
+        Option to include Earth occultation in fit (default is True).
     """
     def __init__(self, name, dr, data, bkg, sc_orientation, 
-                 nuisance_param=None, coordsys=None, precomputed_psr_file=None, **kwargs):
+                 nuisance_param=None, coordsys=None, precomputed_psr_file=None, earth_occ=True, **kwargs):
         
         # create the hash for the nuisance parameters. We have none for now.
         self._nuisance_parameters = collections.OrderedDict()
@@ -78,6 +80,7 @@ class COSILike(PluginPrototype):
         self._data = data
         self._bkg = bkg
         self._sc_orientation = sc_orientation
+        self.earth_occ = earth_occ
         
         try:
             if data.axes["PsiChi"].coordsys.name != bkg.axes["PsiChi"].coordsys.name:
@@ -194,7 +197,7 @@ class COSILike(PluginPrototype):
                         dwell_time_map = self._get_dwell_time_map(coord)
                         self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
                     elif self._coordsys == 'galactic':
-                        scatt_map = self._get_scatt_map()
+                        scatt_map = self._get_scatt_map(coord)
                         self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
                     else:
                         raise RuntimeError("Unknown coordinate system")
@@ -325,16 +328,22 @@ class COSILike(PluginPrototype):
         
         return dwell_time_map
     
-    def _get_scatt_map(self):
+    def _get_scatt_map(self, coord):
         """
         Get the spacecraft attitude map of the source in the inertial (spacecraft) frame.
         
+        Parameters
+        ----------
+        coord : astropy.coordinates.SkyCoord
+            The coordinates of the target object.
+
         Returns
         -------
         scatt_map : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
         """
         
-        scatt_map = self._sc_orientation.get_scatt_map(nside = self._dr.nside * 2, coordsys = 'galactic')
+        scatt_map = self._sc_orientation.get_scatt_map(coord, nside = self._dr.nside * 2, \
+                coordsys = 'galactic', earth_occ = self.earth_occ)
         
         return scatt_map
     

@@ -518,6 +518,7 @@ class SpacecraftFile():
                        scheme = 'ring',
                        coordsys = 'galactic',
                        r_earth = 6378.0,
+                       earth_occ = True
                        ):
 
         """
@@ -537,7 +538,10 @@ class SpacecraftFile():
             The coordinate system used in the scatt map (the default is "galactic).
         r_earth : float, optional
             Earth radius in km (default is 6378 km).
-        
+        earth_occ : bool, optional
+            Option to include Earth occultation in scatt map calculation.
+            Default is True. 
+
         Returns
         -------
         h_ori : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
@@ -574,7 +578,8 @@ class SpacecraftFile():
 
         # Define weights and set to 0 if blocked by Earth:
         weight = np.diff(timestamps.gps)*u.s
-        weight[earth_occ_index[:-1]] = 0        
+        if earth_occ == True:
+            weight[earth_occ_index[:-1]] = 0        
         
         # Fill histogram:
         h_ori.fill(x, y, weight = weight)

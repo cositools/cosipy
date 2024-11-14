@@ -4,6 +4,7 @@ import astropy.units as u
 import numpy as np
 from threeML import Band, PointSource, Model, JointLikelihood, DataList
 from astromodels import Parameter
+from astropy.coordinates import SkyCoord
 
 data_path = test_data.path
 
@@ -70,3 +71,7 @@ def test_point_source_spectral_fit():
                        [1.0743623124061388, -1.1000643881813548, -2.299033632814098, 449.99790270666415, 1.0], atol=[0.1, 0.1, 0.1, 1.0, 0.1])
     
     assert np.allclose([cosi.get_log_like()], [337.17196587486285], atol=[1.0])
+    
+    # Test scatt map method:
+    coord = SkyCoord(l=184.56*u.deg,b=-5.78*u.deg,frame="galactic")
+    cosi._get_scatt_map(coord)
