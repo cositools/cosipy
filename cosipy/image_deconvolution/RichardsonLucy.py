@@ -36,7 +36,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
     """
 
-    def __init__(self, initial_model, dataset, mask, parameter, parameter_filepath = None):
+    def __init__(self, initial_model, dataset, mask, parameter):
 
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
 

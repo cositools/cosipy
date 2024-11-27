@@ -25,7 +25,7 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
     background_normalization_optimization: True 
     """
 
-    def __init__(self, initial_model, dataset, mask, parameter, parameter_filepath):
+    def __init__(self, initial_model, dataset, mask, parameter):
         """
         NOTE: Copied from RichardsonLucy.py
         """
@@ -67,7 +67,7 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
         self.data_dir = parameter.get('data_dir', './data')     # NOTE: Data should ideally be present in disk scratch space.
         self.numrows = np.product(image_response.contents.shape[-3:])   # Em, Phi, PsiChi. NOTE: Change the "-3" if more general model space definitions are expected
         self.numcols = np.product(image_response.contents.shape[:-3])   # Remaining columns
-        self.config_file = parameter_filepath
+        self.config_file = parameter.absolute_path
 
     def initialization(self):
         """
