@@ -23,7 +23,7 @@ deconvolution:
   algorithm: "RL"     # Choose from RL, RLsimple and RLparallel
 
   parameter:
-    iteration_max: 50
+    iteration_max: 10
     acceleration: True
     alpha_max: 10.0
     response_weighting: True
@@ -34,6 +34,6 @@ deconvolution:
       unit: "deg"
     background_normalization_optimization: True
     background_normalization_range: {"albedo": [0.01, 10.0]}
-    save_results: True
+    save_results: False
     save_results_directory: "./results"   # Relative file path
     numproc: 6              # Number of MPI threads to spawn. Limited by number of nodes available. Only applicable for algorithm: "RLparallel"
