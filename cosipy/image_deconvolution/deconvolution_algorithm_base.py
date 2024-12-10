@@ -233,9 +233,9 @@ class DeconvolutionAlgorithmBase(ABC):
         
         return np.sum([self.dataset[i].summed_bkg_model(key) for i in indexlist])
 
-    def calc_summed_T_product(self, dataspace_histogram_list):
+    def calc_summed_T_product(self, dataspace_histogram_list):      # dataspace_histogram_list = ratio_list = d_i/E_i
         """
-        For each data in the registered dataset, the product of the corresponding input histogram with the transonse of the response function is computed.
+        For each data in the registered dataset, the product of the corresponding input histogram with the transpose of the response function is computed.
         Then, this method returns the sum of all of the products.
 
         Parameters
