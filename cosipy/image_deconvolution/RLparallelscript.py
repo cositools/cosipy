@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import logging
 import argparse
+from histpy import Histogram
 
 # logging setup
 logger = logging.getLogger(__name__)
@@ -20,8 +21,10 @@ from mpi4py import MPI
 import h5py
 from yayc import Configurator
 
+BASE_DIR = Path(args.base_dir)
+
 # Load configuration file
-config = Configurator.open(f'{args.base_dir}/{args.config_file}')
+config = Configurator.open(BASE_DIR / args.config_file)
 
 # Number of elements in data space (ROWS) and model space (COLS)
 NUMROWS = args.numrows        # TODO: Ideally, for row-major form to exploit caching, NUMROWS must be smaller than NUMCOLS
@@ -32,7 +35,6 @@ MASTER = 0                      # Indicates master process
 MAXITER = config.get('deconvolution:parameter:iteration_max', 10)
 
 # FILE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
-BASE_DIR = Path(args.base_dir)
 RESULTS_DIR = BASE_DIR / config.get('deconvolution:parameter:save_results_directory', './results')
 
 '''

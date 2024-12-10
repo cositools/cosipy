@@ -151,9 +151,11 @@ class AllSkyImageModel(ModelBase):
         if algorithm_name == "flat":
             unit = u.Unit(algorithm_parameter['unit'])
             for idx, value in enumerate(algorithm_parameter['value']):
-                self[:,idx] = value * unit
+                self[:,idx] = value * unit      # TODO: Why is this indexed as [:, idx] instead of [idx, :]?
     #    elif algorithm_name == ... 
     #       ...
+        else:
+            raise ValueError(f'Model algorithm {algorithm_name} not supported')
 
     def set_values_from_extendedmodel(self, extendedmodel):
         """
