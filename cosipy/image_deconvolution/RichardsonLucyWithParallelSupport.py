@@ -135,7 +135,7 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
         """
 
         # expected count histograms
-        expectation_list_slice = self.calc_expectation_list(model = self.initial_model, dict_bkg_norm = self.dict_bkg_norm)
+        expectation_list_slice = self.calc_expectation_list(model = self.model, dict_bkg_norm = self.dict_bkg_norm)
         logger.info("The expected count histograms were calculated with the initial model map.")
 
         if not self.parallel:
@@ -147,13 +147,27 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
             '''
             # expectation = Histogram(self.data_axes); return expectation * model.axes['lb'].pixarea() # [Em, Phi, PsiChi]
             self.expectation_list = []
-            for epsilon_slice in expectation_list_slice:
-                epsilon = ...
-                recvcounts = [averow] * (self.numtasks-1) + [averow + extra_rows]
-                displacements = np.arange(self.numtasks) * averow
-                self.comm.Allgatherv(epsilon_slice, [epsilon, recvcounts, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
+            for data, epsilon_slice in zip(self.dataset, expectation_list_slice):
+                # Gather the sizes of local arrays from all processes
+                local_size = np.array([epsilon_slice.contents.size], dtype=np.float)
+                all_sizes = np.zeros(self.numtasks, dtype=np.float)
+                self.comm.Allgather(local_size, all_sizes)
 
-                self.expectation_list.append(epsilon)
+                # Calculate displacements 
+                displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
+
+                # Create a buffer to receive the gathered data 
+                total_size = np.sum(all_sizes) 
+                recvbuf = np.empty(total_size, dtype=np.float)      # Receive buffer
+
+                # Gather all arrays into recvbuf
+                self.comm.Allgatherv(epsilon_slice.contents.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+                # Reshape the received buffer back into the original 3D array shape
+                epsilon = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + epsilon_slice.shape[1:]) for i in range(self.numtasks) ])
+
+                # Add to list that manages multiple datasets
+                self.expectation_list.append(Histogram(data.event.axes, contents=epsilon, unit=data.event.unit, labels=data.event.axes.labels))
 
         # At the end of this function, all processes should have a complete `self.expectation_list`
         # to proceed to the Mstep function
@@ -197,9 +211,28 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
             '''
             # hist = Histogram(self.model_axes, unit = hist_unit); return hist * model.axes['lb'].pixarea() # [NuLambda(lb), Ei]
             # All vector gather C slices
-            recvcounts = [avecol] * (self.numtasks-1) + [avecol + extra_cols]
-            displacements = np.arange(self.numtasks) * avecol
-            self.comm.Gatherv(C_slice, [C, recvcounts, displacements, MPI.DOUBLE], root=MASTER)
+            delta_model = []
+            for C_slice in delta_model_slice:
+                # Gather the sizes of local arrays from all processes
+                local_size = np.array([C_slice.contents.size], dtype=np.float)
+                all_sizes = np.zeros(self.numtasks, dtype=np.float)
+                self.comm.Allgather(local_size, all_sizes)
+
+                # Calculate displacements 
+                displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
+
+                # Create a buffer to receive the gathered data 
+                total_size = np.sum(all_sizes) 
+                recvbuf = np.empty(total_size, dtype=np.float)      # Receive buffer
+
+                # Gather all arrays into recvbuf
+                self.comm.Gatherv(C_slice.contents.value.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+                # Reshape the received buffer back into the original 3D array shape
+                C = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + C_slice.shape[1:]) for i in range(self.numtasks) ])
+
+                # Add to list that manages multiple datasets
+                self.delta_model.append(Histogram(self.model.axes, contents=C, unit=self.model.unit, labels=self.model.axes.labels))
 
         # At the end of this function, just the MASTER MPI process needs to have a full
         # copy of delta_model
@@ -231,10 +264,6 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
 
             if self.mask is not None:
                 self.model = self.model.mask_pixels(self.mask)
-            
-            # update expectation_list
-            self.expectation_list = self.calc_expectation_list(self.model, dict_bkg_norm = self.dict_bkg_norm)
-            logger.debug("The expected count histograms were updated with the new model map.")
 
             # update loglikelihood_list
             self.loglikelihood_list = self.calc_loglikelihood_list(self.expectation_list)
@@ -244,7 +273,16 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
             '''
             Synchronization Barrier 3
             '''
-            self.comm.Bcast([self.model, MPI.DOUBLE], root=MASTER)  # This synchronization barrier is not required during the final iteration
+            # Initialize new variable as MPI only sends values and not units
+            if self.taskid == MASTER:
+                buffer = self.model.contents.value
+            else:
+                buffer = np.empty(self.model.contents.shape, dtype=np.float)
+
+            self.comm.Bcast([buffer, MPI.DOUBLE], root=MASTER)  # This synchronization barrier is not required during the final iteration
+
+            # Reconstruct Histogram object for self.model
+            self.model = Histogram(self.model.axes, contents=buffer, unit=self.model.unit, labels=self.model.axes.labels)
 
         # At the end of this function, all MPI processes needs to have a full
         # copy of updated model. 
