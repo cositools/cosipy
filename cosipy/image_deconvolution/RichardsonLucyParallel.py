@@ -9,8 +9,9 @@ import h5py
 # from histpy import Histogram
 
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
+from .RichardsonLucy import RichardsonLucy
 
-class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
+class RichardsonLucyParallel(RichardsonLucy):
     """
     NOTE: Comments copied from RichardsonLucy.py
     A class for a parallel implementation of the Richardson-
@@ -25,58 +26,36 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
     background_normalization_optimization: True 
     """
 
-    def __init__(self, initial_model, dataset, mask, parameter, parameter_filepath):
-        """
-        NOTE: Copied from RichardsonLucy.py
-        """
-
-        DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
-
-        # TODO: these RL algorithm improvements are yet to be implemented/utilized in this file
-        # self.do_acceleration = parameter.get('acceleration', False)
-
-        # self.alpha_max = parameter.get('alpha_max', 1.0)
-
-        # self.do_response_weighting = parameter.get('response_weighting', False)
-        # if self.do_response_weighting:
-        #     self.response_weighting_index = parameter.get('response_weighting_index', 0.5)
-
-        # self.do_smoothing = parameter.get('smoothing', False)
-        # if self.do_smoothing:
-        #     self.smoothing_fwhm = parameter['smoothing_FWHM']['value'] * u.Unit(parameter['smoothing_FWHM']['unit'])
-        #     logger.info(f"Gaussian filter with FWHM of {self.smoothing_fwhm} will be applied to delta images ...")
-
-        self.do_bkg_norm_optimization = parameter.get('background_normalization_optimization', False)
-        if self.do_bkg_norm_optimization:
-            self.dict_bkg_norm_range = parameter.get('background_normalization_range', {key: [0.0, 100.0] for key in self.dict_bkg_norm.keys()})
-
-        self.save_results = parameter.get('save_results', False)
-        self.save_results_directory = parameter.get('save_results_directory', './results')
-
-        if self.save_results is True:
-            if os.path.isdir(self.save_results_directory):
-                logger.warning(f"A directory {self.save_results_directory} already exists. Files in {self.save_results_directory} may be overwritten. Make sure that is not a problem.")
-            else:
-                os.makedirs(self.save_results_directory)
+    def __init__(self, initial_model, dataset, mask, parameter):
+        RichardsonLucy.__init__(self, initial_model, dataset, mask, parameter)
 
         # Specific to parallel implementation
-        image_response = self.dataset[0]._image_response
         self.numproc = parameter.get('numproc', 1)
         self.iteration_max = parameter.get('iteration_max', 10)
         self.base_dir = os.getcwd()
-        self.data_dir = parameter.get('data_dir', './data')     # NOTE: Data should ideally be present in disk scratch space.
-        self.numrows = np.product(image_response.contents.shape[-3:])   # Em, Phi, PsiChi. NOTE: Change the "-3" if more general model space definitions are expected
-        self.numcols = np.product(image_response.contents.shape[:-3])   # Remaining columns
-        self.config_file = parameter_filepath
+        self.data_dir = parameter.get('data_directory', './data')     # NOTE: Data should ideally be present in disk scratch space.
+        self.config_file = 'imagedeconvolution_parfile_gal_511keV.yml' # XXX: CWD / config_path
+
+        for dataset in self.dataset:                    # NOTE: There may be multiple datasets to analyze, each with its own response file. 
+            image_response = dataset._image_response    # TODO: Ideate on how they should be handled. We currently ignore everything beyond the first dataset.
+            self.numrows = np.product(image_response.contents.shape[-3:])   # Em, Phi, PsiChi. NOTE: Change the "-3" if more general model space definitions are expected
+            self.numcols = np.product(image_response.contents.shape[:-3])   # Remaining columns
+            break       # NOTE: Ignoring everything beyond the first dataset
 
     def initialization(self):
         """
         initialization before running the image deconvolution
         """
-        # Flatten and write dense bkg and events to scratch space. 
-        self.write_intermediate_files_to_disk()
 
-    def write_intermediate_files_to_disk(self):
+        # Run parent class initialization
+        RichardsonLucy.initialization(self)             # Useful outputs: model, summed_exposure_map (required to calculate delta_model), response_weighting_filter, mask (required to calculate alpha) will be saved
+                                                        # Discarded outputs: iteration_count, expectation_list will be not be saved
+                                                        # self.results will be saved to disk at every iteration. No variable will be returned.
+
+        # Flatten and write dense bkg and events to scratch space. 
+        self.write_intermediate_files()
+
+    def write_intermediate_files(self):
         # Event
         event = self.dataset[0].event.contents.flatten()
         np.savetxt(self.base_dir + '/event.csv', event)
@@ -130,7 +109,10 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
         """
         finalization after running the image deconvolution
         """
-        # Delete intermediate files
+        # NOTE: RLparallel algorithm saves every iteration's result by default
+        # No need to call finalization function implemented in RichardsonLucy
+
+        # Delete intermediate files from scratch space
         self.remove_intermediate_files_from_disk()
 
     def remove_intermediate_files_from_disk(self):
@@ -140,6 +122,7 @@ class RichardsonLucyParallel(DeconvolutionAlgorithmBase):
         os.remove(self.base_dir + '/bg.csv')
         os.remove(self.base_dir + '/response_matrix.h5')
 
+    # The following will be performed in RLparallelscript.py
     def pre_processing(self):
         pass
     def Estep(self):

@@ -36,7 +36,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
     """
 
-    def __init__(self, initial_model, dataset, mask, parameter, parameter_filepath = None):
+    def __init__(self, initial_model, dataset, mask, parameter):
 
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
 
@@ -94,7 +94,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             logger.info("The response weighting filter was calculated.")
 
         # expected count histograms
-        self.expectation_list = self.calc_expectation_list(model = self.initial_model, dict_bkg_norm = self.dict_bkg_norm)
+        self.expectation_list = self.calc_expectation_list(model = self.initial_model, dict_bkg_norm = self.dict_bkg_norm)      # FIXME: This should be placed under the E-step function
         logger.info("The expected count histograms were calculated with the initial model map.")
 
         # calculate summed background models for M-step
