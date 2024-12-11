@@ -47,7 +47,7 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
     """
 
     def __init__(self, initial_model:Histogram, dataset:list, mask, parameter, comm=None):
-        print('Inside RLWPS')
+
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
 
         self.do_acceleration = parameter.get('acceleration', False)
@@ -78,23 +78,29 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
 
         self.parallel = False
         if comm is not None:
-            self.parallel = True
             self.comm = comm
+            if self.comm.Get_size() > 1:
+                self.parallel = True
+                logger.info('Image Deconvolution set to run in parallel mode')
             # Specific to parallel implementation:
             # 1. Assume numproc is known by the process that invoked `run_deconvolution()`
             # 2. All processes have loaded event data, background, and initial model independently
-            pass
 
     def initialization(self):
         """
         initialization before running the image deconvolution
         """
-        # clear counter 
-        self.iteration_count = 0
+
+        if self.parallel:
+            self.numtasks = self.comm.Get_size()
+            self.taskid = self.comm.Get_rank()
 
         # clear results
         if (not self.parallel) or (self.parallel and (self.taskid == MASTER)):
             self.results.clear()
+
+        # clear counter 
+        self.iteration_count = 0
 
         # copy model
         self.model = copy.deepcopy(self.initial_model)
@@ -118,10 +124,6 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
             self.dict_summed_bkg_model = {}
             for key in self.dict_bkg_norm.keys():
                 self.dict_summed_bkg_model[key] = self.calc_summed_bkg_model(key)
-
-        if self.parallel:
-            self.numtasks = self.comm.Get_size()
-            self.taskid = self.comm.Get_rank()
 
     def pre_processing(self):
         """

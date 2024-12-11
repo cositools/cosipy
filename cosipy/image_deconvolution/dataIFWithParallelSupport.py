@@ -14,7 +14,8 @@ from histpy import Histogram, Axes, Axis
 from yayc import Configurator
 
 from cosipy.response import FullDetectorResponse
-from cosipy.image_deconvolution import ImageDeconvolutionDataInterfaceBase, RichardsonLucyWithParallel, AllSkyImageModel, ImageDeconvolution
+from cosipy.image_deconvolution import ImageDeconvolutionDataInterfaceBase, AllSkyImageModel, ImageDeconvolution, DataIF_COSI_DC2
+from cosipy.image_deconvolution import RichardsonLucyWithParallel as RichardsonLucyParallel
 
 # Define MPI variables
 MASTER = 0                      # Indicates master process
@@ -32,7 +33,15 @@ def main():
     comm = MPI.COMM_WORLD
 
     # Create dataset
-    dataset = DataIFWithParallel(comm=comm)     # Convert to list of objects before passing to RichardsonLucy class
+    # dataset = DataIFWithParallel(comm=comm)     # Convert to list of objects before passing to RichardsonLucy class
+    
+    bkg = Histogram.open(DATA_DIR / '511keV_dc2_galactic_bkg.hdf5')
+    event = Histogram.open(DATA_DIR / '511keV_dc2_galactic_event.hdf5')
+    image_response = Histogram.open(DRM_DIR / 'psr_gal_511_DC2.h5')
+    dataset = DataIF_COSI_DC2.load(name = "511keV",             # Create a dataset compatible with ImageDeconvolution: name (unique identifier), event data, background model, response, coordinate system conversion matrix (if detector response is not in galactic coordinates)
+                                   event_binned_data = event.project(['Em', 'Phi', 'PsiChi']),
+                                   dict_bkg_binned_data = {"total": bkg.project(['Em', 'Phi', 'PsiChi'])},
+                                   rsp = image_response)
 
     # Create image deconvolution object
     image_deconvolution = ImageDeconvolution()
@@ -45,7 +54,7 @@ def main():
     image_deconvolution.read_parameterfile(parameter_filepath)
 
     # Initialize model
-    image_deconvolution.initialize()
+    image_deconvolution.initialize(comm=comm)
 
     # Execute deconvolution
     image_deconvolution.run_deconvolution()
@@ -77,10 +86,10 @@ def model_initialization(parameter):
 
 def register_deconvolution_algorithm(initial_model, dataset, parameter):
     # Call RL
-    deconvolution = RichardsonLucyWithParallel(initial_model = initial_model,
-                                               dataset = dataset,
-                                               mask = None,
-                                               parameter = parameter)
+    deconvolution = RichardsonLucyParallel(initial_model = initial_model,
+                                           dataset = dataset,
+                                           mask = None,
+                                           parameter = parameter)
     return deconvolution
 
 def run_deconvolution(deconvolution):
@@ -189,16 +198,16 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         ImageDeconvolutionDataInterfaceBase.__init__(self, name)
 
         # Calculate the indices in Rij that the process has to parse. My hunch is that calculating these scalars individually will be faster than the MPI send broadcast overhead.
-        averow = NUMROWS // numtasks
-        extra_rows = NUMROWS % numtasks
-        start_row = taskid * averow
-        end_row = (taskid + 1) * averow if taskid < (numtasks - 1) else NUMROWS
+        self.averow = NUMROWS // numtasks
+        self.extra_rows = NUMROWS % numtasks
+        self.start_row = taskid * self.averow
+        self.end_row = (taskid + 1) * self.averow if taskid < (numtasks - 1) else NUMROWS
 
         # Calculate the indices in Rji, i.e., Rij transpose, that the process has to parse.
-        avecol = NUMCOLS // numtasks
-        extra_cols = NUMCOLS % numtasks
-        start_col = taskid * avecol
-        end_col = (taskid + 1) * avecol if taskid < (numtasks - 1) else NUMCOLS
+        self.avecol = NUMCOLS // numtasks
+        self.extra_cols = NUMCOLS % numtasks
+        self.start_col = taskid * self.avecol
+        self.end_col = (taskid + 1) * self.avecol if taskid < (numtasks - 1) else NUMCOLS
 
         # Load event_binned_data
         event = Histogram.open(DATA_DIR / "511keV_dc2_galactic_event.hdf5")
@@ -209,8 +218,8 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         self._bkg_models = {"total": bg.project(['Em', 'Phi', 'PsiChi'])}
 
         # Load response and response transpose
-        self._image_response = load_response_matrix(comm, start_col, end_col, filename='psr_gal_511_DC2.h5')
-        self._image_response_T = load_response_matrix_transpose(comm, start_row, end_row, filename='psr_gal_511_DC2.h5')
+        self._image_response = load_response_matrix(comm, self.start_col, self.end_col, filename='psr_gal_511_DC2.h5')
+        self._image_response_T = load_response_matrix_transpose(comm, self.start_row, self.end_row, filename='psr_gal_511_DC2.h5')
 
         # Set variable _model_axes
         # Derived from Parent class (ImageDeconvolutionDataInterfaceBase)
@@ -223,7 +232,7 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         event = Histogram.open(DATA_DIR / '511keV_dc2_galactic_event.hdf5')
         self._event = event.project(['Em', 'Phi', 'PsiChi']).to_dense()
         axes = [self._image_response_T.axes['Em'], self._image_response_T.axes['Phi'], self._image_response_T.axes['PsiChi']]
-        self._data_axes = self.event.axes#Axes(axes)
+        self._data_axes = self.event.axes
         
         # Modify bkg format
         for key in self._bkg_models:
@@ -339,6 +348,7 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         # This is just because in DC2 the rotate response for galactic coordinate CDS does not have an axis for time/scatt binning.
         # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
         # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
+
 
         expectation = Histogram(self.data_axes)
         
