@@ -47,7 +47,7 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
     """
 
     def __init__(self, initial_model:Histogram, dataset:list, mask, parameter, comm=None):
-
+        print('Inside RLWPS')
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
 
         self.do_acceleration = parameter.get('acceleration', False)
