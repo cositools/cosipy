@@ -10,7 +10,8 @@ from .allskyimage import AllSkyImageModel
 
 from .RichardsonLucy import RichardsonLucy
 from .RichardsonLucySimple import RichardsonLucySimple
-from .RichardsonLucyParallel import RichardsonLucyParallel
+# from .RichardsonLucyParallel import RichardsonLucyParallel
+from .RichardsonLucyWithParallelSupport import RichardsonLucyWithParallel as RichardsonLucyParallel
 
 class ImageDeconvolution:
     """
@@ -119,7 +120,7 @@ class ImageDeconvolution:
         """
         return self._deconvolution.results
 
-    def initialize(self):
+    def initialize(self, comm = None):      # comm is required if the user intends to use parallel features
         """
         Initialize an initial model and an image deconvolution algorithm.
         It is mandatory to execute this method before running the image deconvolution.
@@ -129,7 +130,7 @@ class ImageDeconvolution:
         
         self.model_initialization()        
 
-        self.register_deconvolution_algorithm()        
+        self.register_deconvolution_algorithm(comm = comm)        
 
         logger.info("#### Initialization Finished ####")
 
@@ -176,7 +177,7 @@ class ImageDeconvolution:
         logger.info("---- parameters ----")
         logger.info(parameter_model_initialization.dump())
 
-    def register_deconvolution_algorithm(self):
+    def register_deconvolution_algorithm(self, comm):
         """
         Register the deconvolution algorithm
 
@@ -199,7 +200,8 @@ class ImageDeconvolution:
         self._deconvolution = self._deconvolution_class(initial_model = self.initial_model,     # Initialize object for relevant class
                                                         dataset = self.dataset, 
                                                         mask = self.mask, 
-                                                        parameter = algorithm_parameter)
+                                                        parameter = algorithm_parameter,
+                                                        comm = comm)
 
         logger.info("---- parameters ----")
         logger.info(parameter_deconvolution.dump()) 
