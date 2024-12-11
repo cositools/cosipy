@@ -34,14 +34,6 @@ def main():
     # Create dataset
     dataset = DataIFWithParallel(comm=comm)     # Convert to list of objects before passing to RichardsonLucy class
 
-    # print(f'Initial Model: {dataset.model.axes.labels}')
-    # print(f'Event Data: {dataset.event.axes.labels}')
-    # print(f'Background Model keys: {dataset.keys_bkg_models()}')
-    # print(f"Background Model: {dataset.bkg_model('total').axes.labels}")
-    # print(f'Response Matrix: {dataset._image_response.axes.labels}')
-    # print(f'Model Axes: {[axis.edges for axis in dataset.model_axes]}')
-    # print(f'Data Axes: {[axis.edges for axis in dataset.data_axes]}')
-
     # Create image deconvolution object
     image_deconvolution = ImageDeconvolution()
 
@@ -228,8 +220,22 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
 
         # Set variable _data_axes
         # Derived from Parent class
+        event = Histogram.open(DATA_DIR / '511keV_dc2_galactic_event.hdf5')
+        self._event = event.project(['Em', 'Phi', 'PsiChi']).to_dense()
         axes = [self._image_response_T.axes['Em'], self._image_response_T.axes['Phi'], self._image_response_T.axes['PsiChi']]
-        self._data_axes = Axes(axes)
+        self._data_axes = self.event.axes#Axes(axes)
+        
+        # Modify bkg format
+        for key in self._bkg_models:
+            if self._bkg_models[key].is_sparse:
+                self._bkg_models[key] = self._bkg_models[key].to_dense()
+            self._summed_bkg_models[key] = np.sum(self._bkg_models[key])
+        
+        # None if using Galactic CDS, required if using local CDS
+        self._coordsys_conv_matrix = None 
+
+        # Calculate exposure map
+        self._calc_exposure_map()
 
     @classmethod
     def load(cls, name: str, event_binned_data: Histogram, dict_bkg_binned_data: dict, rsp, coordsys_conv_matrix = None, is_miniDC2_format: bool = False):
@@ -352,6 +358,7 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         if dict_bkg_norm is not None: 
             for key in self.keys_bkg_models():
                 expectation += self.bkg_model(key) * dict_bkg_norm[key]
+
         expectation += almost_zero
         
         return expectation
