@@ -182,7 +182,7 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
                         axes.append(axis)
 
                 # Add to list that manages multiple datasets
-                self.expectation_list.append(Histogram(Axes(axes), contents=epsilon, unit=data.event.unit))
+                self.expectation_list.append(Histogram(Axes(axes), contents=epsilon, unit=data.event.unit))     # TODO: Could maybe be simplified using Histogram.slice[]
 
         # At the end of this function, all processes should have a complete `self.expectation_list`
         # to proceed to the Mstep function
@@ -237,7 +237,7 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
                         axes.append(axis)
 
                 # C_slice (only slice operated on by current node) --> sum_T_product (all )
-                sum_T_product = Histogram(Axes(axes), contents=C, unit=C_slice.unit)
+                sum_T_product = Histogram(Axes(axes), contents=C, unit=C_slice.unit)        # TODO: Could maybe be simplified using Histogram.slice[]
 
         if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
             self.delta_model = self.model * (sum_T_product/self.summed_exposure_map - 1)

@@ -2,6 +2,7 @@ from .image_deconvolution import ImageDeconvolution
 
 from .image_deconvolution_data_interface_base import ImageDeconvolutionDataInterfaceBase
 from .dataIF_COSI_DC2 import DataIF_COSI_DC2
+from .dataIFWithParallelSupport import DataIFWithParallel
 
 from .model_base import ModelBase
 from .allskyimage import AllSkyImageModel
