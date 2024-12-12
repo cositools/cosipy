@@ -108,19 +108,6 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
 
         # calculate exposure map
         self.summed_exposure_map = self.calc_summed_exposure_map()
-        ## Create summed_exposure_map_slice
-        # axes = []
-        # for axis in self.summed_exposure_map.axes:
-        #     if axis.label == 'lb':
-        #         axes.append(HealpixAxis(edges = axis.edges[self.dataset[0].start_row:self.dataset[0].end_row+1],    # TODO: Assumes exposure map calculated for first dataset is valid for everyone
-        #                                 label = axis.label, 
-        #                                 scale = axis._scale,
-        #                                 coordsys = axis._coordsys,
-        #                                 nside = axis.nside))
-        #     else:
-        #         axes.append(axis)
-        # self.summed_exposure_map_slice = Histogram(Axes(axes), contents=self.summed_exposure_map.contents, unit=self.summed_exposure_map.unit)
-        # print([type(axis) for axis in self.summed_exposure_map_slice.axes])
 
         # mask setting
         if self.mask is None and np.any(self.summed_exposure_map.contents == 0):
@@ -161,7 +148,7 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
             '''
             Synchronization Barrier 1
             '''
-            # expectation = Histogram(self.data_axes); return expectation * model.axes['lb'].pixarea() # [Em, Phi, PsiChi]
+            
             self.expectation_list = []
             for data, epsilon_slice in zip(self.dataset, expectation_list_slice):
                 # Gather the sizes of local arrays from all processes
@@ -182,11 +169,6 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
                 # Reshape the received buffer back into the original 3D array shape
                 epsilon = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + epsilon_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=-1)
 
-                # Add to list that manages multiple datasets
-                # NOTE: The following simple version does not work as Histogram constructor does not automatically reconstruct HealpixAxis 'PsiChi'
-                # self.expectation_list.append(Histogram(data.event.axes, contents=epsilon, unit=data.event.unit, labels=data.event.axes.labels))
-                # print([type(axis) for axis in data.event.axes])
-                # print([type(axis) for axis in self.expectation_list[0].axes])
                 # Create Histogram that will be appended to self.expectation_list
                 axes = []
                 for axis in data.event.axes:
@@ -198,6 +180,8 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
                                                 nside = axis.nside))
                     else:
                         axes.append(axis)
+
+                # Add to list that manages multiple datasets
                 self.expectation_list.append(Histogram(Axes(axes), contents=epsilon, unit=data.event.unit))
 
         # At the end of this function, all processes should have a complete `self.expectation_list`
@@ -220,7 +204,6 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
             '''
             Synchronization Barrier 2
             '''
-            # hist = Histogram(self.model_axes, unit = hist_unit); return hist * model.axes['lb'].pixarea() # [NuLambda(lb), Ei]
             
             # Gather the sizes of local arrays from all processes
             local_size = np.array([C_slice.contents.size], dtype=np.int32)
@@ -237,43 +220,46 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
             # Gather all arrays into recvbuf
             self.comm.Gatherv(C_slice.contents.value.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
 
-            # Reshape the received buffer back into the original 2D array shape
-            C = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + C_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=0)
+            if self.taskid == MASTER:
+                # Reshape the received buffer back into the original 2D array shape
+                C = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + C_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=0)
 
-            # Create Histogram object for sum_T_product
-            axes = []
-            for axis in self.model.axes:
-                if axis.label == 'lb':
-                    axes.append(HealpixAxis(edges = axis.edges, 
-                                            label = axis.label, 
-                                            scale = axis._scale,
-                                            coordsys = axis._coordsys,
-                                            nside = axis.nside))
-                else:
-                    axes.append(axis)
+                # Create Histogram object for sum_T_product
+                axes = []
+                for axis in self.model.axes:
+                    if axis.label == 'lb':
+                        axes.append(HealpixAxis(edges = axis.edges, 
+                                                label = axis.label, 
+                                                scale = axis._scale,
+                                                coordsys = axis._coordsys,
+                                                nside = axis.nside))
+                    else:
+                        axes.append(axis)
 
-            sum_T_product = Histogram(Axes(axes), contents=C, unit=C_slice.unit)
+                # C_slice (only slice operated on by current node) --> sum_T_product (all )
+                sum_T_product = Histogram(Axes(axes), contents=C, unit=C_slice.unit)
 
-        self.delta_model = self.model * (sum_T_product/self.summed_exposure_map - 1)
+        if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
+            self.delta_model = self.model * (sum_T_product/self.summed_exposure_map - 1)
 
-        if self.mask is not None:
-            self.delta_model = self.delta_model.mask_pixels(self.mask)
-        
-        # background normalization optimization
-        if self.do_bkg_norm_optimization:
-            for key in self.dict_bkg_norm.keys():
+            if self.mask is not None:
+                self.delta_model = self.delta_model.mask_pixels(self.mask)
+            
+            # background normalization optimization
+            if self.do_bkg_norm_optimization:
+                for key in self.dict_bkg_norm.keys():
 
-                sum_bkg_T_product = self.calc_summed_bkg_model_product(key, ratio_list)
-                sum_bkg_model = self.dict_summed_bkg_model[key]
-                bkg_norm = self.dict_bkg_norm[key] * (sum_bkg_T_product / sum_bkg_model)
+                    sum_bkg_T_product = self.calc_summed_bkg_model_product(key, ratio_list)
+                    sum_bkg_model = self.dict_summed_bkg_model[key]
+                    bkg_norm = self.dict_bkg_norm[key] * (sum_bkg_T_product / sum_bkg_model)
 
-                bkg_range = self.dict_bkg_norm_range[key]
-                if bkg_norm < bkg_range[0]:
-                    bkg_norm = bkg_range[0]
-                elif bkg_norm > bkg_range[1]:
-                    bkg_norm = bkg_range[1]
+                    bkg_range = self.dict_bkg_norm_range[key]
+                    if bkg_norm < bkg_range[0]:
+                        bkg_norm = bkg_range[0]
+                    elif bkg_norm > bkg_range[1]:
+                        bkg_norm = bkg_range[1]
 
-                self.dict_bkg_norm[key] = bkg_norm
+                    self.dict_bkg_norm[key] = bkg_norm
 
         # At the end of this function, just the MASTER MPI process needs to have a full
         # copy of delta_model
@@ -391,9 +377,9 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
                 for this_result in self.results:
                     iteration_count = this_result["iteration"]
 
-                    this_result["model"].write(f"{self.save_results_directory}/model_itr{iteration_count}.hdf5", overwrite = True)
-                    this_result["delta_model"].write(f"{self.save_results_directory}/delta_model_itr{iteration_count}.hdf5", overwrite = True)
-                    this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model_itr{iteration_count}.hdf5", overwrite = True)
+                    this_result["model"].write(f"{self.save_results_directory}/model_itr{iteration_count}_2.hdf5", overwrite = True)
+                    this_result["delta_model"].write(f"{self.save_results_directory}/delta_model_itr{iteration_count}_2.hdf5", overwrite = True)
+                    this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model_itr{iteration_count}_2.hdf5", overwrite = True)
 
                 #fits
                 primary_hdu = fits.PrimaryHDU()
