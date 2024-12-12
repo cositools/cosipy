@@ -59,55 +59,8 @@ def main():
     # Execute deconvolution
     image_deconvolution.run_deconvolution()
 
-    # parameter = read_parameterfile()
-
-    # initial_model = model_initialization(parameter)
-
-    # if dataset.model_axes != initial_model.axes:
-    #     raise ValueError("The model axes mismatches with the reponse in the dataset!")
-
-    # deconvolution = register_deconvolution_algorithm(initial_model = initial_model,
-    #                                  dataset = [dataset],
-    #                                  parameter = parameter['deconvolution:parameter']
-    #                                  )
-    
-    # run_deconvolution(deconvolution)
-
     # MPI Shutdown
     MPI.Finalize()
-
-def read_parameterfile(parameter_filepath: str | Path = 'imagedeconvolution_parfile_gal_511keV.yml'):
-    return Configurator.open(DATA_DIR / parameter_filepath)
-
-def model_initialization(parameter):
-    initial_model = AllSkyImageModel.instantiate_from_parameters(parameter['model_definition:property'])
-    initial_model.set_values_from_parameters(parameter['model_definition:initialization'])
-    return initial_model
-
-def register_deconvolution_algorithm(initial_model, dataset, parameter):
-    # Call RL
-    deconvolution = RichardsonLucyParallel(initial_model = initial_model,
-                                           dataset = dataset,
-                                           mask = None,
-                                           parameter = parameter)
-    return deconvolution
-
-def run_deconvolution(deconvolution):
-    print("#### Image Deconvolution Starts ####")
-    
-    print(f"<< Initialization >>")
-    deconvolution.initialization()
-    
-    stop_iteration = False
-    for i in tqdm(range(deconvolution.iteration_max)):
-        if stop_iteration:
-            break
-        stop_iteration = deconvolution.iteration()
-
-    print(f"<< Finalization >>")
-    deconvolution.finalization()
-
-    print("#### Image Deconvolution Finished ####")
 
 def load_response_matrix(comm, start_col, end_col, filename='response.h5'):
     '''
@@ -261,11 +214,16 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
                 axes.append(axis)
         self._data_axes_slice = Axes(axes)
         
-        # Modify bkg format
+        # Densify background Histogram contents
         for key in self._bkg_models:
             if self._bkg_models[key].is_sparse:
                 self._bkg_models[key] = self._bkg_models[key].to_dense()
             self._summed_bkg_models[key] = np.sum(self._bkg_models[key])
+        ## Create bkg_model_slice Histogram
+        self._bkg_models_slice = {}
+        for key in self._bkg_models:
+            bkg_model = self._bkg_models[key]
+            self._bkg_models_slice[key] = bkg_model.slice[:, :, self.start_col:self.end_col]
         
         # None if using Galactic CDS, required if using local CDS
         self._coordsys_conv_matrix = None 
@@ -337,9 +295,13 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
             expectation[:] = np.tensordot( map_rotated, self._image_response.contents, axes = ([1,2], [0,1]))
             # [Time/ScAtt, NuLambda, Ei] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Em, Phi, PsiChi]
 
-        # if dict_bkg_norm is not None: 
-        #     for key in self.keys_bkg_models():
-        #         expectation += self.bkg_model(key) * dict_bkg_norm[key]
+        print([self.bkg_model_slice(key).axes['Em'].edges for key in self.keys_bkg_models()])
+        print([self.bkg_model_slice(key).axes['Phi'].edges for key in self.keys_bkg_models()])
+        print([self.bkg_model_slice(key).axes['PsiChi'].edges for key in self.keys_bkg_models()])
+        print([axis.edges for axis in expectation.axes])
+        if dict_bkg_norm is not None: 
+            for key in self.keys_bkg_models():
+                expectation += self.bkg_model_slice(key) * dict_bkg_norm[key]
 
         expectation += almost_zero
         
@@ -425,6 +387,9 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         loglikelood = np.sum( self.event * np.log(expectation) ) - np.sum(expectation)
 
         return loglikelood
+
+    def bkg_model_slice(self, key):
+        return self._bkg_models_slice[key]
 
 if __name__ == "__main__":
     main()
