@@ -23,7 +23,7 @@ deconvolution:
   algorithm: "RLparallel"     # Choose from RL, RLsimple and RLparallel
 
   parameter:
-    iteration_max: 50
+    iteration_max: 2
     acceleration: True
     alpha_max: 10.0
     response_weighting: True

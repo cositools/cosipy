@@ -1,6 +1,4 @@
 import sys
-from tqdm import tqdm
-import warnings
 from pathlib import Path
 
 import logging
@@ -8,61 +6,23 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 import astropy.units as u
-from mpi4py import MPI
 import h5py
 from histpy import Histogram, Axes, Axis, HealpixAxis
-from yayc import Configurator
 
 from cosipy.response import FullDetectorResponse
-from cosipy.image_deconvolution import ImageDeconvolutionDataInterfaceBase, AllSkyImageModel, ImageDeconvolution, DataIF_COSI_DC2
-from cosipy.image_deconvolution import RichardsonLucyWithParallel as RichardsonLucyParallel
+from cosipy.image_deconvolution import ImageDeconvolutionDataInterfaceBase
 
-# Define MPI variables
-MASTER = 0                      # Indicates master process
+# Define npix in NuLambda and PsiChi
+# TODO: information is contained in FullDetectorResponse 
+# and will be supported at a later release
 NUMROWS = 3072
 NUMCOLS = 3072
+
+# Define data paths
 DRM_DIR = Path('/Users/penguin/Documents/Grad School/Research/COSI/COSIpy/docs/tutorials/data')
 DATA_DIR = Path('/Users/penguin/Documents/Grad School/Research/COSI/COSIpy/docs/tutorials/image_deconvolution/511keV/GalacticCDS')
 
-def main():
-    '''
-    ImageDeconvolution() script
-    '''
-
-    # Set up MPI
-    comm = MPI.COMM_WORLD
-
-    # Create dataset
-    dataset = DataIFWithParallel(comm=comm)     # Convert dataset to a list of datasets before passing to RichardsonLucy class
-    
-    # bkg = Histogram.open(DATA_DIR / '511keV_dc2_galactic_bkg.hdf5')
-    # event = Histogram.open(DATA_DIR / '511keV_dc2_galactic_event.hdf5')
-    # image_response = Histogram.open(DRM_DIR / 'psr_gal_511_DC2.h5')
-    # dataset = DataIF_COSI_DC2.load(name = "511keV",             # Create a dataset compatible with ImageDeconvolution: name (unique identifier), event data, background model, response, coordinate system conversion matrix (if detector response is not in galactic coordinates)
-    #                                event_binned_data = event.project(['Em', 'Phi', 'PsiChi']),
-    #                                dict_bkg_binned_data = {"total": bkg.project(['Em', 'Phi', 'PsiChi'])},
-    #                                rsp = image_response)
-
-    # Create image deconvolution object
-    image_deconvolution = ImageDeconvolution()
-
-    # set data_interface to image_deconvolution
-    image_deconvolution.set_dataset([dataset])
-
-    # set a parameter file for the image deconvolution
-    parameter_filepath = DATA_DIR / 'imagedeconvolution_parfile_gal_511keV.yml'
-    image_deconvolution.read_parameterfile(parameter_filepath)
-
-    # Initialize model
-    image_deconvolution.initialize(comm=comm)
-
-    # Execute deconvolution
-    image_deconvolution.run_deconvolution()
-
-    # MPI Shutdown
-    MPI.Finalize()
-
-def load_response_matrix(comm, start_col, end_col, filename='response.h5'):
+def load_response_matrix(comm, start_col, end_col, filename):
     '''
     Response matrix
     '''
@@ -101,7 +61,7 @@ def load_response_matrix(comm, start_col, end_col, filename='response.h5'):
 
     return Histogram(axes, contents = R, unit = unit)
 
-def load_response_matrix_transpose(comm, start_row, end_row, filename='response.h5'):
+def load_response_matrix_transpose(comm, start_row, end_row, filename):
     '''
     Response matrix tranpose
     '''
@@ -145,7 +105,7 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
     A subclass of ImageDeconvolutionDataInterfaceBase for the COSI data challenge 2.
     """
 
-    def __init__(self, name = None, comm = None):
+    def __init__(self, event_filename, bkg_filename, drm_filename, name = None, comm = None):
 
         numtasks = comm.Get_size()
         taskid = comm.Get_rank()
@@ -167,16 +127,16 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         self.end_col = (taskid + 1) * self.avecol if taskid < (numtasks - 1) else NUMCOLS
 
         # Load event_binned_data
-        event = Histogram.open(DATA_DIR / "511keV_dc2_galactic_event.hdf5")
-        self._event = event.project(['Em', 'Phi', 'PsiChi'])
+        event = Histogram.open(DATA_DIR / event_filename)
+        self._event = event.project(['Em', 'Phi', 'PsiChi']).to_dense()
 
         # Load dict_bg_binned_data
-        bg = Histogram.open(DATA_DIR / "511keV_dc2_galactic_bkg.hdf5")
-        self._bkg_models = {"total": bg.project(['Em', 'Phi', 'PsiChi'])}
+        bkg = Histogram.open(DATA_DIR / bkg_filename)
+        self._bkg_models = {"total": bkg.project(['Em', 'Phi', 'PsiChi']).to_dense()}
 
         # Load response and response transpose
-        self._image_response = load_response_matrix(comm, self.start_col, self.end_col, filename='psr_gal_511_DC2.h5')
-        self._image_response_T = load_response_matrix_transpose(comm, self.start_row, self.end_row, filename='psr_gal_511_DC2.h5')
+        self._image_response = load_response_matrix(comm, self.start_col, self.end_col, filename=drm_filename)
+        self._image_response_T = load_response_matrix_transpose(comm, self.start_row, self.end_row, filename=drm_filename)
 
         # Set variable _model_axes
         # Derived from Parent class (ImageDeconvolutionDataInterfaceBase)
@@ -197,9 +157,7 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         self._model_axes_slice = Axes(axes)
 
         # Set variable _data_axes
-        # Derived from Parent class
-        event = Histogram.open(DATA_DIR / '511keV_dc2_galactic_event.hdf5')
-        self._event = event.project(['Em', 'Phi', 'PsiChi']).to_dense()
+        # Derived from Parent class (ImageDeconvolutionDataInterfaceBase)
         self._data_axes = self.event.axes
         ## Create data_axes_slice
         axes = []
@@ -214,15 +172,13 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
                 axes.append(axis)
         self._data_axes_slice = Axes(axes)
         
-        # Densify background Histogram contents
-        for key in self._bkg_models:
-            if self._bkg_models[key].is_sparse:
-                self._bkg_models[key] = self._bkg_models[key].to_dense()
-            self._summed_bkg_models[key] = np.sum(self._bkg_models[key])
         ## Create bkg_model_slice Histogram
         self._bkg_models_slice = {}
         for key in self._bkg_models:
+            # if self._bkg_models[key].is_sparse:
+            #     self._bkg_models[key] = self._bkg_models[key].to_dense()
             bkg_model = self._bkg_models[key]
+            self._summed_bkg_models[key] = np.sum(bkg_model)
             self._bkg_models_slice[key] = bkg_model.slice[:, :, self.start_col:self.end_col]
         
         # None if using Galactic CDS, required if using local CDS
@@ -295,10 +251,6 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
             expectation[:] = np.tensordot( map_rotated, self._image_response.contents, axes = ([1,2], [0,1]))
             # [Time/ScAtt, NuLambda, Ei] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Em, Phi, PsiChi]
 
-        print([self.bkg_model_slice(key).axes['Em'].edges for key in self.keys_bkg_models()])
-        print([self.bkg_model_slice(key).axes['Phi'].edges for key in self.keys_bkg_models()])
-        print([self.bkg_model_slice(key).axes['PsiChi'].edges for key in self.keys_bkg_models()])
-        print([axis.edges for axis in expectation.axes])
         if dict_bkg_norm is not None: 
             for key in self.keys_bkg_models():
                 expectation += self.bkg_model_slice(key) * dict_bkg_norm[key]
@@ -390,6 +342,3 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
 
     def bkg_model_slice(self, key):
         return self._bkg_models_slice[key]
-
-if __name__ == "__main__":
-    main()
