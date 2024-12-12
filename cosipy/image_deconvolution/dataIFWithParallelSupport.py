@@ -10,7 +10,7 @@ import numpy as np
 import astropy.units as u
 from mpi4py import MPI
 import h5py
-from histpy import Histogram, Axes, Axis
+from histpy import Histogram, Axes, Axis, HealpixAxis
 from yayc import Configurator
 
 from cosipy.response import FullDetectorResponse
@@ -33,15 +33,15 @@ def main():
     comm = MPI.COMM_WORLD
 
     # Create dataset
-    # dataset = DataIFWithParallel(comm=comm)     # Convert to list of objects before passing to RichardsonLucy class
+    dataset = DataIFWithParallel(comm=comm)     # Convert dataset to a list of datasets before passing to RichardsonLucy class
     
-    bkg = Histogram.open(DATA_DIR / '511keV_dc2_galactic_bkg.hdf5')
-    event = Histogram.open(DATA_DIR / '511keV_dc2_galactic_event.hdf5')
-    image_response = Histogram.open(DRM_DIR / 'psr_gal_511_DC2.h5')
-    dataset = DataIF_COSI_DC2.load(name = "511keV",             # Create a dataset compatible with ImageDeconvolution: name (unique identifier), event data, background model, response, coordinate system conversion matrix (if detector response is not in galactic coordinates)
-                                   event_binned_data = event.project(['Em', 'Phi', 'PsiChi']),
-                                   dict_bkg_binned_data = {"total": bkg.project(['Em', 'Phi', 'PsiChi'])},
-                                   rsp = image_response)
+    # bkg = Histogram.open(DATA_DIR / '511keV_dc2_galactic_bkg.hdf5')
+    # event = Histogram.open(DATA_DIR / '511keV_dc2_galactic_event.hdf5')
+    # image_response = Histogram.open(DRM_DIR / 'psr_gal_511_DC2.h5')
+    # dataset = DataIF_COSI_DC2.load(name = "511keV",             # Create a dataset compatible with ImageDeconvolution: name (unique identifier), event data, background model, response, coordinate system conversion matrix (if detector response is not in galactic coordinates)
+    #                                event_binned_data = event.project(['Em', 'Phi', 'PsiChi']),
+    #                                dict_bkg_binned_data = {"total": bkg.project(['Em', 'Phi', 'PsiChi'])},
+    #                                rsp = image_response)
 
     # Create image deconvolution object
     image_deconvolution = ImageDeconvolution()
@@ -138,9 +138,11 @@ def load_response_matrix(comm, start_col, end_col, filename='response.h5'):
                 axis_tmp = axis_cls._open(axis)
 
             if label == 'PsiChi':
-                axis_tmp = Axis(edges = axis_tmp.edges[start_col:end_col+1], 
-                                label = axis_tmp.label, 
-                                scale = axis_tmp._scale)
+                axis_tmp = HealpixAxis(edges = axis_tmp.edges[start_col:end_col+1], 
+                                       label = axis_tmp.label, 
+                                       scale = axis_tmp._scale,
+                                       coordsys = axis_tmp._coordsys,
+                                       nside = axis_tmp.nside)
 
             axes += [axis_tmp]
 
@@ -175,9 +177,11 @@ def load_response_matrix_transpose(comm, start_row, end_row, filename='response.
                 axis_tmp = axis_cls._open(axis)
 
             if label == 'NuLambda':
-                axis_tmp = Axis(edges = axis_tmp.edges[start_row:end_row+1], 
-                                label = axis_tmp.label, 
-                                scale = axis_tmp._scale)
+                axis_tmp = HealpixAxis(edges = axis_tmp.edges[start_row:end_row+1], 
+                                       label = axis_tmp.label, 
+                                       scale = axis_tmp._scale,
+                                       coordsys = axis_tmp._coordsys,
+                                       nside = axis_tmp.nside)
 
             axes += [axis_tmp]
 
@@ -226,13 +230,36 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         axes = [self._image_response.axes['NuLambda'], self._image_response.axes['Ei']]
         axes[0].label = 'lb' 
         self._model_axes = Axes(axes)
+        ## Create model_axes_slice
+        axes = []
+        for axis in self.model_axes:
+            if axis.label == 'lb':
+                axes.append(HealpixAxis(edges = axis.edges[self.start_row:self.end_row+1], 
+                                        label = axis.label, 
+                                        scale = axis._scale,
+                                        coordsys = axis._coordsys,
+                                        nside = axis.nside))
+            else:
+                axes.append(axis)
+        self._model_axes_slice = Axes(axes)
 
         # Set variable _data_axes
         # Derived from Parent class
         event = Histogram.open(DATA_DIR / '511keV_dc2_galactic_event.hdf5')
         self._event = event.project(['Em', 'Phi', 'PsiChi']).to_dense()
-        axes = [self._image_response_T.axes['Em'], self._image_response_T.axes['Phi'], self._image_response_T.axes['PsiChi']]
         self._data_axes = self.event.axes
+        ## Create data_axes_slice
+        axes = []
+        for axis in self.data_axes:
+            if axis.label == 'PsiChi':
+                axes.append(HealpixAxis(edges = axis.edges[self.start_col:self.end_col+1], 
+                                        label = axis.label, 
+                                        scale = axis._scale,
+                                        coordsys = axis._coordsys,
+                                        nside = axis.nside))
+            else:
+                axes.append(axis)
+        self._data_axes_slice = Axes(axes)
         
         # Modify bkg format
         for key in self._bkg_models:
@@ -245,60 +272,6 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
 
         # Calculate exposure map
         self._calc_exposure_map()
-
-    @classmethod
-    def load(cls, name: str, event_binned_data: Histogram, dict_bkg_binned_data: dict, rsp, coordsys_conv_matrix = None, is_miniDC2_format: bool = False):
-        """
-        Load data
-
-        Parameters
-        ----------
-        name : str
-            The name of data
-        event_binned_data : :py:class:`histpy.Histogram`
-            Event histogram
-        dict_bkg_binned_data : dict
-            Background models as {background_model_name: :py:class:`histpy.Histogram`}
-        rsp : :py:class:`histpy.Histogram` or :py:class:`cosipy.response.FullDetectorResponse`
-            Response
-        coordsys_conv_matrix : :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix`, default False
-            Coordsys conversion matrix 
-        is_miniDC2_format : bool, default False
-            Whether the file format is for mini-DC2. It will be removed in the future.
-
-        Returns
-        -------
-        :py:class:`cosipy.image_deconvolution.DataIF_COSI_DC2`
-            An instance of DataIF_COSI_DC2 containing the input data set
-        """
-
-        new = cls(name)
-
-        new._event = event_binned_data.to_dense()
-
-        new._bkg_models = dict_bkg_binned_data
-
-        for key in new._bkg_models:
-            if new._bkg_models[key].is_sparse:
-                new._bkg_models[key] = new._bkg_models[key].to_dense()
-
-            new._summed_bkg_models[key] = np.sum(new._bkg_models[key])
-
-        new._coordsys_conv_matrix = coordsys_conv_matrix
-
-        new.is_miniDC2_format = is_miniDC2_format
-
-        if isinstance(rsp, FullDetectorResponse):
-            logger.info('Loading the response matrix onto your computer memory...')
-            new._load_full_detector_response_on_memory(rsp, is_miniDC2_format)
-            logger.info('Finished')
-        elif isinstance(rsp, Histogram):
-            new._image_response = rsp
-        
-        # We modify the axes in event, bkg_models, response. This is only for DC2.
-        new._modify_axes()
-        
-        new._data_axes = new._event.axes
         
     def _calc_exposure_map(self):
         """
@@ -349,8 +322,7 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
         # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
 
-
-        expectation = Histogram(self.data_axes)
+        expectation = Histogram(self._data_axes_slice)
         
         if self._coordsys_conv_matrix is None:
             expectation[:] = np.tensordot( model.contents, self._image_response.contents, axes = ([0,1],[0,1])) * model.axes['lb'].pixarea()
@@ -365,9 +337,9 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
             expectation[:] = np.tensordot( map_rotated, self._image_response.contents, axes = ([1,2], [0,1]))
             # [Time/ScAtt, NuLambda, Ei] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Em, Phi, PsiChi]
 
-        if dict_bkg_norm is not None: 
-            for key in self.keys_bkg_models():
-                expectation += self.bkg_model(key) * dict_bkg_norm[key]
+        # if dict_bkg_norm is not None: 
+        #     for key in self.keys_bkg_models():
+        #         expectation += self.bkg_model(key) * dict_bkg_norm[key]
 
         expectation += almost_zero
         
@@ -396,8 +368,7 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         if dataspace_histogram.unit is not None:
             hist_unit *= dataspace_histogram.unit
 
-        hist = Histogram(self.model_axes, unit = hist_unit)
-
+        hist = Histogram(self._model_axes_slice, unit = hist_unit)
         if self._coordsys_conv_matrix is None:
             hist[:] = np.tensordot(dataspace_histogram.contents, self._image_response_T.contents, axes = ([0,1,2], [2,3,4])) * self.model_axes['lb'].pixarea()
             # [Em, Phi, PsiChi] x [NuLambda (lb), Ei, Em, Phi, PsiChi] -> [NuLambda (lb), Ei]

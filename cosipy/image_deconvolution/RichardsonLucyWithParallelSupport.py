@@ -13,9 +13,10 @@ import astropy.units as u
 from astropy.io import fits
 from mpi4py import MPI
 from yayc import Configurator
-from histpy import Histogram
+from histpy import Histogram, HealpixAxis, Axes
 
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
+from .allskyimage import AllSkyImageModel
 
 # Define MPI variable
 MASTER = 0                      # Indicates master process
@@ -107,6 +108,19 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
 
         # calculate exposure map
         self.summed_exposure_map = self.calc_summed_exposure_map()
+        ## Create summed_exposure_map_slice
+        # axes = []
+        # for axis in self.summed_exposure_map.axes:
+        #     if axis.label == 'lb':
+        #         axes.append(HealpixAxis(edges = axis.edges[self.dataset[0].start_row:self.dataset[0].end_row+1],    # TODO: Assumes exposure map calculated for first dataset is valid for everyone
+        #                                 label = axis.label, 
+        #                                 scale = axis._scale,
+        #                                 coordsys = axis._coordsys,
+        #                                 nside = axis.nside))
+        #     else:
+        #         axes.append(axis)
+        # self.summed_exposure_map_slice = Histogram(Axes(axes), contents=self.summed_exposure_map.contents, unit=self.summed_exposure_map.unit)
+        # print([type(axis) for axis in self.summed_exposure_map_slice.axes])
 
         # mask setting
         if self.mask is None and np.any(self.summed_exposure_map.contents == 0):
@@ -151,25 +165,40 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
             self.expectation_list = []
             for data, epsilon_slice in zip(self.dataset, expectation_list_slice):
                 # Gather the sizes of local arrays from all processes
-                local_size = np.array([epsilon_slice.contents.size], dtype=np.float)
-                all_sizes = np.zeros(self.numtasks, dtype=np.float)
+                local_size = np.array([epsilon_slice.contents.size], dtype=np.int32)
+                all_sizes = np.zeros(self.numtasks, dtype=np.int32)
                 self.comm.Allgather(local_size, all_sizes)
 
                 # Calculate displacements 
                 displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
 
                 # Create a buffer to receive the gathered data 
-                total_size = np.sum(all_sizes) 
-                recvbuf = np.empty(total_size, dtype=np.float)      # Receive buffer
+                total_size = int(np.sum(all_sizes))
+                recvbuf = np.empty(total_size, dtype=np.float64)      # Receive buffer
 
                 # Gather all arrays into recvbuf
                 self.comm.Allgatherv(epsilon_slice.contents.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
 
                 # Reshape the received buffer back into the original 3D array shape
-                epsilon = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + epsilon_slice.shape[1:]) for i in range(self.numtasks) ])
+                epsilon = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + epsilon_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=-1)
 
                 # Add to list that manages multiple datasets
-                self.expectation_list.append(Histogram(data.event.axes, contents=epsilon, unit=data.event.unit, labels=data.event.axes.labels))
+                # NOTE: The following simple version does not work as Histogram constructor does not automatically reconstruct HealpixAxis 'PsiChi'
+                # self.expectation_list.append(Histogram(data.event.axes, contents=epsilon, unit=data.event.unit, labels=data.event.axes.labels))
+                # print([type(axis) for axis in data.event.axes])
+                # print([type(axis) for axis in self.expectation_list[0].axes])
+                # Create Histogram that will be appended to self.expectation_list
+                axes = []
+                for axis in data.event.axes:
+                    if axis.label == 'PsiChi':
+                        axes.append(HealpixAxis(edges = axis.edges, 
+                                                label = axis.label, 
+                                                scale = axis._scale,
+                                                coordsys = axis._coordsys,
+                                                nside = axis.nside))
+                    else:
+                        axes.append(axis)
+                self.expectation_list.append(Histogram(Axes(axes), contents=epsilon, unit=data.event.unit))
 
         # At the end of this function, all processes should have a complete `self.expectation_list`
         # to proceed to the Mstep function
@@ -182,11 +211,53 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
         ratio_list = [ data.event / expectation for data, expectation in zip(self.dataset, self.expectation_list) ]
         
         # delta model
-        sum_T_product = self.calc_summed_T_product(ratio_list)
-        delta_model_slice = self.model * (sum_T_product/self.summed_exposure_map - 1)
+        C_slice = self.calc_summed_T_product(ratio_list)
+
+        if not self.parallel:
+            sum_T_product = C_slice
+
+        elif self.parallel:
+            '''
+            Synchronization Barrier 2
+            '''
+            # hist = Histogram(self.model_axes, unit = hist_unit); return hist * model.axes['lb'].pixarea() # [NuLambda(lb), Ei]
+            
+            # Gather the sizes of local arrays from all processes
+            local_size = np.array([C_slice.contents.size], dtype=np.int32)
+            all_sizes = np.zeros(self.numtasks, dtype=np.int32)
+            self.comm.Allgather(local_size, all_sizes)
+
+            # Calculate displacements 
+            displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
+
+            # Create a buffer to receive the gathered data 
+            total_size = int(np.sum(all_sizes)) 
+            recvbuf = np.empty(total_size, dtype=np.float64)      # Receive buffer
+
+            # Gather all arrays into recvbuf
+            self.comm.Gatherv(C_slice.contents.value.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+            # Reshape the received buffer back into the original 2D array shape
+            C = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + C_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=0)
+
+            # Create Histogram object for sum_T_product
+            axes = []
+            for axis in self.model.axes:
+                if axis.label == 'lb':
+                    axes.append(HealpixAxis(edges = axis.edges, 
+                                            label = axis.label, 
+                                            scale = axis._scale,
+                                            coordsys = axis._coordsys,
+                                            nside = axis.nside))
+                else:
+                    axes.append(axis)
+
+            sum_T_product = Histogram(Axes(axes), contents=C, unit=C_slice.unit)
+
+        self.delta_model = self.model * (sum_T_product/self.summed_exposure_map - 1)
 
         if self.mask is not None:
-            delta_model_slice = delta_model_slice.mask_pixels(self.mask)
+            self.delta_model = self.delta_model.mask_pixels(self.mask)
         
         # background normalization optimization
         if self.do_bkg_norm_optimization:
@@ -203,38 +274,6 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
                     bkg_norm = bkg_range[1]
 
                 self.dict_bkg_norm[key] = bkg_norm
-
-        if not self.parallel:
-            self.delta_model = delta_model_slice        # If single process, full = slice
-
-        elif self.parallel:
-            '''
-            Synchronization Barrier 2
-            '''
-            # hist = Histogram(self.model_axes, unit = hist_unit); return hist * model.axes['lb'].pixarea() # [NuLambda(lb), Ei]
-            # All vector gather C slices
-            delta_model = []
-            for C_slice in delta_model_slice:
-                # Gather the sizes of local arrays from all processes
-                local_size = np.array([C_slice.contents.size], dtype=np.float)
-                all_sizes = np.zeros(self.numtasks, dtype=np.float)
-                self.comm.Allgather(local_size, all_sizes)
-
-                # Calculate displacements 
-                displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
-
-                # Create a buffer to receive the gathered data 
-                total_size = np.sum(all_sizes) 
-                recvbuf = np.empty(total_size, dtype=np.float)      # Receive buffer
-
-                # Gather all arrays into recvbuf
-                self.comm.Gatherv(C_slice.contents.value.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
-
-                # Reshape the received buffer back into the original 3D array shape
-                C = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + C_slice.shape[1:]) for i in range(self.numtasks) ])
-
-                # Add to list that manages multiple datasets
-                self.delta_model.append(Histogram(self.model.axes, contents=C, unit=self.model.unit, labels=self.model.axes.labels))
 
         # At the end of this function, just the MASTER MPI process needs to have a full
         # copy of delta_model
@@ -279,12 +318,20 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
             if self.taskid == MASTER:
                 buffer = self.model.contents.value
             else:
-                buffer = np.empty(self.model.contents.shape, dtype=np.float)
+                buffer = np.empty(self.model.contents.shape, dtype=np.float64)
 
             self.comm.Bcast([buffer, MPI.DOUBLE], root=MASTER)  # This synchronization barrier is not required during the final iteration
 
-            # Reconstruct Histogram object for self.model
-            self.model = Histogram(self.model.axes, contents=buffer, unit=self.model.unit, labels=self.model.axes.labels)
+            if self.taskid > MASTER:
+                # Reconstruct ModelBase object for self.model
+                new_model = self.model.__class__(nside = self.model.axes['lb'].nside,       # self.model.__class__ will return the Class of which `model` is an object
+                                                energy_edges = self.model.axes['Ei'].edges, 
+                                                scheme = self.model.axes['lb']._scheme, 
+                                                coordsys = self.model.axes['lb'].coordsys,
+                                                unit = self.model.unit)
+                
+                new_model[:] = buffer * self.model.unit
+                self.model = new_model
 
         # At the end of this function, all MPI processes needs to have a full
         # copy of updated model. 
