@@ -12,11 +12,9 @@ import pandas as pd
 import astropy.units as u
 from astropy.io import fits
 from mpi4py import MPI
-from yayc import Configurator
 from histpy import Histogram, HealpixAxis, Axes
 
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
-from .allskyimage import AllSkyImageModel
 
 # Define MPI variable
 MASTER = 0                      # Indicates master process
