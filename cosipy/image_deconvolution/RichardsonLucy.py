@@ -75,30 +75,33 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             else:
                 os.makedirs(self.save_results_directory)
 
+        # Specific to parallel implementation:
+        # 1. Assume numproc is known by the process that invoked `run_deconvolution()`
+        # 2. All processes have loaded event data, background, and created 
+        #    initial model (from model properties) independently
         self.parallel = False
         if comm is not None:
             self.comm = comm
-            self.parallel = True
             if self.comm.Get_size() > 1:
                 self.parallel = True
                 logger.info('Image Deconvolution set to run in parallel mode')
-            # Specific to parallel implementation:
-            # 1. Assume numproc is known by the process that invoked `run_deconvolution()`
-            # 2. All processes have loaded event data, background, and initial model independently
 
     def initialization(self):
         """
         initialization before performing image deconvolution
         """
 
+        # Parallel
         if self.parallel:
             self.numtasks = self.comm.Get_size()
             self.taskid = self.comm.Get_rank()
 
-        # clear results
+        # Master
         if (not self.parallel) or (self.parallel and (self.taskid == MASTER)):
+            # Clear results
             self.results.clear()
 
+        # All
         # clear counter 
         self.iteration_count = 0
 
@@ -108,9 +111,10 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         # calculate exposure map
         self.summed_exposure_map = self.calc_summed_exposure_map()
 
+        # Parallel
         if self.parallel:
             '''
-            Synchronization Barrier 0
+            Synchronization Barrier 0 (performed only once)
             '''
             total_exposure_map = np.empty_like(self.summed_exposure_map, dtype=np.float64)
 
@@ -120,6 +124,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             # Reshape the received buffer back into the original array shape
             self.summed_exposure_map[:] = total_exposure_map
 
+        # All
         # mask setting
         if self.mask is None and np.any(self.summed_exposure_map.contents == 0):
             self.mask = Histogram(self.model.axes, contents = self.summed_exposure_map.contents > 0)
@@ -148,13 +153,16 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         E-step (but it will be skipped).
         """
 
+        # All
         # expected count histograms
         expectation_list_slice = self.calc_expectation_list(model = self.model, dict_bkg_norm = self.dict_bkg_norm)
         logger.info("The expected count histograms were calculated with the initial model map.")
 
+        # Serial
         if not self.parallel:
             self.expectation_list = expectation_list_slice     # If single process, then full = slice
 
+        # Parallel
         elif self.parallel:
             '''
             Synchronization Barrier 1
@@ -203,14 +211,17 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         M-step in RL algorithm.
         """
 
+        # All
         ratio_list = [ data.event / expectation for data, expectation in zip(self.dataset, self.expectation_list) ]
         
         # delta model
         C_slice = self.calc_summed_T_product(ratio_list)
 
+        # Serial
         if not self.parallel:
             sum_T_product = C_slice
 
+        # Parallel
         elif self.parallel:
             '''
             Synchronization Barrier 2
@@ -231,6 +242,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             # Gather all arrays into recvbuf
             self.comm.Gatherv(C_slice.contents.value.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
 
+            # Master
             if self.taskid == MASTER:
                 # Reshape the received buffer back into the original 2D array shape
                 C = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + C_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=0)
@@ -250,12 +262,14 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
                 # C_slice (only slice operated on by current node) --> sum_T_product (all )
                 sum_T_product = Histogram(Axes(axes), contents=C, unit=C_slice.unit)        # TODO: Could maybe be simplified using Histogram.slice[]
 
+        # Master
         if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
             self.delta_model = self.model * (sum_T_product/self.summed_exposure_map - 1)
 
             if self.mask is not None:
                 self.delta_model = self.delta_model.mask_pixels(self.mask)
             
+        # All
         # background normalization optimization
         if self.do_bkg_norm_optimization:
             for key in self.dict_bkg_norm.keys():
@@ -286,6 +300,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         - acceleration of RL algirithm: the normalization of delta map is increased as long as the updated image has no non-negative components.
         """
 
+        # Master
         if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
             self.processed_delta_model = copy.deepcopy(self.delta_model)
 
@@ -310,6 +325,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             self.loglikelihood_list = self.calc_loglikelihood_list(self.expectation_list)
             logger.debug("The loglikelihood list was updated with the new expected count histograms.")
 
+        # Parallel
         if self.parallel:
             '''
             Synchronization Barrier 3
@@ -348,6 +364,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         - loglikelihood: log-likelihood
         """
         
+        # Master
         if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
             this_result = {"iteration": self.iteration_count, 
                         "model": copy.deepcopy(self.model), 
@@ -374,6 +391,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         bool
         """
 
+        # All
         if self.iteration_count < self.iteration_max:
             return False
         return True
@@ -383,6 +401,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         finalization after running the image deconvolution
         """
 
+        # Master
         if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
             if self.save_results == True:
                 logger.info('Saving results in {self.save_results_directory}')
@@ -427,6 +446,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             Acceleration parameter
         """
 
+        # Master: Only invoked by master process
         diff = -1 * (model / delta_model).contents
 
         diff[(diff <= 0) | (delta_model.contents == 0)] = np.inf
