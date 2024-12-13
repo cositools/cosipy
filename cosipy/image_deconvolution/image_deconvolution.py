@@ -10,8 +10,6 @@ from .allskyimage import AllSkyImageModel
 
 from .RichardsonLucy import RichardsonLucy
 from .RichardsonLucySimple import RichardsonLucySimple
-# from .RichardsonLucyParallel import RichardsonLucyParallel
-from .RichardsonLucyWithParallelSupport import RichardsonLucyWithParallel as RichardsonLucyParallel
 
 class ImageDeconvolution:
     """
