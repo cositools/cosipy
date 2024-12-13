@@ -107,12 +107,22 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
 
     def __init__(self, event_filename, bkg_filename, drm_filename, name = None, comm = None):
 
+        ImageDeconvolutionDataInterfaceBase.__init__(self, name)
+
+        self._MPI_init(event_filename, bkg_filename, drm_filename, comm)
+        
+        # None if using Galactic CDS, required if using local CDS
+        self._coordsys_conv_matrix = None 
+
+        # Calculate exposure map
+        self._calc_exposure_map()
+
+    def _MPI_load_data(self, event_filename, bkg_filename, drm_filename, comm):
+
         numtasks = comm.Get_size()
         taskid = comm.Get_rank()
 
         print(f'TaskID = {taskid}, Number of tasks = {numtasks}')
-
-        ImageDeconvolutionDataInterfaceBase.__init__(self, name)
 
         # Calculate the indices in Rij that the process has to parse. My hunch is that calculating these scalars individually will be faster than the MPI send broadcast overhead.
         self.averow = NUMROWS // numtasks
@@ -137,6 +147,8 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         # Load response and response transpose
         self._image_response = load_response_matrix(comm, self.start_col, self.end_col, filename=drm_filename)
         self._image_response_T = load_response_matrix_transpose(comm, self.start_row, self.end_row, filename=drm_filename)
+
+    def _MPI_set_aux_data(self):
 
         # Set variable _model_axes
         # Derived from Parent class (ImageDeconvolutionDataInterfaceBase)
@@ -175,18 +187,16 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         ## Create bkg_model_slice Histogram
         self._bkg_models_slice = {}
         for key in self._bkg_models:
-            # if self._bkg_models[key].is_sparse:
-            #     self._bkg_models[key] = self._bkg_models[key].to_dense()
             bkg_model = self._bkg_models[key]
             self._summed_bkg_models[key] = np.sum(bkg_model)
             self._bkg_models_slice[key] = bkg_model.slice[:, :, self.start_col:self.end_col]
         
-        # None if using Galactic CDS, required if using local CDS
-        self._coordsys_conv_matrix = None 
+    def _MPI_init(self, event_filename, bkg_filename, drm_filename, comm):
 
-        # Calculate exposure map
-        self._calc_exposure_map()
-        
+        self._MPI_load_data(event_filename, bkg_filename, drm_filename, comm)
+
+        self._MPI_set_aux_data()
+
     def _calc_exposure_map(self):
         """
         Calculate exposure_map, which is an intermidiate matrix used in RL algorithm.
