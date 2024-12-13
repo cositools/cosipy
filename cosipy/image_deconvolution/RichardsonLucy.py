@@ -1,14 +1,25 @@
 import os
+from pathlib import Path
 import copy
-import numpy as np
-import astropy.units as u
-import astropy.io.fits as fits
 import logging
+
+# logging setup
 logger = logging.getLogger(__name__)
 
-from histpy import Histogram
+# Import third party libraries
+import numpy as np
+import pandas as pd
+import astropy.units as u
+from astropy.io import fits
+from mpi4py import MPI
+from yayc import Configurator
+from histpy import Histogram, HealpixAxis, Axes
 
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
+from .allskyimage import AllSkyImageModel
+
+# Define MPI variable
+MASTER = 0                      # Indicates master process
 
 class RichardsonLucy(DeconvolutionAlgorithmBase):
     """
@@ -36,7 +47,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
     """
 
-    def __init__(self, initial_model, dataset, mask, parameter, comm = None):
+    def __init__(self, initial_model:Histogram, dataset:list, mask, parameter, comm=None):
 
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
 
@@ -66,21 +77,50 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             else:
                 os.makedirs(self.save_results_directory)
 
+        self.parallel = False
+        if comm is not None:
+            self.comm = comm
+            self.parallel = True
+            if self.comm.Get_size() > 1:
+                self.parallel = True
+                logger.info('Image Deconvolution set to run in parallel mode')
+            # Specific to parallel implementation:
+            # 1. Assume numproc is known by the process that invoked `run_deconvolution()`
+            # 2. All processes have loaded event data, background, and initial model independently
+
     def initialization(self):
         """
-        initialization before running the image deconvolution
+        initialization before performing image deconvolution
         """
-        # clear counter 
-        self.iteration_count = 0
+
+        if self.parallel:
+            self.numtasks = self.comm.Get_size()
+            self.taskid = self.comm.Get_rank()
 
         # clear results
-        self.results.clear()
+        if (not self.parallel) or (self.parallel and (self.taskid == MASTER)):
+            self.results.clear()
+
+        # clear counter 
+        self.iteration_count = 0
 
         # copy model
         self.model = copy.deepcopy(self.initial_model)
 
         # calculate exposure map
         self.summed_exposure_map = self.calc_summed_exposure_map()
+
+        if self.parallel:
+            '''
+            Synchronization Barrier 0
+            '''
+            total_exposure_map = np.empty_like(self.summed_exposure_map, dtype=np.float64)
+
+            # Gather all arrays into recvbuf
+            self.comm.Allreduce(self.summed_exposure_map.contents, total_exposure_map, op=MPI.SUM)   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+            # Reshape the received buffer back into the original array shape
+            self.summed_exposure_map[:] = total_exposure_map
 
         # mask setting
         if self.mask is None and np.any(self.summed_exposure_map.contents == 0):
@@ -92,10 +132,6 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         if self.do_response_weighting:
             self.response_weighting_filter = (self.summed_exposure_map.contents / np.max(self.summed_exposure_map.contents))**self.response_weighting_index
             logger.info("The response weighting filter was calculated.")
-
-        # expected count histograms
-        self.expectation_list = self.calc_expectation_list(model = self.initial_model, dict_bkg_norm = self.dict_bkg_norm)      # FIXME: This should be placed under the E-step function
-        logger.info("The expected count histograms were calculated with the initial model map.")
 
         # calculate summed background models for M-step
         if self.do_bkg_norm_optimization:
@@ -112,9 +148,57 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
     def Estep(self):
         """
         E-step (but it will be skipped).
-        Note that self.expectation_list is updated in self.post_processing().
         """
-        pass
+
+        # expected count histograms
+        expectation_list_slice = self.calc_expectation_list(model = self.model, dict_bkg_norm = self.dict_bkg_norm)
+        logger.info("The expected count histograms were calculated with the initial model map.")
+
+        if not self.parallel:
+            self.expectation_list = expectation_list_slice     # If single process, then full = slice
+
+        elif self.parallel:
+            '''
+            Synchronization Barrier 1
+            '''
+            
+            self.expectation_list = []
+            for data, epsilon_slice in zip(self.dataset, expectation_list_slice):
+                # Gather the sizes of local arrays from all processes
+                local_size = np.array([epsilon_slice.contents.size], dtype=np.int32)
+                all_sizes = np.zeros(self.numtasks, dtype=np.int32)
+                self.comm.Allgather(local_size, all_sizes)
+
+                # Calculate displacements 
+                displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
+
+                # Create a buffer to receive the gathered data 
+                total_size = int(np.sum(all_sizes))
+                recvbuf = np.empty(total_size, dtype=np.float64)      # Receive buffer
+
+                # Gather all arrays into recvbuf
+                self.comm.Allgatherv(epsilon_slice.contents.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+                # Reshape the received buffer back into the original 3D array shape
+                epsilon = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + epsilon_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=-1)
+
+                # Create Histogram that will be appended to self.expectation_list
+                axes = []
+                for axis in data.event.axes:
+                    if axis.label == 'PsiChi':
+                        axes.append(HealpixAxis(edges = axis.edges, 
+                                                label = axis.label, 
+                                                scale = axis._scale,
+                                                coordsys = axis._coordsys,
+                                                nside = axis.nside))
+                    else:
+                        axes.append(axis)
+
+                # Add to list that manages multiple datasets
+                self.expectation_list.append(Histogram(Axes(axes), contents=epsilon, unit=data.event.unit))     # TODO: Could maybe be simplified using Histogram.slice[]
+
+        # At the end of this function, all processes should have a complete `self.expectation_list`
+        # to proceed to the Mstep function
 
     def Mstep(self):
         """
@@ -124,12 +208,56 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         ratio_list = [ data.event / expectation for data, expectation in zip(self.dataset, self.expectation_list) ]
         
         # delta model
-        sum_T_product = self.calc_summed_T_product(ratio_list)
-        self.delta_model = self.model * (sum_T_product/self.summed_exposure_map - 1)
+        C_slice = self.calc_summed_T_product(ratio_list)
 
-        if self.mask is not None:
-            self.delta_model = self.delta_model.mask_pixels(self.mask)
-        
+        if not self.parallel:
+            sum_T_product = C_slice
+
+        elif self.parallel:
+            '''
+            Synchronization Barrier 2
+            '''
+            
+            # Gather the sizes of local arrays from all processes
+            local_size = np.array([C_slice.contents.size], dtype=np.int32)
+            all_sizes = np.zeros(self.numtasks, dtype=np.int32)
+            self.comm.Allgather(local_size, all_sizes)
+
+            # Calculate displacements 
+            displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
+
+            # Create a buffer to receive the gathered data 
+            total_size = int(np.sum(all_sizes)) 
+            recvbuf = np.empty(total_size, dtype=np.float64)      # Receive buffer
+
+            # Gather all arrays into recvbuf
+            self.comm.Gatherv(C_slice.contents.value.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+            if self.taskid == MASTER:
+                # Reshape the received buffer back into the original 2D array shape
+                C = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + C_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=0)
+
+                # Create Histogram object for sum_T_product
+                axes = []
+                for axis in self.model.axes:
+                    if axis.label == 'lb':
+                        axes.append(HealpixAxis(edges = axis.edges, 
+                                                label = axis.label, 
+                                                scale = axis._scale,
+                                                coordsys = axis._coordsys,
+                                                nside = axis.nside))
+                    else:
+                        axes.append(axis)
+
+                # C_slice (only slice operated on by current node) --> sum_T_product (all )
+                sum_T_product = Histogram(Axes(axes), contents=C, unit=C_slice.unit)        # TODO: Could maybe be simplified using Histogram.slice[]
+
+        if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
+            self.delta_model = self.model * (sum_T_product/self.summed_exposure_map - 1)
+
+            if self.mask is not None:
+                self.delta_model = self.delta_model.mask_pixels(self.mask)
+            
         # background normalization optimization
         if self.do_bkg_norm_optimization:
             for key in self.dict_bkg_norm.keys():
@@ -146,6 +274,12 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
                 self.dict_bkg_norm[key] = bkg_norm
 
+            # Alternately, let MASTER node calculate it and broadcast the value
+            # self.comm.bcast(self.dict_bkg_norm[key], root=MASTER)  # This synchronization barrier is not required during the final iteration
+
+        # At the end of this function, just the MASTER MPI process needs to have a full
+        # copy of delta_model
+
     def post_processing(self):
         """
         Here three processes will be performed.
@@ -154,32 +288,55 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         - acceleration of RL algirithm: the normalization of delta map is increased as long as the updated image has no non-negative components.
         """
 
-        self.processed_delta_model = copy.deepcopy(self.delta_model)
+        if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
+            self.processed_delta_model = copy.deepcopy(self.delta_model)
 
-        if self.do_response_weighting:
-            self.processed_delta_model[:] *= self.response_weighting_filter
+            if self.do_response_weighting:
+                self.processed_delta_model[:] *= self.response_weighting_filter
 
-        if self.do_smoothing:
-            self.processed_delta_model = self.processed_delta_model.smoothing(fwhm = self.smoothing_fwhm)
-        
-        if self.do_acceleration:
-            self.alpha = self.calc_alpha(self.processed_delta_model, self.model)
-        else:
-            self.alpha = 1.0
+            if self.do_smoothing:
+                self.processed_delta_model = self.processed_delta_model.smoothing(fwhm = self.smoothing_fwhm)
+            
+            if self.do_acceleration:
+                self.alpha = self.calc_alpha(self.processed_delta_model, self.model)
+            else:
+                self.alpha = 1.0
 
-        self.model = self.model + self.processed_delta_model * self.alpha
-        self.model[:] = np.where(self.model.contents < self.minimum_flux, self.minimum_flux, self.model.contents)
+            self.model = self.model + self.processed_delta_model * self.alpha
+            self.model[:] = np.where(self.model.contents < self.minimum_flux, self.minimum_flux, self.model.contents)
 
-        if self.mask is not None:
-            self.model = self.model.mask_pixels(self.mask)
-        
-        # update expectation_list
-        self.expectation_list = self.calc_expectation_list(self.model, dict_bkg_norm = self.dict_bkg_norm)
-        logger.debug("The expected count histograms were updated with the new model map.")
+            if self.mask is not None:
+                self.model = self.model.mask_pixels(self.mask)
 
-        # update loglikelihood_list
-        self.loglikelihood_list = self.calc_loglikelihood_list(self.expectation_list)
-        logger.debug("The loglikelihood list was updated with the new expected count histograms.")
+            # update loglikelihood_list
+            self.loglikelihood_list = self.calc_loglikelihood_list(self.expectation_list)
+            logger.debug("The loglikelihood list was updated with the new expected count histograms.")
+
+        if self.parallel:
+            '''
+            Synchronization Barrier 3
+            '''
+            # Initialize new variable as MPI only sends values and not units
+            if self.taskid == MASTER:
+                buffer = self.model.contents.value
+            else:
+                buffer = np.empty(self.model.contents.shape, dtype=np.float64)
+
+            self.comm.Bcast([buffer, MPI.DOUBLE], root=MASTER)  # This synchronization barrier is not required during the final iteration
+
+            if self.taskid > MASTER:
+                # Reconstruct ModelBase object for self.model
+                new_model = self.model.__class__(nside = self.model.axes['lb'].nside,       # self.model.__class__ will return the Class of which `model` is an object
+                                                energy_edges = self.model.axes['Ei'].edges, 
+                                                scheme = self.model.axes['lb']._scheme, 
+                                                coordsys = self.model.axes['lb'].coordsys,
+                                                unit = self.model.unit)
+                
+                new_model[:] = buffer * self.model.unit
+                self.model = new_model
+
+        # At the end of this function, all MPI processes needs to have a full
+        # copy of updated model. 
 
     def register_result(self):
         """
@@ -193,21 +350,22 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         - loglikelihood: log-likelihood
         """
         
-        this_result = {"iteration": self.iteration_count, 
-                       "model": copy.deepcopy(self.model), 
-                       "delta_model": copy.deepcopy(self.delta_model),
-                       "processed_delta_model": copy.deepcopy(self.processed_delta_model),
-                       "background_normalization": copy.deepcopy(self.dict_bkg_norm),
-                       "alpha": self.alpha, 
-                       "loglikelihood": copy.deepcopy(self.loglikelihood_list)}
+        if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
+            this_result = {"iteration": self.iteration_count, 
+                        "model": copy.deepcopy(self.model), 
+                        "delta_model": copy.deepcopy(self.delta_model),
+                        "processed_delta_model": copy.deepcopy(self.processed_delta_model),
+                        "background_normalization": copy.deepcopy(self.dict_bkg_norm),
+                        "alpha": self.alpha, 
+                        "loglikelihood": copy.deepcopy(self.loglikelihood_list)}
 
-        # show intermediate results
-        logger.info(f'  alpha: {this_result["alpha"]}')
-        logger.info(f'  background_normalization: {this_result["background_normalization"]}')
-        logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
+            # show intermediate results
+            logger.info(f'  alpha: {this_result["alpha"]}')
+            logger.info(f'  background_normalization: {this_result["background_normalization"]}')
+            logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
         
-        # register this_result in self.results
-        self.results.append(this_result)
+            # register this_result in self.results
+            self.results.append(this_result)
 
     def check_stopping_criteria(self):
         """
@@ -217,6 +375,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         -------
         bool
         """
+
         if self.iteration_count < self.iteration_max:
             return False
         return True
@@ -225,38 +384,40 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         finalization after running the image deconvolution
         """
-        if self.save_results == True:
-            logger.info('Saving results in {self.save_results_directory}')
 
-            # model
-            for this_result in self.results:
-                iteration_count = this_result["iteration"]
+        if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
+            if self.save_results == True:
+                logger.info('Saving results in {self.save_results_directory}')
 
-                this_result["model"].write(f"{self.save_results_directory}/model_itr{iteration_count}.hdf5", overwrite = True)
-                this_result["delta_model"].write(f"{self.save_results_directory}/delta_model_itr{iteration_count}.hdf5", overwrite = True)
-                this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model_itr{iteration_count}.hdf5", overwrite = True)
+                # model
+                for this_result in self.results:
+                    iteration_count = this_result["iteration"]
 
-            #fits
-            primary_hdu = fits.PrimaryHDU()
+                    this_result["model"].write(f"{self.save_results_directory}/model_itr{iteration_count}_2.hdf5", overwrite = True)
+                    this_result["delta_model"].write(f"{self.save_results_directory}/delta_model_itr{iteration_count}_2.hdf5", overwrite = True)
+                    this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model_itr{iteration_count}_2.hdf5", overwrite = True)
 
-            col_iteration = fits.Column(name='iteration', array=[float(result['iteration']) for result in self.results], format='K')
-            col_alpha = fits.Column(name='alpha', array=[float(result['alpha']) for result in self.results], format='D')
-            cols_bkg_norm = [fits.Column(name=key, array=[float(result['background_normalization'][key]) for result in self.results], format='D') 
-                             for key in self.dict_bkg_norm.keys()]
-            cols_loglikelihood = [fits.Column(name=f"{self.dataset[i].name}", array=[float(result['loglikelihood'][i]) for result in self.results], format='D') 
-                                  for i in range(len(self.dataset))]
+                #fits
+                primary_hdu = fits.PrimaryHDU()
 
-            table_alpha = fits.BinTableHDU.from_columns([col_iteration, col_alpha])
-            table_alpha.name = "alpha"
+                col_iteration = fits.Column(name='iteration', array=[float(result['iteration']) for result in self.results], format='K')
+                col_alpha = fits.Column(name='alpha', array=[float(result['alpha']) for result in self.results], format='D')
+                cols_bkg_norm = [fits.Column(name=key, array=[float(result['background_normalization'][key]) for result in self.results], format='D') 
+                                for key in self.dict_bkg_norm.keys()]
+                cols_loglikelihood = [fits.Column(name=f"{self.dataset[i].name}", array=[float(result['loglikelihood'][i]) for result in self.results], format='D') 
+                                    for i in range(len(self.dataset))]
 
-            table_bkg_norm = fits.BinTableHDU.from_columns([col_iteration] + cols_bkg_norm)
-            table_bkg_norm.name = "bkg_norm"
+                table_alpha = fits.BinTableHDU.from_columns([col_iteration, col_alpha])
+                table_alpha.name = "alpha"
 
-            table_loglikelihood = fits.BinTableHDU.from_columns([col_iteration] + cols_loglikelihood)
-            table_loglikelihood.name = "loglikelihood"
+                table_bkg_norm = fits.BinTableHDU.from_columns([col_iteration] + cols_bkg_norm)
+                table_bkg_norm.name = "bkg_norm"
 
-            hdul = fits.HDUList([primary_hdu, table_alpha, table_bkg_norm, table_loglikelihood])
-            hdul.writeto(f'{self.save_results_directory}/results.fits',  overwrite=True)
+                table_loglikelihood = fits.BinTableHDU.from_columns([col_iteration] + cols_loglikelihood)
+                table_loglikelihood.name = "loglikelihood"
+
+                hdul = fits.HDUList([primary_hdu, table_alpha, table_bkg_norm, table_loglikelihood])
+                hdul.writeto(f'{self.save_results_directory}/results.fits',  overwrite=True)
 
     def calc_alpha(self, delta_model, model):
         """
@@ -267,6 +428,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         float
             Acceleration parameter
         """
+
         diff = -1 * (model / delta_model).contents
 
         diff[(diff <= 0) | (delta_model.contents == 0)] = np.inf

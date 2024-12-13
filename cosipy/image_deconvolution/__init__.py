@@ -10,7 +10,6 @@ from .allskyimage import AllSkyImageModel
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
 from .RichardsonLucy import RichardsonLucy
 from .RichardsonLucySimple import RichardsonLucySimple
-from .RichardsonLucyWithParallelSupport import RichardsonLucyWithParallel
 
 from .exposure_table import SpacecraftAttitudeExposureTable
 from .coordsys_conversion_matrix import CoordsysConversionMatrix
