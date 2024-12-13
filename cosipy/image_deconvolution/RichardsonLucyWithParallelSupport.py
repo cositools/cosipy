@@ -80,6 +80,7 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
         self.parallel = False
         if comm is not None:
             self.comm = comm
+            self.parallel = True
             if self.comm.Get_size() > 1:
                 self.parallel = True
                 logger.info('Image Deconvolution set to run in parallel mode')
@@ -89,7 +90,7 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
 
     def initialization(self):
         """
-        initialization before running the image deconvolution
+        initialization before performing image deconvolution
         """
 
         if self.parallel:
@@ -108,6 +109,19 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
 
         # calculate exposure map
         self.summed_exposure_map = self.calc_summed_exposure_map()
+        # print(self.summed_exposure_map.contents)
+        if self.parallel:
+            '''
+            Synchronization Barrier 0
+            '''
+            total_exposure_map = np.empty_like(self.summed_exposure_map, dtype=np.float64)
+
+            # Gather all arrays into recvbuf
+            self.comm.Allreduce(self.summed_exposure_map.contents, total_exposure_map, op=MPI.SUM)   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+            # Reshape the received buffer back into the original array shape
+            self.summed_exposure_map[:] = total_exposure_map
+        # print(self.summed_exposure_map.contents)
 
         # mask setting
         if self.mask is None and np.any(self.summed_exposure_map.contents == 0):
@@ -140,7 +154,7 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
         # expected count histograms
         expectation_list_slice = self.calc_expectation_list(model = self.model, dict_bkg_norm = self.dict_bkg_norm)
         logger.info("The expected count histograms were calculated with the initial model map.")
-
+        # print(expectation_list_slice.contents)
         if not self.parallel:
             self.expectation_list = expectation_list_slice     # If single process, then full = slice
 
@@ -183,6 +197,8 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
 
                 # Add to list that manages multiple datasets
                 self.expectation_list.append(Histogram(Axes(axes), contents=epsilon, unit=data.event.unit))     # TODO: Could maybe be simplified using Histogram.slice[]
+
+            # print(self.expectation_list[0].contents)
 
         # At the end of this function, all processes should have a complete `self.expectation_list`
         # to proceed to the Mstep function
@@ -241,25 +257,31 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
 
         if (not self.parallel) or ((self.parallel) and (self.taskid == MASTER)):
             self.delta_model = self.model * (sum_T_product/self.summed_exposure_map - 1)
-
+            # print(self.delta_model.contents)
             if self.mask is not None:
                 self.delta_model = self.delta_model.mask_pixels(self.mask)
+            # print(self.delta_model.contents)
             
-            # background normalization optimization
-            if self.do_bkg_norm_optimization:
-                for key in self.dict_bkg_norm.keys():
+        # background normalization optimization
+        if self.do_bkg_norm_optimization:
+            for key in self.dict_bkg_norm.keys():
+                print(f'{key} \t {self.dict_bkg_norm[key]}')
 
-                    sum_bkg_T_product = self.calc_summed_bkg_model_product(key, ratio_list)
-                    sum_bkg_model = self.dict_summed_bkg_model[key]
-                    bkg_norm = self.dict_bkg_norm[key] * (sum_bkg_T_product / sum_bkg_model)
+                sum_bkg_T_product = self.calc_summed_bkg_model_product(key, ratio_list)
+                sum_bkg_model = self.dict_summed_bkg_model[key]
+                bkg_norm = self.dict_bkg_norm[key] * (sum_bkg_T_product / sum_bkg_model)
 
-                    bkg_range = self.dict_bkg_norm_range[key]
-                    if bkg_norm < bkg_range[0]:
-                        bkg_norm = bkg_range[0]
-                    elif bkg_norm > bkg_range[1]:
-                        bkg_norm = bkg_range[1]
+                bkg_range = self.dict_bkg_norm_range[key]
+                if bkg_norm < bkg_range[0]:
+                    bkg_norm = bkg_range[0]
+                elif bkg_norm > bkg_range[1]:
+                    bkg_norm = bkg_range[1]
 
-                    self.dict_bkg_norm[key] = bkg_norm
+                self.dict_bkg_norm[key] = bkg_norm
+                print(f'{key} \t {self.dict_bkg_norm[key]}')
+
+            # Alternately, let MASTER node calculate it and broadcast the value
+            # self.comm.bcast(self.dict_bkg_norm[key], root=MASTER)  # This synchronization barrier is not required during the final iteration
 
         # At the end of this function, just the MASTER MPI process needs to have a full
         # copy of delta_model
@@ -318,6 +340,8 @@ class RichardsonLucyWithParallel(DeconvolutionAlgorithmBase):
                 
                 new_model[:] = buffer * self.model.unit
                 self.model = new_model
+
+            # print(self.model.contents)
 
         # At the end of this function, all MPI processes needs to have a full
         # copy of updated model. 
