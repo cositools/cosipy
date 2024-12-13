@@ -16,7 +16,7 @@ class ImageDeconvolution:
     A class to reconstruct all-sky images from COSI data based on image deconvolution methods.
     """
     model_classes = {"AllSkyImage": AllSkyImageModel}
-    deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple, "RLparallel": RichardsonLucyParallel}
+    deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple}
 
     def __init__(self):
         self._dataset = None
