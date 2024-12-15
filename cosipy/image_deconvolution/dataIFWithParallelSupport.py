@@ -6,6 +6,7 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 import astropy.units as u
+from mpi4py import MPI
 import h5py
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
@@ -17,6 +18,7 @@ from cosipy.image_deconvolution import ImageDeconvolutionDataInterfaceBase
 # and will be supported at a later release
 NUMROWS = 3072
 NUMCOLS = 3072
+MASTER = 0
 
 # Define data paths
 DRM_DIR = Path('/Users/penguin/Documents/Grad School/Research/COSI/COSIpy/docs/tutorials/data')
@@ -109,6 +111,19 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
 
         ImageDeconvolutionDataInterfaceBase.__init__(self, name)
 
+        # Specific to parallel implementation:
+        # 1. Assume numproc is known by the process that invoked `run_deconvolution()`
+        # 2. All processes have loaded event data, background, and created 
+        #    initial model (from model properties) independently
+        self.parallel = False
+        if comm is not None:
+            self.numtasks = comm.Get_size()
+            self.taskid = comm.Get_rank()
+            self._comm = comm
+            if self.numtasks > 1:
+                self.parallel = True
+                logger.info('Image Deconvolution set to run in parallel mode')
+
         self._MPI_init(event_filename, bkg_filename, drm_filename, comm)
         
         # None if using Galactic CDS, required if using local CDS
@@ -119,8 +134,8 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
 
     def _MPI_load_data(self, event_filename, bkg_filename, drm_filename, comm):
 
-        numtasks = comm.Get_size()
-        taskid = comm.Get_rank()
+        numtasks = self.numtasks
+        taskid = self.taskid
 
         print(f'TaskID = {taskid}, Number of tasks = {numtasks}')
 
@@ -147,6 +162,9 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         # Load response and response transpose
         self._image_response = load_response_matrix(comm, self.start_col, self.end_col, filename=drm_filename)
         self._image_response_T = load_response_matrix_transpose(comm, self.start_row, self.end_row, filename=drm_filename)
+
+        self.col_size = 1       # TODO: This can change for more sophisticated model space contents
+        self.row_size = np.prod(self.event.contents.shape[:-1])
 
     def _MPI_set_aux_data(self):
 
@@ -216,6 +234,18 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
             # [NuLambda, Ei, Em, Phi, PsiChi] -> [NuLambda, Ei]
             # [lb, NuLambda] x [NuLambda, Ei] -> [lb, Ei]
 
+        if self.parallel:
+            '''
+            Synchronization Barrier 0 (performed only once)
+            '''
+            total_exposure_map = np.empty_like(self.exposure_map.contents, dtype=np.float64)
+
+            # Gather all arrays into recvbuf
+            self._comm.Allreduce(self.exposure_map.contents, total_exposure_map, op=MPI.SUM)   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+            # Reshape the received buffer back into the original array shape
+            self.exposure_map[:] = total_exposure_map
+
         logger.info("Finished...")
 
     def calc_expectation(self, model, dict_bkg_norm = None, almost_zero = 1e-12):
@@ -246,10 +276,10 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
         # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
 
-        expectation = Histogram(self._data_axes_slice)
+        expectation_slice = Histogram(self._data_axes_slice)
         
         if self._coordsys_conv_matrix is None:
-            expectation[:] = np.tensordot( model.contents, self._image_response.contents, axes = ([0,1],[0,1])) * model.axes['lb'].pixarea()
+            expectation_slice[:] = np.tensordot( model.contents, self._image_response.contents, axes = ([0,1],[0,1])) * model.axes['lb'].pixarea()
             # ['lb', 'Ei'] x [NuLambda(lb), Ei, Em, Phi, PsiChi] -> [Em, Phi, PsiChi]
         else:
             map_rotated = np.tensordot(self._coordsys_conv_matrix.contents, model.contents, axes = ([1], [0])) 
@@ -258,15 +288,53 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
             map_rotated *= model.axes['lb'].pixarea()
             # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
             # the unit of map_rotated is 1/cm2 ( = s * 1/cm2/s/sr * sr)
-            expectation[:] = np.tensordot( map_rotated, self._image_response.contents, axes = ([1,2], [0,1]))
+            expectation_slice[:] = np.tensordot( map_rotated, self._image_response.contents, axes = ([1,2], [0,1]))
             # [Time/ScAtt, NuLambda, Ei] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Em, Phi, PsiChi]
 
         if dict_bkg_norm is not None: 
             for key in self.keys_bkg_models():
-                expectation += self.bkg_model_slice(key) * dict_bkg_norm[key]
+                expectation_slice += self.bkg_model_slice(key) * dict_bkg_norm[key]
 
-        expectation += almost_zero
+        expectation_slice += almost_zero
+
+        # Parallel
+        if self.parallel:
+            '''
+            Synchronization Barrier 1
+            '''
+
+            # Calculate all_sizes and displacements
+            all_sizes = [(self.averow) * self.row_size] * (self.numtasks-1) + [(self.averow + self.extra_rows) * self.row_size]
+            displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
+
+            # Create a receive buffer to receive the gathered data
+            recvbuf = np.empty(int(np.sum(all_sizes)), dtype=np.float64)            
+
+            # Gather the sizes of local arrays from all processes
+            local_size = np.array([expectation_slice.contents.size], dtype=np.int32)
+            all_sizes = np.zeros(self.numtasks, dtype=np.int32)
+            self._comm.Allgather(local_size, all_sizes)
+
+            # Calculate displacements 
+            displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
+
+            # Create a buffer to receive the gathered data 
+            total_size = int(np.sum(all_sizes))
+            recvbuf = np.empty(total_size, dtype=np.float64)      # Receive buffer
+
+            # Gather all arrays into recvbuf
+            self._comm.Allgatherv(expectation_slice.contents.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+            # Reshape the received buffer back into the original 3D array shape
+            epsilon = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + expectation_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=-1)
+
+            # Add to list that manages multiple datasets
+            expectation = Histogram(self.event.axes, contents=epsilon, unit=self.event.unit)
         
+        # Serial
+        else:
+            expectation = expectation_slice     # If single process, then full = slice
+
         return expectation
 
     def calc_T_product(self, dataspace_histogram):
@@ -292,18 +360,44 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
         if dataspace_histogram.unit is not None:
             hist_unit *= dataspace_histogram.unit
 
-        hist = Histogram(self._model_axes_slice, unit = hist_unit)
+        hist_slice = Histogram(self._model_axes_slice, unit = hist_unit)
         if self._coordsys_conv_matrix is None:
-            hist[:] = np.tensordot(dataspace_histogram.contents, self._image_response_T.contents, axes = ([0,1,2], [2,3,4])) * self.model_axes['lb'].pixarea()
+            hist_slice[:] = np.tensordot(dataspace_histogram.contents, self._image_response_T.contents, axes = ([0,1,2], [2,3,4])) * self.model_axes['lb'].pixarea()
             # [Em, Phi, PsiChi] x [NuLambda (lb), Ei, Em, Phi, PsiChi] -> [NuLambda (lb), Ei]
         else:
             _ = np.tensordot(dataspace_histogram.contents, self._image_response_T.contents, axes = ([1,2,3], [2,3,4])) 
             # [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, NuLambda, Ei]
 
-            hist[:] = np.tensordot(self._coordsys_conv_matrix.contents, _, axes = ([0,2], [0,1])) \
+            hist_slice[:] = np.tensordot(self._coordsys_conv_matrix.contents, _, axes = ([0,2], [0,1])) \
                         * _.unit * self._coordsys_conv_matrix.unit * self.model_axes['lb'].pixarea()
             # [Time/ScAtt, lb, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
             # note that coordsys_conv_matrix is sparse, so the unit should be recovered separately.
+
+        # Parallel
+        if self.parallel:
+            '''
+            Synchronization Barrier 2
+            '''
+
+            # Calculate all_sizes and displacements
+            all_sizes = [(self.avecol) * self.col_size] * (self.numtasks-1) + [(self.avecol + self.extra_cols) * self.col_size]
+            displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
+
+            # Create a receive buffer to receive the gathered data
+            recvbuf = np.empty(int(np.sum(all_sizes)), dtype=np.float64)
+
+            # Gather all arrays into recvbuf
+            self._comm.Allgatherv(hist_slice.contents.value.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
+
+            # Reshape the received buffer back into the original 2D array shape
+            C = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + hist_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=0)
+                    
+            # hist_slice (only slice operated on by current node) --> sum_T_product (all)
+            hist = Histogram(self.model_axes, contents=C, unit=hist_slice.unit)
+
+        # Serial
+        else:
+            hist = hist_slice
 
         return hist
 
