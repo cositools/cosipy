@@ -830,7 +830,8 @@ class FullDetectorResponse(HealpixBase):
     def get_point_source_response(self,
                                   exposure_map = None,
                                   coord = None,
-                                  scatt_map = None):
+                                  scatt_map = None,
+                                  Earth_occ = True):
         """
         Convolve the all-sky detector response with exposure for a source at a given
         sky location.
@@ -846,6 +847,10 @@ class FullDetectorResponse(HealpixBase):
             Source coordinate
         scatt_map : :py:class:`SpacecraftAttitudeMap`
             Spacecraft attitude map
+        Earth_occ : bool, optional
+            Option to include Earth occultation in the respeonce. 
+            Default is True, in which case you can only pass one 
+            coord, which must be the same as was used for the scatt map. 
         
         Returns
         -------
@@ -853,7 +858,12 @@ class FullDetectorResponse(HealpixBase):
         """
 
         # TODO: deprecate exposure_map in favor of coords + scatt map for both local
-        # and inertial coords
+        # and interntial coords
+        
+        if Earth_occ == True:
+            if coord != None:
+                if coord.size > 1:
+                    raise ValueError("For Earth occultation you must use the same coordinate as was used for the scatt map!")
 
         if exposure_map is not None:
             if not self.conformable(exposure_map):

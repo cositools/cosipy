@@ -1,0 +1,17 @@
+#----------#
+# Data I/O:
+
+# data files available on the COSI Sharepoint: https://drive.google.com/drive/folders/1UdLfuLp9Fyk4dNussn1wt7WEOsTWrlQ6
+# The tra file is the first 10 seconds of the crab sim from mini-DC2,
+# and the ori file is the corresponding ori from mini-DC2.
+data_file: "GalacticScan.inc1.id1.crab2hr.extracted.testsample.tra.gz" # full path
+ori_file: "/project/majello/astrohe/ckarwin/COSI/COSIpy_Development/Continuum_BG_Estimation/Run_1/Data_Files/20280301_3_month.ori" # full path
+unbinned_output: 'fits' # 'fits' or 'hdf5'
+time_bins: 2659985.0  # time bin size in seconds. Takes int, float, or list of bin edges.
+energy_bins: [100., 1000., 10000.] # Takes list. Needs to match response.
+phi_pix_size: 45 # binning of Compton scattering anlge [deg]
+nside: 1 # healpix binning of psi chi local
+scheme: 'ring' # healpix binning of psi chi local
+tmin: 1835487300.0 # Min time cut in seconds.
+tmax: 1843467255.0 # Max time cut in seconds.
+#----------#

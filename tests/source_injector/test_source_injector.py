@@ -38,8 +38,12 @@ def test_inject_point_source():
                                                         orientation = ori, source_name = "point_source",
                                                         make_spectrum_plot = False, data_save_path = None,
                                                         project_axes = None)
+
+    results = injected_crab_signal.project("Em").to_dense().contents
+
+    assert isinstance(results, u.quantity.Quantity) == True
     
-    assert np.allclose(injected_crab_signal.project("Em").to_dense().contents.value, 
+    assert np.allclose(results.value,
                        [2.18846305e-03, 9.45773119e-03, 1.34892237e-02, 2.78741695e-03, 1.08413769e-02, 
                         6.28299687e-03, 3.63716712e-03, 1.43443841e-03,3.79135752e-04, 2.10058977e-05])
 
@@ -72,8 +76,12 @@ def test_inject_point_source_galactic():
                                                         source_name = "point_source",
                                                         make_spectrum_plot = True, data_save_path = None,
                                                         project_axes = None)
+
+    results = injected_crab_signal.project("Em").to_dense().contents
+
+    assert isinstance(results, u.quantity.Quantity) == True
     
-    assert np.allclose(injected_crab_signal.project("Em").to_dense().contents.value, 
+    assert np.allclose(results.value,
                        [4.02116790e-03, 1.80171140e-02, 2.55344563e-02, 5.45316809e-03, 2.19219388e-02, 
                         1.50895341e-02, 9.97883729e-03, 4.16116828e-03, 1.02528085e-03, 6.26208604e-05])
     
