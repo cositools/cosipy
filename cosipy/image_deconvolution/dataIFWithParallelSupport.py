@@ -307,17 +307,6 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
             all_sizes = [(self.averow) * self.row_size] * (self.numtasks-1) + [(self.averow + self.extra_rows) * self.row_size]
             displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
 
-            # Create a receive buffer to receive the gathered data
-            recvbuf = np.empty(int(np.sum(all_sizes)), dtype=np.float64)            
-
-            # Gather the sizes of local arrays from all processes
-            local_size = np.array([expectation_slice.contents.size], dtype=np.int32)
-            all_sizes = np.zeros(self.numtasks, dtype=np.int32)
-            self._comm.Allgather(local_size, all_sizes)
-
-            # Calculate displacements 
-            displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
-
             # Create a buffer to receive the gathered data 
             total_size = int(np.sum(all_sizes))
             recvbuf = np.empty(total_size, dtype=np.float64)      # Receive buffer
@@ -326,7 +315,10 @@ class DataIFWithParallel(ImageDeconvolutionDataInterfaceBase):
             self._comm.Allgatherv(expectation_slice.contents.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
 
             # Reshape the received buffer back into the original 3D array shape
-            epsilon = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + expectation_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=-1)
+            print(expectation_slice.contents.shape)
+            print(len(self._data_axes_slice))
+            print(axis.edges for axis in self._data_axes_slice)
+            epsilon = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape(expectation_slice.contents.shape[:-1] + (-1,)) for i in range(self.numtasks) ], axis=-1)
 
             # Add to list that manages multiple datasets
             expectation = Histogram(self.event.axes, contents=epsilon, unit=self.event.unit)

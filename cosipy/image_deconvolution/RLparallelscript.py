@@ -4,6 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from mpi4py import MPI
+from histpy import Histogram
 
 from cosipy.response import FullDetectorResponse
 from cosipy.image_deconvolution import ImageDeconvolution, DataIFWithParallel, DataIF_COSI_DC2
