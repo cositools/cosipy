@@ -262,9 +262,9 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
                 for this_result in self.results:
                     iteration_count = this_result["iteration"]
 
-                    this_result["model"].write(f"{self.save_results_directory}/model_itr{iteration_count}_2.hdf5", overwrite = True)
-                    this_result["delta_model"].write(f"{self.save_results_directory}/delta_model_itr{iteration_count}_2.hdf5", overwrite = True)
-                    this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model_itr{iteration_count}_2.hdf5", overwrite = True)
+                    this_result["model"].write(f"{self.save_results_directory}/model_itr{iteration_count}.hdf5", overwrite = True)
+                    this_result["delta_model"].write(f"{self.save_results_directory}/delta_model_itr{iteration_count}.hdf5", overwrite = True)
+                    this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model_itr{iteration_count}.hdf5", overwrite = True)
 
                 #fits
                 primary_hdu = fits.PrimaryHDU()
