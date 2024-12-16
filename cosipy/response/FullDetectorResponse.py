@@ -737,7 +737,7 @@ class FullDetectorResponse(HealpixBase):
             data = self._file['DRM']['CONTENTS'][pix]
             contents = data
 
-        return DetectorResponse(edges=self.axes[1:], contents=contents, unit=self.unit, interpolated_NuLambda=self.unbinned)
+        return DetectorResponse(edges=self.axes[1:], contents=contents, unit=self.unit, coord=self.pix2skycoord(pix))
 
     def close(self):
         """
@@ -791,7 +791,7 @@ class FullDetectorResponse(HealpixBase):
         dr = DetectorResponse(edges=self.axes[1:],
                             sparse=self._sparse,
                             unit=self.unit,
-                            interpolated_NuLambda=self.unbinned)
+                            coord = coord)
         
         for p, w in zip(pixels, weights):
 
