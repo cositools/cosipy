@@ -151,7 +151,7 @@ class AllSkyImageModel(ModelBase):
         if algorithm_name == "flat":
             unit = u.Unit(algorithm_parameter['unit'])
             for idx, value in enumerate(algorithm_parameter['value']):
-                self[:,idx] = value * unit      # TODO: Why is this indexed as [:, idx] instead of [idx, :]?
+                self[:,idx] = value * unit
     #    elif algorithm_name == ... 
     #       ...
         else:
