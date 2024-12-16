@@ -5,9 +5,10 @@ from pathlib import Path
 import itertools
 from copy import deepcopy
 
-from histpy import Histogram
 import numpy as np
 import astropy.units as u
+from histpy import Histogram
+import mhealpy as hp
 
 class DetectorResponse(Histogram):
     """
@@ -31,11 +32,11 @@ class DetectorResponse(Histogram):
         Physical area units, if not specified as part of ``contents``
     """
 
-    def __init__(self, interpolated_NuLambda=False, **kwargs):
+    def __init__(self, coord, **kwargs):
 
         super().__init__(**kwargs)
         
-        self.interpolated_NuLambda = interpolated_NuLambda
+        self.coord = coord
         self._set_mapping()
 
         self._spec = None
@@ -69,7 +70,7 @@ class DetectorResponse(Histogram):
                     if key == label:    # If key and label are the same, then there was no reparametrization along this axis
                         idx, w = axis.interp_weights(target[key])
                     else:
-                        centers = self.transform_eps_to_Em(axis.centers, target['Ei'])      # Transform coordinates to more physical units      # TODO: Generalize this
+                        centers = self.transform_Eps_to_Em(axis.centers, target['Ei'])      # Transform coordinates to more physical units      # TODO: Generalize this
                         absdiff = np.abs(centers - target[key])                             # Calculate absolute difference to given target
                         idx = np.argpartition(absdiff, (1,2))[:2]                               # Find indices corresponding to two smallest absdiff
                         w = 1 - np.partition(absdiff, (1,2))[:2] / (centers[1] - centers[0])    # Calculate weights corresponding to two smallest absdiff
@@ -87,11 +88,61 @@ class DetectorResponse(Histogram):
         
         return (indices, weights)
     
-    def transform_eps_to_Em(self, eps, Ei0):
+    def transform_Eps_to_Em(self, eps, Ei0):
         return (eps + 1) * Ei0
 
-    def transform_Em_to_eps(self, Em, Ei0):
+    def transform_Em_to_Eps(self, Em, Ei0):
         return Em/Ei0 - 1
+    
+    def transform_PhiPsiChi_to_ThetaZeta(self, Phi, PsiChi):        # Phi in degrees, PsiChi in pix
+        nside_det = self.axes['SigmaTau'].nside
+
+        source_vec = np.array(hp.ang2vec(self.coord.lon.deg, self.coord.lat.deg, lonlat=True)).reshape(3, -1)
+        scatter_vec = np.array(hp.pix2vec(nside_det, PsiChi)).reshape(3,-1)
+
+        Phi_geo = np.rad2deg(np.arccos(np.sum(source_vec * scatter_vec, axis=0)))
+        Theta = Phi_geo - Phi
+
+        xaxis = np.array([1., 0., 0.])      # Polarization angle basis
+        pz = -source_vec.T
+        px = np.cross(pz, xaxis)
+        px /= np.linalg.norm(px, axis = 1).reshape(-1,1)
+        py = np.cross(pz, px)
+        py /= np.linalg.norm(py, axis = 1).reshape(-1,1)
+        
+        proj_scatter_vec = np.cross(pz, scatter_vec.T)
+        change_basis = np.stack((px, py, pz), axis=1)
+        proj_scatter_vec = np.matmul(change_basis, proj_scatter_vec[..., None])[..., 0]
+        
+        Zeta = np.rad2deg(np.arctan2(proj_scatter_vec[:, 1], proj_scatter_vec[:, 0])) - 90
+        Zeta = np.where(Zeta < 0, Zeta + 360, Zeta)
+
+        return Theta, Zeta
+
+    # def transform_ThetaZeta_to_PhiPsiChi(self, Theta, Zeta):
+    #     nside_det = self.axes['SigmaTau'].nside
+        
+    #     source_vec = np.array(hp.ang2vec(self.coord.lon.deg, self.coord.lat.deg, lonlat=True)).reshape(3, -1)
+        
+    #     Zeta = np.deg2rad(Zeta + 90) % 360
+        
+    #     xaxis = np.array([1., 0., 0.]) 
+    #     pz = -source_vec.T
+    #     px = np.cross(pz, xaxis)
+    #     px /= np.linalg.norm(px, axis = 1).reshape(-1,1)
+    #     py = np.cross(pz, px)
+    #     py /= np.linalg.norm(py, axis = 1).reshape(-1,1)
+        
+    #     proj_scatter_vec = np.stack((np.cos(Zeta), np.sin(Zeta), np.zeros_like(Zeta)), axis=-1)
+    #     change_basis = np.linalg.inv(np.stack((px, py, pz), axis=1))
+    #     scatter_vec = np.matmul(change_basis, proj_scatter_vec[..., None])[..., 0]
+        
+    #     Phi_geo = np.rad2deg(np.arccos(np.dot(scatter_vec, source_vec)))
+    #     PsiChi = hp.vec2pix(nside_det, scatter_vec[:, 0], scatter_vec[:, 1], scatter_vec[:, 2])
+        
+    #     Phi = Phi_geo - Theta
+
+    #     return Phi, PsiChi
 
     def get_nearest_neighbors(self, target: dict, indices=None):
         if indices is not None:
