@@ -31,7 +31,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         self.is_miniDC2_format = False #should be removed in the future
 
     @classmethod
-    def load(cls, name: str, event_binned_data: Histogram, dict_bkg_binned_data: dict, rsp, coordsys_conv_matrix = None, is_miniDC2_format: bool = False):
+    def load(cls, name, event_binned_data, dict_bkg_binned_data, rsp, coordsys_conv_matrix = None, is_miniDC2_format = False):
         """
         Load data
 
@@ -302,7 +302,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
             hist[:] = np.tensordot(self._coordsys_conv_matrix.contents, _, axes = ([0,2], [0,1])) \
                         * _.unit * self._coordsys_conv_matrix.unit * self.model_axes['lb'].pixarea()
             # [Time/ScAtt, lb, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
-            # note that coordsys_conv_matrix is sparse, so the unit should be recovered separately.
+            # note that coordsys_conv_matrix is the sparse, so the unit should be recovered.
 
         return hist
 
