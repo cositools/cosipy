@@ -61,7 +61,6 @@ class PointSourceResponse(Histogram):
         
         energy_axis = self.photon_energy_axis
 
-
         flux = get_integrated_spectral_model(spectrum, energy_axis)
         
         expectation = np.tensordot(self.contents, flux.contents, axes = ([0], [0]))

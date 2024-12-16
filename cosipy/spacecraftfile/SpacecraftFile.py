@@ -134,7 +134,6 @@ class SpacecraftFile():
         orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5, 6, 7, 8),delimiter=' ', skiprows=1, comments=("#", "EN"))
         time_stamps = orientation_file[:, 0]
         axis_1 = orientation_file[:, [2, 1]]
-
         axis_2 = orientation_file[:, [4, 3]]
         axis_3 = orientation_file[:, [7, 6]]
         altitude = np.array(orientation_file[:, 5]) 
@@ -1115,7 +1114,3 @@ class SpacecraftFile():
         #plt.show()
 
         return
-    
-    # len() functionality for SpacecraftFile / ori objects
-    def __len__(self):
-        return len(self._time)

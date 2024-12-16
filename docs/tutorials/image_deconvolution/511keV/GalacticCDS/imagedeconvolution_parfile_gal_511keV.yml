@@ -1,9 +1,7 @@
 author: Hiroki Yoneda 
-date: 2024-06-12    # Modified by Anaya to include deconvolution:parameter:numproc on 2024-08-23
-
+date: 2024-06-12
 model_definition:
   class: "AllSkyImage"
-
   property:
     coordinate: "galactic"
     nside: 16
@@ -12,18 +10,15 @@ model_definition:
       value: [509.0, 513.0]
       unit: "keV"
     unit: "cm-2 s-1 sr-1" # do not change it as for now
-
   initialization:
     algorithm: "flat" # more methods, e.g., simple-backprojection, user-defined, would be implemented.
     parameter:
       value: [1e-4] #the number of these values should be the same as "the number of energy_edges - 1".
       unit: "cm-2 s-1 sr-1"  # do not change it as for now
-
 deconvolution:
-  algorithm: "RL"     # Choose from RL and RLsimple
-
+  algorithm: "RL"
   parameter:
-    iteration_max: 50
+    iteration_max: 10
     acceleration: True
     alpha_max: 10.0
     response_weighting: True
@@ -33,7 +28,6 @@ deconvolution:
       value: 2.0
       unit: "deg"
     background_normalization_optimization: True
-    background_normalization_range: {"total": [0.01, 10.0]}
-    save_results: True
-    save_results_directory: "./results"   # Relative file path
-    numproc: 6              # Number of MPI threads to spawn. Limited by number of nodes available. Only applicable for algorithm: "RLparallel"
+    background_normalization_range: {"albedo": [0.01, 10.0]}
+    save_results: False
+    save_results_directory: "./results"

@@ -1,12 +1,12 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from pathlib import Path
-import itertools
+import numpy as np
+
 from copy import deepcopy
 
-from histpy import Histogram
-import numpy as np
+from histpy import Histogram, Axes, Axis
+
 import astropy.units as u
 
 class DetectorResponse(Histogram):
@@ -31,124 +31,12 @@ class DetectorResponse(Histogram):
         Physical area units, if not specified as part of ``contents``
     """
 
-    def __init__(self, interpolated_NuLambda=False, **kwargs):
+    def __init__(self, *args, **kwargs):
 
-        super().__init__(**kwargs)
-        
-        self.interpolated_NuLambda = interpolated_NuLambda
-        self._set_mapping()
+        super().__init__(*args, **kwargs)
 
         self._spec = None
         self._aeff = None
-
-    def drop_empty_axes(self):
-
-        axis_names = self.axes.labels
-        axes_projection = []
-
-        for name in axis_names:
-            if (name in ['Ei', 'Em', 'eps', 'Eps']) | (self.axes[name].edges.size > 2):
-                axes_projection.append(name)
-
-        spec = self.project(axes_projection)
-
-        return DetectorResponse(edges = spec.axes,
-                                contents = spec.contents,
-                                unit = spec.unit,
-                                interpolated_NuLambda = self.interpolated_NuLambda)
-
-    def _set_mapping(self):
-        self.mapping = {}
-        target_names = ['Ei', 'Em', 'Phi', 'PsiChi', 'SigmaTau', 'Dist']
-        numlabels = len(self.axes.labels)
-
-        for key, label in zip(target_names[:numlabels], self.axes.labels):
-            self.mapping[key] = label           # Format: key_target : label
-                                                # Example: {'Ei': 'Ei', 'Em': 'eps', 'Phi': 'Phi', 'PsiChi': 'PsiChi'}
-
-    def _get_all_interp_weights(self, target: dict):
-
-        indices = []
-        weights = []
-
-        for key in target:
-            label = self.mapping[key]
-            axis = self.axes[label]
-            axis_scale = axis._scale
-            axis_type = str(type(axis)).split('.')[-1].strip("'>")      # XXX: Could probably be simplified using `isinstance()`
-
-            # Scale
-            if axis_scale in ['linear', 'log']:   # To ensure nonlinear binning parametrizations are converted to a linear scale.
-
-                # Axis Type
-                if axis_type in ['Axis', 'HealpixAxis']:
-                    if key == label:    # If key and label are the same, then there was no reparametrization along this axis
-                        idx, w = axis.interp_weights(target[key])
-                    else:
-                        centers = self.transform_eps_to_Em(axis.centers, target['Ei'])      # Transform coordinates to more physical units      # TODO: Generalize this
-                        absdiff = np.abs(centers - target[key])                             # Calculate absolute difference to given target
-                        idx = np.argpartition(absdiff, (1,2))[:2]                               # Find indices corresponding to two smallest absdiff
-                        w = 1 - np.partition(absdiff, (1,2))[:2] / (centers[1] - centers[0])    # Calculate weights corresponding to two smallest absdiff
-                else:
-                    raise ValueError(f'Axis type: {axis_type} is not supported')
-                
-            # elif axis_scale == 'nonlinear':   
-            #     pass
-
-            else:
-                raise ValueError(f'{axis_scale} binning / scale scheme is not supported')
-            
-            indices.append(idx)
-            weights.append(w)
-        
-        return (indices, weights)
-    
-    def transform_eps_to_Em(self, eps, Ei0):
-        return (eps + 1) * Ei0
-
-    def transform_Em_to_eps(self, Em, Ei0):
-        return Em/Ei0 - 1
-
-    def get_nearest_neighbors(self, target: dict, indices=None):
-        if indices is not None:
-            neighbors = {}
-            for idx, key in zip(indices, target):
-                label = self.mapping[key]
-                neighbors[label] = self.axes[label].centers[idx]
-            return neighbors
-        
-        else:
-            target = dict(sorted(target.items()))
-            indices, _ = self._get_all_interp_weights(target)
-            return self.get_nearest_neighbors(target, indices)
-
-    def get_interp_response(self, target: dict):
-        """
-        Currently only supports nonlinear spectral responses (
-        and for a particular parametrization)
-        TODO: In the future, this will also support nonlinear / 
-        piecewise-linear directional responses.
-        """
-
-        # target = dict(sorted(target.items()))       # Sort dictionary by key (XXX: assuming response matrix also sorts in the same way)
-        indices, weights = self._get_all_interp_weights(target)
-        perm_indices = list(itertools.product(*indices))
-        perm_weights = list(itertools.product(*weights))
-
-        if len(target) == len(self.axes):
-            interpolated_response_value = 0
-            for idx, w in zip(perm_indices, perm_weights):
-                interpolated_response_value += np.prod(w) * self.contents[idx]
-
-        else:
-            interpolated_response_value = np.zeros(len(self.axes['Ei']) - 1) * self.contents.unit     # XXX: Assuming all measured variables require interpolation
-            for idx, w in zip(perm_indices, perm_weights):
-                i = (Ellipsis,) + idx   # XXX: Assuming 'Ei' is the first index
-                interpolated_response_value += np.prod(w) * self.contents[i]
-
-        self.neighbors = self.get_nearest_neighbors(target, indices)
-        
-        return interpolated_response_value
     
     def get_spectral_response(self, copy = True):
         """
@@ -167,8 +55,8 @@ class DetectorResponse(Histogram):
 
         # Cache the spectral response
         if self._spec is None:
-            spec = self.project(['Ei', self.mapping['Em']])
-            self._spec = DetectorResponse(edges=spec.axes,
+            spec = self.project(['Ei','Em'])
+            self._spec = DetectorResponse(spec.axes,
                                           contents = spec.contents,
                                           unit = spec.unit)
 
@@ -235,21 +123,6 @@ class DetectorResponse(Histogram):
         
         # Normalize column-by-column
         return (spec / norm)
-    
-        # NOTE: When histpy is updated to do away without overflow and
-        # underflow bins, the following lines of code can replace this
-        # function body.
-
-        # # Get spectral response and effective area normalization
-        # spec = self.get_spectral_response(copy = False)
-        # norm = self.get_effective_area().contents
-
-        # # "Broadcast" such that it has the compatible dimensions with the 2D matrix
-        # norm = spec.expand_dims(norm, 'Ei')
-        
-        # # Normalize column-by-column
-        # return (spec / norm)    # XXX: Runtime warning needs to be dealt with in histpy. 
-        #                         # Overflow and underflow bins functionality should be removed.
 
     @property
     def photon_energy_axis(self):
@@ -274,7 +147,7 @@ class DetectorResponse(Histogram):
         :py:class:`histpy.Axes`        
         """
         
-        return self.axes[self.mapping['Em']]
+        return self.axes['Em']
         
 
         

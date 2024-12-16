@@ -1,6 +1,5 @@
 from .PointSourceResponse import PointSourceResponse
 from .DetectorResponse import DetectorResponse
-from .ListModePSR import ListModePSR
 from astromodels.core.model_parser import ModelParser
 import matplotlib.pyplot as plt
 from astropy.time import Time
@@ -50,8 +49,7 @@ class FullDetectorResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename, unbinned=False, 
-             Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000):
+    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000):
         """
         Open a detector response file.
 
@@ -80,7 +78,7 @@ class FullDetectorResponse(HealpixBase):
         """
         
         filename = Path(filename)
-        cls.unbinned = unbinned
+
 
         if filename.suffix == ".h5":
             return cls._open_h5(filename)
@@ -757,15 +755,23 @@ class FullDetectorResponse(HealpixBase):
         if not isinstance(pix, (int, np.integer)) or pix < 0 or not pix < self.npix:
             raise IndexError("Pixel number out of range, or not an integer")
 
-        if self._sparse:
-            coords = np.reshape(self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim-1, -1))
-            data = np.array(self._file['DRM']['CONTENTS'][pix])
-            contents = COO(coords=coords, data=data, shape=tuple(self.axes.nbins[1:]))
-        else:
-            data = self._file['DRM']['CONTENTS'][pix]
-            contents = data
+        #check if we have sparse matrice or not
 
-        return DetectorResponse(edges=self.axes[1:], contents=contents, unit=self.unit, interpolated_NuLambda=self.unbinned)
+        if self._sparse:
+            coords = np.reshape(
+                self._file['DRM']['BIN_NUMBERS'][pix], (self.ndim-1, -1))
+            data = np.array(self._file['DRM']['CONTENTS'][pix])
+
+            return DetectorResponse(self.axes[1:],
+                                contents=COO(coords=coords,
+                                             data=data,
+                                             shape=tuple(self.axes.nbins[1:])),
+                                unit=self.unit)
+                                
+        else :
+            data = self._file['DRM']['CONTENTS'][pix]
+            return DetectorResponse(self.axes[1:],
+                                contents=data, unit=self.unit)                 
 
     def close(self):
         """
@@ -816,10 +822,12 @@ class FullDetectorResponse(HealpixBase):
 
         pixels, weights = self.get_interp_weights(coord)
 
-        dr = DetectorResponse(edges=self.axes[1:],
-                            sparse=self._sparse,
-                            unit=self.unit,
-                            interpolated_NuLambda=self.unbinned)
+        
+
+        dr = DetectorResponse(self.axes[1:],
+                              sparse=self._sparse,
+                              unit=self.unit)
+        
         
         for p, w in zip(pixels, weights):
 
@@ -836,7 +844,7 @@ class FullDetectorResponse(HealpixBase):
         Convolve the all-sky detector response with exposure for a source at a given
         sky location.
 
-        Provide either a exposure map (aka dwell time map) or a combination of a 
+        Provide either a exposure map (aka dweel time map) or a combination of a 
         sky coordinate and a spacecraft attitude map.
 
         Parameters
@@ -871,8 +879,8 @@ class FullDetectorResponse(HealpixBase):
                     "Exposure map has a different grid than the detector response")
 
             psr = PointSourceResponse(self.axes[1:],
-                                    sparse=self._sparse,
-                                    unit=u.cm*u.cm*u.s)
+                                      sparse=self._sparse,
+                                      unit=u.cm*u.cm*u.s)
 
             for p in range(self.npix):
 
@@ -894,60 +902,42 @@ class FullDetectorResponse(HealpixBase):
             if self.is_sparse:
                 raise ValueError("Coord +  scatt_map currently only supported for dense responses")
 
-            axis_label = "PsiChi"
+            axis = "PsiChi"
 
-            coords_axis = Axis(np.arange(coord.size+1), label = 'coords')   # Create axis of length number of input coords + 1
+            coords_axis = Axis(np.arange(coord.size+1), label = 'coords')
 
-            psr = Histogram([coords_axis] + list(deepcopy(self.axes[1:])),  # Create new "NuLambda" axis
+            psr = Histogram([coords_axis] + list(deepcopy(self.axes[1:])), 
                             unit = self.unit * scatt_map.unit)
             
-            psr.axes[axis_label].coordsys = coord.frame     # Set coordinate system of PsiChi axis to input coordinate frame. Axis coordsys was set when response file was opened and initialized using HealpixBase.__init__
+            psr.axes[axis].coordsys = coord.frame
 
-            for pixels, exposure in \
-                            zip(scatt_map.contents.coords.transpose(),        # Arrays of [[x's], [y's]] --> [[x,y]'s]
-                            scatt_map.contents.data):
+            for i,(pixels, exposure) in \
+                enumerate(zip(scatt_map.contents.coords.transpose(),
+                              scatt_map.contents.data)):
 
                 #gc.collect() # HDF5 cache issues
                 
-                # Calculate attitude of coordinates in scatt_map
                 att = Attitude.from_axes(x = scatt_map.axes['x'].pix2skycoord(pixels[0]),
-                                        y = scatt_map.axes['y'].pix2skycoord(pixels[1]))
+                                         y = scatt_map.axes['y'].pix2skycoord(pixels[1]))
 
-                coord.attitude = att    # Set attitude to given input coordinate. It is used to transform Spacecraft coordinates (scoords) from ICRS to mhealpy pixel
+                coord.attitude = att
+
+                #TODO: Change this to interpolation
+                loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord),
+                                               ndmin = 1)
                 
-                if self.unbinned:
-                    dr_list = []
+                dr_pix = Histogram.concatenate(coords_axis, [self[i] for i in loc_nulambda_pixels])
 
-                    if coord.size == 1:
-                        dr = self.get_interp_response(coord)
-                        dr_list.append(dr)
+                dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
 
-                    else:
-                        for c in coord:
-                            dr = self.get_interp_response(c)
-                            dr_list.append(dr)                    
-
-                    dr_pix_2 = Histogram.concatenate(coords_axis, dr_list)
-                    dr_pix = deepcopy(dr_pix_2)     # See XXX note below
-
-                else:
-                    loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord), ndmin = 1)  # Pixel corresponding to coord
-                    dr_pix = Histogram.concatenate(coords_axis, [self[pixel] for pixel in loc_nulambda_pixels])     # Concatenate Axis object with DetectorResponse Histogram (Histograms if multiple target_coords are provided)
-
-                dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)    # Update the attitude of the PsiChi axis from `None` to `att`
-                                                                                    # XXX: this line is messing up the coordsys of response. I was 
-                                                                                    # forced to include a `deepcopy` statement to strictly divide 
-                                                                                    # their relationship. Alternate implementations are welcome. 
-                                                                                    # Even `copy` is not sufficient.
-
-                self._sum_rot_hist(dr_pix, psr, exposure)   # Rotate PsiChi from local SC to galactic coordinates. (Function only affects Healpix Axis of psr Histogram)
+                self._sum_rot_hist(dr_pix, psr, exposure)
 
             # Convert to PSR
             psr = tuple([PointSourceResponse(psr.axes[1:],
-                                            contents = data,
-                                            sparse = psr.is_sparse,
-                                            unit = psr.unit)
-                        for data in psr[:]])
+                                             contents = data,
+                                             sparse = psr.is_sparse,
+                                             unit = psr.unit)
+                         for data in psr[:]])
             
             if coord.size == 1:
                 return psr[0]
