@@ -47,7 +47,7 @@ def test_calculate_uncertainties():
     
 def test_convolve_spectrum():
 
-    assert polarization._expectation.ndim == 7
+    assert 'Pol' in polarization._expectation.axes.labels
 
     assert polarization._expectation.unit.is_equivalent('keV')
 
