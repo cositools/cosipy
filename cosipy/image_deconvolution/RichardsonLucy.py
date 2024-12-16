@@ -40,7 +40,8 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
     """
 
-    def __init__(self, initial_model:Histogram, dataset:list, mask, parameter, comm=None):
+    def __init__(self, initial_model:Histogram, dataset:list, mask, parameter, 
+                 parallel:bool=False, MASTER:bool=False):
 
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
 
@@ -70,12 +71,8 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             else:
                 os.makedirs(self.save_results_directory)
 
-        if comm is None:
-            self.MASTER = True
-        elif comm.Get_rank() == 0:
-            self.MASTER = True
-        else:
-            self.MASTER = False
+        self.parallel = parallel
+        self.MASTER = MASTER
 
     def initialization(self):
         """
@@ -83,7 +80,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
 
         # Master
-        if self.MASTER:
+        if (not self.parallel) or (self.MASTER):
             # Clear results
             self.results.clear()
 
@@ -199,7 +196,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         # update expectation_list
         self.expectation_list = self.calc_expectation_list(self.model, dict_bkg_norm = self.dict_bkg_norm)
         logger.debug("The expected count histograms were updated with the new model map.")
-        
+
         # update loglikelihood_list
         self.loglikelihood_list = self.calc_loglikelihood_list(self.expectation_list)
         logger.debug("The loglikelihood list was updated with the new expected count histograms.")
@@ -221,7 +218,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         
         # Master
-        if self.MASTER:
+        if (not self.parallel) or (self.MASTER):
             this_result = {"iteration": self.iteration_count, 
                         "model": copy.deepcopy(self.model), 
                         "delta_model": copy.deepcopy(self.delta_model),
@@ -257,7 +254,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
 
         # Master
-        if self.MASTER:
+        if (not self.parallel) or (self.MASTER):
             if self.save_results == True:
                 logger.info('Saving results in {self.save_results_directory}')
 

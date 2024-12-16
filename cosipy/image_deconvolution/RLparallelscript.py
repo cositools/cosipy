@@ -7,7 +7,7 @@ from mpi4py import MPI
 from histpy import Histogram
 
 from cosipy.response import FullDetectorResponse
-from cosipy.image_deconvolution import ImageDeconvolution, DataIFWithParallel, DataIF_COSI_DC2
+from cosipy.image_deconvolution import ImageDeconvolution, DataIF_Parallel, DataIF_COSI_DC2
 
 # Define MPI variables
 MASTER = 0                      # Indicates master process
@@ -17,14 +17,14 @@ DATA_DIR = Path('/Users/penguin/Documents/Grad School/Research/COSI/COSIpy/docs/
 def main():
     '''
     Main script to create a parallel execution-compatible
-    dataset using DataIFWithParallel and call ImageDeconvolution
+    dataset using DataIF_Parallel and call ImageDeconvolution
     '''
 
     # Set up MPI
     comm = MPI.COMM_WORLD
 
     # Create dataset
-    dataset = DataIFWithParallel(name = '511keV',
+    dataset = DataIF_Parallel(name = '511keV',
                                  event_filename = '511keV_dc2_galactic_event.hdf5',
                                  bkg_filename = '511keV_dc2_galactic_bkg.hdf5',
                                  drm_filename = 'psr_gal_511_DC2.h5',

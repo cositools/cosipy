@@ -11,6 +11,9 @@ from .allskyimage import AllSkyImageModel
 from .RichardsonLucy import RichardsonLucy
 from .RichardsonLucySimple import RichardsonLucySimple
 
+# MPI Master node
+MASTER = 0
+
 class ImageDeconvolution:
     """
     A class to reconstruct all-sky images from COSI data based on image deconvolution methods.
@@ -124,11 +127,21 @@ class ImageDeconvolution:
         It is mandatory to execute this method before running the image deconvolution.
         """
 
+        if comm is None:
+            self.parallel_computation = False
+            self.master_node = True
+        elif comm.Get_rank() == MASTER:
+            self.parallel_computation = True
+            self.master_node = True
+        else:
+            self.parallel_computation = True
+            self.master_node = False
+
         logger.info("#### Initialization Starts ####")
         
         self.model_initialization()        
 
-        self.register_deconvolution_algorithm(comm = comm)        
+        self.register_deconvolution_algorithm()
 
         logger.info("#### Initialization Finished ####")
 
@@ -175,7 +188,7 @@ class ImageDeconvolution:
         logger.info("---- parameters ----")
         logger.info(parameter_model_initialization.dump())
 
-    def register_deconvolution_algorithm(self, comm):
+    def register_deconvolution_algorithm(self):
         """
         Register the deconvolution algorithm
 
@@ -199,7 +212,8 @@ class ImageDeconvolution:
                                                         dataset = self.dataset, 
                                                         mask = self.mask, 
                                                         parameter = algorithm_parameter,
-                                                        comm = comm)
+                                                        parallel = self.parallel_computation,
+                                                        MASTER = self.master_node)
 
         logger.info("---- parameters ----")
         logger.info(parameter_deconvolution.dump()) 
