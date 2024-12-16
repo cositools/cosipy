@@ -107,6 +107,10 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             self.response_weighting_filter = (self.summed_exposure_map.contents / np.max(self.summed_exposure_map.contents))**self.response_weighting_index
             logger.info("The response weighting filter was calculated.")
 
+        # expected count histograms
+        self.expectation_list = self.calc_expectation_list(model = self.initial_model, dict_bkg_norm = self.dict_bkg_norm)
+        logger.info("The expected count histograms were calculated with the initial model map.")
+
         # calculate summed background models for M-step
         if self.do_bkg_norm_optimization:
             self.dict_summed_bkg_model = {}
@@ -122,11 +126,9 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
     def Estep(self):
         """
         E-step (but it will be skipped).
+        Note that self.expectation_list is updated in self.post_processing().
         """
-
-        # expected count histograms
-        self.expectation_list = self.calc_expectation_list(model = self.model, dict_bkg_norm = self.dict_bkg_norm)
-        logger.info("The expected count histograms were calculated with the initial model map.")
+        pass
 
         # At the end of this function, all processes should have a complete `self.expectation_list`
         # to proceed to the Mstep function
@@ -194,6 +196,10 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         if self.mask is not None:
             self.model = self.model.mask_pixels(self.mask)
 
+        # update expectation_list
+        self.expectation_list = self.calc_expectation_list(self.model, dict_bkg_norm = self.dict_bkg_norm)
+        logger.debug("The expected count histograms were updated with the new model map.")
+        
         # update loglikelihood_list
         self.loglikelihood_list = self.calc_loglikelihood_list(self.expectation_list)
         logger.debug("The loglikelihood list was updated with the new expected count histograms.")
