@@ -18,7 +18,7 @@ model_definition:
 deconvolution:
   algorithm: "RL"
   parameter:
-    iteration_max: 50
+    iteration_max: 10
     acceleration: True
     alpha_max: 10.0
     response_weighting: True
@@ -28,6 +28,6 @@ deconvolution:
       value: 2.0
       unit: "deg"
     background_normalization_optimization: True
-    background_normalization_range: {"total": [0.01, 10.0]}
+    background_normalization_range: {"albedo": [0.01, 10.0]}
     save_results: False
     save_results_directory: "./results"
