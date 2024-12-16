@@ -48,8 +48,15 @@ def main():
     parameter_filepath = DATA_DIR / 'imagedeconvolution_parfile_gal_511keV.yml'
     image_deconvolution.read_parameterfile(parameter_filepath)
 
+    parallel_computation = True
+    if comm.Get_rank() == MASTER:
+        master_node = True
+    else:
+        master_node = False
+
     # Initialize model
-    image_deconvolution.initialize(comm=comm)
+    image_deconvolution.initialize(parallel_computation = parallel_computation,
+                                   master_node = master_node)
 
     # Execute deconvolution
     image_deconvolution.run_deconvolution()

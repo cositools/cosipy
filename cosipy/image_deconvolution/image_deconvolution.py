@@ -11,9 +11,6 @@ from .allskyimage import AllSkyImageModel
 from .RichardsonLucy import RichardsonLucy
 from .RichardsonLucySimple import RichardsonLucySimple
 
-# MPI Master node
-MASTER = 0
-
 class ImageDeconvolution:
     """
     A class to reconstruct all-sky images from COSI data based on image deconvolution methods.
@@ -121,21 +118,14 @@ class ImageDeconvolution:
         """
         return self._deconvolution.results
 
-    def initialize(self, comm = None):      # comm is required if the user intends to use parallel features
+    def initialize(self, parallel_computation = False, master_node = True):
         """
         Initialize an initial model and an image deconvolution algorithm.
         It is mandatory to execute this method before running the image deconvolution.
         """
 
-        if comm is None:
-            self.parallel_computation = False
-            self.master_node = True
-        elif comm.Get_rank() == MASTER:
-            self.parallel_computation = True
-            self.master_node = True
-        else:
-            self.parallel_computation = True
-            self.master_node = False
+        self.parallel_computation = parallel_computation
+        self.master_node = master_node
 
         logger.info("#### Initialization Starts ####")
         
