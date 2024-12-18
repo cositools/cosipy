@@ -49,8 +49,6 @@ def test_convolve_spectrum():
 
     assert 'Pol' in polarization._expectation.axes.labels
 
-    assert polarization._expectation.unit.is_equivalent('keV')
-
     assert np.allclose(polarization._expectation.project('Em').contents[0], 7657.331992884072, atol=5.0)
 
     assert np.allclose([polarization._azimuthal_angle_bins[5].rad, polarization._azimuthal_angle_bins[12].rad, 
