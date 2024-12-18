@@ -8,6 +8,7 @@ from mhealpy import HealpixMap
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import cm, colors
+from scipy import interpolate
 
 from scoords import Attitude, SpacecraftFrame
 from cosipy.response import FullDetectorResponse
@@ -19,24 +20,39 @@ logger = logging.getLogger(__name__)
 
 class SpacecraftFile():
 
-    def __init__(self, time, x_pointings = None, y_pointings = None, z_pointings = None, attitude = None,
-                 instrument = "COSI", frame = "galactic"):
+    def __init__(self, time, x_pointings = None, y_pointings = None, \
+            z_pointings = None, earth_zenith = None, altitude = None,\
+            attitude = None, instrument = "COSI", frame = "galactic"):
 
         """
-        Handles the spacecraft orientation. Calculates the dwell time map and point source response over a certain orientation period. Exports the point source response as RMF and ARF files that can be read by XSPEC.
+        Handles the spacecraft orientation. Calculates the dwell time 
+        map and point source response over a certain orientation period. 
+        Exports the point source response as RMF and ARF files that can be read by XSPEC.
         
         Parameters
         ----------
         Time : astropy.time.Time
             The time stamps for each pointings. Note this is NOT the time duration.
         x_pointings : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies no input for the x pointings).
+            The pointings (galactic system) of the x axis of the local 
+            coordinate system attached to the spacecraft (the default 
+            is `None`, which implies no input for the x pointings).
         y_pointings : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies no input for the y pointings).
+            The pointings (galactic system) of the y axis of the local 
+            coordinate system attached to the spacecraft (the default 
+            is `None`, which implies no input for the y pointings).
         z_pointings : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies no input for the z pointings).
-        attitude: numpy.ndarray, optional
-            The attitude of the spacecraft (the default is `None`, which implies no input for the attitude of the spacecraft).
+            The pointings (galactic system) of the z axis of the local 
+            coordinate system attached to the spacecraft (the default 
+            is `None`, which implies no input for the z pointings).
+        earth_zenith : astropy.coordinates.SkyCoord, optional
+            The pointings (galactic system) of the Earth zenith (the 
+            default is `None`, which implies no input for the earth pointings).
+	altitude : array, optional 
+            Altitude of the spacecraft in km.
+        attitude : numpy.ndarray, optional 
+            The attitude of the spacecraft (the default is `None`, 
+            which implies no input for the attitude of the spacecraft).
         instrument : str, optional
             The instrument name (the default is "COSI").
         frame : str, optional
@@ -49,6 +65,10 @@ class SpacecraftFile():
             self._time = time
         else:
             raise TypeError("The time should be a astropy.time.Time object")
+
+        # Altitude
+        if not isinstance(altitude, (type(None))):
+            self._altitude = np.array(altitude)
 
         # x pointings
         if isinstance(x_pointings, (SkyCoord, type(None))):
@@ -67,6 +87,12 @@ class SpacecraftFile():
             self.z_pointings = z_pointings
         else:
             raise TypeError("The z_pointing should be a NoneType or SkyCoord object!")
+	    
+	    # earth pointings
+        if isinstance(earth_zenith, (SkyCoord, type(None))):
+            self.earth_zenith = earth_zenith
+        else:
+            raise TypeError("The earth_zenith should be a NoneType or SkyCoord object!")    
 
         # check if the x, y and z pointings are all None (no inputs). If all None, tt will try to read from attitude parameter
         if self.x_pointings is None and self.y_pointings is None and self.z_pointings is None:
@@ -84,9 +110,10 @@ class SpacecraftFile():
         self._load_time = self._time.to_value(format = "unix")  # this is not necessary, but just to make sure evething works fine...
         self._x_direction = np.array([x_pointings.l.deg, x_pointings.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
         self._z_direction = np.array([z_pointings.l.deg, z_pointings.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
+        self._earth_direction = np.array([earth_zenith.l.deg, earth_zenith.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
+      
         self.frame = frame
-
-
+                       
     @classmethod
     def parse_from_file(cls, file):
 
@@ -104,22 +131,24 @@ class SpacecraftFile():
             The SpacecraftFile object.
         """
 
-
-        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5), delimiter=' ', skiprows=1, comments=("#", "EN"))
+        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5, 6, 7, 8),delimiter=' ', skiprows=1, comments=("#", "EN"))
         time_stamps = orientation_file[:, 0]
         axis_1 = orientation_file[:, [2, 1]]
         axis_2 = orientation_file[:, [4, 3]]
-
+        axis_3 = orientation_file[:, [7, 6]]
+        altitude = np.array(orientation_file[:, 5]) 
+        
         time = Time(time_stamps, format = "unix")
         xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
         zpointings = SkyCoord(l = axis_2[:,0]*u.deg, b = axis_2[:,1]*u.deg, frame = "galactic")
-
-        return cls(time, x_pointings = xpointings, z_pointings = zpointings)
+        earthpointings = SkyCoord(l = axis_3[:,0]*u.deg, b = axis_3[:,1]*u.deg, frame = "galactic")
+        
+        return cls(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude)
 
     def get_time(self, time_array = None):
 
         """
-        Return the arrary pf pointing times as a astropy.Time object.
+        Return the array pf pointing times as a astropy.Time object.
 
         Parameters
         ----------
@@ -138,6 +167,21 @@ class SpacecraftFile():
             self._time = Time(time_array, format = "unix")
 
         return self._time
+
+    def get_altitude(self):
+
+        """
+        Return the array of Earth altitude.
+
+        
+
+        Returns
+        -------
+        numpy array
+            the Earth altitude.
+        """   
+
+        return self._altitude
 
     def get_time_delta(self, time_array = None):
 
@@ -201,7 +245,7 @@ class SpacecraftFile():
         Parameters
         ----------
         start : astropy.time.Time
-            The star time of the orientation period.
+            The start time of the orientation period.
         stop : astropy.time.Time
             The end time of the orientation period.
 
@@ -224,11 +268,15 @@ class SpacecraftFile():
             new_times = self._load_time[start_idx : stop_idx + 1]
             new_x_direction = self._x_direction[start_idx : stop_idx + 1]
             new_z_direction = self._z_direction[start_idx : stop_idx + 1]
+            new_earth_direction = self._earth_direction[start_idx : stop_idx + 1]
+            new_earth_altitude = self._altitude[start_idx : stop_idx + 1]
+
         else:
             start_idx = self._load_time.searchsorted(start.value) - 1
 
             x_direction_start = self.interpolate_direction(start, start_idx, self._x_direction)
             z_direction_start = self.interpolate_direction(start, start_idx, self._z_direction)
+            earth_direction_start = self.interpolate_direction(start, start_idx, self._earth_direction)
 
             new_times = self._load_time[start_idx + 1 : stop_idx + 1]
             new_times = np.insert(new_times, 0, start.value)
@@ -238,6 +286,15 @@ class SpacecraftFile():
 
             new_z_direction = self._z_direction[start_idx + 1 : stop_idx + 1]
             new_z_direction = np.insert(new_z_direction, 0, z_direction_start, axis = 0)
+	    
+            new_earth_direction = self._earth_direction[start_idx + 1 : stop_idx + 1]
+            new_earth_direction = np.insert(new_earth_direction, 0, earth_direction_start, axis = 0)
+
+            # Use linear interpolation to get starting altitude at desired time. 
+            f = interpolate.interp1d(self._time.value, self._altitude, kind="linear")
+            starting_alt = f(start.value)
+            new_earth_altitude = self._altitude[start_idx + 1 : stop_idx + 1]  
+            new_earth_altitude = np.insert(new_earth_altitude, 0, starting_alt)
 
 
         if (stop.value % 1 != 0):
@@ -245,6 +302,7 @@ class SpacecraftFile():
 
             x_direction_stop = self.interpolate_direction(stop, stop_idx, self._x_direction)
             z_direction_stop = self.interpolate_direction(stop, stop_idx, self._z_direction)
+            earth_direction_stop = self.interpolate_direction(stop, stop_idx, self._earth_direction)
 
             new_times = np.delete(new_times, -1)
             new_times = np.append(new_times, stop.value)
@@ -254,12 +312,23 @@ class SpacecraftFile():
 
             new_z_direction = new_z_direction[:-1]
             new_z_direction = np.append(new_z_direction, [z_direction_stop], axis = 0)
+            
+            new_earth_direction = new_earth_direction[:-1]
+            new_earth_direction = np.append(new_earth_direction, [earth_direction_stop], axis = 0)
+            
+            # Use linear interpolation to get starting altitude at desired time.
+            f = interpolate.interp1d(self._time.value, self._altitude, kind="linear")
+            stop_alt = f(stop.value)
+            new_earth_altitude = new_earth_altitude[:-1]
+            new_earth_altitude = np.append(new_earth_altitude, [stop_alt])
 
         time = Time(new_times, format = "unix")
         xpointings = SkyCoord(l = new_x_direction[:,0]*u.deg, b = new_x_direction[:,1]*u.deg, frame = "galactic")
         zpointings = SkyCoord(l = new_z_direction[:,0]*u.deg, b = new_z_direction[:,1]*u.deg, frame = "galactic")
+        earthpointings = SkyCoord(l = new_earth_direction[:,0]*u.deg, b = new_earth_direction[:,1]*u.deg, frame = "galactic")
+        altitude = new_earth_altitude
 
-        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings)
+        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude =altitude)
       
     def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
 
@@ -400,7 +469,7 @@ class SpacecraftFile():
             path = src_path
         # check if the target source path is astropy.Skycoord object
         if type(path) != SkyCoord:
-            raise TypeError("The coordiates of the source movement in the Spacecraft frame must be a SkyCoord object")
+            raise TypeError("The coordinates of the source movement in the Spacecraft frame must be a SkyCoord object")
 
         if path.shape[0]-1 != self.dts.shape[0]:
             raise ValueError("The dimensions of the dts or source coordinates are not correct. Please check your inputs.")
@@ -444,21 +513,34 @@ class SpacecraftFile():
         return self.dwell_map
 
     def get_scatt_map(self,
+                       target_coord,
                        nside,
                        scheme = 'ring',
                        coordsys = 'galactic',
+                       r_earth = 6378.0,
+                       earth_occ = True
                        ):
+
         """
-        Bin the spacecraft attitude history into a 4D histogram that contains the accumulated time the axes of the spacecraft where looking at a given direction. 
+        Bin the spacecraft attitude history into a 4D histogram that 
+        contains the accumulated time the axes of the spacecraft where 
+        looking at a given direction. 
 
         Parameters
         ----------
+        target_coord : astropy.coordinates.SkyCoord
+            The coordinates of the target object. 
         nside : int
             The nside of the scatt map.
         scheme : str, optional
             The scheme of the scatt map (the default is "ring")
         coordsys : str, optional
             The coordinate system used in the scatt map (the default is "galactic).
+        r_earth : float, optional
+            Earth radius in km (default is 6378 km).
+        earth_occ : bool, optional
+            Option to include Earth occultation in scatt map calculation.
+            Default is True. 
 
         Returns
         -------
@@ -470,18 +552,41 @@ class SpacecraftFile():
         timestamps = self.get_time()
         attitudes = self.get_attitude()
 
+        # Altitude at each point in the orbit:
+        altitude = self._altitude
+
+        # Earth zenith at each point in the orbit:
+        earth_zenith = self.earth_zenith
+
         # Fill (only 2 axes needed to fully define the orientation)
         h_ori = SpacecraftAttitudeMap(nside = nside,
                                       scheme = scheme,
                                       coordsys = coordsys)
         
         x,y,z = attitudes[:-1].as_axes()
-
-        h_ori.fill(x, y, weight = np.diff(timestamps.gps)*u.s)
+       
+        # Get max angle based on altitude:
+        max_angle = np.pi - np.arcsin(r_earth/(r_earth + altitude))
+        max_angle *= (180/np.pi) # angles in degree
         
+        # Calculate angle between source direction and Earth zenith
+        # for each time stamp:
+        src_angle = target_coord.separation(earth_zenith)
+        
+        # Get pointings that are occulted by Earth:
+        earth_occ_index = src_angle.value >= max_angle
+
+        # Define weights and set to 0 if blocked by Earth:
+        weight = np.diff(timestamps.gps)*u.s
+        if earth_occ == True:
+            weight[earth_occ_index[:-1]] = 0        
+        
+        # Fill histogram:
+        h_ori.fill(x, y, weight = weight)
+
         return h_ori
 
-    
+
     def get_psr_rsp(self, response = None, dwell_map = None, dts = None):
 
         """
@@ -490,7 +595,7 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        response : str or pathlib.Path, optional
+        :response : str or pathlib.Path, optional
             The response for the observation (the defaul is `None`, which implies that the `response` will be read from the instance).
         dwell_map : str, optional
             The time dwell map for the source, you can load saved dwell time map using this parameter if you've saved it before (the defaul is `None`, which implies that the `dwell_map` will be read from the instance).
