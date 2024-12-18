@@ -8,8 +8,6 @@ from histpy import Histogram, Axes, Axis, HealpixAxis
 
 from threeML import Band, DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
 
-from cosipy.threeml import Band_Eflux
-
 def get_integrated_spectral_model(spectrum, energy_axis):
     """
     Get the photon fluxes integrated over given energy bins with an input astropy spectral model
@@ -36,6 +34,8 @@ def get_integrated_spectral_model(spectrum, energy_axis):
     This function determines the unit of the spectrum, performs the integration
     over each energy bin, and returns the result as a Histogram object.
     """
+
+    from cosipy.threeml import Band_Eflux
 
     spectrum_unit = None
 
