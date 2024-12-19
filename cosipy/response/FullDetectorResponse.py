@@ -49,7 +49,7 @@ class FullDetectorResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000):
+    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000, polarization=False):
         """
         Open a detector response file.
 
@@ -74,7 +74,6 @@ class FullDetectorResponse(HealpixBase):
 
          emin,emax : float
              emin/emax used in the simulation source file.  
-        
         """
         
         filename = Path(filename)
@@ -169,10 +168,11 @@ class FullDetectorResponse(HealpixBase):
 
          emin,emax : float
              emin/emax used in the simulation source file.
-         
         """
-        labels = ("Ei", "NuLambda", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
 
+        
+        
+        axes_names = []
         axes_edges = []
         axes_types = []
         sparse = None
@@ -215,6 +215,9 @@ class FullDetectorResponse(HealpixBase):
                     if line[1] == "false" :
                         sparse = False
 
+                elif key == 'AN':
+                    axes_names += [" ".join(line[1:])]
+
                 elif key == 'AD':
 
                     if axes_types[-1] == "FISBEL":
@@ -247,6 +250,16 @@ class FullDetectorResponse(HealpixBase):
                 elif key == "StartStream":
                     nbins = int(line[1])
                     break
+
+        # Check axes names and relabel
+        if np.array_equal(axes_names, ['"Initial energy [keV]"', '"#nu [deg]" "#lambda [deg]"', '"Polarization Angle [deg]"', '"Measured energy [keV]"', '"#phi [deg]"', '"#psi [deg]" "#chi [deg]"', '"#sigma [deg]" "#tau [deg]"', '"Distance [cm]"']):
+            has_polarization = True
+            labels = ("Ei", "NuLambda", "Pol", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
+        elif np.array_equal(axes_names, ['"Initial energy [keV]"', '"#nu [deg]" "#lambda [deg]"', '"Measured energy [keV]"', '"#phi [deg]"', '"#psi [deg]" "#chi [deg]"', '"#sigma [deg]" "#tau [deg]"', '"Distance [cm]"']):
+            has_polarization = False
+            labels = ("Ei", "NuLambda", "Pol", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
+        else:
+            raise InputError("Unknown response format")
         
         #check if the type of spectrum is known
         assert norm=="powerlaw" or norm=="Mono" or norm=="Linear" or norm=="Gaussian",f"unknown normalisation ! {norm}" 
@@ -506,7 +519,7 @@ class FullDetectorResponse(HealpixBase):
             pass
 
         # create a .h5 file with the good structure
-        filename = filename.replace(".rsp.gz","_nside{0}.area.h5".format(nside))
+        filename = Path(str(filename).replace(".rsp.gz","_nside{0}.area.h5".format(nside)))
         f = h5.File(filename, mode='w')
 
         drm = f.create_group('DRM')
@@ -514,47 +527,9 @@ class FullDetectorResponse(HealpixBase):
         # Header
         drm.attrs['UNIT'] = 'cm2'
 
-        #sparse
-        if sparse :
-            drm.attrs['SPARSE'] = True
-            
-             # Axes
-            axes = drm.create_group('AXES', track_order=True)
-
-            for axis in dr.axes[['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi','SigmaTau','Dist']]:
-
-                axis_dataset = axes.create_dataset(axis.label,
-                                           data=axis.edges)
-                                           
-
-                if axis.label in ['NuLambda', 'PsiChi','SigmaTau']:
-
-                    # HEALPix
-                    axis_dataset.attrs['TYPE'] = 'healpix'
-
-                    axis_dataset.attrs['NSIDE'] = nside
-
-                    axis_dataset.attrs['SCHEME'] = 'ring'
-
-                else:
-
-                    # 1D
-                    axis_dataset.attrs['TYPE'] = axis.axis_scale
-
-                    if axis.label in ['Ei', 'Em']:
-                        axis_dataset.attrs['UNIT'] = 'keV'
-                        axis_dataset.attrs['TYPE'] = 'log'
-                    elif axis.label in ['Phi']:
-                        axis_dataset.attrs['UNIT'] = 'deg'
-                        axis_dataset.attrs['TYPE'] = 'linear'
-                    elif axis.label in ['Dist']:
-                        axis_dataset.attrs['UNIT'] = 'cm'
-                        axis_dataset.attrs['TYPE'] = 'linear'
-                    else:
-                        raise ValueError("Shouldn't happend")
-
-                axis_description = {'Ei': "Initial simulated energy",
+        axis_description = {'Ei': "Initial simulated energy",
                             'NuLambda': "Location of the simulated source in the spacecraft coordinates",
+                            'Pol': "Polarization angle",
                             'Em': "Measured energy",
                             'Phi': "Compton angle",
                             'PsiChi': "Location in the Compton Data Space",
@@ -562,60 +537,57 @@ class FullDetectorResponse(HealpixBase):
                             'Dist': "Distance from first interaction"
                             }
 
-                axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
-    
-        #non sparse    
-        else :
-            drm.attrs['SPARSE'] = False            
+        #keep the same dimension order of the data
+        axes_to_write = ['NuLambda', 'Ei']
+        
+        if has_polarization:
+            axes_to_write += ['Pol']
 
-            # Axes
-            axes = drm.create_group('AXES', track_order=True)
+        axes_to_write += ['Em', 'Phi', 'PsiChi']
 
-            #keep the same dimension order of the data
-            for axis in dr.axes[['NuLambda','Ei', 'Em', 'Phi', 'PsiChi']]:#'SigmaTau','Dist']]:
+        if sparse:
+            drm.attrs['SPARSE'] = True
+            
+            # singletos. Save space in dense
+            axes_to_write += ['SigmaTau', 'Dist']
+        else:
+            drm.attrs['SPARSE'] = False
+            
+        axes = drm.create_group('AXES', track_order=True)
 
-                axis_dataset = axes.create_dataset(axis.label,
-                                           data=axis.edges)
-                                           
+        for axis in dr.axes[axes_to_write]:
 
-                if axis.label in ['NuLambda', 'PsiChi']:#,'SigmaTau']:
+            axis_dataset = axes.create_dataset(axis.label,
+                                    data=axis.edges)
 
-                    # HEALPix
-                    axis_dataset.attrs['TYPE'] = 'healpix'
 
-                    axis_dataset.attrs['NSIDE'] = nside
+            if axis.label in ['NuLambda', 'PsiChi','SigmaTau']:
 
-                    axis_dataset.attrs['SCHEME'] = 'ring'
-    
+                # HEALPix
+                axis_dataset.attrs['TYPE'] = 'healpix'
+
+                axis_dataset.attrs['NSIDE'] = nside
+
+                axis_dataset.attrs['SCHEME'] = 'ring'
+
+            else:
+
+                # 1D
+                axis_dataset.attrs['TYPE'] = axis.axis_scale
+
+                if axis.label in ['Ei', 'Em']:
+                    axis_dataset.attrs['UNIT'] = 'keV'
+                    axis_dataset.attrs['TYPE'] = 'log'
+                elif axis.label in ['Phi', 'Pol']:
+                    axis_dataset.attrs['UNIT'] = 'deg'
+                    axis_dataset.attrs['TYPE'] = 'linear'
+                elif axis.label in ['Dist']:
+                    axis_dataset.attrs['UNIT'] = 'cm'
+                    axis_dataset.attrs['TYPE'] = 'linear'
                 else:
+                   raise ValueError("Shouldn't happend")
 
-                    # 1D
-                    axis_dataset.attrs['TYPE'] = axis.axis_scale
-
-                    if axis.label in ['Ei', 'Em']:
-                        axis_dataset.attrs['UNIT'] = 'keV'
-                        axis_dataset.attrs['TYPE'] = 'log'
-                    elif axis.label in ['Phi']:
-                        axis_dataset.attrs['UNIT'] = 'deg'
-                        axis_dataset.attrs['TYPE'] = 'linear'
-                        #elif axis.label in ['Dist']:
-                        #    axis_dataset.attrs['UNIT'] = 'cm'
-                        #    axis_dataset.attrs['TYPE'] = 'linear'
-                    else:
-                        raise ValueError("Shouldn't happend")
-
-                axis_description = {'Ei': "Initial simulated energy",
-                            'NuLambda': "Location of the simulated source in the spacecraft coordinates",
-                            'Em': "Measured energy",
-                            'Phi': "Compton angle",
-                            'PsiChi': "Location in the Compton Data Space",
-                            #'SigmaTau': "Electron recoil angle",
-                            #'Dist': "Distance from first interaction"
-                            }
-
-                axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
-       
-
+            axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
 
         #sparse matrice
         if sparse :

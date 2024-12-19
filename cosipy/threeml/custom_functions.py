@@ -24,7 +24,7 @@ class Band_Eflux(Function1D, metaclass=FunctionMeta):
             desc : Normalization (flux between a and b)
             initial value : 1.e-5
             min : 1e-50
-            is_normalization : True
+            is_normalization : False
             transformation : log10
         E0 :
             desc : $\frac{xp}{2+\alpha}$ where xp is peak in the x * x * N (nuFnu if x is an energy)
