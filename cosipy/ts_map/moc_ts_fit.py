@@ -240,6 +240,7 @@ class MOCTSMap(FastTSMap):
             # decide the mother pixels to divide
             # threshold = moc_map_ts[:].max() - MOCTSMap.get_chi_critical_value(split_containment)
             top_number_arg_array = np.argpartition(moc_map_ts, -top_number)[-top_number:]
+            print(f"The top {top_number} ts values are: {top_number_arg_array} in the last iteration, splitting these pixels...")
             threshold = min(moc_map_ts[top_number_arg_array])
             
             mother_idx = np.where(moc_map_ts[:] >= threshold)[0]
@@ -250,7 +251,7 @@ class MOCTSMap(FastTSMap):
             
             # get the sky coordinates of the child pixels
             hypothesis_coords = MOCTSMap.uniq2skycoord(child_uniq)
-            hypothesis_coords_list = [i for i in hypothesis_coords]  # have to split the SkyCoord object into SkyCoord object
+            hypothesis_coords_list = [i for i in hypothesis_coords]  # have to split the SkyCoord object into SkyCoord object list
             child_idx = MOCTSMap.uniq2pixidx(moc_map_ts, child_uniq)  # child_idx is used to make sure that the ts values are filled into the correct pixels
             print(f"fitting order {order} with {len(hypothesis_coords_list)} hypothesis coordinates")
             results = self.parallel_ts_fit(hypothesis_coords = hypothesis_coords_list, energy_channel = energy_channel, spectrum = spectrum, ts_nside = 2**order, pixel_idx = child_idx)
