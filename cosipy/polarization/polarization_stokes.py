@@ -630,11 +630,11 @@ class PolarizationStokes():
                 plt.plot(ref_q, ref_u, 'x', markersize=20, color='tab:green')
                 plt.annotate(ref_label, (ref_q, ref_u), textcoords="offset points", xytext=(0,10), ha='center', color='tab:green', fontsize=12)
             if mdp != None:
-                c_mdp = plt.Circle((0, 0), radius=mdp, facecolor='tab:red', alpha=0.3, linewidth=1, linestyle='--', label='MDP')
+                c_mdp = plt.Circle((0, 0), radius=mdp, facecolor='tab:red', alpha=0.3, linewidth=1, linestyle='--', label=r'MDP$_{99}$')
                 plt.gca().add_artist(c_mdp)
 
             plt.plot(Q, U, 'o', markersize=5, color='red',label='Measured')
-            pol_c = plt.Circle((Q, U), radius=polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1, label='Polarized source')
+            pol_c = plt.Circle((Q, U), radius=polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
             pol_c2 = plt.Circle((Q, U), radius=2*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
             pol_c3 = plt.Circle((Q, U), radius=3*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
             plt.gca().add_artist(pol_c)
@@ -645,12 +645,7 @@ class PolarizationStokes():
             plt.xlabel('Q/I')
             plt.ylabel('U/I')
             plt.tight_layout()
-
-            plt.xlim(-1, 1)
-            plt.ylim(-1, 1)
-            plt.xlabel('Q/I')
-            plt.ylabel('U/I')
-            plt.tight_layout()
+            plt.legend(fontsize=15)
 
             plt.show()
 
