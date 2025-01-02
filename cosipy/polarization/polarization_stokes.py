@@ -546,7 +546,7 @@ class PolarizationStokes():
         return MDP99
         
 
-    def calculate_polarization(self, qs, us, qs_unpol, us_unpol, mu, show=False, ref_qu=(None, None), ref_pdpa=(None, None), ref_label=None):
+    def calculate_polarization(self, qs, us, qs_unpol, us_unpol, mu, show=False, ref_qu=(None, None), ref_pdpa=(None, None), ref_label=None, mdp=None):
         """
         Calculate the polarization degree (PD), polarization angle (PA),
         and their associated 1-sigma uncertainties given Q and U measurements 
@@ -629,6 +629,9 @@ class PolarizationStokes():
                 ref_u = ref_pdpa[0] * np.sin(2*ref_pdpa[1])
                 plt.plot(ref_q, ref_u, 'x', markersize=20, color='tab:green')
                 plt.annotate(ref_label, (ref_q, ref_u), textcoords="offset points", xytext=(0,10), ha='center', color='tab:green', fontsize=12)
+            if mdp != None:
+                c_mdp = plt.Circle((0, 0), radius=mdp, facecolor='tab:red', alpha=0.3, linewidth=1, linestyle='--', label='MDP')
+                plt.gca().add_artist(c_mdp)
 
             plt.plot(Q, U, 'o', markersize=5, color='red',label='Measured')
             pol_c = plt.Circle((Q, U), radius=polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1, label='Polarized source')
