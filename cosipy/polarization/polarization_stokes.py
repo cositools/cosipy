@@ -37,19 +37,16 @@ def constant(x, a):
 
         return a
 
-def rotate_points_to_x_axis(x_, y_, angle_):
+def rotate_points_to_x_axis(newPD, newPA):
     """
     Rotate arrays of points (x_, y_) in the QN-UN plane by an angle
     """    
     # Create a matrix of rotation matrices for each point
-    cos_vals = np.cos(2*angle_)
-    sin_vals = np.sin(2*angle_)
+    rotated_Q = newPD * np.cos(2 * np.radians(newPA))
+    rotated_U = newPD * np.sin(2 * np.radians(newPA))
+    print('rotated_Q, rotated_U:', rotated_Q, rotated_U)
     
-    # Apply the rotation to each point
-    rotated_x = x_ * cos_vals - y_ * sin_vals
-    rotated_y = x_ * sin_vals + y_ * cos_vals
-    
-    return rotated_x, rotated_y
+    return rotated_Q, rotated_U
 
 def polar_chart_backbone(ax):
     """ Preparing canvas for Stokes chart
@@ -476,9 +473,9 @@ class PolarizationStokes():
         be, unpolarized_asad = self.create_unpolarized_asad(bins=bins)
         be = be.value
         # I would like to radomly extract an azimutal angle for each photon based on the unpolarized response.
-        # There might be an energy dependence here, so we should thing carfully
+        # There might be an energy dependence here, so we should think carfully
 
-        # Create teh spline from the unpol azimutal angle distrib
+        # Create the spline from the unpol azimutal angle distrib
         spline_unpol = interpolate.interp1d(be[:-1], unpolarized_asad)
         # Create fine bins and normalize to the area to get a probability density function (PDF)
         # also, avoiding edges that wouls break the spline
@@ -495,22 +492,26 @@ class PolarizationStokes():
         inv_cdf = interpolate.interp1d(cdf, fine_bins)
         
         #Generate random samples from a uniform distribution and map them to azimuthal angles
-        random_values = np.random.uniform(low=np.min(cdf), high=np.max(cdf), size=total_num_events)
-        print('random_values', random_values)
-        unpol_azimuthal_angles = inv_cdf(random_values) * u.rad
-        print('unpol_azimuthal_angles', unpol_azimuthal_angles)
-        qs_unpol, us_unpol = self.compute_pseudo_stokes(unpol_azimuthal_angles)
+        qs_unpol_, us_unpol_ = [], []
+        for i in range(0,100):
+            random_values = np.random.uniform(low=np.min(cdf), high=np.max(cdf), size=total_num_events)
+            unpol_azimuthal_angles = inv_cdf(random_values) * u.rad
+            qs_unpol, us_unpol = self.compute_pseudo_stokes(unpol_azimuthal_angles)
+            qs_unpol_.append(qs_unpol)
+            us_unpol_.append(us_unpol)
+        qs_unpol_ = np.array(qs_unpol_)
+        us_unpol_ = np.array(us_unpol_)
 
         if show:
             plt.figure()
             plt.title('Unpolarized')
-            plt.hist(qs_unpol, bins=50, alpha=0.5, label='q$_s$')
-            plt.hist(us_unpol, bins=50, alpha=0.5, label='u$_s$')
+            for i in range(0,100):
+                plt.hist(qs_unpol_[i], bins=50, alpha=0.1)
+                plt.hist(us_unpol_[i], bins=50, alpha=0.1)
             plt.xlabel('Pseudo Stokes parameter')
-            plt.legend()
             plt.show()
         
-        return qs_unpol, us_unpol
+        return qs_unpol_, us_unpol_
     
     def calculate_mdp(self, total_num_events, mu, bkg_rate=22.0):
         """ 
@@ -536,7 +537,7 @@ class PolarizationStokes():
         """
 
         print('Calculating the MDP...')
-        print('Espoure:', self._exposure, 's')
+        print('Exposure:', self._exposure, 's')
         print('Total number of events:', total_num_events)
         print('Modulation factor:', mu)
         print('Background rate:', bkg_rate, 'ph/s')
@@ -546,7 +547,7 @@ class PolarizationStokes():
         return MDP99
         
 
-    def calculate_polarization(self, qs, us, qs_unpol, us_unpol, mu, show=False, ref_qu=(None, None), ref_pdpa=(None, None), ref_label=None, mdp=None):
+    def calculate_polarization(self, qs, us, qs_unpol_, us_unpol_, mu, show=False, ref_qu=(None, None), ref_pdpa=(None, None), ref_label=None, mdp=None):
         """
         Calculate the polarization degree (PD), polarization angle (PA),
         and their associated 1-sigma uncertainties given Q and U measurements 
@@ -592,21 +593,34 @@ class PolarizationStokes():
         pol_I = len(qs)
         pol_Q = np.sum(qs) / mu
         pol_U = np.sum(us) / mu
-        unpol_I = len(qs_unpol)
-        unpol_Q = np.sum(qs_unpol) / mu
-        unpol_U = np.sum(us_unpol) / mu
 
+        unpol_I = len(qs_unpol_[0])
+        unpol_Q_, unpol_U_ = [], []
+        for i in range(len(qs_unpol_)):
+            qs_unpol = qs_unpol_[i]
+            us_unpol = us_unpol_[i]
+            unpol_Q = np.sum(qs_unpol) / mu
+            unpol_U = np.sum(us_unpol) / mu
+            unpol_Q_.append(unpol_Q)
+            unpol_U_.append(unpol_U)
+        unpol_Q = np.array(unpol_Q_).mean()
+        unpol_U = np.array(unpol_U_).mean()
+
+        print('Q, U, unsubtracted:', pol_Q/pol_I, pol_U/pol_I)
         Q = pol_Q/pol_I - unpol_Q/unpol_I
         U = pol_U/pol_I - unpol_U/unpol_I
+        print('Q, U, subtracted:', Q, U)
 
         polarization_fraction = np.sqrt(Q**2. + U**2.)
         pol_PD = polarization_fraction * 100
         pol_PA = 90 - 0.5 * np.degrees(np.arctan2(U, Q))
+        print('PD: %.2f'%(pol_PD), '%')
+        print('PA: %.2f'%pol_PA, 'deg')
 
         ######################
         ###################### Need to understand why I need this rotation
         ######################
-        Q, U = rotate_points_to_x_axis( Q, U, pol_PA)
+        Q, U = rotate_points_to_x_axis(polarization_fraction, pol_PA)
         print('-------  Q/I, U/I', Q, U)
 
         pol_modulation = mu * polarization_fraction
@@ -654,10 +668,9 @@ class PolarizationStokes():
 
         polarization_angle_uncertainty = Angle(pol_1sigmaPA, unit=u.deg)
 
-
         print('PD: %.2f'%(pol_PD), '+/- %.2f'%(pol_1sigmaPD), '%') 
         print('PA:', round(polarization_angle.angle.degree, 3), '+/-', round(polarization_angle_uncertainty.degree, 3))
-        polarization = {'fraction': pol_PD, 'angle': polarization_angle, 'fraction uncertainty': polarization_fraction_uncertainty, 'angle uncertainty': polarization_angle_uncertainty, 'Q/I': Q, 'U/I': U, 'Stokes uncertainty': pol_sQ}
+        polarization = {'fraction': polarization_fraction, 'angle': polarization_angle, 'fraction uncertainty': polarization_fraction_uncertainty, 'angle uncertainty': polarization_angle_uncertainty, 'Q/I': Q, 'U/I': U, 'Stokes uncertainty': pol_sQ}
 
         return polarization
 
