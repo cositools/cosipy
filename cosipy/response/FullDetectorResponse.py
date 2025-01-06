@@ -316,8 +316,8 @@ class FullDetectorResponse(HealpixBase):
                 nlines = sum(1 for _ in gzip.open(filename,"rt"))
                 
             # Preallocate arrays
-            coords = np.empty([axes.ndim, nlines], dtype=np.int16)
-            data = np.empty(nlines, dtype=np.int16)
+            coords = np.empty([axes.ndim, nlines], dtype=np.uint32)
+            data = np.empty(nlines, dtype=np.uint32)
 
             # Calculate the memory usage in Gigabytes
             memory_size = ((nlines * data.itemsize)+(axes.ndim*nlines*coords.itemsize))/(1024*1024*1024)
@@ -329,7 +329,7 @@ class FullDetectorResponse(HealpixBase):
             nlines = nbins        
             
             # Preallocate arrays    
-            data = np.empty(nlines, dtype=np.int16)
+            data = np.empty(nlines, dtype=np.uint32)
 
             # Calculate the memory usage in Gigabytes
             memory_size = (nlines * data.itemsize)/(1024*1024*1024)
@@ -361,7 +361,7 @@ class FullDetectorResponse(HealpixBase):
 
                     if key == 'RD':
 
-                        b = np.array(line[1:-1], dtype=np.int16)
+                        b = np.array(line[1:-1], dtype=np.uint32)
                         c = int(line[-1])
 
                         coords[:, sbin] = b
