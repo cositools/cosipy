@@ -257,7 +257,7 @@ class FullDetectorResponse(HealpixBase):
             labels = ("Ei", "NuLambda", "Pol", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
         elif np.array_equal(axes_names, ['"Initial energy [keV]"', '"#nu [deg]" "#lambda [deg]"', '"Measured energy [keV]"', '"#phi [deg]"', '"#psi [deg]" "#chi [deg]"', '"#sigma [deg]" "#tau [deg]"', '"Distance [cm]"']):
             has_polarization = False
-            labels = ("Ei", "NuLambda", "Pol", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
+            labels = ("Ei", "NuLambda", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
         else:
             raise InputError("Unknown response format")
         
@@ -290,8 +290,6 @@ class FullDetectorResponse(HealpixBase):
                 raise RuntimeError("FISBEL binning not currently supported")
             else:
                 edges += (axis_edges,)
-
-        #print(edges)
         
         if sparse :
             axes = Axes(edges, labels=labels)
