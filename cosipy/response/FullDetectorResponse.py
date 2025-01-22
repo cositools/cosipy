@@ -1,5 +1,6 @@
 from .PointSourceResponse import PointSourceResponse
 from .DetectorResponse import DetectorResponse
+from .ExtendedSourceResponse import ExtendedSourceResponse
 from astromodels.core.model_parser import ModelParser
 import matplotlib.pyplot as plt
 from astropy.time import Time
@@ -28,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 from copy import copy, deepcopy
 import gzip
-from tqdm import tqdm
+#from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 import subprocess
 import sys
 import pathlib
@@ -913,6 +915,63 @@ class FullDetectorResponse(HealpixBase):
                 return psr[0]
             else:
                 return psr
+
+    def get_extended_source_response(self, orientation, coordsys = 'galactic', nside_model = None, nside_scatt_map = None, Earth_occ = True):
+        """
+        Convolve the all-sky detector response with exposure over the sky
+        sky location.
+
+        Provide a spacecraft attitude map.
+
+        Parameters
+        ----------
+        orientation : cosipy.spacecraftfile.SpacecraftFile
+        coordsys : str, default 'galactic'
+            Currently, only 'galactic' is supported.
+        nside_model: int, default None
+            NSIDE of the image to be reconstructed.
+            If it is None, NSIDE of the full detector response will be used.
+        nside_scatt_map: int, default None
+            NSIDE to be used when generating the scatt maps.
+            If it is None, NSIDE of the full detector response will be used.
+        Earth_occ : bool, default True
+            Option to include Earth occultation in the respeonce. 
+        
+        Returns
+        -------
+        :py:class:`ExtendedSourceResponse`
+        """
+        
+        if coordsys != 'galactic':
+            raise ValueError(f'The coordsys {coordsys} not currently supported')
+
+        if nside_model is None:
+            nside_model = self.nside
+
+        if nside_scatt_map is None:
+            nside_scatt_map = self.nside
+
+        axes = [HealpixAxis(nside = nside_model, coordsys = coordsys, scheme='ring', label = 'NuLambda')] # The label should be 'lb' in the future
+        axes += list(self.axes[1:])
+        axes[-1].coordsys = coordsys
+
+        extended_source_response = ExtendedSourceResponse(axes, unit = u.Unit("cm2 s"))
+
+        for ipix in tqdm(range(hp.nside2npix(nside_model))):
+    
+            coord = extended_source_response.axes[0].pix2skycoord(ipix)
+
+            scatt_map = orientation.get_scatt_map(target_coord = coord,
+                                                  nside = nside_scatt_map,
+                                                  scheme='ring',
+                                                  coordsys=coordsys,
+                                                  earth_occ=Earth_occ)
+
+            psr = self.get_point_source_response(coord = coord, scatt_map = scatt_map, Earth_occ = Earth_occ)
+
+            extended_source_response[ipix] = psr.contents
+
+        return extended_source_response
             
     @staticmethod
     def _sum_rot_hist(h, h_new, exposure, axis = "PsiChi"):
