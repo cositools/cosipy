@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 import mhealpy as hp
 from mhealpy import HealpixBase, HealpixMap
+import glob
 
 from scipy.special import erf
 
@@ -916,60 +917,172 @@ class FullDetectorResponse(HealpixBase):
             else:
                 return psr
 
-    def get_extended_source_response(self, orientation, coordsys = 'galactic', nside_model = None, nside_scatt_map = None, Earth_occ = True):
+    def _setup_extended_source_response_params(self, coordsys, nside_image, nside_scatt_map):
         """
-        Convolve the all-sky detector response with exposure over the sky
-        sky location.
+        Validate coordinate system and setup NSIDE parameters for extended source response generation.
 
-        Provide a spacecraft attitude map.
+        Parameters
+        ----------
+        coordsys : str
+            Coordinate system to be used (currently only 'galactic' is supported)
+        nside_image : int or None
+            NSIDE parameter for the image reconstruction.
+            If None, uses the full detector response's NSIDE.
+        nside_scatt_map : int or None
+            NSIDE parameter for scatt map generation.
+            If None, uses the full detector response's NSIDE.
+
+        Returns
+        -------
+        tuple
+            (coordsys, nside_image, nside_scatt_map) : validated parameters
+        """
+        if coordsys != 'galactic':
+            raise ValueError(f'The coordsys {coordsys} not currently supported')
+
+        if nside_image is None:
+            nside_image = self.nside
+
+        if nside_scatt_map is None:
+            nside_scatt_map = self.nside
+            
+        return coordsys, nside_image, nside_scatt_map
+
+    def get_point_source_response_per_image_pixel(self, ipix_image, orientation, coordsys = 'galactic', nside_image = None, nside_scatt_map = None, Earth_occ = True):
+        """
+        Generate point source response for a specific HEALPix pixel by convolving 
+        the all-sky detector response with exposure.
+
+        Parameters
+        ----------
+        ipix_image : int
+            HEALPix pixel index
+        orientation : cosipy.spacecraftfile.SpacecraftFile
+            Spacecraft attitude information
+        coordsys : str, default 'galactic'
+            Coordinate system (currently only 'galactic' is supported)
+        nside_image : int, optional
+            NSIDE parameter for image reconstruction.
+            If None, uses the detector response's NSIDE.
+        nside_scatt_map : int, optional
+            NSIDE parameter for scatt map generation.
+            If None, uses the detector response's NSIDE.
+        Earth_occ : bool, default True
+            Whether to include Earth occultation in the response
+
+        Returns
+        -------
+        :py:class:`PointSourceResponse`
+            Point source response for the specified pixel
+        """
+        coordsys, nside_image, nside_scatt_map = self._setup_extended_source_response_params(coordsys, nside_image, nside_scatt_map)
+        
+        image_axes = HealpixAxis(nside = nside_image, coordsys = coordsys, scheme='ring', label = 'NuLambda') # The label should be 'lb' in the future
+
+        coord = image_axes.pix2skycoord(ipix_image)
+
+        scatt_map = orientation.get_scatt_map(target_coord = coord,
+                                              nside = nside_scatt_map,
+                                              scheme='ring',
+                                              coordsys=coordsys,
+                                              earth_occ=Earth_occ)
+
+        psr = self.get_point_source_response(coord = coord, scatt_map = scatt_map, Earth_occ = Earth_occ)
+
+        return psr
+
+    def get_extended_source_response(self, orientation, coordsys = 'galactic', nside_image = None, nside_scatt_map = None, Earth_occ = True):
+        """
+        Generate extended source response by convolving the all-sky detector 
+        response with exposure over the entire sky.
 
         Parameters
         ----------
         orientation : cosipy.spacecraftfile.SpacecraftFile
+            Spacecraft attitude information
         coordsys : str, default 'galactic'
-            Currently, only 'galactic' is supported.
-        nside_model: int, default None
-            NSIDE of the image to be reconstructed.
-            If it is None, NSIDE of the full detector response will be used.
-        nside_scatt_map: int, default None
-            NSIDE to be used when generating the scatt maps.
-            If it is None, NSIDE of the full detector response will be used.
+            Coordinate system (currently only 'galactic' is supported)
+        nside_image : int, optional
+            NSIDE parameter for image reconstruction.
+            If None, uses the detector response's NSIDE.
+        nside_scatt_map : int, optional
+            NSIDE parameter for scatt map generation.
+            If None, uses the detector response's NSIDE.
         Earth_occ : bool, default True
-            Option to include Earth occultation in the respeonce. 
-        
+            Whether to include Earth occultation in the response
+
         Returns
         -------
         :py:class:`ExtendedSourceResponse`
+            Extended source response covering the entire sky
         """
-        
-        if coordsys != 'galactic':
-            raise ValueError(f'The coordsys {coordsys} not currently supported')
+        coordsys, nside_image, nside_scatt_map = self._setup_extended_source_response_params(coordsys, nside_image, nside_scatt_map)
 
-        if nside_model is None:
-            nside_model = self.nside
-
-        if nside_scatt_map is None:
-            nside_scatt_map = self.nside
-
-        axes = [HealpixAxis(nside = nside_model, coordsys = coordsys, scheme='ring', label = 'NuLambda')] # The label should be 'lb' in the future
+        axes = [HealpixAxis(nside = nside_image, coordsys = coordsys, scheme='ring', label = 'NuLambda')] # The label should be 'lb' in the future
         axes += list(self.axes[1:])
         axes[-1].coordsys = coordsys
 
         extended_source_response = ExtendedSourceResponse(axes, unit = u.Unit("cm2 s"))
 
-        for ipix in tqdm(range(hp.nside2npix(nside_model))):
+        for ipix in tqdm(range(hp.nside2npix(nside_image))):
     
-            coord = extended_source_response.axes[0].pix2skycoord(ipix)
-
-            scatt_map = orientation.get_scatt_map(target_coord = coord,
-                                                  nside = nside_scatt_map,
-                                                  scheme='ring',
-                                                  coordsys=coordsys,
-                                                  earth_occ=Earth_occ)
-
-            psr = self.get_point_source_response(coord = coord, scatt_map = scatt_map, Earth_occ = Earth_occ)
+            psr = self.get_point_source_response_per_image_pixel(ipix, orientation, coordsys = coordsys, 
+                                                                 nside_image = nside_image, nside_scatt_map = nside_scatt_map, Earth_occ = Earth_occ)
 
             extended_source_response[ipix] = psr.contents
+
+        return extended_source_response
+
+    def merge_psr_to_extended_source_response(self, basename, coordsys = 'galactic', nside_image = None):
+        """
+        Create extended source response by merging multiple point source responses.
+    
+        Reads point source response files matching the pattern `basename` + index + file_extension. 
+        For example, with basename='histograms/hist_', filenames are expected to be like 'histograms/hist_00001.hdf5'.
+
+        Parameters
+        ----------
+        basename : str
+            Base filename pattern for point source response files
+        coordsys : str, default 'galactic'
+            Coordinate system (currently only 'galactic' is supported)
+        nside_image : int, optional
+            NSIDE parameter for image reconstruction.
+            If None, uses the detector response's NSIDE.
+
+        Returns
+        -------
+        :py:class:`ExtendedSourceResponse`
+            Combined extended source response
+        """
+        coordsys, nside_image, _ = self._setup_extended_source_response_params(coordsys, nside_image, None)
+
+        psr_files = glob.glob(basename + "*")
+
+        if not psr_files:
+            raise FileNotFoundError(f"No files found matching pattern {basename}*")
+
+        axes = [HealpixAxis(nside = nside_image, coordsys = coordsys, scheme='ring', label = 'NuLambda')] # The label should be 'lb' in the future
+        axes += list(self.axes[1:])
+        axes[-1].coordsys = coordsys
+
+        extended_source_response = ExtendedSourceResponse(axes, unit = u.Unit("cm2 s"))
+        
+        filled_pixels = []
+
+        for filename in psr_files:
+
+            ipix = int(filename[len(basename):].split(".")[0])
+
+            psr = Histogram.open(filename)
+        
+            extended_source_response[ipix] = psr.contents
+
+            filled_pixels.append(ipix)
+
+        expected_pixels = set(range(extended_source_response.axes[0].npix))
+        if set(filled_pixels) != expected_pixels:
+            raise ValueError(f"Missing pixels in the response files. Expected {extended_source_response.axes[0].npix} pixels, got {len(filled_pixels)} pixels")
 
         return extended_source_response
             
