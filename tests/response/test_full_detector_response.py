@@ -30,10 +30,7 @@ def test_write_h5(tmp_path):
     Tests storing a Histogram as an HDF5 response
     """
 
-    tmp_dir = tmp_path / "tmp"
-    tmp_dir.mkdir()
-
-    tmp_rsp = test_data.path / 'tmp_rsp.h5'
+    tmp_rsp = tmp_path / 'tmp_rsp.h5'
 
     drm = Histogram([HealpixAxis(nside=1, label='NuLambda'),
                      Axis(np.geomspace(200, 5000, 11) * u.keV, label='Ei'),
