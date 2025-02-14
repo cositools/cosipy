@@ -1,11 +1,15 @@
 import os
 import copy
-import numpy as np
-import astropy.units as u
-import astropy.io.fits as fits
 import logging
+
+# logging setup
 logger = logging.getLogger(__name__)
 
+# Import third party libraries
+import numpy as np
+import pandas as pd
+import astropy.units as u
+from astropy.io import fits
 from histpy import Histogram
 
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
@@ -36,7 +40,8 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
     """
 
-    def __init__(self, initial_model, dataset, mask, parameter):
+    def __init__(self, initial_model:Histogram, dataset:list, mask, parameter, 
+                 parallel:bool=False, MASTER:bool=False):
 
         DeconvolutionAlgorithmBase.__init__(self, initial_model, dataset, mask, parameter)
 
@@ -66,15 +71,21 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
             else:
                 os.makedirs(self.save_results_directory)
 
+        self.parallel = parallel
+        self.MASTER = MASTER
+
     def initialization(self):
         """
-        initialization before running the image deconvolution
+        initialization before performing image deconvolution
         """
+
+        # Master
+        if (not self.parallel) or (self.MASTER):
+            # Clear results
+            self.results.clear()
+
         # clear counter 
         self.iteration_count = 0
-
-        # clear results
-        self.results.clear()
 
         # copy model
         self.model = copy.deepcopy(self.initial_model)
@@ -116,6 +127,9 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         pass
 
+        # At the end of this function, all processes should have a complete `self.expectation_list`
+        # to proceed to the Mstep function
+
     def Mstep(self):
         """
         M-step in RL algorithm.
@@ -129,7 +143,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
         if self.mask is not None:
             self.delta_model = self.delta_model.mask_pixels(self.mask)
-        
+            
         # background normalization optimization
         if self.do_bkg_norm_optimization:
             for key in self.dict_bkg_norm.keys():
@@ -146,6 +160,11 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
                 self.dict_bkg_norm[key] = bkg_norm
 
+        # At the end of this function, all the nodes will have a full
+        # copy of delta_model. Although this is not necessary, this is
+        # the easiest way without editing RichardsonLucy.py.
+        # The same applies for self.dict_bkg_norm
+
     def post_processing(self):
         """
         Here three processes will be performed.
@@ -154,6 +173,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         - acceleration of RL algirithm: the normalization of delta map is increased as long as the updated image has no non-negative components.
         """
 
+        # All
         self.processed_delta_model = copy.deepcopy(self.delta_model)
 
         if self.do_response_weighting:
@@ -172,7 +192,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
 
         if self.mask is not None:
             self.model = self.model.mask_pixels(self.mask)
-        
+
         # update expectation_list
         self.expectation_list = self.calc_expectation_list(self.model, dict_bkg_norm = self.dict_bkg_norm)
         logger.debug("The expected count histograms were updated with the new model map.")
@@ -180,6 +200,10 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         # update loglikelihood_list
         self.loglikelihood_list = self.calc_loglikelihood_list(self.expectation_list)
         logger.debug("The loglikelihood list was updated with the new expected count histograms.")
+
+        # At the end of this function, all MPI processes needs to have a full
+        # copy of updated model. They calculate it from delta_model (which is
+        # distributed by MPI.Bcast) independently
 
     def register_result(self):
         """
@@ -193,21 +217,23 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         - loglikelihood: log-likelihood
         """
         
-        this_result = {"iteration": self.iteration_count, 
-                       "model": copy.deepcopy(self.model), 
-                       "delta_model": copy.deepcopy(self.delta_model),
-                       "processed_delta_model": copy.deepcopy(self.processed_delta_model),
-                       "background_normalization": copy.deepcopy(self.dict_bkg_norm),
-                       "alpha": self.alpha, 
-                       "loglikelihood": copy.deepcopy(self.loglikelihood_list)}
+        # Master
+        if (not self.parallel) or (self.MASTER):
+            this_result = {"iteration": self.iteration_count, 
+                        "model": copy.deepcopy(self.model), 
+                        "delta_model": copy.deepcopy(self.delta_model),
+                        "processed_delta_model": copy.deepcopy(self.processed_delta_model),
+                        "background_normalization": copy.deepcopy(self.dict_bkg_norm),
+                        "alpha": self.alpha, 
+                        "loglikelihood": copy.deepcopy(self.loglikelihood_list)}
 
-        # show intermediate results
-        logger.info(f'  alpha: {this_result["alpha"]}')
-        logger.info(f'  background_normalization: {this_result["background_normalization"]}')
-        logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
+            # show intermediate results
+            logger.info(f'  alpha: {this_result["alpha"]}')
+            logger.info(f'  background_normalization: {this_result["background_normalization"]}')
+            logger.info(f'  loglikelihood: {this_result["loglikelihood"]}')
         
-        # register this_result in self.results
-        self.results.append(this_result)
+            # register this_result in self.results
+            self.results.append(this_result)
 
     def check_stopping_criteria(self):
         """
@@ -217,6 +243,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         -------
         bool
         """
+
         if self.iteration_count < self.iteration_max:
             return False
         return True
@@ -225,38 +252,41 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         finalization after running the image deconvolution
         """
-        if self.save_results == True:
-            logger.info('Saving results in {self.save_results_directory}')
 
-            # model
-            for this_result in self.results:
-                iteration_count = this_result["iteration"]
+        # Master
+        if (not self.parallel) or (self.MASTER):
+            if self.save_results == True:
+                logger.info('Saving results in {self.save_results_directory}')
 
-                this_result["model"].write(f"{self.save_results_directory}/model_itr{iteration_count}.hdf5", overwrite = True)
-                this_result["delta_model"].write(f"{self.save_results_directory}/delta_model_itr{iteration_count}.hdf5", overwrite = True)
-                this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model_itr{iteration_count}.hdf5", overwrite = True)
+                # model
+                for this_result in self.results:
+                    iteration_count = this_result["iteration"]
 
-            #fits
-            primary_hdu = fits.PrimaryHDU()
+                    this_result["model"].write(f"{self.save_results_directory}/model_itr{iteration_count}.hdf5", overwrite = True)
+                    this_result["delta_model"].write(f"{self.save_results_directory}/delta_model_itr{iteration_count}.hdf5", overwrite = True)
+                    this_result["processed_delta_model"].write(f"{self.save_results_directory}/processed_delta_model_itr{iteration_count}.hdf5", overwrite = True)
 
-            col_iteration = fits.Column(name='iteration', array=[float(result['iteration']) for result in self.results], format='K')
-            col_alpha = fits.Column(name='alpha', array=[float(result['alpha']) for result in self.results], format='D')
-            cols_bkg_norm = [fits.Column(name=key, array=[float(result['background_normalization'][key]) for result in self.results], format='D') 
-                             for key in self.dict_bkg_norm.keys()]
-            cols_loglikelihood = [fits.Column(name=f"{self.dataset[i].name}", array=[float(result['loglikelihood'][i]) for result in self.results], format='D') 
-                                  for i in range(len(self.dataset))]
+                #fits
+                primary_hdu = fits.PrimaryHDU()
 
-            table_alpha = fits.BinTableHDU.from_columns([col_iteration, col_alpha])
-            table_alpha.name = "alpha"
+                col_iteration = fits.Column(name='iteration', array=[float(result['iteration']) for result in self.results], format='K')
+                col_alpha = fits.Column(name='alpha', array=[float(result['alpha']) for result in self.results], format='D')
+                cols_bkg_norm = [fits.Column(name=key, array=[float(result['background_normalization'][key]) for result in self.results], format='D') 
+                                for key in self.dict_bkg_norm.keys()]
+                cols_loglikelihood = [fits.Column(name=f"{self.dataset[i].name}", array=[float(result['loglikelihood'][i]) for result in self.results], format='D') 
+                                    for i in range(len(self.dataset))]
 
-            table_bkg_norm = fits.BinTableHDU.from_columns([col_iteration] + cols_bkg_norm)
-            table_bkg_norm.name = "bkg_norm"
+                table_alpha = fits.BinTableHDU.from_columns([col_iteration, col_alpha])
+                table_alpha.name = "alpha"
 
-            table_loglikelihood = fits.BinTableHDU.from_columns([col_iteration] + cols_loglikelihood)
-            table_loglikelihood.name = "loglikelihood"
+                table_bkg_norm = fits.BinTableHDU.from_columns([col_iteration] + cols_bkg_norm)
+                table_bkg_norm.name = "bkg_norm"
 
-            hdul = fits.HDUList([primary_hdu, table_alpha, table_bkg_norm, table_loglikelihood])
-            hdul.writeto(f'{self.save_results_directory}/results.fits',  overwrite=True)
+                table_loglikelihood = fits.BinTableHDU.from_columns([col_iteration] + cols_loglikelihood)
+                table_loglikelihood.name = "loglikelihood"
+
+                hdul = fits.HDUList([primary_hdu, table_alpha, table_bkg_norm, table_loglikelihood])
+                hdul.writeto(f'{self.save_results_directory}/results.fits',  overwrite=True)
 
     def calc_alpha(self, delta_model, model):
         """
@@ -267,6 +297,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         float
             Acceleration parameter
         """
+
         diff = -1 * (model / delta_model).contents
 
         diff[(diff <= 0) | (delta_model.contents == 0)] = np.inf
