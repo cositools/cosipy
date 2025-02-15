@@ -5,7 +5,8 @@ from threeML.exceptions.custom_exceptions import FitFailed
 from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
-from cosipy.image_deconvolution import ModelMap
+from cosipy.response.ExtendedSourceResponse import ExtendedSourceResponse
+from cosipy.image_deconvolution import AllSkyImageModel
 
 from scoords import SpacecraftFrame, Attitude
 
@@ -60,9 +61,11 @@ class COSILike(PluginPrototype):
         attached to them
     precomputed_psr_file : str, optional
         Full path to precomputed point source response in Galactic coordinates
+    earth_occ : bool, optional
+        Option to include Earth occultation in fit (default is True).
     """
     def __init__(self, name, dr, data, bkg, sc_orientation, 
-                 nuisance_param=None, coordsys=None, precomputed_psr_file=None, **kwargs):
+                 nuisance_param=None, coordsys=None, precomputed_psr_file=None, earth_occ=True, **kwargs):
         
         # create the hash for the nuisance parameters. We have none for now.
         self._nuisance_parameters = collections.OrderedDict()
@@ -77,6 +80,7 @@ class COSILike(PluginPrototype):
         self._data = data
         self._bkg = bkg
         self._sc_orientation = sc_orientation
+        self.earth_occ = earth_occ
         
         try:
             if data.axes["PsiChi"].coordsys.name != bkg.axes["PsiChi"].coordsys.name:
@@ -114,11 +118,9 @@ class COSILike(PluginPrototype):
         # consistent way for point srcs and extended srcs. 
         self.precomputed_psr_file = precomputed_psr_file
         if self.precomputed_psr_file != None:
-            print("... loading the pre-computed image response ...")
-            self.image_response = DetectorResponse.open(self.precomputed_psr_file)
-            # in the near future, we will implement ExtendedSourceResponse class, which should be used here (HY).
-            # probably, it is better to move this loading part outside of this class. Then, we don't have to load the response everytime we start the fitting (HY).
-            print("--> done")
+            logger.info("... loading the pre-computed image response ...")
+            self.image_response = ExtendedSourceResponse.open(self.precomputed_psr_file)
+            logger.info("--> done")
         
     def set_model(self, model):
         """
@@ -154,22 +156,8 @@ class COSILike(PluginPrototype):
             # Note: the spectral parameters are updated internally by 3ML
             # during the likelihood scan. 
 
-            model_map = ModelMap(nside = self.image_response.axes['NuLambda'].nside, 
-                                energy_edges = self.image_response.axes['Ei'].edges,
-                                coordsys = 'galactic',
-                                label_image = 'NuLambda', # I think the label should be something like 'lb' to distiguish the photon direction in the local/galactic coordinates 
-                                label_energy = 'Ei')
-
-            model_map.set_values_from_extendedmodel(source)
-
             # Get expectation using precomputed psr in Galactic coordinates:
-            total_expectation = Histogram(edges = self.image_response.axes[2:],
-                                          contents = np.tensordot(model_map.contents, self.image_response.contents, axes = ([0,1], [0,1])) * model_map.axes['NuLambda'].pixarea())
-            # ['NuLambda', 'Ei'] x ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'] => 'Em', 'Phi', 'PsiChi']
-            # this part should be modified with the future ExtendedSourceResponse class like
-            # total_expectation = self.image_response.get_expectation(model_map)
-            # or 
-            # total_expectation = self.image_response.get_expectation_from_astromodel(source) (HY)
+            total_expectation = self.image_response.get_expectation_from_astromodel(source)
 
             # Save expected counts for source:
             self._expected_counts[name] = copy.deepcopy(total_expectation)
@@ -195,7 +183,7 @@ class COSILike(PluginPrototype):
         
             if self._psr is None or len(point_sources) != len(self._psr):
 
-                print("... Calculating point source responses ...")
+                logger.info("... Calculating point source responses ...")
 
                 self._psr = {}
                 self._source_location = {} # Should the poition information be in the point source response? (HY)
@@ -209,20 +197,20 @@ class COSILike(PluginPrototype):
                         dwell_time_map = self._get_dwell_time_map(coord)
                         self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
                     elif self._coordsys == 'galactic':
-                        scatt_map = self._get_scatt_map()
+                        scatt_map = self._get_scatt_map(coord)
                         self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
                     else:
                         raise RuntimeError("Unknown coordinate system")
 
-                    print(f"--> done (source name : {name})")
+                    logger.info(f"--> done (source name : {name})")
 
-                print(f"--> all done")
+                logger.info(f"--> all done")
         
         # check if the source location is updated or not
         for name, source in point_sources.items():
 
             if source.position.sky_coord != self._source_location[name]:
-                print(f"... Re-calculating the point source response of {name} ...")
+                logger.info(f"... Re-calculating the point source response of {name} ...")
                 coord = source.position.sky_coord
 
                 self._source_location[name] = copy.deepcopy(coord) # to avoid same memory issue
@@ -236,7 +224,7 @@ class COSILike(PluginPrototype):
                 else:
                     raise RuntimeError("Unknown coordinate system")
 
-                print(f"--> done (source name : {name})")
+                logger.info(f"--> done (source name : {name})")
 
         # Get expectation for point sources:
         for name,source in point_sources.items():
@@ -340,16 +328,22 @@ class COSILike(PluginPrototype):
         
         return dwell_time_map
     
-    def _get_scatt_map(self):
+    def _get_scatt_map(self, coord):
         """
         Get the spacecraft attitude map of the source in the inertial (spacecraft) frame.
         
+        Parameters
+        ----------
+        coord : astropy.coordinates.SkyCoord
+            The coordinates of the target object.
+
         Returns
         -------
         scatt_map : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
         """
         
-        scatt_map = self._sc_orientation.get_scatt_map(nside = self._dr.nside * 2, coordsys = 'galactic')
+        scatt_map = self._sc_orientation.get_scatt_map(coord, nside = self._dr.nside * 2, \
+                coordsys = 'galactic', earth_occ = self.earth_occ)
         
         return scatt_map
     

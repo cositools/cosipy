@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 
 import astropy.io.fits as fits
 
+import logging
+logger = logging.getLogger(__name__)
 
 class TSMap:
 
@@ -175,8 +177,8 @@ class TSMap:
             for j in range(self.log_like.axes['dec'].nbins):
         
                 # progress
-                print(f"\rra = {i:2d}/{self.log_like.axes['ra'].nbins}   ", end = "")
-                print(f"dec = {j:2d}/{self.log_like.axes['dec'].nbins}   ", end = "")
+                logger.info(f"\rra = {i:2d}/{self.log_like.axes['ra'].nbins}   ", end = "")
+                logger.info(f"dec = {j:2d}/{self.log_like.axes['dec'].nbins}   ", end = "")
         
                 # changing the position parameters
                 # converting rad to deg due to ra and dec in 3ML PointSource
@@ -237,10 +239,10 @@ class TSMap:
         else:
             self.best_ra = (self.ts.axes['ra'].centers[self.argmax[0]]) * (180/np.pi) # deg
         self.best_dec = self.ts.axes['dec'].centers[self.argmax[1]] * (180/np.pi) # deg
-        print(f"Best fit position: RA = {self.best_ra} deg, Dec = {self.best_dec} deg")
+        logger.info(f"Best fit position: RA = {self.best_ra} deg, Dec = {self.best_dec} deg")
         
         # convert to significance based on Wilk's theorem
-        print(f"Expected significance: {stats.norm.isf(stats.chi2.sf(self.ts_max, df = 2)):.1f} sigma")
+        logger.info(f"Expected significance: {stats.norm.isf(stats.chi2.sf(self.ts_max, df = 2)):.1f} sigma")
         
     def save_ts(self, output_file_name):
 

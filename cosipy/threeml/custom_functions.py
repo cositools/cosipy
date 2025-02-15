@@ -24,7 +24,7 @@ class Band_Eflux(Function1D, metaclass=FunctionMeta):
             desc : Normalization (flux between a and b)
             initial value : 1.e-5
             min : 1e-50
-            is_normalization : True
+            is_normalization : False
             transformation : log10
         E0 :
             desc : $\frac{xp}{2+\alpha}$ where xp is peak in the x * x * N (nuFnu if x is an energy)
@@ -96,57 +96,6 @@ class Band_Eflux(Function1D, metaclass=FunctionMeta):
 
         return nb_func.band_eval(x_, A_, alpha_, beta_, E0_, 1.0) * unit_
 
-def get_integrated_spectral_model(spectrum, eaxis):
-    """
-    Get the photon fluxes integrated over given energy bins with an input astropy spectral model
-        
-    Parameters
-    ----------
-    spectrum: astromodels (one-dimensional function)
-    eaxis: histpy.Axis
-    
-    Returns
-    -------
-    flux: histpy.Histogram 
-    """
-
-    spectrum_unit = None
-
-    for item in spectrum.parameters:
-        if getattr(spectrum, item).is_normalization == True:
-            spectrum_unit = getattr(spectrum, item).unit
-            break
-            
-    if spectrum_unit == None:
-        if isinstance(spectrum, Constant):
-            spectrum_unit = spectrum.k.unit
-        elif isinstance(spectrum, Line) or isinstance(spectrum, Quadratic) or isinstance(spectrum, Cubic) or isinstance(spectrum, Quartic):
-            spectrum_unit = spectrum.a.unit
-        elif isinstance(spectrum, StepFunction) or isinstance(spectrum, StepFunctionUpper) or isinstance(spectrum, Cosine_Prior) or isinstance(spectrum, Uniform_prior) or isinstance(spectrum, DiracDelta): 
-            spectrum_unit = spectrum.value.unit
-        elif isinstance(spectrum, PhAbs):
-            spectrum_unit = u.dimensionless_unscaled
-        elif isinstance(spectrum, Gaussian):
-            spectrum_unit = spectrum.F.unit / spectrum.sigma.unit 
-        else:
-            try:
-                spectrum_unit = spectrum.K.unit
-            except:
-                raise RuntimeError("Spectrum not yet supported because units of spectrum are unknown.")
-                
-    if isinstance(spectrum, DiracDelta):
-        flux = Quantity([spectrum.value.value * spectrum_unit * lo_lim.unit if spectrum.zero_point.value >= lo_lim/lo_lim.unit and spectrum.zero_point.value <= hi_lim/hi_lim.unit else 0 * spectrum_unit * lo_lim.unit
-                         for lo_lim,hi_lim
-                         in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
-    else:
-        flux = Quantity([integrate.quad(spectrum, lo_lim/lo_lim.unit, hi_lim/hi_lim.unit)[0] * spectrum_unit * lo_lim.unit
-                         for lo_lim,hi_lim
-                         in zip(eaxis.lower_bounds, eaxis.upper_bounds)])
-    
-    flux = Histogram(eaxis, contents = flux)
-
-    return flux
-
 class SpecFromDat(Function1D, metaclass=FunctionMeta):
         r"""
         description :
@@ -160,11 +109,15 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
                 min : 1e-30
                 max : 1e3
                 delta : 0.1
+                units: ph/cm2/s
         properties:
             dat:
                 desc: the data file to load
                 initial value: test.dat
                 defer: True
+                units: 
+                    energy: keV
+                    flux: ph/cm2/s/kev
         """            
         def _set_units(self, x_unit, y_unit):
             
@@ -173,8 +126,12 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
         def evaluate(self, x, K):
             dataFlux = np.genfromtxt(self.dat.value,comments = "#",usecols = (2),skip_footer=1,skip_header=5)
             dataEn = np.genfromtxt(self.dat.value,comments = "#",usecols = (1),skip_footer=1,skip_header=5)
+            
+            # Calculate the widths of the energy bins
+            ewidths = np.diff(dataEn, append=dataEn[-1])
 
-            dataFlux = dataFlux / sum(dataFlux) #normalized since the dat file has one point per keV
+            # Normalize dataFlux using the energy bin widths
+            dataFlux = dataFlux  / np.sum(dataFlux * ewidths)
             
             fun = interp1d(dataEn,dataFlux,fill_value=0,bounds_error=False)
             

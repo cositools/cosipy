@@ -1,5 +1,6 @@
 from .PointSourceResponse import PointSourceResponse
 from .DetectorResponse import DetectorResponse
+from .ExtendedSourceResponse import ExtendedSourceResponse
 from astromodels.core.model_parser import ModelParser
 import matplotlib.pyplot as plt
 from astropy.time import Time
@@ -11,7 +12,11 @@ from pathlib import Path
 import numpy as np
 import mhealpy as hp
 from mhealpy import HealpixBase, HealpixMap
-from cosipy.config import Configurator
+import glob
+
+from scipy.special import erf
+
+from yayc import Configurator
 
 from scoords import SpacecraftFrame, Attitude
 
@@ -25,7 +30,8 @@ logger = logging.getLogger(__name__)
 
 from copy import copy, deepcopy
 import gzip
-from tqdm import tqdm
+#from tqdm import tqdm
+from tqdm.autonotebook import tqdm
 import subprocess
 import sys
 import pathlib
@@ -46,7 +52,7 @@ class FullDetectorResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000):
+    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000, polarization=False):
         """
         Open a detector response file.
 
@@ -71,7 +77,6 @@ class FullDetectorResponse(HealpixBase):
 
          emin,emax : float
              emin/emax used in the simulation source file.  
-        
         """
         
         filename = Path(filename)
@@ -166,10 +171,11 @@ class FullDetectorResponse(HealpixBase):
 
          emin,emax : float
              emin/emax used in the simulation source file.
-         
         """
-        labels = ("Ei", "NuLambda", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
 
+        
+        
+        axes_names = []
         axes_edges = []
         axes_types = []
         sparse = None
@@ -195,19 +201,25 @@ class FullDetectorResponse(HealpixBase):
                     try :
                         norm = str(line[1])
                     except :
-                        print(f"norm not found in the file ! We assume {norm}")
+                        logger.info(f"norm not found in the file ! We assume {norm}")
 
                     if norm =="Linear" :
                         emin = int(line[2])
                         emax = int(line[3])
-                        
-             
-		
+                    
+                    if norm == "Gaussian" :
+                        Gauss_mean = float(line[2])   
+                        Gauss_sig = float(line[3])
+                        Gauss_cutoff = float(line[4])          
+  	
                 elif key == "MS":
                     if line[1] == "true" :
                         sparse = True
                     if line[1] == "false" :
                         sparse = False
+
+                elif key == 'AN':
+                    axes_names += [" ".join(line[1:])]
 
                 elif key == 'AD':
 
@@ -241,22 +253,31 @@ class FullDetectorResponse(HealpixBase):
                 elif key == "StartStream":
                     nbins = int(line[1])
                     break
+
+        # Check axes names and relabel
+        if np.array_equal(axes_names, ['"Initial energy [keV]"', '"#nu [deg]" "#lambda [deg]"', '"Polarization Angle [deg]"', '"Measured energy [keV]"', '"#phi [deg]"', '"#psi [deg]" "#chi [deg]"', '"#sigma [deg]" "#tau [deg]"', '"Distance [cm]"']):
+            has_polarization = True
+            labels = ("Ei", "NuLambda", "Pol", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
+        elif np.array_equal(axes_names, ['"Initial energy [keV]"', '"#nu [deg]" "#lambda [deg]"', '"Measured energy [keV]"', '"#phi [deg]"', '"#psi [deg]" "#chi [deg]"', '"#sigma [deg]" "#tau [deg]"', '"Distance [cm]"']):
+            has_polarization = False
+            labels = ("Ei", "NuLambda", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
+        else:
+            raise InputError("Unknown response format")
         
         #check if the type of spectrum is known
-        assert norm=="powerlaw" or norm=="Mono" or norm=="Linear","unknown normalisation !" 
+        assert norm=="powerlaw" or norm=="Mono" or norm=="Linear" or norm=="Gaussian",f"unknown normalisation ! {norm}" 
          
         #check the number of simulated events is not 0
         assert nevents_sim != 0,"number of simulated events is 0 !" 
         
         
-        print("normalisation is {0}".format(norm))
+        logger.info("normalisation is {0}".format(norm))
         if sparse == None :
-            print("Sparse paramater not found in the file : We assume this is a non sparse matrice !")
+            logger.info("Sparse paramater not found in the file : We assume this is a non sparse matrice !")
             sparse = False
         else :
-            print("Sparse matrice ? {0}".format(sparse))
+            logger.info("Sparse matrice ? {0}".format(sparse))
         edges = ()
-        #print(axes_edges)
 
         for axis_edges, axis_type in zip(axes_edges, axes_types):
 
@@ -272,8 +293,6 @@ class FullDetectorResponse(HealpixBase):
                 raise RuntimeError("FISBEL binning not currently supported")
             else:
                 edges += (axis_edges,)
-
-        #print(edges)
         
         if sparse :
             axes = Axes(edges, labels=labels)
@@ -293,17 +312,17 @@ class FullDetectorResponse(HealpixBase):
 
             # If fast method fails, use long method, which should work in all cases.
             except:
-                print("Initial attempt failed.")
-                print("Using long method...")
+                logger.info("Initial attempt failed.")
+                logger.info("Using long method...")
                 nlines = sum(1 for _ in gzip.open(filename,"rt"))
                 
             # Preallocate arrays
-            coords = np.empty([axes.ndim, nlines], dtype=np.int16)
-            data = np.empty(nlines, dtype=np.int16)
+            coords = np.empty([axes.ndim, nlines], dtype=np.uint32)
+            data = np.empty(nlines, dtype=np.uint32)
 
             # Calculate the memory usage in Gigabytes
             memory_size = ((nlines * data.itemsize)+(axes.ndim*nlines*coords.itemsize))/(1024*1024*1024)
-            print(f"Estimated RAM you need to read the file : {memory_size} GB")
+            logger.info(f"Estimated RAM you need to read the file : {memory_size} GB")
 
     
                 
@@ -311,11 +330,11 @@ class FullDetectorResponse(HealpixBase):
             nlines = nbins        
             
             # Preallocate arrays    
-            data = np.empty(nlines, dtype=np.int16)
+            data = np.empty(nlines, dtype=np.uint32)
 
             # Calculate the memory usage in Gigabytes
             memory_size = (nlines * data.itemsize)/(1024*1024*1024)
-            print(f"Estimated RAM you need to read the file : {memory_size} GB")
+            logger.info(f"Estimated RAM you need to read the file : {memory_size} GB")
 
 
         # Loop
@@ -343,7 +362,7 @@ class FullDetectorResponse(HealpixBase):
 
                     if key == 'RD':
 
-                        b = np.array(line[1:-1], dtype=np.int16)
+                        b = np.array(line[1:-1], dtype=np.uint32)
                         c = int(line[-1])
 
                         coords[:, sbin] = b
@@ -376,7 +395,7 @@ class FullDetectorResponse(HealpixBase):
                     if binLine :
                         #check we have same number of bin than values read
                         if len(line)!=nbins :
-                            print("nb of bin content read ({0}) != nb of bins {1}".format(len(line),nbins))
+                            logger.info("nb of bin content read ({0}) != nb of bins {1}".format(len(line),nbins))
                             sys.exit()
                         
                         for i in tqdm(range(nbins), desc="Processing", unit="bin"):
@@ -388,7 +407,7 @@ class FullDetectorResponse(HealpixBase):
 
                         break
         
-        print("response file read ! Now we create the histogram and weight in order to "+ 
+        logger.info("response file read ! Now we create the histogram and weight in order to "+ 
                 "get the effective area")
         # create histpy histogram
 
@@ -412,8 +431,18 @@ class FullDetectorResponse(HealpixBase):
         #print(ewidth)
         #print(ecenters)
 
+        #if we have one single bin, treat the gaussian norm like the mono one
+        #also check that the gaussian spectrum is fully contained in that bin 
+        if len(ewidth) == 1 and norm == "Gaussian":
+            edges = dr.axes['Ei'].edges
+            gauss_int = 0.5 * (1 + erf( (edges[0]-Gauss_mean)/(4*np.sqrt(2)) ) ) + 0.5 * (1 + erf( (edges[1]-Gauss_mean)/(4*np.sqrt(2)) ) )
+            
+            assert gauss_int == 1, "The gaussian spectrum is not fully contained in this single bin !"
+            logger.info("Only one bin so we will use the Mono normalisation")
+            norm ="Mono"
+
         if Spectrumfile is not None and norm=="file":
-            print("normalisation : spectrum file")
+            logger.info("normalisation : spectrum file")
             # From spectrum file
             spec = pd.read_csv(Spectrumfile, sep=" ")
             spec = spec.iloc[:-1]
@@ -428,7 +457,7 @@ class FullDetectorResponse(HealpixBase):
             nperchannel_norm = hspec[:]
 
         elif norm=="powerlaw":
-            print("normalisation : powerlaw with index {0} with energy range [{1}-{2}]keV".format(alpha,emin,emax))
+            logger.info("normalisation : powerlaw with index {0} with energy range [{1}-{2}]keV".format(alpha,emin,emax))
             # From powerlaw
 
             e_lo = dr.axes['Ei'].lower_bounds
@@ -451,14 +480,18 @@ class FullDetectorResponse(HealpixBase):
                 nperchannel_norm = (e_hi**a - e_lo**a) / (emax**a - emin**a)            
 
         elif norm =="Linear" :
-            print("normalisation : linear with energy range [{0}-{1}]".format(emin,emax))
+            logger.info("normalisation : linear with energy range [{0}-{1}]".format(emin,emax))
             nperchannel_norm = ewidth / (emax-emin)
             
         elif norm=="Mono" :
-            print("normalisation : mono")
+            logger.info("normalisation : mono")
 
             nperchannel_norm = np.array([1.])
-            
+        
+        elif norm == "Gaussian" :
+            raise NotImplementedError("Gausssian norm for multiple bins not yet implemented")
+
+
         nperchannel = nperchannel_norm * nevents_sim
         # Full-sky?
         if not single_pixel:
@@ -487,9 +520,7 @@ class FullDetectorResponse(HealpixBase):
             pass
 
         # create a .h5 file with the good structure
-        filename = filename.replace(
-        ".rsp.gz", "_nside{0}.area.h5".format(nside))
-        
+        filename = Path(str(filename).replace(".rsp.gz","_nside{0}.area.h5".format(nside)))
         f = h5.File(filename, mode='w')
 
         drm = f.create_group('DRM')
@@ -497,47 +528,9 @@ class FullDetectorResponse(HealpixBase):
         # Header
         drm.attrs['UNIT'] = 'cm2'
 
-        #sparse
-        if sparse :
-            drm.attrs['SPARSE'] = True
-            
-             # Axes
-            axes = drm.create_group('AXES', track_order=True)
-
-            for axis in dr.axes[['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi','SigmaTau','Dist']]:
-
-                axis_dataset = axes.create_dataset(axis.label,
-                                           data=axis.edges)
-                                           
-
-                if axis.label in ['NuLambda', 'PsiChi','SigmaTau']:
-
-                    # HEALPix
-                    axis_dataset.attrs['TYPE'] = 'healpix'
-
-                    axis_dataset.attrs['NSIDE'] = nside
-
-                    axis_dataset.attrs['SCHEME'] = 'ring'
-
-                else:
-
-                    # 1D
-                    axis_dataset.attrs['TYPE'] = axis.axis_scale
-
-                    if axis.label in ['Ei', 'Em']:
-                        axis_dataset.attrs['UNIT'] = 'keV'
-                        axis_dataset.attrs['TYPE'] = 'log'
-                    elif axis.label in ['Phi']:
-                        axis_dataset.attrs['UNIT'] = 'deg'
-                        axis_dataset.attrs['TYPE'] = 'linear'
-                    elif axis.label in ['Dist']:
-                        axis_dataset.attrs['UNIT'] = 'cm'
-                        axis_dataset.attrs['TYPE'] = 'linear'
-                    else:
-                        raise ValueError("Shouldn't happend")
-
-                axis_description = {'Ei': "Initial simulated energy",
+        axis_description = {'Ei': "Initial simulated energy",
                             'NuLambda': "Location of the simulated source in the spacecraft coordinates",
+                            'Pol': "Polarization angle",
                             'Em': "Measured energy",
                             'Phi': "Compton angle",
                             'PsiChi': "Location in the Compton Data Space",
@@ -545,60 +538,57 @@ class FullDetectorResponse(HealpixBase):
                             'Dist': "Distance from first interaction"
                             }
 
-                axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
-    
-        #non sparse    
-        else :
-            drm.attrs['SPARSE'] = False            
+        #keep the same dimension order of the data
+        axes_to_write = ['NuLambda', 'Ei']
+        
+        if has_polarization:
+            axes_to_write += ['Pol']
 
-            # Axes
-            axes = drm.create_group('AXES', track_order=True)
+        axes_to_write += ['Em', 'Phi', 'PsiChi']
 
-            #keep the same dimension order of the data
-            for axis in dr.axes[['NuLambda','Ei', 'Em', 'Phi', 'PsiChi']]:#'SigmaTau','Dist']]:
+        if sparse:
+            drm.attrs['SPARSE'] = True
+            
+            # singletos. Save space in dense
+            axes_to_write += ['SigmaTau', 'Dist']
+        else:
+            drm.attrs['SPARSE'] = False
+            
+        axes = drm.create_group('AXES', track_order=True)
 
-                axis_dataset = axes.create_dataset(axis.label,
-                                           data=axis.edges)
-                                           
+        for axis in dr.axes[axes_to_write]:
 
-                if axis.label in ['NuLambda', 'PsiChi']:#,'SigmaTau']:
+            axis_dataset = axes.create_dataset(axis.label,
+                                    data=axis.edges)
 
-                    # HEALPix
-                    axis_dataset.attrs['TYPE'] = 'healpix'
 
-                    axis_dataset.attrs['NSIDE'] = nside
+            if axis.label in ['NuLambda', 'PsiChi','SigmaTau']:
 
-                    axis_dataset.attrs['SCHEME'] = 'ring'
-    
+                # HEALPix
+                axis_dataset.attrs['TYPE'] = 'healpix'
+
+                axis_dataset.attrs['NSIDE'] = nside
+
+                axis_dataset.attrs['SCHEME'] = 'ring'
+
+            else:
+
+                # 1D
+                axis_dataset.attrs['TYPE'] = axis.axis_scale
+
+                if axis.label in ['Ei', 'Em']:
+                    axis_dataset.attrs['UNIT'] = 'keV'
+                    axis_dataset.attrs['TYPE'] = 'log'
+                elif axis.label in ['Phi', 'Pol']:
+                    axis_dataset.attrs['UNIT'] = 'deg'
+                    axis_dataset.attrs['TYPE'] = 'linear'
+                elif axis.label in ['Dist']:
+                    axis_dataset.attrs['UNIT'] = 'cm'
+                    axis_dataset.attrs['TYPE'] = 'linear'
                 else:
+                   raise ValueError("Shouldn't happend")
 
-                    # 1D
-                    axis_dataset.attrs['TYPE'] = axis.axis_scale
-
-                    if axis.label in ['Ei', 'Em']:
-                        axis_dataset.attrs['UNIT'] = 'keV'
-                        axis_dataset.attrs['TYPE'] = 'log'
-                    elif axis.label in ['Phi']:
-                        axis_dataset.attrs['UNIT'] = 'deg'
-                        axis_dataset.attrs['TYPE'] = 'linear'
-                        #elif axis.label in ['Dist']:
-                        #    axis_dataset.attrs['UNIT'] = 'cm'
-                        #    axis_dataset.attrs['TYPE'] = 'linear'
-                    else:
-                        raise ValueError("Shouldn't happend")
-
-                axis_description = {'Ei': "Initial simulated energy",
-                            'NuLambda': "Location of the simulated source in the spacecraft coordinates",
-                            'Em': "Measured energy",
-                            'Phi': "Compton angle",
-                            'PsiChi': "Location in the Compton Data Space",
-                            #'SigmaTau': "Electron recoil angle",
-                            #'Dist': "Distance from first interaction"
-                            }
-
-                axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
-       
-
+            axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
 
         #sparse matrice
         if sparse :
@@ -821,7 +811,8 @@ class FullDetectorResponse(HealpixBase):
     def get_point_source_response(self,
                                   exposure_map = None,
                                   coord = None,
-                                  scatt_map = None):
+                                  scatt_map = None,
+                                  Earth_occ = True):
         """
         Convolve the all-sky detector response with exposure for a source at a given
         sky location.
@@ -837,6 +828,10 @@ class FullDetectorResponse(HealpixBase):
             Source coordinate
         scatt_map : :py:class:`SpacecraftAttitudeMap`
             Spacecraft attitude map
+        Earth_occ : bool, optional
+            Option to include Earth occultation in the respeonce. 
+            Default is True, in which case you can only pass one 
+            coord, which must be the same as was used for the scatt map. 
         
         Returns
         -------
@@ -846,6 +841,11 @@ class FullDetectorResponse(HealpixBase):
         # TODO: deprecate exposure_map in favor of coords + scatt map for both local
         # and interntial coords
         
+        if Earth_occ == True:
+            if coord != None:
+                if coord.size > 1:
+                    raise ValueError("For Earth occultation you must use the same coordinate as was used for the scatt map!")
+
         if exposure_map is not None:
             if not self.conformable(exposure_map):
                 raise ValueError(
@@ -916,6 +916,175 @@ class FullDetectorResponse(HealpixBase):
                 return psr[0]
             else:
                 return psr
+
+    def _setup_extended_source_response_params(self, coordsys, nside_image, nside_scatt_map):
+        """
+        Validate coordinate system and setup NSIDE parameters for extended source response generation.
+
+        Parameters
+        ----------
+        coordsys : str
+            Coordinate system to be used (currently only 'galactic' is supported)
+        nside_image : int or None
+            NSIDE parameter for the image reconstruction.
+            If None, uses the full detector response's NSIDE.
+        nside_scatt_map : int or None
+            NSIDE parameter for scatt map generation.
+            If None, uses the full detector response's NSIDE.
+
+        Returns
+        -------
+        tuple
+            (coordsys, nside_image, nside_scatt_map) : validated parameters
+        """
+        if coordsys != 'galactic':
+            raise ValueError(f'The coordsys {coordsys} not currently supported')
+
+        if nside_image is None:
+            nside_image = self.nside
+
+        if nside_scatt_map is None:
+            nside_scatt_map = self.nside
+            
+        return coordsys, nside_image, nside_scatt_map
+
+    def get_point_source_response_per_image_pixel(self, ipix_image, orientation, coordsys = 'galactic', nside_image = None, nside_scatt_map = None, Earth_occ = True):
+        """
+        Generate point source response for a specific HEALPix pixel by convolving 
+        the all-sky detector response with exposure.
+
+        Parameters
+        ----------
+        ipix_image : int
+            HEALPix pixel index
+        orientation : cosipy.spacecraftfile.SpacecraftFile
+            Spacecraft attitude information
+        coordsys : str, default 'galactic'
+            Coordinate system (currently only 'galactic' is supported)
+        nside_image : int, optional
+            NSIDE parameter for image reconstruction.
+            If None, uses the detector response's NSIDE.
+        nside_scatt_map : int, optional
+            NSIDE parameter for scatt map generation.
+            If None, uses the detector response's NSIDE.
+        Earth_occ : bool, default True
+            Whether to include Earth occultation in the response
+
+        Returns
+        -------
+        :py:class:`PointSourceResponse`
+            Point source response for the specified pixel
+        """
+        coordsys, nside_image, nside_scatt_map = self._setup_extended_source_response_params(coordsys, nside_image, nside_scatt_map)
+        
+        image_axes = HealpixAxis(nside = nside_image, coordsys = coordsys, scheme='ring', label = 'NuLambda') # The label should be 'lb' in the future
+
+        coord = image_axes.pix2skycoord(ipix_image)
+
+        scatt_map = orientation.get_scatt_map(target_coord = coord,
+                                              nside = nside_scatt_map,
+                                              scheme='ring',
+                                              coordsys=coordsys,
+                                              earth_occ=Earth_occ)
+
+        psr = self.get_point_source_response(coord = coord, scatt_map = scatt_map, Earth_occ = Earth_occ)
+
+        return psr
+
+    def get_extended_source_response(self, orientation, coordsys = 'galactic', nside_image = None, nside_scatt_map = None, Earth_occ = True):
+        """
+        Generate extended source response by convolving the all-sky detector 
+        response with exposure over the entire sky.
+
+        Parameters
+        ----------
+        orientation : cosipy.spacecraftfile.SpacecraftFile
+            Spacecraft attitude information
+        coordsys : str, default 'galactic'
+            Coordinate system (currently only 'galactic' is supported)
+        nside_image : int, optional
+            NSIDE parameter for image reconstruction.
+            If None, uses the detector response's NSIDE.
+        nside_scatt_map : int, optional
+            NSIDE parameter for scatt map generation.
+            If None, uses the detector response's NSIDE.
+        Earth_occ : bool, default True
+            Whether to include Earth occultation in the response
+
+        Returns
+        -------
+        :py:class:`ExtendedSourceResponse`
+            Extended source response covering the entire sky
+        """
+        coordsys, nside_image, nside_scatt_map = self._setup_extended_source_response_params(coordsys, nside_image, nside_scatt_map)
+
+        axes = [HealpixAxis(nside = nside_image, coordsys = coordsys, scheme='ring', label = 'NuLambda')] # The label should be 'lb' in the future
+        axes += list(self.axes[1:])
+        axes[-1].coordsys = coordsys
+
+        extended_source_response = ExtendedSourceResponse(axes, unit = u.Unit("cm2 s"))
+
+        for ipix in tqdm(range(hp.nside2npix(nside_image))):
+    
+            psr = self.get_point_source_response_per_image_pixel(ipix, orientation, coordsys = coordsys, 
+                                                                 nside_image = nside_image, nside_scatt_map = nside_scatt_map, Earth_occ = Earth_occ)
+
+            extended_source_response[ipix] = psr.contents
+
+        return extended_source_response
+
+    def merge_psr_to_extended_source_response(self, basename, coordsys = 'galactic', nside_image = None):
+        """
+        Create extended source response by merging multiple point source responses.
+    
+        Reads point source response files matching the pattern `basename` + index + file_extension. 
+        For example, with basename='histograms/hist_', filenames are expected to be like 'histograms/hist_00001.hdf5'.
+
+        Parameters
+        ----------
+        basename : str
+            Base filename pattern for point source response files
+        coordsys : str, default 'galactic'
+            Coordinate system (currently only 'galactic' is supported)
+        nside_image : int, optional
+            NSIDE parameter for image reconstruction.
+            If None, uses the detector response's NSIDE.
+
+        Returns
+        -------
+        :py:class:`ExtendedSourceResponse`
+            Combined extended source response
+        """
+        coordsys, nside_image, _ = self._setup_extended_source_response_params(coordsys, nside_image, None)
+
+        psr_files = glob.glob(basename + "*")
+
+        if not psr_files:
+            raise FileNotFoundError(f"No files found matching pattern {basename}*")
+
+        axes = [HealpixAxis(nside = nside_image, coordsys = coordsys, scheme='ring', label = 'NuLambda')] # The label should be 'lb' in the future
+        axes += list(self.axes[1:])
+        axes[-1].coordsys = coordsys
+
+        extended_source_response = ExtendedSourceResponse(axes, unit = u.Unit("cm2 s"))
+        
+        filled_pixels = []
+
+        for filename in psr_files:
+
+            ipix = int(filename[len(basename):].split(".")[0])
+
+            psr = Histogram.open(filename)
+        
+            extended_source_response[ipix] = psr.contents
+
+            filled_pixels.append(ipix)
+
+        expected_pixels = set(range(extended_source_response.axes[0].npix))
+        if set(filled_pixels) != expected_pixels:
+            raise ValueError(f"Missing pixels in the response files. Expected {extended_source_response.axes[0].npix} pixels, got {len(filled_pixels)} pixels")
+
+        return extended_source_response
             
     @staticmethod
     def _sum_rot_hist(h, h_new, exposure, axis = "PsiChi"):
@@ -1096,9 +1265,8 @@ def cosi_response(argv=None):
             # Spectrum
             model = ModelParser(model_dict=config['sources']).get_model()
 
-            for src_name, src in model.point_sources.items():
-                for comp_name, component in src.components.items():
-                    logger.info(f"Using spectrum:\n {component.shape}")
+            spectrum = model.point_sources['source'].components['main'].shape
+            logger.info(f"Using spectrum:\n {spectrum}")
 
             # Expectation
             expectation = psr.get_expectation(spectrum).project('Em')
@@ -1147,7 +1315,7 @@ def cosi_response(argv=None):
                 apar.error(f"Argument '{option}' not valid for 'dump' command")
 
             if args.output is None:
-                print(result)
+                logger.info(result)
             else:
                 logger.info(f"Saving result to {Path(args.output).resolve()}")
                 f = open(args.output, 'a')
