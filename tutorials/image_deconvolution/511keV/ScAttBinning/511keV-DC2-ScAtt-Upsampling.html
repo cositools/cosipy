@@ -1,0 +1,2026 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DC2 Image Analysis, 511keV, Upsampling &mdash; cosipy __version__ = &#34;0.3.0&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=e963a228"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">DC2 Image Analysis, 511keV, Upsampling</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/tutorials/image_deconvolution/511keV/ScAttBinning/511keV-DC2-ScAtt-Upsampling.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="DC2-Image-Analysis,-511keV,-Upsampling">
+<h1>DC2 Image Analysis, 511keV, Upsampling<a class="headerlink" href="#DC2-Image-Analysis,-511keV,-Upsampling" title="Link to this heading"></a></h1>
+<p>updated on 2024-07-29 (the commit 14fc4c42f8b33749bd2053603643ca693dbc3954)</p>
+<p>This notebook explains image reconstruction using the pixel resolution of the model map finer than that of the response matrix.</p>
+<p>Note that this notebook is advanced. It is assumed that you have already performed the two notebooks (511keV-DC2-ScAtt-DataReduction.ipynb, 511keV-DC2-ScAtt-ImageDeconvolution.ipynb).</p>
+<section id="Point">
+<h2>Point<a class="headerlink" href="#Point" title="Link to this heading"></a></h2>
+<p>In the current implementation, the pixel size of the model map can be differnt from that of the response matrix. The model pixel size is used in the following instances:</p>
+<ul class="simple">
+<li><p>coordsys_conv_matrix</p></li>
+<li><p>image_deconvolution</p></li>
+</ul>
+<p>Thus, make sure that NSIDE in these instances must be the same. In this notebook, I present the case with NSIDE = 32 in the model map.</p>
+<p>When we convert the model map in the galactic coordinate to the detector coordinate, the pixel size will be downscaled so as the converted model map has the same pixel resolution matching the detector response. Thus, using finer resolution in the model space does not improve the angular resolution in principle, while the reconstructed image will be smoother.</p>
+<p>There are three different NSIDE defined in the analysis:</p>
+<ul class="simple">
+<li><p>NSIDE for the pixel resolution of the model (coordsys_conv_matrix, image_deconvolution)</p></li>
+<li><p>NSIDE for the pixel resolution of the response/data/background CDS (full_detector_response, inputs_511keV_DC2.yaml)</p></li>
+<li><p>NSIDE for the pixel resolution of the spacecraftattitude binning (exposure_table)</p></li>
+</ul>
+<p>Normally, these three values are set equal, but in principle they can be different.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import logging
+import sys
+logger = logging.getLogger(&#39;cosipy&#39;)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from histpy import Histogram, HealpixAxis, Axis, Axes
+from mhealpy import HealpixMap
+from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
+
+from cosipy.response import FullDetectorResponse
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.ts_map.TSMap import TSMap
+from cosipy.data_io import UnBinnedData, BinnedData
+from cosipy.image_deconvolution import SpacecraftAttitudeExposureTable, CoordsysConversionMatrix, DataIF_COSI_DC2, ImageDeconvolution
+
+# cosipy uses astropy units
+import astropy.units as u
+from astropy.units import Quantity
+from astropy.coordinates import SkyCoord
+from astropy.time import Time
+from astropy.table import Table
+from astropy.io import fits
+from scoords import Attitude, SpacecraftFrame
+
+#3ML is needed for spectral modeling
+from threeML import *
+from astromodels import Band
+
+#Other standard libraries
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+
+import healpy as hp
+from tqdm.autonotebook import tqdm
+
+%matplotlib inline
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING: version mismatch between CFITSIO header (v4) and linked library (v4.01).
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Welcome to JupyROOT 6.24/06
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">15:00:14 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The naima package is not available. Models that depend on it will not be         </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#48" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">48</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                         </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The GSL library or the pygsl wrapper cannot be loaded. Models that depend on it  </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#69" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">69</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">will not be available.                                                            </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The ebltable package is not available. Models that depend on it will not be     </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">absorption.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py#36" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">36</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                        </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">                </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of F to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">15:00:14 </span><span style="color: #00ffaf; text-decoration-color: #00ffaf">INFO    </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Starting 3ML!                                                                     </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#35" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">35</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> WARNINGs here are </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">NOT</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> errors                                                      </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#36" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">36</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> but are inform you about optional packages that can be installed                  </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#37" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">37</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold"> to disable these messages, turn off start_warning in your config file</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">            </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#40" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">40</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">15:00:15 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> PyGMO is not available                                                      </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/minimizer/minimization.py#1369" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1369</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">15:00:15 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The cthreeML package is not installed. You will not be able to use plugins which  </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#94" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">94</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">require the C/C++ interface (currently HAWC)                                       </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">              </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin HAWCLike.py. Do you have the relative instrument         </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin FermiLATLike.py. Do you have the relative instrument     </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> No fermitools installed                                              </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">lat_transient_builder.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable OMP_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable MKL_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable NUMEXPR_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal     </span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/yoneda/Work/Exp/COSI/cosipy-2/cosipy-2-venv/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>nside_scatt_binning = 32
+nside_model = 32
+</pre></div>
+</div>
+</div>
+<p><strong>In this notebook I change the NSIDE in the exposure table, so the binned data need to be reproduced.</strong></p>
+</section>
+</section>
+<section id="0.-Prepare-the-data">
+<h1>0. Prepare the data<a class="headerlink" href="#0.-Prepare-the-data" title="Link to this heading"></a></h1>
+<p>From wasabi</p>
+<ul class="simple">
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5</p></li>
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori</p></li>
+</ul>
+<p>From docs/tutorials/image_deconvolution/511keV/ScAttBinning</p>
+<ul class="simple">
+<li><p>inputs_511keV_DC2.yaml</p></li>
+<li><p>imagedeconvolution_parfile_scatt_511keV.yml</p></li>
+</ul>
+<section id="Load-the-response-and-orientation-files">
+<h2>Load the response and orientation files<a class="headerlink" href="#Load-the-response-and-orientation-files" title="Link to this heading"></a></h2>
+<p>please modify “path_data” corresponding to your environment.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>path_data = &quot;path/to/data/&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+ori_filepath = path_data + &quot;20280301_3_month.ori&quot;
+ori = SpacecraftFile.parse_from_file(ori_filepath)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 8.74 s, sys: 751 ms, total: 9.49 s
+Wall time: 9.34 s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>full_detector_response_filename = path_data + &quot;SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&quot;
+full_detector_response = FullDetectorResponse.open(full_detector_response_filename)
+
+nside_local = full_detector_response.nside
+npix_local = hp.nside2npix(nside_local)
+
+nside_local
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+16
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>full_detector_response
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+FILENAME: &#39;/Users/yoneda/Work/Exp/COSI/cosipy-2/data_challenge/DC2/prework/data/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&#39;
+AXES:
+  NuLambda:
+    DESCRIPTION: &#39;Location of the simulated source in the spacecraft coordinates&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 3072
+    NSIDE: 16
+    SCHEME: &#39;RING&#39;
+  Ei:
+    DESCRIPTION: &#39;Initial simulated energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 1
+    EDGES: [509.0 keV, 513.0 keV]
+  Em:
+    DESCRIPTION: &#39;Measured energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 1
+    EDGES: [509.0 keV, 513.0 keV]
+  Phi:
+    DESCRIPTION: &#39;Compton angle&#39;
+    TYPE: &#39;linear&#39;
+    UNIT: &#39;deg&#39;
+    NBINS: 60
+    EDGES: [0.0 deg, 3.0 deg, 6.0 deg, 9.0 deg, 12.0 deg, 15.0 deg, 18.0 deg, 21.0 deg, 24.0 deg, 27.0 deg, 30.0 deg, 33.0 deg, 36.0 deg, 39.0 deg, 42.0 deg, 45.0 deg, 48.0 deg, 51.0 deg, 54.0 deg, 57.0 deg, 60.0 deg, 63.0 deg, 66.0 deg, 69.0 deg, 72.0 deg, 75.0 deg, 78.0 deg, 81.0 deg, 84.0 deg, 87.0 deg, 90.0 deg, 93.0 deg, 96.0 deg, 99.0 deg, 102.0 deg, 105.0 deg, 108.0 deg, 111.0 deg, 114.0 deg, 117.0 deg, 120.0 deg, 123.0 deg, 126.0 deg, 129.0 deg, 132.0 deg, 135.0 deg, 138.0 deg, 141.0 deg, 144.0 deg, 147.0 deg, 150.0 deg, 153.0 deg, 156.0 deg, 159.0 deg, 162.0 deg, 165.0 deg, 168.0 deg, 171.0 deg, 174.0 deg, 177.0 deg, 180.0 deg]
+  PsiChi:
+    DESCRIPTION: &#39;Location in the Compton Data Space&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 3072
+    NSIDE: 16
+    SCHEME: &#39;RING&#39;
+
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="1.-analyze-the-orientation-file">
+<h1>1. analyze the orientation file<a class="headerlink" href="#1.-analyze-the-orientation-file" title="Link to this heading"></a></h1>
+<p>This section is the same as in 511keV-DC2-ScAtt-DataReduction.ipynb, but the nisde is changed to 32.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+exposure_table = SpacecraftAttitudeExposureTable.from_orientation(ori, nside = nside_scatt_binning, start = None, stop = None)
+exposure_table
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+angular resolution:  1.8322594196359498 deg.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING ErfaWarning: ERFA function &#34;utctai&#34; yielded 1 of &#34;dubious year (Note 3)&#34;
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+duration:  92.36059027777777 d
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING ErfaWarning: ERFA function &#34;utctai&#34; yielded 7979955 of &#34;dubious year (Note 3)&#34;
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "f14821e8198e4f56b5f950f53708bb2c", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 1min 13s, sys: 2.15 s, total: 1min 15s
+Wall time: 1min 15s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>scatt_binning_index</th>
+      <th>healpix_index</th>
+      <th>zpointing</th>
+      <th>xpointing</th>
+      <th>zpointing_averaged</th>
+      <th>xpointing_averaged</th>
+      <th>delta_time</th>
+      <th>exposure</th>
+      <th>num_pointings</th>
+      <th>bkg_group</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>(8272, 427)</td>
+      <td>[[44.62664815323754, -21.585226694584346], [44...</td>
+      <td>[[44.62664815323755, 68.41477330541565], [44.6...</td>
+      <td>[44.49705286596814, -21.370653963754705]</td>
+      <td>[44.49899938347305, 68.62948123249228]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>22051.0</td>
+      <td>22051</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>(8399, 427)</td>
+      <td>[[44.78167623289732, -21.840823005240516], [44...</td>
+      <td>[[44.781676232897325, 68.15917699475948], [44....</td>
+      <td>[44.84546317102121, -21.94574666279381]</td>
+      <td>[44.845668028631366, 68.05426833879696]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 0.999...</td>
+      <td>7207.0</td>
+      <td>7207</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>(8528, 427)</td>
+      <td>[[44.937249783176014, -22.096275698920152], [4...</td>
+      <td>[[44.93724978317603, 67.90372430107985], [44.9...</td>
+      <td>[45.280789592422735, -22.65671255168847]</td>
+      <td>[45.28405398202019, 67.34354151639131]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>29025.0</td>
+      <td>29025</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>(8528, 488)</td>
+      <td>[[45.66020516346508, -23.269427365755966], [45...</td>
+      <td>[[45.6602051634651, 66.73057263424403], [45.69...</td>
+      <td>[45.792486557202956, -23.48162697469867]</td>
+      <td>[45.79313907872797, 66.51842748236865]</td>
+      <td>[1.0000000000065512, 0.9999999999969589, 0.999...</td>
+      <td>13091.0</td>
+      <td>13091</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>(8656, 488)</td>
+      <td>[[45.978454945885545, -23.778456203550505], [4...</td>
+      <td>[[45.978454945885545, 66.22154379644951], [46....</td>
+      <td>[46.11600105920392, -23.997057178710705]</td>
+      <td>[46.11666483156788, 66.00300061062126]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 1.000...</td>
+      <td>13268.0</td>
+      <td>13268</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>562</th>
+      <td>562</td>
+      <td>(3526, 515)</td>
+      <td>[[19.469949806943756, 24.43289490159796], [19....</td>
+      <td>[[199.46994980694376, 65.56710509840204], [199...</td>
+      <td>[19.471417500535573, 24.430350678106848]</td>
+      <td>[199.47141729115225, 65.56964934798671]</td>
+      <td>[1.000000000001755, 0.9999999999969589, 0.9999...</td>
+      <td>257.0</td>
+      <td>257</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>563</th>
+      <td>563</td>
+      <td>(745, 3302)</td>
+      <td>[[289.1161733315789, 62.182064711183735], [289...</td>
+      <td>[[109.11617333157892, 27.817935288816265], [10...</td>
+      <td>[289.1158698854739, 62.181869345669945]</td>
+      <td>[109.11587008833249, 27.818130910219594]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>216.0</td>
+      <td>216</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>564</th>
+      <td>564</td>
+      <td>(11555, 3438)</td>
+      <td>[[129.37391657068838, -62.722167168565605], [1...</td>
+      <td>[[129.37391657068838, 27.277832831434402], [12...</td>
+      <td>[129.3748932372682, -62.7229126247577]</td>
+      <td>[129.3748932228599, 27.277087393995096]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 0.999...</td>
+      <td>38.0</td>
+      <td>38</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>565</th>
+      <td>565</td>
+      <td>(749, 3438)</td>
+      <td>[[309.37452108662, 62.72183635479668], [309.37...</td>
+      <td>[[129.37452108662, 27.27816364520332], [129.37...</td>
+      <td>[309.3747190421793, 62.723149712157756]</td>
+      <td>[129.37471903379148, 27.27685031183828]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 1.000...</td>
+      <td>57.0</td>
+      <td>57</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>566</th>
+      <td>566</td>
+      <td>(11205, 2781)</td>
+      <td>[[83.68502160846401, -56.50792179772638], [83....</td>
+      <td>[[83.68502160846401, 33.49207820227362], [83.6...</td>
+      <td>[83.68453862559674, -56.50760146476969]</td>
+      <td>[83.68453900120738, 33.49239873132499]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 0.999...</td>
+      <td>10.0</td>
+      <td>10</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<p>567 rows × 10 columns</p>
+</div></div>
+</div>
+<p>You can save SpacecraftAttitudeExposureTable as a fits file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>exposure_table.save_as_fits(f&quot;exposure_table_nside{nside_scatt_binning}.fits&quot;, overwrite = True)
+</pre></div>
+</div>
+</div>
+<p>You can also read the fits file.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>exposure_table_from_fits = SpacecraftAttitudeExposureTable.from_fits(f&quot;exposure_table_nside{nside_scatt_binning}.fits&quot;)
+exposure_table == exposure_table_from_fits
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+True
+</pre></div></div>
+</div>
+</section>
+<section id="2.-Calculate-the-coordinate-conversion-matrix">
+<h1>2. Calculate the coordinate conversion matrix<a class="headerlink" href="#2.-Calculate-the-coordinate-conversion-matrix" title="Link to this heading"></a></h1>
+<p>CoordsysConversionMatrix.spacecraft_attitude_binning_ccm can produce the coordinate conversion matrix for the spacecraft attitude binning.</p>
+<p>In this calculation, we calculate the exposure time map in the detector coordinate for each model pixel and each scatt_binning_index. We refer to it as the dwell time map.</p>
+<p>If use_averaged_pointing is True, first the averaged Z- and X-pointings are calculated (the average of zpointing or xpointing in the exposure table) for each scatt_binning_index, and then the dwell time map is calculated assuming the averaged pointings for each model pixel and each scatt_binning_index.</p>
+<p>If use_averaged_pointing is False, the dwell time map is calculated for each attitude in zpointing and xpointing (basically every 1 second), and then the calculated dwell time maps are summed up for each model pixel and each scatt_binning_index.</p>
+<p>In the former case, the computation is fast but may lose the angular resolution. In the latter case, the conversion matrix is more accurate, but it takes a very long time to calculate it.</p>
+<p><strong>With NSIDE = 32, this process may take a few hours. I also prepared a python script to create the conversion matrix. If the notebook does not work, you can use mk_ccm_upsampling.py</strong></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+coordsys_conv_matrix = CoordsysConversionMatrix.spacecraft_attitude_binning_ccm(full_detector_response, exposure_table, nside_model = nside_model, use_averaged_pointing = True)
+</pre></div>
+</div>
+</div>
+<p>You can save CoordsysConversionMatrix as a hdf5 file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix.write(f&quot;ccm_nside{nside_model}.hdf5&quot;, overwrite = True)
+</pre></div>
+</div>
+</div>
+<p>You can also read the saved file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix = CoordsysConversionMatrix.open(f&quot;ccm_nside{nside_model}.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+<p><strong>Check the matrix shape</strong></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix.contents
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<table><tbody><tr><th style="text-align: left">Format</th><td style="text-align: left">coo</td></tr><tr><th style="text-align: left">Data Type</th><td style="text-align: left">float64</td></tr><tr><th style="text-align: left">Shape</th><td style="text-align: left">(567, 12288, 3072)</td></tr><tr><th style="text-align: left">nnz</th><td style="text-align: left">19450362</td></tr><tr><th style="text-align: left">Density</th><td style="text-align: left">0.0009087453793946748</td></tr><tr><th style="text-align: left">Read-only</th><td style="text-align: left">True</td></tr><tr><th style="text-align: left">Size</th><td style="text-align: left">593.6M</td></tr><tr><th style="text-align: left">Storage ratio</th><td style="text-align: left">0.0</td></tr></tbody></table></div>
+</div>
+</section>
+<section id="3.-produce-the-binned-data">
+<h1>3. produce the binned data<a class="headerlink" href="#3.-produce-the-binned-data" title="Link to this heading"></a></h1>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def get_binned_data_scatt(unbinned_event, exposure_table, psichi_binning = &#39;local&#39;, sparse = False):
+    exposure_dict = {row[&#39;healpix_index&#39;]: row[&#39;scatt_binning_index&#39;] for _, row in exposure_table.iterrows()}
+
+    # from BinnedData.py
+
+    # Get energy bins:
+    energy_bin_edges = np.array(unbinned_event.energy_bins)
+
+    # Get phi bins:
+    number_phi_bins = int(180./unbinned_event.phi_pix_size)
+    phi_bin_edges = np.linspace(0,180,number_phi_bins+1)
+
+    # Define psichi axis and data for binning:
+    if psichi_binning == &#39;galactic&#39;:
+        psichi_axis = HealpixAxis(nside = unbinned_event.nside, scheme = unbinned_event.scheme, coordsys = &#39;galactic&#39;, label=&#39;PsiChi&#39;)
+        coords = SkyCoord(l=unbinned_event.cosi_dataset[&#39;Chi galactic&#39;]*u.deg, b=unbinned_event.cosi_dataset[&#39;Psi galactic&#39;]*u.deg, frame = &#39;galactic&#39;)
+    if psichi_binning == &#39;local&#39;:
+        psichi_axis = HealpixAxis(nside = unbinned_event.nside, scheme = unbinned_event.scheme, coordsys = SpacecraftFrame(), label=&#39;PsiChi&#39;)
+        coords = SkyCoord(lon=unbinned_event.cosi_dataset[&#39;Chi local&#39;]*u.rad, lat=((np.pi/2.0) - unbinned_event.cosi_dataset[&#39;Psi local&#39;])*u.rad, frame = SpacecraftFrame())
+
+    # Define scatt axis and data for binning
+    n_scatt_bins = len(exposure_table)
+    scatt_axis = Axis(np.arange(n_scatt_bins + 1), label=&#39;ScAtt&#39;)
+
+    is_nest = True if exposure_table.scheme == &#39;nested&#39; else False
+
+    nside_scatt = exposure_table.nside
+
+    zindex = hp.ang2pix(nside_scatt, unbinned_event.cosi_dataset[&#39;Zpointings (glon,glat)&#39;].T[0] * 180 / np.pi,
+                        unbinned_event.cosi_dataset[&#39;Zpointings (glon,glat)&#39;].T[1] * 180 / np.pi, nest=is_nest, lonlat=True)
+    xindex = hp.ang2pix(nside_scatt, unbinned_event.cosi_dataset[&#39;Xpointings (glon,glat)&#39;].T[0] * 180 / np.pi,
+                        unbinned_event.cosi_dataset[&#39;Xpointings (glon,glat)&#39;].T[1] * 180 / np.pi, nest=is_nest, lonlat=True)
+    scatt_data = np.array( [ exposure_dict[(z, x)] + 0.5 if (z,x) in exposure_dict.keys() else -1 for z, x in zip(zindex, xindex)] ) # should this &quot;0.5&quot; be needed?
+
+    # Initialize histogram:
+    binned_data = Histogram([scatt_axis,
+                              Axis(energy_bin_edges*u.keV, label=&#39;Em&#39;),
+                              Axis(phi_bin_edges*u.deg, label=&#39;Phi&#39;),
+                              psichi_axis],
+                              sparse=sparse)
+
+    # Fill histogram:
+    binned_data.fill(scatt_data, unbinned_event.cosi_dataset[&#39;Energies&#39;]*u.keV, np.rad2deg(unbinned_event.cosi_dataset[&#39;Phi&#39;])*u.deg, coords)
+
+    return binned_data
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+signal_filepath = path_data + &quot;511_thin_disk_3months_unbinned_data.fits.gz&quot;
+
+unbinned_signal = UnBinnedData(input_yaml = &quot;inputs_511keV_DC2.yaml&quot;)
+
+unbinned_signal.cosi_dataset = unbinned_signal.get_dict_from_fits(signal_filepath)
+
+binned_signal = get_binned_data_scatt(unbinned_signal, exposure_table, psichi_binning = &#39;local&#39;, sparse = False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 7.26 s, sys: 385 ms, total: 7.64 s
+Wall time: 7.65 s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+bkg_filepath = path_data + &quot;albedo_photons_3months_unbinned_data.fits.gz&quot;
+
+unbinned_bkg = UnBinnedData(input_yaml = &quot;inputs_511keV_DC2.yaml&quot;)
+
+unbinned_bkg.cosi_dataset = unbinned_bkg.get_dict_from_fits(bkg_filepath)
+
+binned_bkg = get_binned_data_scatt(unbinned_bkg, exposure_table, psichi_binning = &#39;local&#39;, sparse = False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 1min 36s, sys: 4.62 s, total: 1min 40s
+Wall time: 1min 40s
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>binned_event = binned_signal + binned_bkg
+</pre></div>
+</div>
+</div>
+</section>
+<section id="4.-Imaging-deconvolution">
+<h1>4. Imaging deconvolution<a class="headerlink" href="#4.-Imaging-deconvolution" title="Link to this heading"></a></h1>
+<section id="4-1.-Prepare-DataInterface-containing-all-necessary-datasets">
+<h2>4-1. Prepare DataInterface containing all necessary datasets<a class="headerlink" href="#4-1.-Prepare-DataInterface-containing-all-necessary-datasets" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+data_interface = DataIF_COSI_DC2.load(name = &quot;511keV&quot;,
+                                      event_binned_data = binned_event,
+                                      dict_bkg_binned_data = {&quot;albedo&quot;: binned_bkg},
+                                      rsp = full_detector_response,
+                                      coordsys_conv_matrix=coordsys_conv_matrix,
+                                      is_miniDC2_format=False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loading the response matrix onto your computer memory...
+Finished
+Note that _modify_axes() in DataLoader was implemented for a temporary use. It will be removed in the future.
+... checking the axis ScAtt of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+... checking the axis Em of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+... checking the axis Phi of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+... checking the axis PsiChi of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+...checking the axis Em of the event and response files...
+    --&gt; pass (edges)
+...checking the axis Phi of the event and response files...
+    --&gt; pass (edges)
+...checking the axis PsiChi of the event and response files...
+    --&gt; pass (edges)
+The axes in the event and background files are redefined. Now they are consistent with those of the response file.
+Calculating an exposure map...
+Finished...
+CPU times: user 17 s, sys: 3.58 s, total: 20.6 s
+Wall time: 20.6 s
+</pre></div></div>
+</div>
+</section>
+<section id="4-2.-Initialize-the-instance-of-the-image-deconvolution-class">
+<h2>4-2. Initialize the instance of the image deconvolution class<a class="headerlink" href="#4-2.-Initialize-the-instance-of-the-image-deconvolution-class" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>parameter_filepath = &quot;imagedeconvolution_parfile_scatt_511keV.yml&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution = ImageDeconvolution()
+
+# set data_interface to image_deconvolution
+image_deconvolution.set_dataset([data_interface])
+
+# set a parameter file for the image deconvolution
+image_deconvolution.read_parameterfile(parameter_filepath)
+</pre></div>
+</div>
+</div>
+<p><strong>Do not forget to make sure that NSIDE of the model map is modified to 32</strong></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution.override_parameter(f&quot;model_definition:property:nside = {nside_model}&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution.override_parameter(&quot;deconvolution:parameter:iteration_max = 20&quot;)
+image_deconvolution.override_parameter(&quot;deconvolution:parameter:background_normalization_optimization = True&quot;)
+image_deconvolution.override_parameter(&quot;deconvolution:parameter:alpha_max = 10&quot;)
+image_deconvolution.override_parameter(&quot;deconvolution:parameter:smoothing_FWHM:value = 2.5&quot;)
+
+image_deconvolution.initialize()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+#### Initialization Starts ####
+&lt;&lt; Instantiating the model class AllSkyImage &gt;&gt;
+---- parameters ----
+coordinate: galactic
+energy_edges:
+  unit: keV
+  value:
+  - 509.0
+  - 513.0
+nside: 32
+scheme: ring
+unit: cm-2 s-1 sr-1
+
+&lt;&lt; Setting initial values of the created model object &gt;&gt;
+---- parameters ----
+algorithm: flat
+parameter:
+  unit: cm-2 s-1 sr-1
+  value:
+  - 1e-4
+
+&lt;&lt; Registering the deconvolution algorithm &gt;&gt;
+Gaussian filter with FWHM of 2.5 deg will be applied to delta images ...
+---- parameters ----
+algorithm: RL
+parameter:
+  acceleration: true
+  alpha_max: 10
+  background_normalization_optimization: true
+  background_normalization_range:
+    albedo:
+    - 0.01
+    - 10.0
+  iteration_max: 20
+  response_weighting: true
+  response_weighting_index: 0.5
+  save_results: false
+  save_results_directory: ./results
+  smoothing: true
+  smoothing_FWHM:
+    unit: deg
+    value: 2.5
+
+#### Initialization Finished ####
+</pre></div></div>
+</div>
+</section>
+<section id="4-3.-Start-the-image-deconvolution">
+<h2>4-3. Start the image deconvolution<a class="headerlink" href="#4-3.-Start-the-image-deconvolution" title="Link to this heading"></a></h2>
+<p><strong>With MacBook Pro with M1 Max and 64 GB memory, it takes about 9 minutes for 20 iterations.</strong></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+image_deconvolution.run_deconvolution()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+#### Image Deconvolution Starts ####
+&lt;&lt; Initialization &gt;&gt;
+The response weighting filter was calculated.
+The expected count histograms were calculated with the initial model map.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "c8a43b55a119465b9c4ef6a87e63c164", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+## Iteration 1/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 2.0958104654983636
+  background_normalization: {&#39;albedo&#39;: 1.002492354360444}
+  loglikelihood: [-1744183.963284464]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 2/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9979606239037078}
+  loglikelihood: [-1710828.5323352944]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 3/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9998166757901938}
+  loglikelihood: [-1701026.2905345957]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 4/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 2.1073570632925875
+  background_normalization: {&#39;albedo&#39;: 0.9999667614163193}
+  loglikelihood: [-1689445.4683842212]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 5/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9999614981769829}
+  loglikelihood: [-1687175.0123144817]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 6/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.292984460640693
+  background_normalization: {&#39;albedo&#39;: 0.999943198007437}
+  loglikelihood: [-1685047.41137787]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 7/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9999367690196683}
+  loglikelihood: [-1683881.9253378445]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 8/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 2.0742304204913
+  background_normalization: {&#39;albedo&#39;: 0.9999346680604159}
+  loglikelihood: [-1682092.0633512372]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 9/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9999312227820746}
+  loglikelihood: [-1681536.033350681]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 10/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 2.108159779149422
+  background_normalization: {&#39;albedo&#39;: 0.9999302415634472}
+  loglikelihood: [-1680607.4649443883]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 11/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 2.1764346376350616
+  background_normalization: {&#39;albedo&#39;: 0.999928544784335}
+  loglikelihood: [-1679957.4691362404]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 12/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9999273747864688}
+  loglikelihood: [-1679738.7654621345]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 13/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 2.713722413462239
+  background_normalization: {&#39;albedo&#39;: 0.9999270268549275}
+  loglikelihood: [-1679245.1285015517]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 14/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9999263061428777}
+  loglikelihood: [-1679113.2695051148]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 15/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9999261607412325}
+  loglikelihood: [-1678995.4744698927]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 16/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.7912187748865471
+  background_normalization: {&#39;albedo&#39;: 0.9999260639703538}
+  loglikelihood: [-1678809.3175096312]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 17/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0056374932500127
+  background_normalization: {&#39;albedo&#39;: 0.9999259458568807}
+  loglikelihood: [-1678721.3843006236]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 18/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9999259163711686}
+  loglikelihood: [-1678642.0598430093]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 19/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9999259054566617}
+  loglikelihood: [-1678569.819892738]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 20/20 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;albedo&#39;: 0.9999259079653552}
+  loglikelihood: [-1678503.822796152]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Stop
+&lt;&lt; Finalization &gt;&gt;
+#### Image Deconvolution Finished ####
+CPU times: user 34min 55s, sys: 2min 26s, total: 37min 21s
+Wall time: 7min 11s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution.results
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[{&#39;iteration&#39;: 1,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444613a00&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444611960&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446111e0&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 1.002492354360444},
+  &#39;alpha&#39;: &lt;Quantity 2.09581047&gt;,
+  &#39;loglikelihood&#39;: [-1744183.963284464]},
+ {&#39;iteration&#39;: 2,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444611e70&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444613e80&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444610a60&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9979606239037078},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1710828.5323352944]},
+ {&#39;iteration&#39;: 3,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444611300&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446138e0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444610640&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9998166757901938},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1701026.2905345957]},
+ {&#39;iteration&#39;: 4,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446106d0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446102e0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444610820&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999667614163193},
+  &#39;alpha&#39;: &lt;Quantity 2.10735706&gt;,
+  &#39;loglikelihood&#39;: [-1689445.4683842212]},
+ {&#39;iteration&#39;: 5,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444613d00&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444611630&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446107f0&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999614981769829},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1687175.0123144817]},
+ {&#39;iteration&#39;: 6,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446122f0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444612e90&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444612890&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.999943198007437},
+  &#39;alpha&#39;: &lt;Quantity 1.29298446&gt;,
+  &#39;loglikelihood&#39;: [-1685047.41137787]},
+ {&#39;iteration&#39;: 7,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444610d30&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446132b0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444610880&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999367690196683},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1683881.9253378445]},
+ {&#39;iteration&#39;: 8,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446125c0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446108b0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444610940&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999346680604159},
+  &#39;alpha&#39;: &lt;Quantity 2.07423042&gt;,
+  &#39;loglikelihood&#39;: [-1682092.0633512372]},
+ {&#39;iteration&#39;: 9,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446117b0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446119c0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446114b0&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999312227820746},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1681536.033350681]},
+ {&#39;iteration&#39;: 10,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x51f5bf4f0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x51f5bf5e0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2b787faf0&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999302415634472},
+  &#39;alpha&#39;: &lt;Quantity 2.10815978&gt;,
+  &#39;loglikelihood&#39;: [-1680607.4649443883]},
+ {&#39;iteration&#39;: 11,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446109d0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444613550&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x51f5bfa60&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.999928544784335},
+  &#39;alpha&#39;: &lt;Quantity 2.17643464&gt;,
+  &#39;loglikelihood&#39;: [-1679957.4691362404]},
+ {&#39;iteration&#39;: 12,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x443bf6770&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x51f5bfd30&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2b787dab0&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999273747864688},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1679738.7654621345]},
+ {&#39;iteration&#39;: 13,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444611bd0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x4446113c0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x105779e10&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999270268549275},
+  &#39;alpha&#39;: &lt;Quantity 2.71372241&gt;,
+  &#39;loglikelihood&#39;: [-1679245.1285015517]},
+ {&#39;iteration&#39;: 14,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x51f5bf9a0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x51f5bf1f0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x30ebcd660&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999263061428777},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1679113.2695051148]},
+ {&#39;iteration&#39;: 15,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2b78bfcd0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2b78bfaf0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x30ebcce20&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999261607412325},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1678995.4744698927]},
+ {&#39;iteration&#39;: 16,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444612ad0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444610730&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x30ebcee90&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999260639703538},
+  &#39;alpha&#39;: &lt;Quantity 1.79121877&gt;,
+  &#39;loglikelihood&#39;: [-1678809.3175096312]},
+ {&#39;iteration&#39;: 17,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2b787f040&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2b787fc40&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x30ebcda20&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999259458568807},
+  &#39;alpha&#39;: &lt;Quantity 1.00563749&gt;,
+  &#39;loglikelihood&#39;: [-1678721.3843006236]},
+ {&#39;iteration&#39;: 18,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x443c8e4d0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x1053c38e0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x30ebceef0&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999259163711686},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1678642.0598430093]},
+ {&#39;iteration&#39;: 19,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444612830&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x444610970&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x30ebcd060&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999259054566617},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1678569.819892738]},
+ {&#39;iteration&#39;: 20,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x10577a800&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x30ebcc0a0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x30ebccdc0&gt;,
+  &#39;background_normalization&#39;: {&#39;albedo&#39;: 0.9999259079653552},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [-1678503.822796152]}]
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="5.-Analyze-the-results">
+<h1>5. Analyze the results<a class="headerlink" href="#5.-Analyze-the-results" title="Link to this heading"></a></h1>
+<p>Examples to see/analyze the results are shown below.</p>
+<section id="Log-likelihood">
+<h2>Log-likelihood<a class="headerlink" href="#Log-likelihood" title="Link to this heading"></a></h2>
+<p>Plotting the log-likelihood vs the number of iterations</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x, y = [], []
+
+for result in image_deconvolution.results:
+    x.append(result[&#39;iteration&#39;])
+    y.append(result[&#39;loglikelihood&#39;])
+
+plt.plot(x, y)
+plt.grid()
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;loglikelihood&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;loglikelihood&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_44_1.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_44_1.png" />
+</div>
+</div>
+</section>
+<section id="Alpha-(the-factor-used-for-the-acceleration)">
+<h2>Alpha (the factor used for the acceleration)<a class="headerlink" href="#Alpha-(the-factor-used-for-the-acceleration)" title="Link to this heading"></a></h2>
+<p>Plotting <span class="math notranslate nohighlight">\(\alpha\)</span> vs the number of iterations. <span class="math notranslate nohighlight">\(\alpha\)</span> is a parameter to accelerate the EM algorithm (see the beginning of Section 4). If it is too large, reconstructed images may have artifacts.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x, y = [], []
+
+for result in image_deconvolution.results:
+    x.append(result[&#39;iteration&#39;])
+    y.append(result[&#39;alpha&#39;])
+
+plt.plot(x, y)
+plt.grid()
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;alpha&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;alpha&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_46_1.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_46_1.png" />
+</div>
+</div>
+</section>
+<section id="Background-normalization">
+<h2>Background normalization<a class="headerlink" href="#Background-normalization" title="Link to this heading"></a></h2>
+<p>Plotting the background nomalization factor vs the number of iterations. If the background model is accurate and the image is reconstructed perfectly, this factor should be close to 1.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x, y = [], []
+
+for result in image_deconvolution.results:
+    x.append(result[&#39;iteration&#39;])
+    y.append(result[&#39;background_normalization&#39;][&#39;albedo&#39;])
+
+plt.plot(x, y)
+plt.grid()
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;background_normalization&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;background_normalization&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_48_1.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_48_1.png" />
+</div>
+</div>
+</section>
+<section id="The-reconstructed-images">
+<h2>The reconstructed images<a class="headerlink" href="#The-reconstructed-images" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def plot_reconstructed_image(result, source_position = None): # source_position should be (l,b) in degrees
+    iteration = result[&#39;iteration&#39;]
+    image = result[&#39;model&#39;]
+
+    for energy_index in range(image.axes[&#39;Ei&#39;].nbins):
+        map_healpxmap = HealpixMap(data = image[:,energy_index], unit = image.unit)
+
+        _, ax = map_healpxmap.plot(&#39;mollview&#39;)
+
+        _.colorbar.set_label(str(image.unit))
+
+        if source_position is not None:
+            ax.scatter(source_position[0]*u.deg, source_position[1]*u.deg, transform=ax.get_transform(&#39;world&#39;), color = &#39;red&#39;)
+
+        plt.title(label = f&quot;iteration = {iteration}, energy_index = {energy_index} ({image.axes[&#39;Ei&#39;].bounds[energy_index][0]}-{image.axes[&#39;Ei&#39;].bounds[energy_index][1]})&quot;)
+</pre></div>
+</div>
+</div>
+<p>Plotting the reconstructed images in all of the energy bands at the 20th iteration</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>iteration = 19
+
+plot_reconstructed_image(image_deconvolution.results[iteration])
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_52_0.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_52_0.png" />
+</div>
+</div>
+<p>An example to plot the image in the log scale</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>iteration_idx = 19
+
+result = image_deconvolution.results[iteration_idx]
+
+iteration = result[&#39;iteration&#39;]
+image = result[&#39;model&#39;]
+
+data = image[:,0]
+data[data &lt;= 0 * data.unit] = 1e-12 * data.unit
+
+hp.mollview(data, min = 1e-5, norm =&#39;log&#39;, unit = str(data.unit), title = f&#39;511 keV image at {iteration}th iteration&#39;, cmap = &#39;magma&#39;)
+
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_54_0.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-DC2-ScAtt-Upsampling_54_0.png" />
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
