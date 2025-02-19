@@ -35,6 +35,8 @@ def get_integrated_spectral_model(spectrum, energy_axis):
     over each energy bin, and returns the result as a Histogram object.
     """
 
+    from cosipy.threeml import Band_Eflux
+
     spectrum_unit = None
 
     for item in spectrum.parameters:
@@ -53,6 +55,8 @@ def get_integrated_spectral_model(spectrum, energy_axis):
             spectrum_unit = u.dimensionless_unscaled
         elif isinstance(spectrum, Gaussian):
             spectrum_unit = spectrum.F.unit / spectrum.sigma.unit 
+        elif isinstance(spectrum, Band_Eflux):
+            spectrum_unit = spectrum.K.unit / spectrum.a.unit
         else:
             try:
                 spectrum_unit = spectrum.K.unit
