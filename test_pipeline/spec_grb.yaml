@@ -1,0 +1,18 @@
+
+  indir: "/Users/lauradigesu/Dropbox/work/cosi/cosidata"
+  odir: "/Users/lauradigesu/Dropbox/work/cosi/cosiprod"
+  sou_data_path: "/Users/lauradigesu/Dropbox/work/cosi/cosidata/grb_bkg_binned_data.hdf5"
+  bk_data_path: "/Users/lauradigesu/Dropbox/work/cosi/cosidata/bkg_binned_data_1s_local.hdf5"
+  resp_path: "/Users/lauradigesu/Dropbox/work/cosi/cosidata/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5"
+  ori_path : "/Users/lauradigesu/Dropbox/work/cosi/cosidata/20280301_3_month_with_orbital_info.ori"
+  sou_yaml_path: "/Users/lauradigesu/Dropbox/work/cosi/cosidata/grb.yaml"
+  bk_yaml_path: "/Users/lauradigesu/Dropbox/work/cosi/cosidata/background.yaml"
+  souname: "grb090206620_dc2"
+  bkname: "background_cosi_dc2"
+  tstart: 1842597410.0
+  tstop: 1842597450.0
+  l: 93.
+  b: -53.
+  model_id: "Band"
+  par_streams: ["!astropy.units.Quantity\n unit: !astropy.units.Unit {unit: 1 / (cm2 keV s)}\n value: 1.0\n", "!astropy.units.Quantity \n unit: !astropy.units.Unit {unit: ''} \n value: -1.0 \n", "!astropy.units.Quantity \n unit: !astropy.units.Unit {unit: keV} \n value: 450.0\n","!astropy.units.Quantity \n unit: !astropy.units.Unit {unit: ''} \n value: -3.0\n","!astropy.units.Quantity \n unit: !astropy.units.Unit {unit: keV} \n value: 500.0\n"]
+  par_minvalues: [1e-50,-1.5,10.0,-15.0,null]
