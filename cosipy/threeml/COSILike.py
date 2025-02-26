@@ -292,7 +292,10 @@ class COSILike(PluginPrototype):
             logger.warning("Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.")
             self._printed_warning = True
         # This 1e-12 should be defined as a parameter in the near future (HY)
-        
+
+        if not expectation.contents.unit == u.dimensionless_unscaled:
+            raise RuntimeError("Expectation should be dimensionless, but has units of " + str(expectation.contents.unit) + ".")
+                         
         # Convert data into an arrary:
         data = self._data.contents
         
