@@ -68,8 +68,7 @@ autodoc_mock_imports = ["histpy",
                         'scipy',
                         'psutil',
                         'awscli',
-                        'yayc',
-                        'iminuit'
+                        'yayc'
                         ]
 
 # There seems to be a conflict between unittest.mock (used by sphinx) and metaclasses
