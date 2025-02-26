@@ -38,8 +38,6 @@ extensions = ['sphinx.ext.mathjax',
               'nbsphinx'
 ]
 
-highlight_language = 'python3'
-
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
@@ -70,8 +68,7 @@ autodoc_mock_imports = ["histpy",
                         'scipy',
                         'psutil',
                         'awscli',
-                        'yayc',
-                        'iminuit'
+                        'yayc'
                         ]
 
 # There seems to be a conflict between unittest.mock (used by sphinx) and metaclasses
