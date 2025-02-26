@@ -688,8 +688,139 @@ class FullDetectorResponse(HealpixBase):
             data = drm.create_dataset('CONTENTS',
 		                              data=np.transpose(dr_area.contents, axes = rsp_axes),
                                       compression="gzip")
-        
+
         #close the .h5 file in write mode in order to reopen it in read mode after
+        f.close()
+
+    @staticmethod
+    def _write_h5(dr_area, filename):
+        """
+        Write a Histogram containing the response into a HDF5 file response format
+
+        Parameters
+        ----------
+        dr_area : Histogram,
+             Histogram containing the response matrix in unit of differential area
+
+         filename : str, :py:class:`~pathlib.Path`
+             Path to .h5 file
+        """
+
+        npix = dr_area.axes['NuLambda'].nbins
+        nside = HealpixBase(npix = npix).nside
+        has_polarization = "Pol" in dr_area.axes.labels
+        sparse = dr_area.is_sparse
+
+        f = h5.File(filename, mode='w')
+
+        drm = f.create_group('DRM')
+
+        # Header
+        drm.attrs['UNIT'] = 'cm2'
+
+        axis_description = {'Ei': "Initial simulated energy",
+                            'NuLambda': "Location of the simulated source in the spacecraft coordinates",
+                            'Pol': "Polarization angle",
+                            'Em': "Measured energy",
+                            'Phi': "Compton angle",
+                            'PsiChi': "Location in the Compton Data Space",
+                            'SigmaTau': "Electron recoil angle",
+                            'Dist': "Distance from first interaction"
+                            }
+
+        #keep the same dimension order of the data
+        axes_to_write = ['NuLambda', 'Ei']
+
+        if has_polarization:
+            axes_to_write += ['Pol']
+
+        axes_to_write += ['Em', 'Phi', 'PsiChi']
+
+        if sparse:
+            drm.attrs['SPARSE'] = True
+
+            # singletos. Save space in dense
+            axes_to_write += ['SigmaTau', 'Dist']
+        else:
+            drm.attrs['SPARSE'] = False
+
+        axes = drm.create_group('AXES', track_order=True)
+
+        for axis in dr_area.axes[axes_to_write]:
+
+            axis_dataset = axes.create_dataset(axis.label,
+                                               data=axis.edges)
+
+            if axis.label in ['NuLambda', 'PsiChi', 'SigmaTau']:
+
+                # HEALPix
+                axis_dataset.attrs['TYPE'] = 'healpix'
+
+                axis_dataset.attrs['NSIDE'] = nside
+
+                axis_dataset.attrs['SCHEME'] = 'ring'
+
+            else:
+
+                # 1D
+                axis_dataset.attrs['TYPE'] = axis.axis_scale
+
+                if axis.label in ['Ei', 'Em']:
+                    axis_dataset.attrs['UNIT'] = 'keV'
+                    axis_dataset.attrs['TYPE'] = 'log'
+                elif axis.label in ['Phi', 'Pol']:
+                    axis_dataset.attrs['UNIT'] = 'deg'
+                    axis_dataset.attrs['TYPE'] = 'linear'
+                elif axis.label in ['Dist']:
+                    axis_dataset.attrs['UNIT'] = 'cm'
+                    axis_dataset.attrs['TYPE'] = 'linear'
+                else:
+                    raise ValueError("Shouldn't happend")
+
+            axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
+
+        # sparse matrice
+        if sparse:
+
+            progress_bar = tqdm(total=npix, desc="Progress", unit="nbpixel")
+            # Contents. Sparse arrays
+            coords = drm.create_dataset('BIN_NUMBERS',
+                                        (npix,),
+                                        dtype=h5.vlen_dtype(int),
+                                        compression="gzip")
+
+            data = drm.create_dataset('CONTENTS',
+                                      (npix,),
+                                      dtype=h5.vlen_dtype(float),
+                                      compression="gzip")
+
+            for b in range(npix):
+                # print(f"{b}/{npix}")
+
+                pix_slice = dr_area[{'NuLambda': b}]
+
+                coords[b] = pix_slice.coords.flatten()
+                data[b] = pix_slice.data
+                progress_bar.update(1)
+
+            progress_bar.close()
+
+        # non sparseOk g
+        else:
+
+            if 'Pol' in axes_to_write:
+
+                data = drm.create_dataset('CONTENTS',
+                                          data=np.transpose(dr_area.contents, axes=[1, 0, 2, 3, 4, 5]),
+                                          compression="gzip")
+
+            else:
+
+                data = drm.create_dataset('CONTENTS',
+                                          data=np.transpose(dr_area.contents, axes=[1, 0, 2, 3, 4]),
+                                          compression="gzip")
+
+        # close the .h5 file in write mode in order to reopen it in read mode after
         f.close()
 
     @property
