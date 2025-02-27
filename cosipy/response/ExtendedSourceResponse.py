@@ -28,6 +28,9 @@ class ExtendedSourceResponse(Histogram):
         """
         Initialize an ExtendedSourceResponse object.
         """
+        # Not to track the under/overflow bins
+        kwargs['track_overflow'] = False
+
         super().__init__(*args, **kwargs)
         
         if not np.all(self.axes.labels == ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi']):
