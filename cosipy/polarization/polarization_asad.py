@@ -412,7 +412,7 @@ class PolarizationASAD():
 
         return asad
 
-    def calculate_mu(self, counts_corrected, p0=None, bounds=(-np.inf, np.inf), sigma=None):
+    def calculate_mu(self, counts_corrected, p0=None, bounds=None, sigma=None):
         """
         Calculate the modulation (mu).
         
@@ -433,6 +433,10 @@ class PolarizationASAD():
             Modulation and uncertainty of fitted sinusoid
         """
 
+        # Defaults
+        if bounds is None:
+            bounds = (-np.inf, np.inf)
+        
         if isinstance(sigma, np.ndarray) and len(sigma.shape) == 2:
             for i in range(len(sigma[0])):
                 if sigma[0][i] != sigma[1][i]:
@@ -515,7 +519,7 @@ class PolarizationASAD():
 
         return mu_100
 
-    def fit(self, mu_100, counts_corrected, p0=None, bounds=(-np.inf, np.inf), sigma=None):
+    def fit(self, mu_100, counts_corrected, p0=None, bounds=None, sigma=None):
         """
         Fit the polarization fraction and angle.
         
@@ -538,6 +542,9 @@ class PolarizationASAD():
             Polarization fraction, polarization angle, and best fit parameter values for fitted sinusoid, and associated uncertainties
         """
 
+        if bounds is None:
+            bounds = (-np.inf, np.inf)
+        
         if isinstance(sigma, np.ndarray) and len(sigma.shape) == 2:
             for i in range(len(sigma[0])):
                 if sigma[0][i] != sigma[1][i]:
