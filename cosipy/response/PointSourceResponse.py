@@ -142,7 +142,6 @@ class PointSourceResponse(Histogram):
                 for i in range(len(self.axes['Pol'].edges) - 1):
 
                     response_slice = self.slice[{'Pol':slice(i,i+1)}].project('Ei', 'Em', 'Phi', 'PsiChi')
-                    bin_center = (self.axes['Pol'].edges.to_value(u.deg)[i] + self.axes['Pol'].edges.to_value(u.deg)[i+1]) / 2
 
                     for j, (pixels, exposure) in enumerate(zip(scatt_map.contents.coords.transpose(), scatt_map.contents.data)):
 
@@ -157,7 +156,7 @@ class PointSourceResponse(Histogram):
                         else:
                             raise RuntimeError("Response convention must be 'RelativeX', 'RelativeY', or 'RelativeZ'")
 
-                        polarization_angle_bin_center = PolarizationAngle(bin_center * u.deg, polarization_angle.skycoord, convention=this_convention)
+                        polarization_angle_bin_center = PolarizationAngle(self.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, polarization_angle.skycoord, convention=this_convention)
 
                         polarization_angle_galactic = polarization_angle_bin_center.transform_to(polarization_angle.convention)
 
