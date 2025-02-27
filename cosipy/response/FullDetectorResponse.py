@@ -624,18 +624,15 @@ class FullDetectorResponse(HealpixBase):
 
         #non sparse
         else :
-           
-     
-            data = drm.create_dataset('CONTENTS',
-                              data=np.transpose(dr_area.contents, axes = [1,0,2,3,4]),
+		if has_polarization == True:
+			rsp_axes = [1,0,2,3,4,5]
+		else: 
+			rsp_axes = [1,0,2,3,4]
+			
+		data = drm.create_dataset('CONTENTS',
+                              data=np.transpose(dr_area.contents, axes = rsp_axes),
                               
                               compression="gzip")
-        
-            
-                
-                
-        
-
         
         #close the .h5 file in write mode in order to reopen it in read mode after
         f.close()
