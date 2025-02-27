@@ -77,7 +77,7 @@ autodoc_mock_imports = ["histpy",
 # astromodels.functions.function, so we mock that one manually with the mock package
 import mock
 
-MOCK_MODULES = ['astromodels.functions.function', 'iminuit']
+MOCK_MODULES = ['astromodels.functions.function']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
