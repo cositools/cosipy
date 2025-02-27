@@ -68,6 +68,9 @@ Use the :code:`transform_to` function::
 Results in 161.95. Note that in addition to accounting for the difference polarization reference vector, it also transforms from one reference frame to another on the fly.
 
 
+Classes
+-------
+
 .. automodule:: cosipy.polarization
    :imported-members:
    :members:
