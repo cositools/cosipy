@@ -543,7 +543,7 @@ class PolarizationASAD():
         """
 
         if bounds is None:
-            boundas = (-np.inf, np.inf)
+            bounds = (-np.inf, np.inf)
         
         if isinstance(sigma, np.ndarray) and len(sigma.shape) == 2:
             for i in range(len(sigma[0])):
