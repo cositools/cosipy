@@ -1,0 +1,431 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.polarization.conventions &mdash; cosipy __version__ = &#34;0.3.0&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=e963a228"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.polarization.conventions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.polarization.conventions</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.coordinates</span><span class="w"> </span><span class="kn">import</span> <span class="n">SkyCoord</span><span class="p">,</span> <span class="n">Angle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scoords</span><span class="w"> </span><span class="kn">import</span> <span class="n">Attitude</span><span class="p">,</span> <span class="n">SpacecraftFrame</span>
+
+<span class="c1"># Base class for polarization conventions</span>
+<div class="viewcode-block" id="PolarizationConvention">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationConvention">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PolarizationConvention</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Base class for polarization conventions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+    <span class="n">_registered_conventions</span> <span class="o">=</span> <span class="p">{}</span>
+        
+<div class="viewcode-block" id="PolarizationConvention.register">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationConvention.register">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        
+        <span class="k">def</span><span class="w"> </span><span class="nf">_register</span><span class="p">(</span><span class="n">convention_class</span><span class="p">):</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_registered_conventions</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">convention_class</span>
+            <span class="k">return</span> <span class="n">convention_class</span> 
+        <span class="k">return</span> <span class="n">_register</span></div>
+
+
+<div class="viewcode-block" id="PolarizationConvention.get_convention">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationConvention.get_convention">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_convention</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">PolarizationConvention</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">name</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Class must be subclass of PolarizationConvention&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">PolarizationConvention</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">name</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Input must be str, or PolarizationConvention subclass or object&quot;</span><span class="p">)</span>
+        
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_registered_conventions</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No polarization convention by name &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">frame</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Astropy coordinate frame</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">None</span>
+        
+<div class="viewcode-block" id="PolarizationConvention.get_basis">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationConvention.get_basis">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_direction</span><span class="p">:</span> <span class="n">SkyCoord</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the px,py unit vectors that define the polarization plane on </span>
+<span class="sd">        this convention. Polarization angle increments from px to py.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source_direction : SkyCoord</span>
+<span class="sd">            The direction of the source</span>
+
+<span class="sd">        Return</span>
+<span class="sd">        ------</span>
+<span class="sd">        px,py : SkyCoord</span>
+<span class="sd">            Polarization angle increaes from px to py. pz is always</span>
+<span class="sd">            the opposite of the source direction --i.e. in the direction of the</span>
+<span class="sd">            particle.</span>
+<span class="sd">        &quot;&quot;&quot;</span></div>
+</div>
+
+
+        
+<span class="c1"># Orthographic projection convention</span>
+<div class="viewcode-block" id="OrthographicConvention">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.OrthographicConvention">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OrthographicConvention</span><span class="p">(</span><span class="n">PolarizationConvention</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">ref_vector</span><span class="p">:</span> <span class="n">SkyCoord</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">clockwise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The local polarization x-axis points towards an arbitrary reference vector, </span>
+<span class="sd">        and the polarization angle increasing counter-clockwise when looking </span>
+<span class="sd">        at the source.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ref_vector : SkyCoord</span>
+<span class="sd">            Set the reference vector, defaulting to celestial north if not provided </span>
+<span class="sd">            (IAU convention)</span>
+<span class="sd">        clockwise : bool</span>
+<span class="sd">            Direction of increasing PA, when looking at the source. Default is false </span>
+<span class="sd">            --i.e. counter-clockwise when looking outwards.</span>
+<span class="sd">            </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">ref_vector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ref_vector</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mi">90</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="s2">&quot;icrs&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ref_vector</span> <span class="o">=</span> <span class="n">ref_vector</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sign</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">clockwise</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;OrthographicConvention(starting from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_vector</span><span class="si">}</span><span class="s2"> and </span><span class="si">{</span><span class="s1">&#39;clockwise&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">is_clockwise</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;counter-clockwise&#39;</span><span class="si">}</span><span class="s2"> when looking at the source)&gt;&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_clockwise</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        When looking at the source</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sign</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">False</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">frame</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ref_vector</span><span class="o">.</span><span class="n">frame</span>
+        
+<div class="viewcode-block" id="OrthographicConvention.get_basis">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.OrthographicConvention.get_basis">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_direction</span><span class="p">:</span> <span class="n">SkyCoord</span><span class="p">):</span>
+        <span class="c1"># Extract Cartesian coordinates for the source direction.</span>
+        <span class="n">pz</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sign</span> <span class="o">*</span> <span class="n">source_direction</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+
+        <span class="c1"># Broadcast reference vector</span>
+        <span class="n">ref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ref_vector</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span><span class="p">,</span>
+                             <span class="n">axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">pz</span><span class="o">.</span><span class="n">ndim</span><span class="p">,</span> <span class="n">dtype</span> <span class="o">=</span> <span class="nb">int</span><span class="p">)))</span>
+
+        <span class="c1"># Get py. Normalize because pz and ref dot not make 90deg angle</span>
+        <span class="n">py</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">pz</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">axisa</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axisb</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axisc</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">py</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">py</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Get px</span>
+        <span class="n">px</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">py</span><span class="p">,</span> <span class="n">pz</span><span class="p">,</span> <span class="n">axisa</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axisb</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">axisc</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+        
+        <span class="c1"># To SkyCoord</span>
+        <span class="n">px</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="o">*</span><span class="n">px</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+        <span class="n">py</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="o">*</span><span class="n">py</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">px</span><span class="p">,</span> <span class="n">py</span></div>
+</div>
+
+
+
+<span class="c1">#https://github.com/zoglauer/megalib/blob/1eaad14c51ec52ad1cb2399a7357fe2ca1074f79/src/cosima/src/MCSource.cc#L3452</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MEGAlibRelative</span><span class="p">(</span><span class="n">OrthographicConvention</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">axis</span><span class="p">,</span> <span class="n">attitude</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Use a polarization vector which is created the following way: </span>
+<span class="sd">        Create an initial polarization vector which is orthogonal on the </span>
+<span class="sd">        initial flight direction vector of the particle and the given axis vector </span>
+<span class="sd">        (e.g. x-axis for RelativeX). This is a simple crossproduct. Then rotate </span>
+<span class="sd">        the polarization vector (right-hand-way) around the initial flight </span>
+<span class="sd">        direction vector of the particle by the given rotation angle. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axis</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Axis must be a string. &#39;x&#39;, &#39;y&#39; or &#39;z&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="n">axis</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;x&#39;</span><span class="p">:</span>
+            <span class="n">ref_vector</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+                                  <span class="n">frame</span> <span class="o">=</span> <span class="n">SpacecraftFrame</span><span class="p">(</span><span class="n">attitude</span> <span class="o">=</span> <span class="n">attitude</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+            <span class="n">ref_vector</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="mi">90</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+                                  <span class="n">frame</span> <span class="o">=</span> <span class="n">SpacecraftFrame</span><span class="p">(</span><span class="n">attitude</span> <span class="o">=</span> <span class="n">attitude</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">axis</span> <span class="o">==</span> <span class="s1">&#39;z&#39;</span><span class="p">:</span>
+            <span class="n">ref_vector</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">lat</span><span class="o">=</span><span class="mi">90</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+                                  <span class="n">frame</span> <span class="o">=</span> <span class="n">SpacecraftFrame</span><span class="p">(</span><span class="n">attitude</span> <span class="o">=</span> <span class="n">attitude</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Axis must be &#39;x&#39;, &#39;y&#39; or &#39;z&#39;.&quot;</span><span class="p">)</span>
+            
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">ref_vector</span><span class="p">,</span> <span class="n">clockwise</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_direction</span><span class="p">:</span> <span class="n">SkyCoord</span><span class="p">):</span>
+
+        <span class="c1"># The MEGAlib and orthographic definitions are prett much the same, but</span>
+        <span class="c1"># they differ on the order of the cross products</span>
+        
+        <span class="c1"># In MEGAlib definition</span>
+        <span class="c1"># pz = -source_direction = particle_direction</span>
+        <span class="c1"># px = particle_direction x ref_vector  = pz x ref_vector</span>
+        <span class="c1"># py = pz x px</span>
+
+        <span class="c1"># In the base orthographic definition</span>
+        <span class="c1"># pz = -source_direction = particle_direction</span>
+        <span class="c1"># px = py x pz</span>
+        <span class="c1"># py = source_direction x ref_vector = -pz x ref_vector</span>
+
+        <span class="c1"># Therefore</span>
+        <span class="c1"># px = py_base</span>
+        <span class="c1"># py = -px_base</span>
+
+        <span class="c1"># MEGAlib&#39;s PA is counter-clockwise when looking at the sourse</span>
+
+        <span class="c1"># Flip px &lt;-&gt; py</span>
+        <span class="n">py</span><span class="p">,</span><span class="n">px</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">get_basis</span><span class="p">(</span><span class="n">source_direction</span><span class="p">)</span>
+
+        <span class="c1"># Sign of px</span>
+        <span class="n">py</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="o">-</span><span class="n">py</span><span class="o">.</span><span class="n">cartesian</span><span class="p">,</span>
+                      <span class="n">representation_type</span> <span class="o">=</span> <span class="s1">&#39;cartesian&#39;</span><span class="p">,</span>
+                      <span class="n">frame</span> <span class="o">=</span> <span class="n">py</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">px</span><span class="p">,</span><span class="n">py</span>
+
+<span class="nd">@PolarizationConvention</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;RelativeX&quot;</span><span class="p">)</span>    
+<span class="k">class</span><span class="w"> </span><span class="nc">MEGAlibRelativeX</span><span class="p">(</span><span class="n">MEGAlibRelative</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+<span class="nd">@PolarizationConvention</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;RelativeY&quot;</span><span class="p">)</span>    
+<span class="k">class</span><span class="w"> </span><span class="nc">MEGAlibRelativeY</span><span class="p">(</span><span class="n">MEGAlibRelative</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<span class="nd">@PolarizationConvention</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;RelativeZ&quot;</span><span class="p">)</span>    
+<span class="k">class</span><span class="w"> </span><span class="nc">MEGAlibRelativeZ</span><span class="p">(</span><span class="n">MEGAlibRelative</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    
+<span class="c1"># https://lambda.gsfc.nasa.gov/product/about/pol_convention.html</span>
+<span class="c1"># https://www.iau.org/static/resolutions/IAU1973_French.pdf</span>
+<div class="viewcode-block" id="IAUPolarizationConvention">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.IAUPolarizationConvention">[docs]</a>
+<span class="nd">@PolarizationConvention</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">&quot;IAU&quot;</span><span class="p">)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">IAUPolarizationConvention</span><span class="p">(</span><span class="n">OrthographicConvention</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The following resolution was adopted by Commissions 25 and 40: </span>
+<span class="sd">        &#39;RESOLVED, that the frame of reference for the Stokes parameters </span>
+<span class="sd">        is that of Right Ascension and Declination with the position </span>
+<span class="sd">        angle of electric-vector maximum, e, starting from North and </span>
+<span class="sd">        increasing through East.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">ref_vector</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mi">90</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span>
+                                               <span class="n">frame</span><span class="o">=</span><span class="s2">&quot;icrs&quot;</span><span class="p">),</span>
+                         <span class="n">clockwise</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span></div>
+
+    
+    
+<span class="c1"># Stereographic projection convention</span>
+<div class="viewcode-block" id="StereographicConvention">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.StereographicConvention">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StereographicConvention</span><span class="p">(</span><span class="n">PolarizationConvention</span><span class="p">):</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">clockwise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">attitude</span><span class="p">:</span> <span class="n">Attitude</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Basis vector follow the steregraphic projection lines. Meant to describe</span>
+<span class="sd">        polarization in spacecraft coordinate by minimizing the number of undefined location withing the field of view.</span>
+<span class="sd">        </span>
+<span class="sd">        Near the boresight --i.e. on axis, center of the FoV, north pole-- it is</span>
+<span class="sd">        similar to </span>
+<span class="sd">        ``OrthographicConvention(ref_vector = SkyCoord(lon = 0*u.deg, lat = 0*u.deg, frame = SpacecraftFrame())``</span>
+<span class="sd">        however, it has a single undefined point on the opposite end --i.e. south pole,</span>
+<span class="sd">        back of the detector---</span>
+<span class="sd">        </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        clockwise : bool</span>
+<span class="sd">            Direction of increasing PA, when looking at the source. Default is false </span>
+<span class="sd">            --i.e. counter-clockwise when looking outwards.</span>
+<span class="sd">        attitude : Attitude</span>
+<span class="sd">            Spacecraft orientation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_attitude</span> <span class="o">=</span> <span class="n">attitude</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sign</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">clockwise</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="nd">@property</span> 
+    <span class="k">def</span><span class="w"> </span><span class="nf">frame</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">SpacecraftFrame</span><span class="p">(</span><span class="n">attitude</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_attitude</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="StereographicConvention.get_basis">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.StereographicConvention.get_basis">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_basis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_direction</span><span class="p">:</span> <span class="n">SkyCoord</span><span class="p">):</span>
+        <span class="c1"># Extract Cartesian coordinates for the source direction</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">source_direction</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+
+        <span class="c1"># Calculate the projection of the reference vector in stereographic coordinates</span>
+        <span class="n">px_x</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">z</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">px_y</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span> <span class="o">/</span> <span class="p">(</span><span class="n">z</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+        <span class="n">px_z</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2</span> <span class="o">*</span> <span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="n">z</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Combine the components into the projection vector px</span>
+        <span class="n">px</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">px_x</span><span class="p">,</span> <span class="n">px_y</span><span class="p">,</span> <span class="n">px_z</span><span class="p">])</span>
+
+        <span class="c1"># Normalize the projection vector</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">px</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">px</span> <span class="o">/=</span> <span class="n">norm</span>
+
+        <span class="c1"># Calculate the perpendicular vector py using the cross product</span>
+        <span class="n">py</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sign</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">],</span> <span class="n">px</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># To SkyCoord</span>
+        <span class="n">px</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="o">*</span><span class="n">px</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+        <span class="n">py</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="o">*</span><span class="n">py</span><span class="p">,</span> <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">px</span><span class="p">,</span> <span class="n">py</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

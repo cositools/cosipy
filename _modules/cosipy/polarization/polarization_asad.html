@@ -1,0 +1,731 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.polarization.polarization_asad &mdash; cosipy __version__ = &#34;0.3.0&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=e963a228"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.polarization.polarization_asad</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.polarization.polarization_asad</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.coordinates</span><span class="w"> </span><span class="kn">import</span> <span class="n">Angle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">poisson_conf_interval</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.optimize</span><span class="w"> </span><span class="kn">import</span> <span class="n">curve_fit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.polarization.polarization_angle</span><span class="w"> </span><span class="kn">import</span> <span class="n">PolarizationAngle</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.polarization.conventions</span><span class="w"> </span><span class="kn">import</span> <span class="n">MEGAlibRelativeX</span><span class="p">,</span> <span class="n">IAUPolarizationConvention</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.response</span><span class="w"> </span><span class="kn">import</span> <span class="n">FullDetectorResponse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scoords</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpacecraftFrame</span>
+
+<div class="viewcode-block" id="calculate_uncertainties">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.calculate_uncertainties">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_uncertainties</span><span class="p">(</span><span class="n">counts</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the Poisson/Gaussian uncertainties for a list of binned counts.</span>
+<span class="sd">        </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    counts : list</span>
+<span class="sd">        List of counts in each bin</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    uncertainties : np.ndarray</span>
+<span class="sd">        Lower &amp; upper uncertainties for each bin</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">uncertainties_low</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">uncertainties_high</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">counts</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">counts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="n">poisson_uncertainty</span> <span class="o">=</span> <span class="n">poisson_conf_interval</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">interval</span><span class="o">=</span><span class="s2">&quot;frequentist-confidence&quot;</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">uncertainties_low</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">-</span> <span class="n">poisson_uncertainty</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">uncertainties_high</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">poisson_uncertainty</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">counts</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">gaussian_uncertainty</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">uncertainties_low</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gaussian_uncertainty</span><span class="p">)</span>
+            <span class="n">uncertainties_high</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">gaussian_uncertainty</span><span class="p">)</span>
+
+    <span class="n">uncertainties</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">uncertainties_low</span><span class="p">,</span> <span class="n">uncertainties_high</span><span class="p">])</span>
+        
+    <span class="k">return</span> <span class="n">uncertainties</span></div>
+
+
+<div class="viewcode-block" id="PolarizationASAD">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PolarizationASAD</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Azimuthal scattering angle distribution (ASAD) method to fit polarization.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source_vector : astropy.coordinates.sky_coordinate.SkyCoord</span>
+<span class="sd">        Source direction</span>
+<span class="sd">    source_spectrum : astromodels.functions.functions_1D</span>
+<span class="sd">        Spectrum of source</span>
+<span class="sd">    response_file : str or pathlib.Path</span>
+<span class="sd">        Path to detector response</span>
+<span class="sd">    sc_orientation : cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile</span>
+<span class="sd">        Spacecraft orientation</span>
+<span class="sd">    fit_convention : cosipy.polarization.conventions.PolarizationConvention, optional</span>
+<span class="sd">        Polarization reference convention to use for fit. Default is RelativeX</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_vector</span><span class="p">,</span> <span class="n">source_spectrum</span><span class="p">,</span> <span class="n">response_file</span><span class="p">,</span> <span class="n">sc_orientation</span><span class="p">,</span> <span class="n">fit_convention</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="n">fit_convention</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_convention</span> <span class="o">=</span> <span class="n">MEGAlibRelativeX</span><span class="p">(</span><span class="n">attitude</span><span class="o">=</span><span class="n">source_vector</span><span class="o">.</span><span class="n">attitude</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_convention</span> <span class="o">=</span> <span class="n">fit_convention</span>
+
+        <span class="n">reference_vector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convention</span><span class="o">.</span><span class="n">get_basis</span><span class="p">(</span><span class="n">source_vector</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="c1">#px</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_vector</span><span class="o">.</span><span class="n">frame</span><span class="p">,</span> <span class="n">SpacecraftFrame</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector</span> <span class="o">=</span> <span class="n">source_vector</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector</span> <span class="o">=</span> <span class="n">source_vector</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">SpacecraftFrame</span><span class="p">(</span><span class="n">attitude</span><span class="o">=</span><span class="n">source_vector</span><span class="o">.</span><span class="n">attitude</span><span class="p">))</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">reference_vector</span><span class="o">.</span><span class="n">frame</span><span class="p">,</span> <span class="n">SpacecraftFrame</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector</span> <span class="o">=</span> <span class="n">reference_vector</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector</span> <span class="o">=</span> <span class="n">reference_vector</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">SpacecraftFrame</span><span class="p">(</span><span class="n">attitude</span><span class="o">=</span><span class="n">source_vector</span><span class="o">.</span><span class="n">attitude</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector_cartesian</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_source_vector</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                                         <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> 
+                                         <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector_cartesian</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> 
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> 
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuthal_angle_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convolve_spectrum</span><span class="p">(</span><span class="n">source_spectrum</span><span class="p">,</span> <span class="n">response_file</span><span class="p">,</span> <span class="n">sc_orientation</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_energy_range</span> <span class="o">=</span> <span class="p">[</span><span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Em&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">value</span><span class="p">),</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Em&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="o">.</span><span class="n">value</span><span class="p">)]</span>
+        
+<div class="viewcode-block" id="PolarizationASAD.convolve_spectrum">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.convolve_spectrum">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convolve_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spectrum</span><span class="p">,</span> <span class="n">response_file</span><span class="p">,</span> <span class="n">sc_orientation</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convolve source spectrum with response and calculate azimuthal scattering angle bins.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        response_file : str or pathlib.Path</span>
+<span class="sd">            Path to detector response</span>
+<span class="sd">        sc_orientation : cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile</span>
+<span class="sd">            Spacecraft orientation</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        expectation : cosipy.response.PointSourceResponse.PointSourceResponse</span>
+<span class="sd">            Expected counts in each bin of Compton data space</span>
+<span class="sd">        azimuthal_angle_bins : list</span>
+<span class="sd">            Centers of azimuthal scattering angle bins calculated from PsiChi bins in response</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">response</span> <span class="o">=</span> <span class="n">FullDetectorResponse</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">response_file</span><span class="p">)</span>
+
+        <span class="n">target_in_sc_frame</span> <span class="o">=</span> <span class="n">sc_orientation</span><span class="o">.</span><span class="n">get_target_in_sc_frame</span><span class="p">(</span><span class="n">target_name</span><span class="o">=</span><span class="s1">&#39;source&#39;</span><span class="p">,</span> <span class="n">target_coord</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_source_vector</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="s1">&#39;galactic&#39;</span><span class="p">))</span>
+        <span class="n">dwell_time_map</span> <span class="o">=</span> <span class="n">sc_orientation</span><span class="o">.</span><span class="n">get_dwell_map</span><span class="p">(</span><span class="n">response</span><span class="o">=</span><span class="n">response_file</span><span class="p">,</span> <span class="n">src_path</span><span class="o">=</span><span class="n">target_in_sc_frame</span><span class="p">)</span>
+
+        <span class="n">psr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">get_point_source_response</span><span class="p">(</span><span class="n">exposure_map</span><span class="o">=</span><span class="n">dwell_time_map</span><span class="p">,</span> <span class="n">coord</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_source_vector</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="s1">&#39;galactic&#39;</span><span class="p">))</span>
+
+        <span class="n">expectation</span> <span class="o">=</span> <span class="n">psr</span><span class="o">.</span><span class="n">get_expectation</span><span class="p">(</span><span class="n">spectrum</span><span class="p">)</span>
+
+        <span class="n">azimuthal_angle_bins</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">expectation</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
+            <span class="n">azimuthal_angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_azimuthal_scattering_angle</span><span class="p">(</span><span class="n">expectation</span><span class="o">.</span><span class="n">project</span><span class="p">([</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pix2ang</span><span class="p">(</span><span class="n">i</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">expectation</span><span class="o">.</span><span class="n">project</span><span class="p">([</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pix2ang</span><span class="p">(</span><span class="n">i</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">azimuthal_angle_bins</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">azimuthal_angle</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">expectation</span><span class="p">,</span> <span class="n">azimuthal_angle_bins</span></div>
+
+
+<div class="viewcode-block" id="PolarizationASAD.calculate_azimuthal_scattering_angle">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.calculate_azimuthal_scattering_angle">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_azimuthal_scattering_angle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">psi</span><span class="p">,</span> <span class="n">chi</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the azimuthal scattering angle of a scattered photon.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        psi : float</span>
+<span class="sd">            Polar angle (radians) of scattered photon in local coordinates</span>
+<span class="sd">        chi : float</span>
+<span class="sd">            Azimuthal angle (radians) of scattered photon in local coordinates</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        azimuthal_angle : astropy.coordinates.Angle</span>
+<span class="sd">            Azimuthal scattering angle defined with respect to given reference vector</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Convert scattered photon vector from spherical to Cartesian coordinates</span>
+        <span class="n">scattered_photon_vector</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">chi</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">psi</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">chi</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">psi</span><span class="p">)]</span>
+
+        <span class="c1"># Project scattered photon vector onto plane perpendicular to source direction</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">scattered_photon_vector</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector_cartesian</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_source_vector_cartesian</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector_cartesian</span><span class="p">)</span>
+        <span class="n">projection</span> <span class="o">=</span> <span class="p">[</span><span class="n">scattered_photon_vector</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">d</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector_cartesian</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> 
+                      <span class="n">scattered_photon_vector</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">d</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector_cartesian</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> 
+                      <span class="n">scattered_photon_vector</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">d</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector_cartesian</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span>
+
+        <span class="c1"># Calculate angle between scattered photon vector &amp; reference vector on plane perpendicular to source direction</span>
+        <span class="n">cross_product</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">projection</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector_cartesian</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_source_vector_cartesian</span><span class="p">,</span> <span class="n">cross_product</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sign</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sign</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">normalization</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">projection</span><span class="p">,</span> <span class="n">projection</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector_cartesian</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector_cartesian</span><span class="p">))</span>
+    
+        <span class="n">azimuthal_angle</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">sign</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">projection</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reference_vector_cartesian</span><span class="p">)</span> <span class="o">/</span> <span class="n">normalization</span><span class="p">),</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+    
+        <span class="k">return</span> <span class="n">azimuthal_angle</span></div>
+
+
+<div class="viewcode-block" id="PolarizationASAD.calculate_azimuthal_scattering_angles">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.calculate_azimuthal_scattering_angles">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_azimuthal_scattering_angles</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unbinned_data</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the azimuthal scattering angles for all events in a dataset.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        unbinned_data : dict</span>
+<span class="sd">            Unbinned data including polar and azimuthal angles (radians) of scattered photon in local coordinates</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        azimuthal_angles : list</span>
+<span class="sd">            Azimuthal scattering angles. Each angle must be an astropy.coordinates.Angle object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">azimuthal_angles</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unbinned_data</span><span class="p">[</span><span class="s1">&#39;Psi local&#39;</span><span class="p">])):</span>
+            <span class="k">if</span> <span class="n">unbinned_data</span><span class="p">[</span><span class="s1">&#39;Energies&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">unbinned_data</span><span class="p">[</span><span class="s1">&#39;Energies&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_energy_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">azimuthal_angle</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_azimuthal_scattering_angle</span><span class="p">(</span><span class="n">unbinned_data</span><span class="p">[</span><span class="s1">&#39;Psi local&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="n">unbinned_data</span><span class="p">[</span><span class="s1">&#39;Chi local&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">azimuthal_angles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">azimuthal_angle</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">azimuthal_angles</span></div>
+
+
+<div class="viewcode-block" id="PolarizationASAD.create_asad">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.create_asad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_asad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">azimuthal_angles</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">20</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create ASAD and calculate uncertainties.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        azimuthal_angles : list</span>
+<span class="sd">            Azimuthal scattering angles (radians)</span>
+<span class="sd">        bins : int or np.array, optional</span>
+<span class="sd">            Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        asad : dict</span>
+<span class="sd">            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">bins</span><span class="p">),</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">bins</span>
+
+        <span class="n">counts</span><span class="p">,</span> <span class="n">edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">azimuthal_angles</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">bin_edges</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bin_edges</span> <span class="o">=</span> <span class="n">edges</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bins</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bin_edges</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bins</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">_bin_edges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bin_edges</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">errors</span> <span class="o">=</span> <span class="n">calculate_uncertainties</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+
+        <span class="n">asad</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;counts&#39;</span><span class="p">:</span> <span class="n">counts</span><span class="p">,</span> <span class="s1">&#39;uncertainties&#39;</span><span class="p">:</span> <span class="n">errors</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">asad</span></div>
+
+    
+<div class="viewcode-block" id="PolarizationASAD.create_unpolarized_asad">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.create_unpolarized_asad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_unpolarized_asad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the azimuthal scattering angles for all bins.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        bins : int or np.array, optional</span>
+<span class="sd">            Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        asad : dict</span>
+<span class="sd">            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bins</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">bins</span><span class="p">),</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">bins</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bin_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bin_edges</span>
+        
+        <span class="n">unpolarized_asad</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bin_edges</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">counts</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">project</span><span class="p">([</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuthal_angle_bins</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">bin_edges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuthal_angle_bins</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">bin_edges</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">counts</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">project</span><span class="p">([</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">])[</span><span class="n">j</span><span class="p">]</span>
+            <span class="n">unpolarized_asad</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+
+        <span class="n">asad</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;counts&#39;</span><span class="p">:</span> <span class="n">unpolarized_asad</span><span class="p">,</span> <span class="s1">&#39;uncertainties&#39;</span><span class="p">:</span> <span class="n">calculate_uncertainties</span><span class="p">(</span><span class="n">unpolarized_asad</span><span class="p">)}</span>
+
+        <span class="k">return</span> <span class="n">asad</span></div>
+
+    
+<div class="viewcode-block" id="PolarizationASAD.create_polarized_asads">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.create_polarized_asads">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_polarized_asads</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the azimuthal scattering angles for all bins.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        bins : int or np.array, optional</span>
+<span class="sd">            Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        asads : dict</span>
+<span class="sd">            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for each polarization angle bin</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bins</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">bins</span><span class="p">),</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">bin_edges</span> <span class="o">=</span> <span class="n">bins</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bin_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bin_edges</span>
+        
+        <span class="n">polarized_asads</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">polarized_asad_uncertainties</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
+            <span class="n">polarized_asads</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">bin_edges</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">counts</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">project</span><span class="p">([</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuthal_angle_bins</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">bin_edges</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_azimuthal_angle_bins</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">bin_edges</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]:</span>
+                        <span class="n">counts</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">slice</span><span class="p">[{</span><span class="s1">&#39;Pol&#39;</span><span class="p">:</span><span class="nb">slice</span><span class="p">(</span><span class="n">k</span><span class="p">,</span><span class="n">k</span><span class="o">+</span><span class="mi">1</span><span class="p">)}]</span><span class="o">.</span><span class="n">project</span><span class="p">([</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">])[</span><span class="n">j</span><span class="p">]</span>
+                <span class="n">polarized_asads</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
+            <span class="n">polarized_asad_uncertainties</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">calculate_uncertainties</span><span class="p">(</span><span class="n">polarized_asads</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+
+        <span class="n">asads</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;counts&#39;</span><span class="p">:</span> <span class="n">polarized_asads</span><span class="p">,</span> <span class="s1">&#39;uncertainties&#39;</span><span class="p">:</span> <span class="n">polarized_asad_uncertainties</span><span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">asads</span></div>
+
+
+<div class="viewcode-block" id="PolarizationASAD.asad_sinusoid">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.asad_sinusoid">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">asad_sinusoid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sinusoid to fit to ASAD.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : float</span>
+<span class="sd">            Azimuthal scattering angle (radians)</span>
+<span class="sd">        a : float</span>
+<span class="sd">            First parameter</span>
+<span class="sd">        b : float</span>
+<span class="sd">            Second parameter</span>
+<span class="sd">        c : float</span>
+<span class="sd">            Third parameter</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        asad_function : float</span>
+<span class="sd">            Y-value of ASAD</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">asad_function</span> <span class="o">=</span> <span class="n">a</span> <span class="o">-</span> <span class="p">(</span><span class="n">b</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">c</span><span class="p">)))</span>
+    
+        <span class="k">return</span> <span class="n">asad_function</span></div>
+
+    
+<div class="viewcode-block" id="PolarizationASAD.fit_asad">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.fit_asad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit_asad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">counts</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fit the ASAD with a sinusoid.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        counts : list</span>
+<span class="sd">            Counts in each azimuthal scattering angle bin</span>
+<span class="sd">        p0 : list or np.array</span>
+<span class="sd">            Initial guess for parameter values</span>
+<span class="sd">        bounds : 2-tuple of float, list, or np.array</span>
+<span class="sd">            Lower &amp; upper bounds on parameters</span>
+<span class="sd">        sigma : float, list, or np.array</span>
+<span class="sd">            Uncertainties in y data</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        popt : np.ndarray</span>
+<span class="sd">            Fitted parameter values</span>
+<span class="sd">        uncertainties : list</span>
+<span class="sd">            Uncertainty on each parameter value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">popt</span><span class="p">,</span> <span class="n">pcov</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asad_sinusoid</span><span class="p">,</span> <span class="n">Angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bins</span><span class="p">)</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">counts</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="n">p0</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="n">bounds</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">sigma</span><span class="p">)</span>
+        <span class="n">uncertainties</span> <span class="o">=</span> <span class="p">[]</span> 
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pcov</span><span class="p">)):</span>
+            <span class="n">uncertainties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">pcov</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">i</span><span class="p">]))</span>
+
+        <span class="k">return</span> <span class="n">popt</span><span class="p">,</span> <span class="n">uncertainties</span></div>
+
+    
+<div class="viewcode-block" id="PolarizationASAD.plot_asad">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.plot_asad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_asad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">counts</span><span class="p">,</span> <span class="n">error</span><span class="p">,</span> <span class="n">title</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">=</span><span class="p">[]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the ASAD.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        counts : list</span>
+<span class="sd">            Counts in each azimuthal scattering angle bin</span>
+<span class="sd">        error : np.ndarray</span>
+<span class="sd">            Lower &amp; upper uncertainties for each bin</span>
+<span class="sd">        title : str</span>
+<span class="sd">            Title of plot</span>
+<span class="sd">        coefficients : list, optional</span>
+<span class="sd">            Coefficients to plot fitted sinusoidal function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">Angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bins</span><span class="p">)</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">counts</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">Angle</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bins</span><span class="p">)</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="n">counts</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">error</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">elinewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Azimuthal Scattering Angle (degrees)&#39;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+                <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asad_sinusoid</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coefficients</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">coefficients</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">y</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">)</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PolarizationASAD.correct_asad">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.correct_asad">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">correct_asad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_asad</span><span class="p">,</span> <span class="n">unpolarized_asad</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Correct the ASAD using the ASAD of an unpolarized source.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data_asad : dict</span>
+<span class="sd">            Counts and uncertainties in each azimuthal scattering angle bin of data</span>
+<span class="sd">        unpolarized_asad : dict</span>
+<span class="sd">            Counts and uncertainties in each azimuthal scattering angle bin of unpolarized source</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        asad : dict</span>
+<span class="sd">            Normalized counts and uncertainties in each azimuthal scattering angle bin</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="n">corrected</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bins</span><span class="p">)):</span>
+            <span class="n">corrected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_asad</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">data_asad</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="n">unpolarized_asad</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">unpolarized_asad</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">]))</span>
+  
+        <span class="n">errors_low</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">errors_high</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bins</span><span class="p">)):</span>
+            <span class="n">sigma_corrected_low</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(((</span><span class="n">data_asad</span><span class="p">[</span><span class="s1">&#39;uncertainties&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">])</span><span class="o">/</span><span class="n">data_asad</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">unpolarized_asad</span><span class="p">[</span><span class="s1">&#39;uncertainties&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">])</span><span class="o">/</span><span class="n">unpolarized_asad</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">sigma_corrected_high</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(((</span><span class="n">data_asad</span><span class="p">[</span><span class="s1">&#39;uncertainties&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">])</span><span class="o">/</span><span class="n">data_asad</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">((</span><span class="n">unpolarized_asad</span><span class="p">[</span><span class="s1">&#39;uncertainties&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">])</span><span class="o">/</span><span class="n">unpolarized_asad</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">errors_low</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sigma_corrected_low</span><span class="p">)</span>
+            <span class="n">errors_high</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sigma_corrected_high</span><span class="p">)</span>
+
+        <span class="n">asad</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;counts&#39;</span><span class="p">:</span> <span class="n">corrected</span><span class="p">,</span> <span class="s1">&#39;uncertainties&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">errors_low</span><span class="p">,</span> <span class="n">errors_high</span><span class="p">])}</span>
+
+        <span class="k">return</span> <span class="n">asad</span></div>
+
+
+<div class="viewcode-block" id="PolarizationASAD.calculate_mu">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.calculate_mu">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_mu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">counts_corrected</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the modulation (mu).</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        counts_corrected : list</span>
+<span class="sd">            Counts in each azimuthal scattering angle bin</span>
+<span class="sd">        p0 : list or np.array</span>
+<span class="sd">            Initial guess for parameter values</span>
+<span class="sd">        bounds : 2-tuple of float, list, or np.array</span>
+<span class="sd">            Lower &amp; upper bounds on parameters</span>
+<span class="sd">        sigma : float, list, or np.array</span>
+<span class="sd">            Uncertainties for each azimuthal scattering angle bin</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        modulation : dict</span>
+<span class="sd">            Modulation and uncertainty of fitted sinusoid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Defaults</span>
+        <span class="k">if</span> <span class="n">bounds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">sigma</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sigma</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                <span class="k">if</span> <span class="n">sigma</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">sigma</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Warning: Uncertainty in at least one bin of ASAD is not Gaussian. Making error bars symmetric. Fit may not be accurate.&#39;</span><span class="p">)</span>
+                    <span class="k">break</span>
+            <span class="n">symmetric_sigma</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sigma</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                <span class="n">symmetric_sigma</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">sigma</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">sigma</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">symmetric_sigma</span>
+
+        <span class="n">parameter_values</span><span class="p">,</span> <span class="n">uncertainties</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_asad</span><span class="p">(</span><span class="n">counts_corrected</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+    
+        <span class="n">mu</span> <span class="o">=</span> <span class="n">parameter_values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">parameter_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">mu_uncertainty</span> <span class="o">=</span> <span class="n">mu</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">uncertainties</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">parameter_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">uncertainties</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">parameter_values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">modulation</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;mu&#39;</span><span class="p">:</span> <span class="n">mu</span><span class="p">,</span> <span class="s1">&#39;uncertainty&#39;</span><span class="p">:</span> <span class="n">mu_uncertainty</span><span class="p">}</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Modulation:&#39;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="s1">&#39;+/-&#39;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">mu_uncertainty</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+    
+        <span class="k">return</span> <span class="n">modulation</span></div>
+
+    
+<div class="viewcode-block" id="PolarizationASAD.constant">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.constant">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">constant</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constant function to fit to mu_100 values.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : float</span>
+<span class="sd">            Mu_100</span>
+<span class="sd">        a : float</span>
+<span class="sd">            Parameter</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        a : float</span>
+<span class="sd">            Constant value</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">a</span></div>
+
+    
+<div class="viewcode-block" id="PolarizationASAD.calculate_mu100">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.calculate_mu100">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_mu100</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">polarized_asads</span><span class="p">,</span> <span class="n">unpolarized_asad</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the modulation (mu) of an 100% polarized source.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        polarized_asads : list</span>
+<span class="sd">            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for each polarization angle bin for 100% polarized source</span>
+<span class="sd">        unpolarized_asad : list or np.array</span>
+<span class="sd">            Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for unpolarized source</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        mu_100 : dict</span>
+<span class="sd">            Modulation of 100% polarized source and uncertainty of constant function fit to modulation in all polarization angle bins</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">mu_100_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">mu_100_uncertainties</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Polarization angle bin: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39; to &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">asad_polarized</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;counts&#39;</span><span class="p">:</span> <span class="n">polarized_asads</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">],</span> <span class="s1">&#39;uncertainties&#39;</span><span class="p">:</span> <span class="n">polarized_asads</span><span class="p">[</span><span class="s1">&#39;uncertainties&#39;</span><span class="p">][</span><span class="n">i</span><span class="p">]}</span>
+            <span class="n">asad_polarized_corrected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">correct_asad</span><span class="p">(</span><span class="n">asad_polarized</span><span class="p">,</span> <span class="n">unpolarized_asad</span><span class="p">)</span>
+            <span class="n">mu_100</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_mu</span><span class="p">(</span><span class="n">asad_polarized_corrected</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">],</span> <span class="n">bounds</span><span class="o">=</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]),</span> <span class="n">sigma</span><span class="o">=</span><span class="n">asad_polarized_corrected</span><span class="p">[</span><span class="s1">&#39;uncertainties&#39;</span><span class="p">])</span>
+            <span class="n">mu_100_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mu_100</span><span class="p">[</span><span class="s1">&#39;mu&#39;</span><span class="p">])</span>
+            <span class="n">mu_100_uncertainties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mu_100</span><span class="p">[</span><span class="s1">&#39;uncertainty&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_asad</span><span class="p">(</span><span class="n">asad_polarized_corrected</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">],</span> <span class="n">asad_polarized_corrected</span><span class="p">[</span><span class="s1">&#39;uncertainties&#39;</span><span class="p">],</span> <span class="s1">&#39;Corrected 100% Polarized ASAD&#39;</span><span class="p">,</span> <span class="n">coefficients</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">mu_100</span><span class="p">,</span> <span class="n">asad_polarized_corrected</span><span class="p">[</span><span class="s1">&#39;counts&#39;</span><span class="p">],</span> <span class="n">bounds</span><span class="o">=</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]),</span> <span class="n">sigma</span><span class="o">=</span><span class="n">asad_polarized_corrected</span><span class="p">[</span><span class="s1">&#39;uncertainties&#39;</span><span class="p">])[</span><span class="s1">&#39;best fit parameter values&#39;</span><span class="p">])</span>
+
+        <span class="n">popt</span><span class="p">,</span> <span class="n">pcov</span> <span class="o">=</span> <span class="n">curve_fit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constant</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">,</span> <span class="n">mu_100_list</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="n">mu_100_uncertainties</span><span class="p">)</span>
+        <span class="n">mu_100</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;mu&#39;</span><span class="p">:</span> <span class="n">popt</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;uncertainty&#39;</span><span class="p">:</span> <span class="n">pcov</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]}</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">,</span> <span class="n">mu_100_list</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_expectation</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">,</span> <span class="n">mu_100_list</span><span class="p">,</span> <span class="n">yerr</span><span class="o">=</span><span class="n">mu_100_uncertainties</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">elinewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">175</span><span class="p">],</span> <span class="p">[</span><span class="n">mu_100</span><span class="p">[</span><span class="s1">&#39;mu&#39;</span><span class="p">],</span> <span class="n">mu_100</span><span class="p">[</span><span class="s1">&#39;mu&#39;</span><span class="p">]])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Polarization Angle (degrees)&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;mu_100&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;mu_100:&#39;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">mu_100</span><span class="p">[</span><span class="s1">&#39;mu&#39;</span><span class="p">],</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">mu_100</span></div>
+
+
+<div class="viewcode-block" id="PolarizationASAD.fit">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationASAD.fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu_100</span><span class="p">,</span> <span class="n">counts_corrected</span><span class="p">,</span> <span class="n">p0</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bounds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sigma</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fit the polarization fraction and angle.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mu_100 : dict</span>
+<span class="sd">            Modulation and uncertainty of a 100% polarized source</span>
+<span class="sd">        counts_corrected : list</span>
+<span class="sd">            Counts in each azimuthal scattering angle bin</span>
+<span class="sd">        p0 : list or np.array</span>
+<span class="sd">            Initial guess for parameter values</span>
+<span class="sd">        bounds : 2-tuple of float, list, or np.array</span>
+<span class="sd">            Lower &amp; upper bounds on parameters</span>
+<span class="sd">        sigma : float, list, or np.array</span>
+<span class="sd">            Uncertainties for each azimuthal scattering angle bin</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        polarization : dict</span>
+<span class="sd">            Polarization fraction, polarization angle, and best fit parameter values for fitted sinusoid, and associated uncertainties</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">bounds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bounds</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sigma</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">sigma</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sigma</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                <span class="k">if</span> <span class="n">sigma</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">sigma</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">]:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Warning: Uncertainty in at least one bin of ASAD is not Gaussian. Making error bars symmetric. Fit may not be accurate.&#39;</span><span class="p">)</span>
+                    <span class="k">break</span>
+            <span class="n">symmetric_sigma</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sigma</span><span class="p">[</span><span class="mi">0</span><span class="p">])):</span>
+                <span class="n">symmetric_sigma</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">sigma</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">sigma</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">symmetric_sigma</span>
+
+        <span class="n">parameter_values</span><span class="p">,</span> <span class="n">uncertainties</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fit_asad</span><span class="p">(</span><span class="n">counts_corrected</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="n">bounds</span><span class="p">,</span> <span class="n">sigma</span><span class="p">)</span>
+    
+        <span class="n">polarization_fraction</span> <span class="o">=</span> <span class="n">parameter_values</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">parameter_values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">mu_100</span><span class="p">[</span><span class="s1">&#39;mu&#39;</span><span class="p">])</span>
+        <span class="n">polarization_fraction_uncertainty</span> <span class="o">=</span> <span class="n">polarization_fraction</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">uncertainties</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">/</span><span class="n">parameter_values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">uncertainties</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">/</span><span class="n">parameter_values</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="n">mu_100</span><span class="p">[</span><span class="s1">&#39;uncertainty&#39;</span><span class="p">]</span><span class="o">/</span><span class="n">mu_100</span><span class="p">[</span><span class="s1">&#39;mu&#39;</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">polarization_angle</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">parameter_values</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+        <span class="n">polarization_angle</span><span class="o">.</span><span class="n">wrap_at</span><span class="p">(</span><span class="mi">180</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">polarization_angle</span><span class="o">.</span><span class="n">degree</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">polarization_angle</span> <span class="o">+=</span> <span class="n">Angle</span><span class="p">(</span><span class="mi">180</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+        <span class="n">polarization_angle</span> <span class="o">=</span> <span class="n">PolarizationAngle</span><span class="p">(</span><span class="n">polarization_angle</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_vector</span><span class="p">,</span> <span class="n">convention</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_convention</span><span class="p">)</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">IAUPolarizationConvention</span><span class="p">())</span>
+        <span class="n">polarization_angle_uncertainty</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">uncertainties</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+        <span class="n">polarization</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;fraction&#39;</span><span class="p">:</span> <span class="n">polarization_fraction</span><span class="p">,</span> <span class="s1">&#39;angle&#39;</span><span class="p">:</span> <span class="n">polarization_angle</span><span class="p">,</span> <span class="s1">&#39;fraction uncertainty&#39;</span><span class="p">:</span> <span class="n">polarization_fraction_uncertainty</span><span class="p">,</span> <span class="s1">&#39;angle uncertainty&#39;</span><span class="p">:</span> <span class="n">polarization_angle_uncertainty</span><span class="p">,</span> <span class="s1">&#39;best fit parameter values&#39;</span><span class="p">:</span> <span class="n">parameter_values</span><span class="p">,</span> <span class="s1">&#39;best fit parameter uncertainties&#39;</span><span class="p">:</span> <span class="n">uncertainties</span><span class="p">}</span>
+    
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Best fit polarization fraction:&#39;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">polarization_fraction</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="s1">&#39;+/-&#39;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">polarization_fraction_uncertainty</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Best fit polarization angle:&#39;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">polarization_angle</span><span class="o">.</span><span class="n">angle</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="s1">&#39;+/-&#39;</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">polarization_angle_uncertainty</span><span class="o">.</span><span class="n">degree</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+        
+        <span class="k">return</span> <span class="n">polarization</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

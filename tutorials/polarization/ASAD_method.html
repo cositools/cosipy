@@ -1,0 +1,748 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polarization example (GRB) - azimuthal scattering angle distribution (ASAD) method &mdash; cosipy __version__ = &#34;0.3.0&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=e963a228"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Polarization example (GRB) - azimuthal scattering angle distribution (ASAD) method</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tutorials/polarization/ASAD_method.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Polarization-example-(GRB)---azimuthal-scattering-angle-distribution-(ASAD)-method">
+<h1>Polarization example (GRB) - azimuthal scattering angle distribution (ASAD) method<a class="headerlink" href="#Polarization-example-(GRB)---azimuthal-scattering-angle-distribution-(ASAD)-method" title="Link to this heading"></a></h1>
+<p>This notebook fits the polarization fraction and angle of a GRB simulated using MEGAlib and combined with background. It’s assumed that the start time, duration, localization, and spectrum of the GRB are already known. The GRB was simulated with 70% polarization at an angle of 110 degrees in the RelativeX convention, which corresponds to 83.015 degrees in the IAU convention.</p>
+<p>The data to run this notebook, including GRBs simulated on-axis, 10 degrees off-axis, and 20 degrees off-axis, can be found on the COSI Pipeline Google Drive: <a class="reference external" href="https://drive.google.com/drive/folders/1kCkqQv07APSSlexeuIgK2Jj7eqJzNNgQ">https://drive.google.com/drive/folders/1kCkqQv07APSSlexeuIgK2Jj7eqJzNNgQ</a>. However, with the RelativeZ response, it is not possible to fit the on-axis GRB.</p>
+<p>Caveats/limitations:</p>
+<ul class="simple">
+<li><p>Currently, the source must be stationary with respect to the instrument, and the spacecraft must be stationary. The ability to fit the polarization of persistent sources will be added later.</p></li>
+<li><p>The background simulation is used as the background model, and its ASAD is subtracted from the source+background ASAD.</p></li>
+</ul>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from cosipy import UnBinnedData
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.polarization.conventions import MEGAlibRelativeX, MEGAlibRelativeY, MEGAlibRelativeZ, IAUPolarizationConvention
+from cosipy.polarization.polarization_asad import PolarizationASAD, calculate_uncertainties
+from cosipy.threeml.custom_functions import Band_Eflux
+from astropy.time import Time
+import numpy as np
+from astropy.coordinates import Angle, SkyCoord
+from astropy import units as u
+from scoords import SpacecraftFrame
+from scipy.optimize import curve_fit
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Welcome to JupyROOT 6.28/02
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">01:03:48 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The naima package is not available. Models that depend on it will not be         </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#48" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">48</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                         </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The GSL library or the pygsl wrapper cannot be loaded. Models that depend on it  </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#69" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">69</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">will not be available.                                                            </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The ebltable package is not available. Models that depend on it will not be     </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">absorption.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py#33" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">33</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                        </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">                </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #00ffaf; text-decoration-color: #00ffaf">INFO    </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Starting 3ML!                                                                     </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#39" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">39</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> WARNINGs here are </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">NOT</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> errors                                                      </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#40" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">40</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> but are inform you about optional packages that can be installed                  </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#41" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">41</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold"> to disable these messages, turn off start_warning in your config file</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">            </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">01:03:48 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Multinest minimizer not available                                           </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/minimizer/minimization.py#1357" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1357</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> PyGMO is not available                                                      </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/minimizer/minimization.py#1369" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1369</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">01:03:49 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The cthreeML package is not installed. You will not be able to use plugins which  </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#94" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">94</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">require the C/C++ interface (currently HAWC)                                       </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">              </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin HAWCLike.py. Do you have the relative instrument         </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin FermiLATLike.py. Do you have the relative instrument     </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">01:03:49 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> No fermitools installed                                              </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">lat_transient_builder.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable OMP_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable MKL_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable NUMEXPR_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal     </span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/eneights/opt/anaconda3/envs/cosipy-pr/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<p>Read in the data (GRB+background), background simulation, and define the path to the detector response</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis = UnBinnedData(&#39;/path/to/yaml/file&#39;) # e.g. grb.yaml
+
+analysis.select_data(unbinned_data=&#39;/path/to/data/file&#39;, output_name=&#39;/path/to/selected/data/file&#39;) # e.g. GRB_20_0.hdf5 &amp; GRB_20_0_selected.hdf5
+data = analysis.get_dict_from_hdf5(&#39;/path/to/selected/data/file&#39;) # e.g. GRB_20_0_selected.hdf5
+background = analysis.get_dict_from_hdf5(&#39;/path/to/background/file&#39;) # e.g. background.hdf5
+
+response_file = &#39;/path/to/response/file&#39; # e.g. HEALPixO3_200to500keV_1ebins_12pbins_log_flat.binnedpolarization.11D_nside8.area.h5
+</pre></div>
+</div>
+</div>
+<p>Read in the orientation file. Here, the spacecraft is stationary, so we are only using the first attitude bin</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>sc_orientation = SpacecraftFile.parse_from_file(&#39;/path/to/ori/file&#39;) # e.g. ori.ori
+sc_orientation = sc_orientation.source_interval(Time(analysis.tmin,format = &#39;unix&#39;), Time(analysis.tmax,format = &#39;unix&#39;))
+
+attitude = sc_orientation.get_attitude()[0]
+</pre></div>
+</div>
+</div>
+<p>Define the GRB spectrum. This is convolved with the response to calculate the ASADs of an unpolarized and 100% polarized source</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>a = 10. * u.keV
+b = 5000. * u.keV
+alpha = 0.880
+beta = -2.384
+ebreak = 195.613 * u.keV
+K = 10. / u.cm / u.cm / u.s
+
+spectrum = Band_Eflux(a = a.value,
+                      b = b.value,
+                      alpha = alpha,
+                      beta = beta,
+                      E0 = ebreak.value,
+                      K = K.value)
+
+spectrum.a.unit = a.unit
+spectrum.b.unit = b.unit
+spectrum.E0.unit = ebreak.unit
+spectrum.K.unit = K.unit
+</pre></div>
+</div>
+</div>
+<p>Define the source position and polarization object</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>source_direction = SkyCoord(0, 70, representation_type=&#39;spherical&#39;, frame=SpacecraftFrame(attitude=attitude), unit=u.deg)
+
+grb_polarization = PolarizationASAD(source_direction, spectrum, response_file, sc_orientation)
+</pre></div>
+</div>
+</div>
+<p>Calculate the azimuthal scattering angle for each photon in the data and background simulation</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>azimuthal_angles = {}
+
+azimuthal_angles[&#39;grb &amp; background&#39;] = grb_polarization.calculate_azimuthal_scattering_angles(data)
+azimuthal_angles[&#39;background&#39;] = grb_polarization.calculate_azimuthal_scattering_angles(background)
+</pre></div>
+</div>
+</div>
+<p>Create an azimuthal scattering angle distribution (ASAD) each for the data and background simulation</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bin_edges = Angle(np.linspace(-np.pi, np.pi, 18), unit=u.rad) # Define ASAD bins
+
+asads = {}
+for key in azimuthal_angles.keys():
+    asads[key] = grb_polarization.create_asad(azimuthal_angles[key], bin_edges)
+</pre></div>
+</div>
+</div>
+<p>Calculate the ASAD of the GRB only by subtracting the background ASAD from the GRB+background ASAD</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>source_duration = analysis.tmax - analysis.tmin # Duration of GRB simulation
+background_duration = np.max(background[&#39;TimeTags&#39;]) - np.min(background[&#39;TimeTags&#39;]) # Duration of background simulation
+
+background_asad_grb_duration = (asads[&#39;background&#39;][&#39;counts&#39;] * source_duration / background_duration).astype(int)
+grb_asad = asads[&#39;grb &amp; background&#39;][&#39;counts&#39;] - background_asad_grb_duration
+
+asads[&#39;grb&#39;] = {&#39;counts&#39;: grb_asad, &#39;uncertainties&#39;: calculate_uncertainties(grb_asad)}
+</pre></div>
+</div>
+</div>
+<p>Calculate the unpolarized and 100% polarized ASADs, and calculate the modulation of a 100% polarized source</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>asads[&#39;unpolarized&#39;] = grb_polarization.create_unpolarized_asad()
+
+asads[&#39;polarized&#39;] = grb_polarization.create_polarized_asads()
+
+mu_100 = grb_polarization.calculate_mu100(asads[&#39;polarized&#39;], asads[&#39;unpolarized&#39;])
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 0.0 deg to 15.0 deg
+Modulation: 0.309 +/- 0.003
+Best fit polarization fraction: 1.0 +/- 0.016
+Best fit polarization angle: 160.234 +/- 0.3
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_1.png" src="../../_images/tutorials_polarization_ASAD_method_18_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 15.0 deg to 30.0 deg
+Modulation: 0.31 +/- 0.004
+Best fit polarization fraction: 1.0 +/- 0.018
+Best fit polarization angle: 175.396 +/- 0.344
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_3.png" src="../../_images/tutorials_polarization_ASAD_method_18_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 30.0 deg to 45.0 deg
+Modulation: 0.307 +/- 0.004
+Best fit polarization fraction: 1.0 +/- 0.018
+Best fit polarization angle: 10.124 +/- 0.367
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_5.png" src="../../_images/tutorials_polarization_ASAD_method_18_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 45.0 deg to 60.0 deg
+Modulation: 0.309 +/- 0.004
+Best fit polarization fraction: 1.0 +/- 0.017
+Best fit polarization angle: 25.51 +/- 0.349
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_7.png" src="../../_images/tutorials_polarization_ASAD_method_18_7.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 60.0 deg to 75.0 deg
+Modulation: 0.307 +/- 0.004
+Best fit polarization fraction: 1.0 +/- 0.018
+Best fit polarization angle: 40.702 +/- 0.364
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_9.png" src="../../_images/tutorials_polarization_ASAD_method_18_9.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 75.0 deg to 90.0 deg
+Modulation: 0.312 +/- 0.004
+Best fit polarization fraction: 1.0 +/- 0.017
+Best fit polarization angle: 55.409 +/- 0.329
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_11.png" src="../../_images/tutorials_polarization_ASAD_method_18_11.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 90.0 deg to 105.0 deg
+Modulation: 0.313 +/- 0.003
+Best fit polarization fraction: 1.0 +/- 0.014
+Best fit polarization angle: 70.287 +/- 0.271
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_13.png" src="../../_images/tutorials_polarization_ASAD_method_18_13.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 105.0 deg to 120.0 deg
+Modulation: 0.312 +/- 0.003
+Best fit polarization fraction: 1.0 +/- 0.016
+Best fit polarization angle: 85.277 +/- 0.312
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_15.png" src="../../_images/tutorials_polarization_ASAD_method_18_15.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 120.0 deg to 135.0 deg
+Modulation: 0.306 +/- 0.004
+Best fit polarization fraction: 1.0 +/- 0.021
+Best fit polarization angle: 100.21 +/- 0.429
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_17.png" src="../../_images/tutorials_polarization_ASAD_method_18_17.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 135.0 deg to 150.0 deg
+Modulation: 0.309 +/- 0.004
+Best fit polarization fraction: 1.0 +/- 0.018
+Best fit polarization angle: 115.465 +/- 0.373
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_19.png" src="../../_images/tutorials_polarization_ASAD_method_18_19.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 150.0 deg to 165.0 deg
+Modulation: 0.308 +/- 0.004
+Best fit polarization fraction: 1.0 +/- 0.017
+Best fit polarization angle: 130.659 +/- 0.332
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_21.png" src="../../_images/tutorials_polarization_ASAD_method_18_21.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Polarization angle bin: 165.0 deg to 180.0 deg
+Modulation: 0.309 +/- 0.004
+Best fit polarization fraction: 1.0 +/- 0.019
+Best fit polarization angle: 145.507 +/- 0.353
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_23.png" src="../../_images/tutorials_polarization_ASAD_method_18_23.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_18_24.png" src="../../_images/tutorials_polarization_ASAD_method_18_24.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+mu_100: 0.31
+</pre></div></div>
+</div>
+<p>Plot the ASADs</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>titles = {&#39;grb&#39;: &#39;GRB ASAD&#39;, &#39;grb &amp; background&#39;: &#39;GRB+background ASAD&#39;, &#39;background&#39;: &#39;Background ASAD&#39;, &#39;unpolarized&#39;: &#39;Unpolarized ASAD&#39;}
+for key in titles.keys():
+    grb_polarization.plot_asad(asads[key][&#39;counts&#39;], asads[key][&#39;uncertainties&#39;], titles[key])
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_20_0.png" src="../../_images/tutorials_polarization_ASAD_method_20_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_20_1.png" src="../../_images/tutorials_polarization_ASAD_method_20_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_20_2.png" src="../../_images/tutorials_polarization_ASAD_method_20_2.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_20_3.png" src="../../_images/tutorials_polarization_ASAD_method_20_3.png" />
+</div>
+</div>
+<p>Divide the GRB ASAD by the unpolarized ASAD to correct for instrumental effects</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>asad_corrected = grb_polarization.correct_asad(asads[&#39;grb&#39;], asads[&#39;unpolarized&#39;])
+</pre></div>
+</div>
+</div>
+<p>Calculate the minimum detectable polarization (MDP) of the GRB</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>source_counts = np.sum(asads[&#39;grb&#39;][&#39;counts&#39;])
+background_counts = np.sum(background_asad_grb_duration)
+
+mdp = 4.29 / mu_100[&#39;mu&#39;] * np.sqrt(source_counts + background_counts) / source_counts
+</pre></div>
+</div>
+</div>
+<p>Fit the polarization fraction and angle of the GRB</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>polarization = grb_polarization.fit(mu_100, asad_corrected[&#39;counts&#39;], bounds=([0, 0, 0], [np.inf,np.inf,np.pi]), sigma=asad_corrected[&#39;uncertainties&#39;])
+
+if mdp &gt; polarization[&#39;fraction&#39;]:
+    print(&#39;Polarization fraction is below MDP!&#39;, &#39;MDP:&#39;, round(mdp, 3))
+else:
+    print(&#39;MDP:&#39;, round(mdp, 3))
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Best fit polarization fraction: 0.88 +/- 0.183
+Best fit polarization angle: 80.116 +/- 5.942
+MDP: 0.451
+
+</pre></div></div>
+</div>
+<p>Plot the corrected ASAD for the GRB with the best fit sinusoidal function</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>grb_polarization.plot_asad(asad_corrected[&#39;counts&#39;], asad_corrected[&#39;uncertainties&#39;], &#39;Corrected &#39; + titles[&#39;grb&#39;], coefficients=polarization[&#39;best fit parameter values&#39;])
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_28_0.png" src="../../_images/tutorials_polarization_ASAD_method_28_0.png" />
+</div>
+</div>
+<p>Transform polarization angle to different conventions</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>print(&#39;RelativeX:&#39;, round(polarization[&#39;angle&#39;].transform_to(MEGAlibRelativeX(attitude=attitude)).angle.degree, 3), &#39;degrees&#39;)
+print(&#39;RelativeY:&#39;, round(polarization[&#39;angle&#39;].transform_to(MEGAlibRelativeY(attitude=attitude)).angle.degree, 3), &#39;degrees&#39;)
+print(&#39;RelativeZ:&#39;, round(polarization[&#39;angle&#39;].transform_to(MEGAlibRelativeZ(attitude=attitude)).angle.degree, 3), &#39;degrees&#39;)
+print(&#39;IAU:&#39;, round(polarization[&#39;angle&#39;].transform_to(IAUPolarizationConvention()).angle.degree, 3), &#39;degrees&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+RelativeX: 107.101 degrees
+RelativeY: 17.101 degrees
+RelativeZ: 107.101 degrees
+IAU: 80.116 degrees
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

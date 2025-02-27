@@ -1,0 +1,652 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polarization &mdash; cosipy __version__ = &#34;0.3.0&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=e963a228"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Source injector" href="source_injector.html" />
+    <link rel="prev" title="Image deconvolution" href="image_deconvolution.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            cosipy
+              <img src="../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="response.html">Detector response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_io.html">Data IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spacecraftfile.html">Spacecraft File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="threeml.html">COSILike (3ML plugin)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ts_map.html">TS Map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_deconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Polarization</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#conventions">Conventions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#orthographic">Orthographic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#stereographic">Stereographic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#converting-from-one-convention-and-or-frame-to-another">Converting from one convention and/or frame to another</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-cosipy.polarization">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.polarization.PolarizationASAD"><code class="docutils literal notranslate"><span class="pre">PolarizationASAD</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.polarization.calculate_uncertainties"><code class="docutils literal notranslate"><span class="pre">calculate_uncertainties()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.polarization.PolarizationConvention"><code class="docutils literal notranslate"><span class="pre">PolarizationConvention</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.polarization.OrthographicConvention"><code class="docutils literal notranslate"><span class="pre">OrthographicConvention</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.polarization.StereographicConvention"><code class="docutils literal notranslate"><span class="pre">StereographicConvention</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.polarization.IAUPolarizationConvention"><code class="docutils literal notranslate"><span class="pre">IAUPolarizationConvention</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.polarization.PolarizationAngle"><code class="docutils literal notranslate"><span class="pre">PolarizationAngle</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="util.html">Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API</a></li>
+      <li class="breadcrumb-item active">Polarization</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/polarization.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="polarization">
+<h1>Polarization<a class="headerlink" href="#polarization" title="Link to this heading"></a></h1>
+<section id="conventions">
+<h2>Conventions<a class="headerlink" href="#conventions" title="Link to this heading"></a></h2>
+<p>When specifying a polarization angle (PA) it is important to specify the direction of the source and the convention used. All of this is necessary to reconstruct the polarization vector –i.e. the direction of the electric field.</p>
+<p>A polarization convention is defined by a set of (px,py) unit vectors (a basis) that define a plane at each location on the sphere s = [x,y,z]. The location s is always normal to the polarization plane defined by (px,py). The polarization angle increases from px to py.</p>
+<p>Cosipy supports two major convention constructions: orthographic and stereographic. These are named after the corresponding conformal projection transformation.</p>
+<p>In addition for the overall construction prescription, a polarization convention fully defined by the reference frame and whether the polarization angle increases clockwise or counter-clockwise when looking at the source.</p>
+<section id="orthographic">
+<h3>Orthographic<a class="headerlink" href="#orthographic" title="Link to this heading"></a></h3>
+<p>This the regular polarization convention prescription found in the literature, where the px,py are aligned with the meridians and parallels, and one of them always points towards an arbitrary reference vector. For eample, the following figure corresponds to orthographic convention in ICRS coordinates, pointing towards the North-pole and counter-clockwise when looking at the source (only one quadrant is plotted for easier visualization):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">OrthographicConvention</span><span class="p">(</span><span class="n">ref_vector</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">ra</span> <span class="o">=</span> <span class="mi">0</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">dec</span> <span class="o">=</span> <span class="mi">90</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="s1">&#39;icrs&#39;</span><span class="p">),</span> <span class="n">clockwise</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<a class="reference internal image-reference" href="../_images/OrthographicZ-IAU.png"><img alt="OrthographicZ convention / IAU" src="../_images/OrthographicZ-IAU.png" style="width: 400px;" />
+</a>
+<p>This matches the <a class="reference external" href="https://www.iau.org/static/resolutions/IAU1973_French.pdf">IAU convention</a> and can be also called by name:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">PolarizationConvention</span><span class="o">.</span><span class="n">get_convention</span><span class="p">(</span><span class="s2">&quot;IAU&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Other special conventions of the orthographic family that can also be called by name are MEGAlibs RelativeX/Y/Z, where the -py vector points towards the reference vector (as opposed to px):</p>
+<a class="reference internal image-reference" href="../_images/RelativeZ.png"><img alt="MEGAlib RelativeZ" src="../_images/RelativeZ.png" style="width: 400px;" />
+</a>
+<a class="reference internal image-reference" href="../_images/RelativeX.png"><img alt="MEGAlib RelativeX" src="../_images/RelativeX.png" style="width: 400px;" />
+</a>
+<a class="reference internal image-reference" href="../_images/RelativeY.png"><img alt="MEGAlib RelativeY" src="../_images/RelativeY.png" style="width: 400px;" />
+</a>
+</section>
+<section id="stereographic">
+<h3>Stereographic<a class="headerlink" href="#stereographic" title="Link to this heading"></a></h3>
+<p>An issue of the orthographic projection is that it is not well-defined at the location of the reference vector and its antipodal direction. This can cause issues due to numerical errors when construction a detector response near those locations. The stereographic convention is meant to solve this issue by describing the polarization angle in spacecraft coordinates with only a single undefined location at -z, where the effective area is almost null. Due to the hairy ball theorem it is impossible to obtain a convention where the polarization basis vector have a smooth transition and with undefined locations.</p>
+<p>Near the z-axis, it is very similar to using an orthographic convention with +x as the reference vector, and it deviates near and below the equator:</p>
+<a class="reference internal image-reference" href="../_images/Stereographic.png"><img alt="Stereographic" src="../_images/Stereographic.png" style="width: 400px;" />
+</a>
+</section>
+<section id="converting-from-one-convention-and-or-frame-to-another">
+<h3>Converting from one convention and/or frame to another<a class="headerlink" href="#converting-from-one-convention-and-or-frame-to-another" title="Link to this heading"></a></h3>
+<p>Use the <code class="code docutils literal notranslate"><span class="pre">transform_to</span></code> function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pa_inertial</span> <span class="o">=</span>  <span class="n">PolarizationAngle</span><span class="p">(</span><span class="mi">20</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">source_direction</span><span class="p">,</span> <span class="n">convention</span> <span class="o">=</span> <span class="s1">&#39;IAU&#39;</span><span class="p">)</span>
+
+<span class="n">pa2_sc</span> <span class="o">=</span> <span class="n">pa</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="s1">&#39;RelativeX&#39;</span><span class="p">,</span> <span class="n">attitude</span> <span class="o">=</span> <span class="n">Attitude</span><span class="o">.</span><span class="n">from_rotvec</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">))</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">pa2_sc</span><span class="o">.</span><span class="n">angle</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Results in 161.95. Note that in addition to accounting for the difference polarization reference vector, it also transforms from one reference frame to another on the fly.</p>
+</section>
+</section>
+<section id="module-cosipy.polarization">
+<span id="classes"></span><h2>Classes<a class="headerlink" href="#module-cosipy.polarization" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.polarization.</span></span><span class="sig-name descname"><span class="pre">PolarizationASAD</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_vector</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_spectrum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sc_orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fit_convention</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD" title="Link to this definition"></a></dt>
+<dd><p>Azimuthal scattering angle distribution (ASAD) method to fit polarization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_vector</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.sky_coordinate.SkyCoord</em></a>) – Source direction</p></li>
+<li><p><strong>source_spectrum</strong> (<em>astromodels.functions.functions_1D</em>) – Spectrum of source</p></li>
+<li><p><strong>response_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><em>pathlib.Path</em></a>) – Path to detector response</p></li>
+<li><p><strong>sc_orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile"><em>cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile</em></a>) – Spacecraft orientation</p></li>
+<li><p><strong>fit_convention</strong> (<a class="reference internal" href="#cosipy.polarization.PolarizationConvention" title="cosipy.polarization.conventions.PolarizationConvention"><em>cosipy.polarization.conventions.PolarizationConvention</em></a><em>, </em><em>optional</em>) – Polarization reference convention to use for fit. Default is RelativeX</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.convolve_spectrum">
+<span class="sig-name descname"><span class="pre">convolve_spectrum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spectrum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sc_orientation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.convolve_spectrum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.convolve_spectrum" title="Link to this definition"></a></dt>
+<dd><p>Convolve source spectrum with response and calculate azimuthal scattering angle bins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>response_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><em>pathlib.Path</em></a>) – Path to detector response</p></li>
+<li><p><strong>sc_orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile"><em>cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile</em></a>) – Spacecraft orientation</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>expectation</strong> (<em>cosipy.response.PointSourceResponse.PointSourceResponse</em>) – Expected counts in each bin of Compton data space</p></li>
+<li><p><strong>azimuthal_angle_bins</strong> (<em>list</em>) – Centers of azimuthal scattering angle bins calculated from PsiChi bins in response</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.calculate_azimuthal_scattering_angle">
+<span class="sig-name descname"><span class="pre">calculate_azimuthal_scattering_angle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">psi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chi</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.calculate_azimuthal_scattering_angle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.calculate_azimuthal_scattering_angle" title="Link to this definition"></a></dt>
+<dd><p>Calculate the azimuthal scattering angle of a scattered photon.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>psi</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Polar angle (radians) of scattered photon in local coordinates</p></li>
+<li><p><strong>chi</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Azimuthal angle (radians) of scattered photon in local coordinates</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>azimuthal_angle</strong> – Azimuthal scattering angle defined with respect to given reference vector</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.Angle.html#astropy.coordinates.Angle" title="(in Astropy v7.0)">astropy.coordinates.Angle</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.calculate_azimuthal_scattering_angles">
+<span class="sig-name descname"><span class="pre">calculate_azimuthal_scattering_angles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">unbinned_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.calculate_azimuthal_scattering_angles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.calculate_azimuthal_scattering_angles" title="Link to this definition"></a></dt>
+<dd><p>Calculate the azimuthal scattering angles for all events in a dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>unbinned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Unbinned data including polar and azimuthal angles (radians) of scattered photon in local coordinates</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>azimuthal_angles</strong> – Azimuthal scattering angles. Each angle must be an astropy.coordinates.Angle object</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.create_asad">
+<span class="sig-name descname"><span class="pre">create_asad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">azimuthal_angles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.create_asad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.create_asad" title="Link to this definition"></a></dt>
+<dd><p>Create ASAD and calculate uncertainties.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>azimuthal_angles</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – Azimuthal scattering angles (radians)</p></li>
+<li><p><strong>bins</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> or </em><em>np.array</em><em>, </em><em>optional</em>) – Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>asad</strong> – Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.create_unpolarized_asad">
+<span class="sig-name descname"><span class="pre">create_unpolarized_asad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.create_unpolarized_asad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.create_unpolarized_asad" title="Link to this definition"></a></dt>
+<dd><p>Calculate the azimuthal scattering angles for all bins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>bins</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> or </em><em>np.array</em><em>, </em><em>optional</em>) – Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>asad</strong> – Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.create_polarized_asads">
+<span class="sig-name descname"><span class="pre">create_polarized_asads</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.create_polarized_asads"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.create_polarized_asads" title="Link to this definition"></a></dt>
+<dd><p>Calculate the azimuthal scattering angles for all bins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>bins</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> or </em><em>np.array</em><em>, </em><em>optional</em>) – Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>asads</strong> – Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for each polarization angle bin</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.asad_sinusoid">
+<span class="sig-name descname"><span class="pre">asad_sinusoid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.asad_sinusoid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.asad_sinusoid" title="Link to this definition"></a></dt>
+<dd><p>Sinusoid to fit to ASAD.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Azimuthal scattering angle (radians)</p></li>
+<li><p><strong>a</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – First parameter</p></li>
+<li><p><strong>b</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Second parameter</p></li>
+<li><p><strong>c</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Third parameter</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>asad_function</strong> – Y-value of ASAD</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.fit_asad">
+<span class="sig-name descname"><span class="pre">fit_asad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">counts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.fit_asad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.fit_asad" title="Link to this definition"></a></dt>
+<dd><p>Fit the ASAD with a sinusoid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>counts</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – Counts in each azimuthal scattering angle bin</p></li>
+<li><p><strong>p0</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> or </em><em>np.array</em>) – Initial guess for parameter values</p></li>
+<li><p><strong>bounds</strong> (<em>2-tuple</em><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>, or </em><em>np.array</em>) – Lower &amp; upper bounds on parameters</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>, or </em><em>np.array</em>) – Uncertainties in y data</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>popt</strong> (<em>np.ndarray</em>) – Fitted parameter values</p></li>
+<li><p><strong>uncertainties</strong> (<em>list</em>) – Uncertainty on each parameter value</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.plot_asad">
+<span class="sig-name descname"><span class="pre">plot_asad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">counts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coefficients</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.plot_asad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.plot_asad" title="Link to this definition"></a></dt>
+<dd><p>Plot the ASAD.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>counts</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – Counts in each azimuthal scattering angle bin</p></li>
+<li><p><strong>error</strong> (<em>np.ndarray</em>) – Lower &amp; upper uncertainties for each bin</p></li>
+<li><p><strong>title</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Title of plot</p></li>
+<li><p><strong>coefficients</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>, </em><em>optional</em>) – Coefficients to plot fitted sinusoidal function</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.correct_asad">
+<span class="sig-name descname"><span class="pre">correct_asad</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_asad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unpolarized_asad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.correct_asad"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.correct_asad" title="Link to this definition"></a></dt>
+<dd><p>Correct the ASAD using the ASAD of an unpolarized source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data_asad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Counts and uncertainties in each azimuthal scattering angle bin of data</p></li>
+<li><p><strong>unpolarized_asad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Counts and uncertainties in each azimuthal scattering angle bin of unpolarized source</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>asad</strong> – Normalized counts and uncertainties in each azimuthal scattering angle bin</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.calculate_mu">
+<span class="sig-name descname"><span class="pre">calculate_mu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">counts_corrected</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.calculate_mu"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.calculate_mu" title="Link to this definition"></a></dt>
+<dd><p>Calculate the modulation (mu).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>counts_corrected</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – Counts in each azimuthal scattering angle bin</p></li>
+<li><p><strong>p0</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> or </em><em>np.array</em>) – Initial guess for parameter values</p></li>
+<li><p><strong>bounds</strong> (<em>2-tuple</em><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>, or </em><em>np.array</em>) – Lower &amp; upper bounds on parameters</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>, or </em><em>np.array</em>) – Uncertainties for each azimuthal scattering angle bin</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>modulation</strong> – Modulation and uncertainty of fitted sinusoid</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.constant">
+<span class="sig-name descname"><span class="pre">constant</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.constant"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.constant" title="Link to this definition"></a></dt>
+<dd><p>Constant function to fit to mu_100 values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Mu_100</p></li>
+<li><p><strong>a</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Parameter</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>a</strong> – Constant value</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.calculate_mu100">
+<span class="sig-name descname"><span class="pre">calculate_mu100</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polarized_asads</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unpolarized_asad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.calculate_mu100"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.calculate_mu100" title="Link to this definition"></a></dt>
+<dd><p>Calculate the modulation (mu) of an 100% polarized source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polarized_asads</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for each polarization angle bin for 100% polarized source</p></li>
+<li><p><strong>unpolarized_asad</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> or </em><em>np.array</em>) – Counts and Gaussian/Poisson errors in each azimuthal scattering angle bin for unpolarized source</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>mu_100</strong> – Modulation of 100% polarized source and uncertainty of constant function fit to modulation in all polarization angle bins</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationASAD.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu_100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">counts_corrected</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p0</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bounds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#PolarizationASAD.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationASAD.fit" title="Link to this definition"></a></dt>
+<dd><p>Fit the polarization fraction and angle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mu_100</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Modulation and uncertainty of a 100% polarized source</p></li>
+<li><p><strong>counts_corrected</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – Counts in each azimuthal scattering angle bin</p></li>
+<li><p><strong>p0</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> or </em><em>np.array</em>) – Initial guess for parameter values</p></li>
+<li><p><strong>bounds</strong> (<em>2-tuple</em><em> of </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>, or </em><em>np.array</em>) – Lower &amp; upper bounds on parameters</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>, or </em><em>np.array</em>) – Uncertainties for each azimuthal scattering angle bin</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>polarization</strong> – Polarization fraction, polarization angle, and best fit parameter values for fitted sinusoid, and associated uncertainties</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="cosipy.polarization.calculate_uncertainties">
+<span class="sig-prename descclassname"><span class="pre">cosipy.polarization.</span></span><span class="sig-name descname"><span class="pre">calculate_uncertainties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">counts</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_asad.html#calculate_uncertainties"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.calculate_uncertainties" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Poisson/Gaussian uncertainties for a list of binned counts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>counts</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – List of counts in each bin</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>uncertainties</strong> – Lower &amp; upper uncertainties for each bin</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationConvention">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.polarization.</span></span><span class="sig-name descname"><span class="pre">PolarizationConvention</span></span><a class="reference internal" href="../_modules/cosipy/polarization/conventions.html#PolarizationConvention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationConvention" title="Link to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationConvention.register">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/conventions.html#PolarizationConvention.register"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationConvention.register" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationConvention.get_convention">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_convention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/conventions.html#PolarizationConvention.get_convention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationConvention.get_convention" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationConvention.frame">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">frame</span></span><a class="headerlink" href="#cosipy.polarization.PolarizationConvention.frame" title="Link to this definition"></a></dt>
+<dd><p>Astropy coordinate frame</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationConvention.get_basis">
+<span class="sig-name descname"><span class="pre">get_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_direction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><span class="pre">astropy.coordinates.SkyCoord</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/conventions.html#PolarizationConvention.get_basis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationConvention.get_basis" title="Link to this definition"></a></dt>
+<dd><p>Get the px,py unit vectors that define the polarization plane on
+this convention. Polarization angle increments from px to py.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source_direction</strong> (<em>SkyCoord</em>) – The direction of the source</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>px,py</strong> – Polarization angle increaes from px to py. pz is always
+the opposite of the source direction –i.e. in the direction of the
+particle.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SkyCoord</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.polarization.OrthographicConvention">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.polarization.</span></span><span class="sig-name descname"><span class="pre">OrthographicConvention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref_vector</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><span class="pre">astropy.coordinates.SkyCoord</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clockwise</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/conventions.html#OrthographicConvention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.OrthographicConvention" title="Link to this definition"></a></dt>
+<dd><dl class="py property">
+<dt class="sig sig-object py" id="cosipy.polarization.OrthographicConvention.is_clockwise">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_clockwise</span></span><a class="headerlink" href="#cosipy.polarization.OrthographicConvention.is_clockwise" title="Link to this definition"></a></dt>
+<dd><p>When looking at the source</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.polarization.OrthographicConvention.frame">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">frame</span></span><a class="headerlink" href="#cosipy.polarization.OrthographicConvention.frame" title="Link to this definition"></a></dt>
+<dd><p>Astropy coordinate frame</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.OrthographicConvention.get_basis">
+<span class="sig-name descname"><span class="pre">get_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_direction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><span class="pre">astropy.coordinates.SkyCoord</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/conventions.html#OrthographicConvention.get_basis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.OrthographicConvention.get_basis" title="Link to this definition"></a></dt>
+<dd><p>Get the px,py unit vectors that define the polarization plane on
+this convention. Polarization angle increments from px to py.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source_direction</strong> (<em>SkyCoord</em>) – The direction of the source</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>px,py</strong> – Polarization angle increaes from px to py. pz is always
+the opposite of the source direction –i.e. in the direction of the
+particle.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SkyCoord</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.polarization.StereographicConvention">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.polarization.</span></span><span class="sig-name descname"><span class="pre">StereographicConvention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clockwise</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attitude</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">scoords.Attitude</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/conventions.html#StereographicConvention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.StereographicConvention" title="Link to this definition"></a></dt>
+<dd><dl class="py property">
+<dt class="sig sig-object py" id="cosipy.polarization.StereographicConvention.frame">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">frame</span></span><a class="headerlink" href="#cosipy.polarization.StereographicConvention.frame" title="Link to this definition"></a></dt>
+<dd><p>Astropy coordinate frame</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.StereographicConvention.get_basis">
+<span class="sig-name descname"><span class="pre">get_basis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_direction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><span class="pre">astropy.coordinates.SkyCoord</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/conventions.html#StereographicConvention.get_basis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.StereographicConvention.get_basis" title="Link to this definition"></a></dt>
+<dd><p>Get the px,py unit vectors that define the polarization plane on
+this convention. Polarization angle increments from px to py.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source_direction</strong> (<em>SkyCoord</em>) – The direction of the source</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>px,py</strong> – Polarization angle increaes from px to py. pz is always
+the opposite of the source direction –i.e. in the direction of the
+particle.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SkyCoord</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.polarization.IAUPolarizationConvention">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.polarization.</span></span><span class="sig-name descname"><span class="pre">IAUPolarizationConvention</span></span><a class="reference internal" href="../_modules/cosipy/polarization/conventions.html#IAUPolarizationConvention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.IAUPolarizationConvention" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationAngle">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.polarization.</span></span><span class="sig-name descname"><span class="pre">PolarizationAngle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">angle</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skycoord</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convention</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'iau'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_angle.html#PolarizationAngle"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationAngle" title="Link to this definition"></a></dt>
+<dd><dl class="py property">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationAngle.angle">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">angle</span></span><a class="headerlink" href="#cosipy.polarization.PolarizationAngle.angle" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationAngle.convention">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">convention</span></span><a class="headerlink" href="#cosipy.polarization.PolarizationAngle.convention" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationAngle.skycoord">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">skycoord</span></span><a class="headerlink" href="#cosipy.polarization.PolarizationAngle.skycoord" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationAngle.vector">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">vector</span></span><a class="headerlink" href="#cosipy.polarization.PolarizationAngle.vector" title="Link to this definition"></a></dt>
+<dd><p>Direction of the electric field vector</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.polarization.PolarizationAngle.transform_to">
+<span class="sig-name descname"><span class="pre">transform_to</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">convention</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/polarization/polarization_angle.html#PolarizationAngle.transform_to"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.polarization.PolarizationAngle.transform_to" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="image_deconvolution.html" class="btn btn-neutral float-left" title="Image deconvolution" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="source_injector.html" class="btn btn-neutral float-right" title="Source injector" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

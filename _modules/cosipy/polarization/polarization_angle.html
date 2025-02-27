@@ -1,0 +1,217 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.polarization.polarization_angle &mdash; cosipy __version__ = &#34;0.3.0&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=e963a228"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.polarization.polarization_angle</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.polarization.polarization_angle</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.coordinates</span><span class="w"> </span><span class="kn">import</span> <span class="n">SkyCoord</span><span class="p">,</span> <span class="n">Angle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.conventions</span><span class="w"> </span><span class="kn">import</span> <span class="n">PolarizationConvention</span>
+
+<div class="viewcode-block" id="PolarizationAngle">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationAngle">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PolarizationAngle</span><span class="p">:</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">angle</span><span class="p">,</span> <span class="n">skycoord</span> <span class="p">,</span>
+                 <span class="n">convention</span> <span class="o">=</span> <span class="s1">&#39;iau&#39;</span><span class="p">,</span>
+                 <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Defines a polarization angle in the context of a source direction and</span>
+<span class="sd">        polarization angle convention.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">        angle : :py:class:`astropy.coordinates.Angle</span>
+<span class="sd">            Polarization angle</span>
+<span class="sd">        skycoord : :py:class:`astropy.coordinates.SkyCoord`</span>
+<span class="sd">            Source direction</span>
+<span class="sd">        convention : PolarizationConvention</span>
+<span class="sd">            Convention the defined the polarization basis and direction in </span>
+<span class="sd">            the polarization plane (for which the source direction is normal)</span>
+<span class="sd">        *args, **kwargs</span>
+<span class="sd">            Passed to convention class.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Ensure pa is an Angle object</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_angle</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">angle</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_convention</span> <span class="o">=</span> <span class="n">PolarizationConvention</span><span class="o">.</span><span class="n">get_convention</span><span class="p">(</span><span class="n">convention</span><span class="p">,</span>
+                                                                 <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_skycoord</span> <span class="o">=</span> <span class="n">skycoord</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;PolarizationAngle(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_angle</span><span class="o">.</span><span class="n">degree</span><span class="si">}</span><span class="s2"> deg at </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_skycoord</span><span class="si">}</span><span class="s2"> using convention </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_convention</span><span class="si">}</span><span class="s2">)&gt;&quot;</span>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">angle</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_angle</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">convention</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convention</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">skycoord</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_skycoord</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">vector</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Direction of the electric field vector</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get the projection vectors for the source direction in the current convention</span>
+        <span class="n">px</span><span class="p">,</span> <span class="n">py</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convention</span><span class="o">.</span><span class="n">get_basis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skycoord</span><span class="p">)</span>
+
+        <span class="n">px</span> <span class="o">=</span> <span class="n">px</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+        <span class="n">py</span> <span class="o">=</span> <span class="n">py</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+
+        <span class="c1"># Calculate the cosine and sine of the polarization angle</span>
+        <span class="n">cos_pa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="o">.</span><span class="n">radian</span><span class="p">)</span>
+        <span class="n">sin_pa</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">angle</span><span class="o">.</span><span class="n">radian</span><span class="p">)</span>
+
+        <span class="c1"># Calculate the polarization vector</span>
+        <span class="n">pol_vec</span> <span class="o">=</span> <span class="n">px</span> <span class="o">*</span> <span class="n">cos_pa</span> <span class="o">+</span> <span class="n">py</span> <span class="o">*</span> <span class="n">sin_pa</span>
+                
+        <span class="k">return</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="o">*</span><span class="n">pol_vec</span><span class="p">,</span>
+                        <span class="n">representation_type</span> <span class="o">=</span> <span class="s1">&#39;cartesian&#39;</span><span class="p">,</span>
+                        <span class="n">frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convention</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="PolarizationAngle.transform_to">
+<a class="viewcode-back" href="../../../api/polarization.html#cosipy.polarization.PolarizationAngle.transform_to">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">transform_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">convention</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="c1"># Standarize convention 2</span>
+        <span class="n">convention2</span> <span class="o">=</span> <span class="n">PolarizationConvention</span><span class="o">.</span><span class="n">get_convention</span><span class="p">(</span><span class="n">convention</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="c1"># Calculate the polarization vector in the current convention</span>
+        <span class="n">pol_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="n">convention2</span><span class="o">.</span><span class="n">frame</span><span class="p">)</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+
+        <span class="c1"># Get the projection vectors for the source direction in the new convention</span>
+        <span class="p">(</span><span class="n">px2</span><span class="p">,</span> <span class="n">py2</span><span class="p">)</span> <span class="o">=</span> <span class="n">convention2</span><span class="o">.</span><span class="n">get_basis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">skycoord</span><span class="p">)</span>
+
+        <span class="n">px2</span> <span class="o">=</span> <span class="n">px2</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+        <span class="n">py2</span> <span class="o">=</span> <span class="n">py2</span><span class="o">.</span><span class="n">cartesian</span><span class="o">.</span><span class="n">xyz</span>
+        
+        <span class="c1"># Compute the dot products for the transformation</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pol_vec</span> <span class="o">*</span> <span class="n">px2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">pol_vec</span> <span class="o">*</span> <span class="n">py2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Calculate the new polarization angle in the new convention</span>
+        <span class="n">pa_2</span> <span class="o">=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">),</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+        <span class="c1"># Normalize the angle to be between 0 and pi</span>
+        <span class="k">if</span> <span class="n">pa_2</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pa_2</span> <span class="o">+=</span> <span class="n">Angle</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">PolarizationAngle</span><span class="p">(</span><span class="n">pa_2</span><span class="p">,</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">skycoord</span><span class="p">,</span>
+                                 <span class="n">convention</span> <span class="o">=</span> <span class="n">convention2</span><span class="p">)</span></div>
+</div>
+
+
+        
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
