@@ -9,8 +9,10 @@ from histpy import Histogram, HealpixAxis, Axis
 
 from cosipy import test_data
 from cosipy.response import FullDetectorResponse
+from cosipy.spacecraftfile import SpacecraftFile
 
 response_path = test_data.path / "test_full_detector_response_dense.h5"
+orientation_path = test_data.path / "20280301_first_10sec.ori"
 
 def test_open():
 
@@ -75,9 +77,49 @@ def test_get_interp_response():
 
         assert drm.unit.is_equivalent('m2')
         
+def test_get_extended_source_response():
 
-    
+    orientation = SpacecraftFile.parse_from_file(orientation_path)
 
-        
-        
-    
+    with FullDetectorResponse.open(response_path) as response:
+
+        extended_source_response = response.get_extended_source_response(orientation,
+                                                                         coordsys = 'galactic',
+                                                                         nside_image = None,
+                                                                         nside_scatt_map = None,
+                                                                         Earth_occ = True)
+
+        assert extended_source_response.ndim == 5
+
+        assert arr_eq(extended_source_response.axes.labels,
+                      ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'])
+
+        assert extended_source_response.unit.is_equivalent('cm2 s')
+
+def test_merge_psr_to_extended_source_response(tmp_path):
+
+    orientation = SpacecraftFile.parse_from_file(orientation_path)
+
+    with FullDetectorResponse.open(response_path) as response:
+
+        for ipix_image in range(response.axes['NuLambda'].npix):
+
+            psr = response.get_point_source_response_per_image_pixel(ipix_image, orientation,
+                                                                     coordsys='galactic',
+                                                                     nside_image=None,
+                                                                     nside_scatt_map=None,
+                                                                     Earth_occ=True)
+
+            psr.write(tmp_path / f"psr_{ipix_image:08}.h5")
+
+
+        extended_source_response = response.merge_psr_to_extended_source_response(str(tmp_path / "psr_"),
+                                                                                  coordsys = 'galactic',
+                                                                                  nside_image = None)
+
+        assert extended_source_response.ndim == 5
+
+        assert arr_eq(extended_source_response.axes.labels,
+                      ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'])
+
+        assert extended_source_response.unit.is_equivalent('cm2 s')
