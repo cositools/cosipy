@@ -139,7 +139,7 @@ class PointSourceResponse(Histogram):
                 if polarization_angle.angle.deg == 180.:
                     polarization_angle = PolarizationAngle(0. * u.deg, polarization_angle.skycoord, convention=polarization_angle.convention)
 
-                for i in range(len(self.axes['Pol'].edges) - 1):
+                for i in range(self.axes['Pol'].nbins):
 
                     response_slice = self.slice[{'Pol':slice(i,i+1)}].project('Ei', 'Em', 'Phi', 'PsiChi')
 
@@ -156,9 +156,7 @@ class PointSourceResponse(Histogram):
                         else:
                             raise RuntimeError("Response convention must be 'RelativeX', 'RelativeY', or 'RelativeZ'")
 
-                        polarization_angle_bin_center = PolarizationAngle(self.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, polarization_angle.skycoord, convention=this_convention)
-
-                        polarization_angle_galactic = polarization_angle_bin_center.transform_to(polarization_angle.convention)
+                        polarization_angle_galactic = PolarizationAngle(self.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, polarization_angle.skycoord, convention=this_convention).transform_to(polarization_angle.convention)
 
                         if polarization_angle_galactic.angle.deg == 180.:
                             polarization_angle_galactic = PolarizationAngle(0. * u.deg, polarization_angle_galactic.skycoord, convention=polarization_angle_galactic.convention)
