@@ -199,15 +199,16 @@ class UnBinnedData(DataIO):
                     logger.info("bad event number: " + str(N_events))
 
                     # remove bad photon info:
-                    N_events = N_events - 1
-                    et.pop()
-                    erg.pop()
-                    phi.pop()
-                    tt.pop()
-                    lonX.pop()
-                    latX.pop()
-                    lonZ.pop()
-                    latZ.pop()
+                    if len(et) != 0:
+                        N_events = N_events - 1
+                        et.pop()
+                        erg.pop()
+                        phi.pop()
+                        tt.pop()
+                        lonX.pop()
+                        latX.pop()
+                        lonZ.pop()
+                        latZ.pop()
 
                 # reset event tracker:
                 new_event = 1
