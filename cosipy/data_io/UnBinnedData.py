@@ -129,7 +129,10 @@ class UnBinnedData(DataIO):
         # Use same value as MEGAlib for direct comparison: 
         if run_test == True:
             c_E0 = 510.999
-
+    
+        # Event tracker:
+        new_event = 0
+        
         logger.info("Preparing to read file...")
 
         # Open .tra.gz file:
@@ -184,7 +187,31 @@ class UnBinnedData(DataIO):
             # Make sure line isn't empty:
             if len(this_line) == 0:
                 continue
+            
+            # New event:
+            if this_line[0] == "SE":
                 
+                # Check if there was a problem with last event:
+                # Note: Currently only checking for two detector hits.
+                if new_event == 1:
+                    logger.info("bad_event: no second hit info")
+                    logger.info("bad event ID: " + str(this_id))
+                    logger.info("bad event number: " + str(N_events))
+
+                    # remove bad photon info:
+                    N_events = N_events - 1
+                    et.pop()
+                    erg.pop()
+                    phi.pop()
+                    tt.pop()
+                    lonX.pop()
+                    latX.pop()
+                    lonZ.pop()
+                    latZ.pop()
+
+                # reset event tracker:
+                new_event = 1
+
             # Event type: 
             if this_line[0] == "ET":
                 # Check that we are looking at CO events
@@ -197,6 +224,9 @@ class UnBinnedData(DataIO):
             if this_line[0] == "ID":
                 N_events += 1
                 
+                # track id:
+                this_id = this_line[1]
+            
             # Option to only parse a subset of events:
             if event_min != None:
                 if N_events < event_min:
@@ -259,6 +289,9 @@ class UnBinnedData(DataIO):
                     dg_x.append(dg[0])
                     dg_y.append(dg[1])
                     dg_z.append(dg[2])
+                    
+                    # reset event
+                    new_event = 0
 
         # Close progress bar:
         pbar.close()
@@ -310,6 +343,7 @@ class UnBinnedData(DataIO):
         chi_loc = conv[2].value
 
         # Calculate chi_gal and psi_gal from x,y,z coordinates of events:
+         
         xcoords = SkyCoord(lonX*u.rad, latX*u.rad, frame = 'galactic')
         zcoords = SkyCoord(lonZ*u.rad, latZ*u.rad, frame = 'galactic')
         attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame = 'galactic')
