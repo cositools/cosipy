@@ -184,7 +184,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         axes_image_response = [full_detector_response.axes["NuLambda"], full_detector_response.axes["Ei"],
                                full_detector_response.axes["Em"], full_detector_response.axes["Phi"], full_detector_response.axes["PsiChi"]]
 
-        self._image_response = Histogram(axes_image_response, unit = full_detector_response.unit)
+        self._image_response = Histogram(axes_image_response, unit = full_detector_response.unit, track_overflow = False)
 
         nside = full_detector_response.axes["NuLambda"].nside
         npix = full_detector_response.axes["NuLambda"].npix 
