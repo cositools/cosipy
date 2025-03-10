@@ -199,7 +199,7 @@ class UnBinnedData(DataIO):
                     logger.info("bad event number: " + str(N_events))
 
                     # remove bad photon info:
-                    if len(et) != 0:
+                    if len(lonX) != 0:
                         N_events = N_events - 1
                         et.pop()
                         erg.pop()
