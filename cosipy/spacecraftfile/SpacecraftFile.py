@@ -281,6 +281,7 @@ class SpacecraftFile():
             new_z_direction = self._z_direction[start_idx : stop_idx + 1]
             new_earth_direction = self._earth_direction[start_idx : stop_idx + 1]
             new_earth_altitude = self._altitude[start_idx : stop_idx + 1]
+            new_livetime = self.livetime[start_idx : stop_idx + 1]
 
         else:
             start_idx = self._load_time.searchsorted(start.value) - 1
@@ -307,6 +308,14 @@ class SpacecraftFile():
             new_earth_altitude = self._altitude[start_idx + 1 : stop_idx + 1]  
             new_earth_altitude = np.insert(new_earth_altitude, 0, starting_alt)
 
+            # SAA livetime:
+            if self.livetime[start_idx] == 0:
+                udpated_livetime = 0
+            else:
+                updated_livetime = new_times[1] - new_times[0]
+                
+            new_livetime = self.livetime[start_idx + 1 : stop_idx + 1]
+            new_livetime = np.insert(new_livetime, 0, updated_livetime)
 
         if (stop.value % 1 != 0):
             stop_idx = self._load_time.searchsorted(stop.value) - 1
@@ -333,13 +342,21 @@ class SpacecraftFile():
             new_earth_altitude = new_earth_altitude[:-1]
             new_earth_altitude = np.append(new_earth_altitude, [stop_alt])
 
+            # SAA livetime:
+            if new_livetime[-1] == 0:
+                udpated_livetime = 0
+            else: 
+                updated_livetime = new_times[-1] - new_times[-2]
+            new_livetime = new_livetime[:-1]
+            new_livetime = np.append(new_livetime, updated_livetime)
+
         time = Time(new_times, format = "unix")
         xpointings = SkyCoord(l = new_x_direction[:,0]*u.deg, b = new_x_direction[:,1]*u.deg, frame = "galactic")
         zpointings = SkyCoord(l = new_z_direction[:,0]*u.deg, b = new_z_direction[:,1]*u.deg, frame = "galactic")
         earthpointings = SkyCoord(l = new_earth_direction[:,0]*u.deg, b = new_earth_direction[:,1]*u.deg, frame = "galactic")
         altitude = new_earth_altitude
 
-        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude =altitude)
+        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude, livetime = new_livetime)
       
     def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
 
