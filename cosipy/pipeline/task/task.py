@@ -1,8 +1,13 @@
 import argparse, textwrap
 from yayc import Configurator
 from threeML import Band
-from cosipy.pipeline.src.spec_func import *
-from cosipy.pipeline.src.spec_func import model_ids
+from cosipy.pipeline.src.io import *
+from cosipy.pipeline.src.preprocessing import *
+from cosipy.pipeline.src.fitting import *
+from cosipy.pipeline.src.plotting import *
+
+from cosipy.pipeline.src.fitting import MODEL_IDS
+
 from astropy import units as u
 from astropy.io.misc import yaml
 
@@ -74,7 +79,7 @@ def cosi_threemlfit(argv=None):
     ori_sliced = tslice_ori(ori, tstart, tstop)
                 #
     pars = [yaml.load(p) for p in par_streams]
-    spectrum=build_spectrum(model_ids[model_id], pars,par_minvalues,par_maxvalues)
+    spectrum=build_spectrum(MODEL_IDS[model_id], pars, par_minvalues, par_maxvalues)
     results, cts_exp = get_fit_results(grb_binned_data, bk_sliced_data, resp_path, ori_sliced, l, b,
                                                    souname, bkname, spectrum)
     results.display()
