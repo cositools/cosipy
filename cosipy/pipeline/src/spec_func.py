@@ -25,11 +25,15 @@ import subprocess
 
 
 def get_binned_data(yaml_path, udata_path, bdata_name, psichi_coo):
+    """
+    Creates a binned dataset from a yaml file and an unbinned data file.
+    Args:
+        psichi_coo: either "galactic" or "local"
+
+    """
     data=BinnedData(yaml_path)
     data.get_binned_data(unbinned_data=udata_path, output_name=bdata_name, psichi_binning=psichi_coo,make_binning_plots=False)
-    return()
-
-
+    return data
 
 
 def load_binned_data(yaml_path,data_path):
