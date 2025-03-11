@@ -1,5 +1,5 @@
 import numpy as np
-from astropy.coordinates import Angle
+from astropy.coordinates import Angle, SkyCoord
 import astropy.units as u
 from astropy.stats import poisson_conf_interval
 from astropy.time import Time
@@ -73,8 +73,8 @@ class PolarizationASAD():
 
         if isinstance(fit_convention.frame, SpacecraftFrame) and not isinstance(source_vector.frame, SpacecraftFrame):
             raise RuntimeError("To perform fit in spacecraft frame, source position must be provided in spacecraft frame.")
-        elif not isinstance(fit_convention.frame, SpacecraftFrame) and isinstance(source_vector.frame, SpacecraftFrame):
-            raise RuntimeError("To perform fit in galactic frame, source position must be provided in galactic frame.")
+        elif not isinstance(fit_convention.frame, SpacecraftFrame):
+            source_vector = source_vector.transform_to('icrs')
 
         if ((isinstance(fit_convention, MEGAlibRelativeX) and response_convention != 'RelativeX') or
             (isinstance(fit_convention, MEGAlibRelativeY) and response_convention != 'RelativeY') or
@@ -102,7 +102,6 @@ class PolarizationASAD():
                                             self._reference_vector.cartesian.y.value, 
                                             self._reference_vector.cartesian.z.value]
 
-
         self._response_file = response_file
         self._response = FullDetectorResponse.open(response_file)
 
@@ -111,19 +110,6 @@ class PolarizationASAD():
         self._ori = sc_orientation
 
         self._asads = self.create_asads()
-
-        # Temporary workaround for empty bins in unpolarized ASAD
-        empty = np.where(self._asads['unpolarized']['counts'] == 0)[0]
-        for key in self._asads.keys():
-            if type(self._asads[key]['counts']) == dict:
-                for key_pol in self._asads[key]['counts'].keys():
-                    self._asads[key]['counts'][key_pol] = np.delete(self._asads[key]['counts'][key_pol], empty)
-                    self._asads[key]['uncertainties'][key_pol] = np.delete(self._asads[key]['uncertainties'][key_pol], empty, axis=1)
-            else:
-                self._asads[key]['counts'] = np.delete(self._asads[key]['counts'], empty)
-                self._asads[key]['uncertainties'] = np.delete(self._asads[key]['uncertainties'], empty, axis=1)
-        for index in sorted(empty, reverse=True):
-            del self._bins[index]
 
         self._mu_100 = self.calculate_mu100(self._asads['polarized'], self._asads['unpolarized'], show_plots)
 
@@ -234,7 +220,8 @@ class PolarizationASAD():
         else:
             for i in range(len(unbinned_data['Psi galactic'])):
                 if unbinned_data['Energies'][i] >= self._energy_range[0] and unbinned_data['Energies'][i] <= self._energy_range[1]:
-                    azimuthal_angle = self.calculate_azimuthal_scattering_angle(unbinned_data['Psi galactic'][i], unbinned_data['Chi galactic'][i])
+                    psichi_skycoord = SkyCoord(l=unbinned_data['Chi galactic'][i], b=unbinned_data['Psi galactic'][i], frame='galactic', unit=u.deg).transform_to('icrs')
+                    azimuthal_angle = self.calculate_azimuthal_scattering_angle((np.pi/2) - psichi_skycoord.dec.rad, psichi_skycoord.ra.rad)
                     azimuthal_angles.append(azimuthal_angle)
 
         return azimuthal_angles
@@ -261,20 +248,29 @@ class PolarizationASAD():
         """
 
         if isinstance(self._convention.frame, SpacecraftFrame):
+            
             target_in_sc_frame = self._ori.get_target_in_sc_frame(target_name='source', target_coord=self._source_vector.transform_to('galactic'))
             dwell_time_map = self._ori.get_dwell_map(response=self._response_file, src_path=target_in_sc_frame)
             psr = self._response.get_point_source_response(exposure_map=dwell_time_map, coord=self._source_vector.transform_to('galactic'))
             expectation = psr.get_expectation(spectrum, polarization_level, polarization_angle)
+            
+            azimuthal_angle_bins = []
+
+            for i in range(expectation.axes['PsiChi'].nbins):
+                azimuthal_angle = self.calculate_azimuthal_scattering_angle(expectation.axes['PsiChi'].pix2ang(i)[0], expectation.axes['PsiChi'].pix2ang(i)[1])
+                azimuthal_angle_bins.append(azimuthal_angle)
+        
         else:
+            
             scatt_map = self._ori.get_scatt_map(self._source_vector, nside=self._response.nside*2, coordsys='galactic')
             psr = self._response.get_point_source_response(coord=self._source_vector, scatt_map=scatt_map)
             expectation = psr.get_expectation(spectrum, polarization_level, polarization_angle, scatt_map, self._response_convention)
 
-        azimuthal_angle_bins = []
+            azimuthal_angle_bins = []
 
-        for i in range(expectation.axes['PsiChi'].nbins):
-            azimuthal_angle = self.calculate_azimuthal_scattering_angle(expectation.project(['PsiChi']).axes['PsiChi'].pix2ang(i)[0], expectation.project(['PsiChi']).axes['PsiChi'].pix2ang(i)[1])
-            azimuthal_angle_bins.append(azimuthal_angle)
+            for i in range(expectation.axes['PsiChi'].nbins):
+                azimuthal_angle = self.calculate_azimuthal_scattering_angle((np.pi/2) - expectation.axes['PsiChi'].pix2skycoord(i).transform_to('icrs').dec.rad, expectation.axes['PsiChi'].pix2skycoord(i).transform_to('icrs').ra.rad)
+                azimuthal_angle_bins.append(azimuthal_angle)
 
         return expectation, azimuthal_angle_bins
 
@@ -634,7 +630,10 @@ class PolarizationASAD():
             fitted_angle.wrap_at(180 * u.deg, inplace=True)
             if fitted_angle.degree < 0:
                 fitted_angle += Angle(180, unit=u.deg)
-            print('Fitted angle: ' + str(fitted_angle.degree) + ' deg')
+            diff = fitted_angle.deg - self._response.axes['Pol'].centers.to_value(u.deg)[i]
+            if diff < 0:
+                diff = 180 - diff
+            print('Fitted angle: ' + str(fitted_angle.degree) + ' deg, difference:', diff)
             mu_100_list.append(mu_100['mu'])
             mu_100_uncertainties.append(mu_100['uncertainty'])
             if show_plots == True:
@@ -692,7 +691,7 @@ class PolarizationASAD():
         polarization = {'fraction': polarization_fraction, 'angle': polarization_angle, 'fraction uncertainty': polarization_fraction_uncertainty, 'angle uncertainty': polarization_angle_uncertainty, 'best fit parameter values': parameter_values, 'best fit parameter uncertainties': uncertainties}
     
         print('Best fit polarization fraction:', round(polarization_fraction, 3), '+/-', round(polarization_fraction_uncertainty, 3))
-        print('Best fit polarization angle:', round(polarization_angle.angle.degree, 3), '+/-', round(polarization_angle_uncertainty.degree, 3))
+        print('Best fit polarization angle (IAU convention):', round(polarization_angle.angle.degree, 3), '+/-', round(polarization_angle_uncertainty.degree, 3))
 
         if self._mdp > polarization['fraction']:
             print('Polarization fraction is below MDP!', 'MDP:', round(self._mdp, 3))
