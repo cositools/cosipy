@@ -168,7 +168,7 @@ class PointSourceResponse(Histogram):
                         else:
                             polarization_angle_components[polarization_angle_index] = response_slice * exposure / np.sum(scatt_map.project('x'))
 
-                for i in range(len(self.axes['Pol'].edges) - 1):
+                for i in range(self.axes['Pol'].nbins):
 
                     if polarization_angle.angle.deg >= self.axes['Pol'].edges.to_value(u.deg)[i] and polarization_angle.angle.deg < self.axes['Pol'].edges.to_value(u.deg)[i+1]:
                         polarized_component = polarization_angle_components[i].contents
