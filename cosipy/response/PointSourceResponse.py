@@ -110,7 +110,7 @@ class PointSourceResponse(Histogram):
 
                 polarization_angle_components = []
 
-                for i in range(len(self.axes['Pol'].edges) - 1):
+                for i in range(self.axes['Pol'].nbins):
 
                     polarization_angle_components.append(self.slice[{'Pol':slice(i,i+1)}].project('Ei', 'Em', 'Phi', 'PsiChi'))
 
