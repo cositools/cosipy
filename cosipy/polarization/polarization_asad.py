@@ -26,10 +26,10 @@ class PolarizationASAD():
         Spectrum of source
     asad_bin_edges : astropy.coordinates.angles.core.Angle
         Bin edges for azimuthal scattering angle distribution
-    data : dict
-        Unbinned data
-    background : dict
-        Unbinned background model
+    data : dict or cosipy.data_io.BinnedData
+        Binned or unbinned data
+    background : dict or cosipy.data_io.BinnedData
+        Binned or unbinned background model
     sc_orientation : cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile
         Spacecraft orientation
     response_file : str or pathlib.Path
@@ -153,7 +153,7 @@ class PolarizationASAD():
 
         return azimuthal_angles
 
-    def calculate_expectation(self, spectrum, polarization_level, polarization_angle):
+    def create_asad_from_response(self, spectrum, polarization_level, polarization_angle, bins=20):
         """
         Convolve source spectrum with response and calculate azimuthal scattering angle bins.
 
@@ -165,13 +165,13 @@ class PolarizationASAD():
             Polarization level (between 0 and 1).
         polarization_angle : :py:class:`cosipy.polarization.polarization_angle.PolarizationAngle`
             Polarization angle. If in the spacecraft frame, the angle must have the same convention as the response.
+        bins : int or astropy.units.quantity.Quantity, optional
+            Number of azimuthal scattering angle bins if int or array of edges of azimuthal scattering angle bins if Quantity
 
         Returns
         -------
-        expectation : cosipy.response.PointSourceResponse.PointSourceResponse
-            Expected counts in each bin of Compton data space
-        azimuthal_angle_bins : list
-            Centers of azimuthal scattering angle bins calculated from PsiChi bins in response
+        asad : histpy.Histogram
+            Counts in each azimuthal scattering angle bin
         """
 
         if isinstance(self._convention.frame, SpacecraftFrame):
@@ -197,22 +197,38 @@ class PolarizationASAD():
             azimuthal_angle_bins = []
 
             for i in range(expectation.axes['PsiChi'].nbins):
-                psichi = expectation.axes['PsiChi'].pix2skycoord(i)
+                psichi = expectation.axes['PsiChi'].pix2skycoord(i).transform_to('icrs')
                 azimuthal_angle = PolarizationAngle.from_scattering_direction(psichi, self._source_vector, self._convention)
                 azimuthal_angle_bins.append(azimuthal_angle.angle)
 
-        return expectation, azimuthal_angle_bins
+        if isinstance(bins, int):
+            bin_edges = Angle(np.linspace(-np.pi, np.pi, bins), unit=u.rad)
+        else:
+            bin_edges = bins
 
-    def create_asad(self, azimuthal_angles, bins=20):
+        asad = []
+
+        for i in range(len(bin_edges)-1):
+            counts = 0
+            for j in range(expectation.project(['PsiChi']).nbins):
+                if azimuthal_angle_bins[j] >= bin_edges[i] and azimuthal_angle_bins[j] < bin_edges[i+1]:
+                    counts += expectation.project(['PsiChi'])[j]
+            asad.append(counts)
+
+        asad = Histogram(bin_edges, contents=asad)
+
+        return asad
+
+    def bin_asad(self, azimuthal_angles, bins=20):
         """
-        Create ASAD and calculate uncertainties.
+        Bin list of azimuthal scattering angles into ASAD.
         
         Parameters
         ----------
         azimuthal_angles : list
-            Azimuthal scattering angles (radians)
-        bins : int or np.array, optional
-            Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)
+            Azimuthal scattering angles
+        bins : int or astropy.units.quantity.Quantity, optional
+            Number of azimuthal scattering angle bins if int or array of edges of azimuthal scattering angle bins if Quantity
 
         Returns
         -------
@@ -233,14 +249,67 @@ class PolarizationASAD():
 
         return asad
 
-    def create_unpolarized_asad(self, bins=None):
+    def create_asad_from_binned_data(self, data, bins=20):
         """
-        Calculate the azimuthal scattering angles for all bins.
+        Create ASAD from binned data.
         
         Parameters
         ----------
-        bins : int or np.array, optional
-            Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)
+        data : cosipy.data_io.BinnedData
+            Data binned in Compton data space
+        bins : int or astropy.units.quantity.Quantity, optional
+            Number of azimuthal scattering angle bins if int or array of edges of azimuthal scattering angle bins if Quantity
+
+        Returns
+        -------
+        asad : histpy.Histogram
+            Counts in each azimuthal scattering angle bin
+        """
+
+        if data.binned_data.axes['PsiChi'].coordsys.name == 'spacecraftframe':
+
+            azimuthal_angle_bins = []
+            for i in range(data.binned_data.axes['PsiChi'].nbins):
+                psichi = SkyCoord(lat=(np.pi/2) - data.binned_data.axes['PsiChi'].pix2ang(i)[0], lon=data.binned_data.axes['PsiChi'].pix2ang(i)[1], unit=u.rad, frame=self._convention.frame)
+                azimuthal_angle = PolarizationAngle.from_scattering_direction(psichi, self._source_vector, self._convention)
+                azimuthal_angle_bins.append(azimuthal_angle.angle)
+
+        else:
+
+            azimuthal_angle_bins = []
+            for i in range(data.binned_data.axes['PsiChi'].nbins):
+                psichi = data.binned_data.axes['PsiChi'].pix2skycoord(i).transform_to('icrs')
+                azimuthal_angle = PolarizationAngle.from_scattering_direction(psichi, self._source_vector, self._convention)
+                azimuthal_angle_bins.append(azimuthal_angle.angle)
+
+        if isinstance(bins, int):
+            bin_edges = Angle(np.linspace(-np.pi, np.pi, bins), unit=u.rad)
+        else:
+            bin_edges = bins
+
+        asad = []
+
+        for i in range(len(bin_edges)-1):
+            counts = 0
+            for j in range(data.binned_data.project(['PsiChi']).nbins):
+                if azimuthal_angle_bins[j] >= bin_edges[i] and azimuthal_angle_bins[j] < bin_edges[i+1]:
+                    counts += data.binned_data.project(['PsiChi'])[j]
+            asad.append(counts)
+
+        asad = Histogram(bin_edges, contents=asad)
+        self._bin_edges = asad.axis.edges
+        self._bins = asad.axis.centers
+
+        return asad
+
+    def create_unpolarized_asad(self, bins=None):
+        """
+        Create unpolarized ASAD from response.
+
+        Parameters
+        ----------
+        bins : int or astropy.units.quantity.Quantity, optional
+            Number of azimuthal scattering angle bins if int or array of edges of azimuthal scattering angle bins if Quantity
 
         Returns
         -------
@@ -256,29 +325,18 @@ class PolarizationASAD():
         else:
             bin_edges = self._bin_edges
 
-        expectation, azimuthal_angle_bins = self.calculate_expectation(self._spectrum, 0, PolarizationAngle(Angle(0 * u.deg), self._source_vector, convention=self._convention))
+        unpolarized_asad = self.create_asad_from_response(self._spectrum, 0, PolarizationAngle(Angle(0 * u.deg), self._source_vector, convention=self._convention), bins)
 
-        unpolarized_asad = []
+        return unpolarized_asad
 
-        for i in range(len(bin_edges)-1):
-            counts = 0
-            for j in range(expectation.project(['PsiChi']).nbins):
-                if azimuthal_angle_bins[j] >= bin_edges[i] and azimuthal_angle_bins[j] < bin_edges[i+1]:
-                    counts += expectation.project(['PsiChi'])[j]
-            unpolarized_asad.append(counts)
-
-        asad = Histogram(bin_edges, contents=unpolarized_asad)
-
-        return asad
-    
     def create_polarized_asads(self, bins=None):
         """
-        Calculate the azimuthal scattering angles for all bins.
+        Create 100% polarized ASADs for each polarization angle bin of response.
         
         Parameters
         ----------
-        bins : int or np.array, optional
-            Number of azimuthal scattering angle bins if int or edges of azimuthal scattering angle bins if np.array (radians)
+        bins : int or astropy.units.quantity.Quantity, optional
+            Number of azimuthal scattering angle bins if int or array of edges of azimuthal scattering angle bins if Quantity
 
         Returns
         -------
@@ -296,15 +354,7 @@ class PolarizationASAD():
         
         polarized_asads = {}
         for k in range(self._response.axes['Pol'].nbins):
-            polarized_asads[k] = []
-            expectation, azimuthal_angle_bins = self.calculate_expectation(self._spectrum, 1, PolarizationAngle(Angle(self._response.axes['Pol'].centers.to_value(u.deg)[k] * u.deg), self._source_vector, convention=self._convention))
-            for i in range(len(bin_edges)-1):
-                counts = 0
-                for j in range(self._response.axes['PsiChi'].nbins):
-                    if azimuthal_angle_bins[j] >= bin_edges[i] and azimuthal_angle_bins[j] < bin_edges[i+1]:
-                        counts += expectation.project(['PsiChi'])[j]
-                polarized_asads[k].append(counts)
-            polarized_asads[k] = Histogram(bin_edges, contents=polarized_asads[k])
+            polarized_asads[k] = self.create_asad_from_response(self._spectrum, 1, PolarizationAngle(Angle(self._response.axes['Pol'].centers.to_value(u.deg)[k] * u.deg), self._source_vector, convention=self._convention), bins)
 
         return polarized_asads
 
@@ -323,22 +373,30 @@ class PolarizationASAD():
         """
 
         azimuthal_angles = {}
-        azimuthal_angles['source & background'] = self.calculate_azimuthal_scattering_angles(self._data)
-        azimuthal_angles['background'] = self.calculate_azimuthal_scattering_angles(self._background)
-
         asads = {}
-        for key in azimuthal_angles.keys():
-            asads[key] = self.create_asad(azimuthal_angles[key], self._asad_bin_edges)
 
-        source_duration = np.max(self._data['TimeTags']) - np.min(self._data['TimeTags'])
-        background_duration = np.max(self._background['TimeTags']) - np.min(self._background['TimeTags'])
+        if type(self._data) == dict:
+            azimuthal_angles['source & background'] = self.calculate_azimuthal_scattering_angles(self._data)
+            asads['source & background'] = self.bin_asad(azimuthal_angles['source & background'], self._asad_bin_edges)
+            source_duration = np.max(self._data['TimeTags']) - np.min(self._data['TimeTags'])
+        else:
+            asads['source & background'] = self.create_asad_from_binned_data(self._data, self._asad_bin_edges)
+            source_duration = (np.max(self._data.binned_data.axes['Time'].edges) - np.min(self._data.binned_data.axes['Time'].edges)).value
+
+        if type(self._background) == dict:
+            azimuthal_angles['background'] = self.calculate_azimuthal_scattering_angles(self._background)
+            asads['background'] = self.bin_asad(azimuthal_angles['background'], self._asad_bin_edges)
+            background_duration = np.max(self._background['TimeTags']) - np.min(self._background['TimeTags'])
+        else:
+            asads['background'] = self.create_asad_from_binned_data(self._background, self._asad_bin_edges)
+            background_duration = (np.max(self._background.binned_data.axes['Time'].edges) - np.min(self._background.binned_data.axes['Time'].edges)).value
 
         scaled_background_asad = (asads['background'].contents.data * source_duration / background_duration).astype(int)
         source_asad = asads['source & background'].contents.data - scaled_background_asad
 
         asads['source'] = Histogram(asads['background'].axis.edges, contents=source_asad)
-        asads['unpolarized'] = self.create_unpolarized_asad()
-        asads['polarized'] = self.create_polarized_asads()
+        asads['unpolarized'] = self.create_unpolarized_asad(self._bin_edges)
+        asads['polarized'] = self.create_polarized_asads(self._bin_edges)
         asads['background (scaled)'] = Histogram(asads['background'].axis.edges, contents=scaled_background_asad)
 
         return asads, source_duration, background_duration
