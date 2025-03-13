@@ -537,6 +537,8 @@ class PolarizationASAD():
         -------
         modulation : dict
             Modulation and uncertainty of fitted sinusoid
+        parameter_values : np.ndarray
+            Fitted parameter values
         """
 
         # Defaults
