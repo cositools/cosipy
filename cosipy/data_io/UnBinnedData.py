@@ -679,6 +679,46 @@ class UnBinnedData(DataIO):
 
         return
 
+    def select_data_energy(self, emin, emax, output_name=None, unbinned_data=None):
+
+        """Applies energy cuts to unbinnned data dictionary. 
+        
+        Parameters
+        ----------
+        emin : float or int
+            Minimum energy in keV.
+        emax : float or int
+            Maximum energy in keV.
+        unbinned_data : str, optional
+            Name of unbinned dictionary file.
+        output_name : str, optional
+            Prefix of output file (default is None, in which case no 
+            file is saved).
+        """
+        
+        logger.info("Making data selections on photon energy...")
+
+        # Option to read in unbinned data file:
+        if unbinned_data:
+            self.cosi_dataset = self.get_dict(unbinned_data)
+
+        # Get energy cut index:
+        energy_array = self.cosi_dataset["Energies"]
+        energy_cut_index = (energy_array >= emin) & (energy_array < emax)
+    
+        # Apply cuts to dictionary:
+        for key in self.cosi_dataset:
+
+            self.cosi_dataset[key] = self.cosi_dataset[key][energy_cut_index]
+
+        # Write unbinned data to file (either fits or hdf5):
+        if output_name != None:
+            logger.info("Saving file...")
+            self.write_unbinned_output(output_name)
+
+        return
+
+
     def combine_unbinned_data(self, input_files, output_name=None):
 
         """Combines input unbinned data files.
