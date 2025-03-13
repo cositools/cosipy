@@ -718,7 +718,6 @@ class UnBinnedData(DataIO):
 
         return
 
-
     def combine_unbinned_data(self, input_files, output_name=None):
 
         """Combines input unbinned data files.
