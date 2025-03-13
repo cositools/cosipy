@@ -518,7 +518,7 @@ class PolarizationASAD():
         else:
             return asad
 
-    def calculate_mu(self, counts_corrected, p0=None, bounds=(-np.inf, np.inf), sigma=None):
+    def calculate_mu(self, counts_corrected, p0=None, bounds=None, sigma=None):
         """
         Calculate the modulation (mu).
         

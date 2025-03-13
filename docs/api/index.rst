@@ -9,7 +9,7 @@ If you are instead interested in an overview on how to use cosipy, see out `tuto
     Under construction. The description of some methods is still missing. If you need the description of a particular class, please open an `issue <https://github.com/cositools/cosipy/issues>`_ so we can prioritize it.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    response

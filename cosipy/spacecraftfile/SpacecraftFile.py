@@ -22,7 +22,8 @@ class SpacecraftFile():
 
     def __init__(self, time, x_pointings = None, y_pointings = None, \
             z_pointings = None, earth_zenith = None, altitude = None,\
-            attitude = None, instrument = "COSI", frame = "galactic"):
+            attitude = None, livetime = None, instrument = "COSI", \
+            frame = "galactic"):
 
         """
         Handles the spacecraft orientation. Calculates the dwell time 
@@ -48,8 +49,12 @@ class SpacecraftFile():
         earth_zenith : astropy.coordinates.SkyCoord, optional
             The pointings (galactic system) of the Earth zenith (the 
             default is `None`, which implies no input for the earth pointings).
-	altitude : array, optional 
+	    altitude : array, optional 
             Altitude of the spacecraft in km.
+        livetime : array, optional 
+            Time in seconds the instrument is live for the corresponding 
+            energy bin (using left endpoints so that the last entry in 
+            the ori file is 0).
         attitude : numpy.ndarray, optional 
             The attitude of the spacecraft (the default is `None`, 
             which implies no input for the attitude of the spacecraft).
@@ -69,6 +74,10 @@ class SpacecraftFile():
         # Altitude
         if not isinstance(altitude, (type(None))):
             self._altitude = np.array(altitude)
+
+        # livetime
+        if not isinstance(livetime, (type(None))):
+            self.livetime = np.array(livetime)
 
         # x pointings
         if isinstance(x_pointings, (SkyCoord, type(None))):
@@ -131,19 +140,21 @@ class SpacecraftFile():
             The SpacecraftFile object.
         """
 
-        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5, 6, 7, 8),delimiter=' ', skiprows=1, comments=("#", "EN"))
+        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5, 6, 7, 8, 9),delimiter=' ', skiprows=1, comments=("#", "EN"))
         time_stamps = orientation_file[:, 0]
         axis_1 = orientation_file[:, [2, 1]]
         axis_2 = orientation_file[:, [4, 3]]
         axis_3 = orientation_file[:, [7, 6]]
         altitude = np.array(orientation_file[:, 5]) 
-        
+        livetime = np.array(orientation_file[:, 8])
+        livetime = livetime[:-1] # left end points, so remove last bin. 
+
         time = Time(time_stamps, format = "unix")
         xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
         zpointings = SkyCoord(l = axis_2[:,0]*u.deg, b = axis_2[:,1]*u.deg, frame = "galactic")
         earthpointings = SkyCoord(l = axis_3[:,0]*u.deg, b = axis_3[:,1]*u.deg, frame = "galactic")
         
-        return cls(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude)
+        return cls(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude, livetime=livetime)
 
     def get_time(self, time_array = None):
 
@@ -270,6 +281,7 @@ class SpacecraftFile():
             new_z_direction = self._z_direction[start_idx : stop_idx + 1]
             new_earth_direction = self._earth_direction[start_idx : stop_idx + 1]
             new_earth_altitude = self._altitude[start_idx : stop_idx + 1]
+            new_livetime = self.livetime[start_idx : stop_idx] 
 
         else:
             start_idx = self._load_time.searchsorted(start.value) - 1
@@ -296,6 +308,14 @@ class SpacecraftFile():
             new_earth_altitude = self._altitude[start_idx + 1 : stop_idx + 1]  
             new_earth_altitude = np.insert(new_earth_altitude, 0, starting_alt)
 
+            # SAA livetime:
+            if self.livetime[start_idx] == 0:
+                udpated_livetime = 0
+            else:
+                updated_livetime = new_times[1] - new_times[0]
+                
+            new_livetime = self.livetime[start_idx + 1 : stop_idx]
+            new_livetime = np.insert(new_livetime, 0, updated_livetime)
 
         if (stop.value % 1 != 0):
             stop_idx = self._load_time.searchsorted(stop.value) - 1
@@ -322,13 +342,21 @@ class SpacecraftFile():
             new_earth_altitude = new_earth_altitude[:-1]
             new_earth_altitude = np.append(new_earth_altitude, [stop_alt])
 
+            # SAA livetime:
+            if new_livetime[-1] == 0:
+                udpated_livetime = 0
+            else: 
+                updated_livetime = new_times[-1] - new_times[-2]
+            new_livetime = new_livetime[:-1]
+            new_livetime = np.append(new_livetime, updated_livetime)
+
         time = Time(new_times, format = "unix")
         xpointings = SkyCoord(l = new_x_direction[:,0]*u.deg, b = new_x_direction[:,1]*u.deg, frame = "galactic")
         zpointings = SkyCoord(l = new_z_direction[:,0]*u.deg, b = new_z_direction[:,1]*u.deg, frame = "galactic")
         earthpointings = SkyCoord(l = new_earth_direction[:,0]*u.deg, b = new_earth_direction[:,1]*u.deg, frame = "galactic")
         altitude = new_earth_altitude
-
-        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude =altitude)
+    
+        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude, livetime = new_livetime)
       
     def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
 
@@ -577,7 +605,8 @@ class SpacecraftFile():
         earth_occ_index = src_angle.value >= max_angle
 
         # Define weights and set to 0 if blocked by Earth:
-        weight = np.diff(timestamps.gps)*u.s
+        weight = self.livetime*u.s
+
         if earth_occ == True:
             weight[earth_occ_index[:-1]] = 0        
         
