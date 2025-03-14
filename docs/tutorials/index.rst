@@ -66,6 +66,10 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
 10. Continuum background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/continuum_estimation/BG_estimation_example.ipynb>`
   - Estimating the continuum background from the data. 
 
+11. Line background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/line_background/line_background_estimation_example_notebook.ipynb>`
+  - Estimating the background from neighboring energy bins.
+
+    
 .. warning::
    Under construction. Some of the explanations described above might be missing. However, the notebooks are fully functional. If you have a question not yet covered by the tutorials, please discuss `issue <https://github.com/cositools/cosipy/discussions>`_ so we can prioritize it.
     
@@ -82,4 +86,5 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    Image deconvolution <image_deconvolution/511keV/ScAttBinning/511keV-DC2-ScAtt-ImageDeconvolution.ipynb>
    Source injector <source_injector/Point_source_injector.ipynb>
    Continuum Background Estimation <background_estimation/continuum_estimation/BG_estimation_example.ipynb>
-
+   Line background estimation <background_estimation/line_background/line_background_estimation_example_notebook.ipynb>
+   
