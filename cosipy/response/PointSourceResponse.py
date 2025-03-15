@@ -47,7 +47,7 @@ class PointSourceResponse(Histogram):
         
         return self.axes['Ei']
        
-    def get_expectation(self, spectrum, polarization_level=None, polarization_angle=None, scatt_map=None, convention=None, child_pa_bins=40):
+    def get_expectation(self, spectrum, polarization_level=None, polarization_angle=None, scatt_map=None, convention=None, child_pa_bins=None):
         """
         Convolve the response with a spectral (and optionally, polarization) hypothesis to obtain the expected
         excess counts from the source.
@@ -64,7 +64,9 @@ class PointSourceResponse(Histogram):
             Spacecraft attitude map. Only needed for polarization angle provided in galactic reference frame.
         convention : str, optional
             Polarization angle convention of response ('RelativeX', 'RelativeY', or 'RelativeZ'). Only needed for polarization angle provided in galactic reference frame.
-
+        child_pa_bins : int, optional
+            Number of child bins to convert spacecraft frame polarization angle bins into before transforming to ICRS frame
+        
         Returns
         -------
         :py:class:`histpy.Histogram`
