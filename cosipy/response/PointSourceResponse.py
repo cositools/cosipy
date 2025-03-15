@@ -47,7 +47,7 @@ class PointSourceResponse(Histogram):
         
         return self.axes['Ei']
        
-    def get_expectation(self, spectrum, polarization_level=None, polarization_angle=None, scatt_map=None, convention=None, child_pa_bins=None):
+    def get_expectation(self, spectrum, polarization_level=None, polarization_angle=None, scatt_map=None, convention=None, child_pa_bins=40):
         """
         Convolve the response with a spectral (and optionally, polarization) hypothesis to obtain the expected
         excess counts from the source.
@@ -197,7 +197,7 @@ class PointSourceResponse(Histogram):
                                 else:
                                     raise RuntimeError("Response convention must be 'RelativeX', 'RelativeY', or 'RelativeZ'")
 
-                                polarization_angle_galactic = PolarizationAngle(self.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, polarization_angle.skycoord, convention=this_convention).transform_to(polarization_angle.convention)
+                                polarization_angle_galactic = PolarizationAngle(child_bin_center.to_value(u.deg) * u.deg, polarization_angle.skycoord, convention=this_convention).transform_to(polarization_angle.convention)
 
                                 if polarization_angle_galactic.angle.deg == 180.:
                                     polarization_angle_galactic = PolarizationAngle(0. * u.deg, polarization_angle_galactic.skycoord, convention=polarization_angle_galactic.convention)
