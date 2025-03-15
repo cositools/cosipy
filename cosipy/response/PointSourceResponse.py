@@ -47,7 +47,7 @@ class PointSourceResponse(Histogram):
         
         return self.axes['Ei']
        
-    def get_expectation(self, spectrum, polarization_level=None, polarization_angle=None, scatt_map=None, convention=None):
+    def get_expectation(self, spectrum, polarization_level=None, polarization_angle=None, scatt_map=None, convention=None, child_pa_bins=40):
         """
         Convolve the response with a spectral (and optionally, polarization) hypothesis to obtain the expected
         excess counts from the source.
@@ -143,30 +143,69 @@ class PointSourceResponse(Histogram):
 
                     response_slice = self.slice[{'Pol':slice(i,i+1)}].project('Ei', 'Em', 'Phi', 'PsiChi')
 
-                    for j, (pixels, exposure) in enumerate(zip(scatt_map.contents.coords.transpose(), scatt_map.contents.data)):
+                    if child_pa_bins is None:
 
-                        attitude = Attitude.from_axes(x=scatt_map.axes['x'].pix2skycoord(pixels[0]), y=scatt_map.axes['y'].pix2skycoord(pixels[1]))
+                        for j, (pixels, exposure) in enumerate(zip(scatt_map.contents.coords.transpose(), scatt_map.contents.data)):
 
-                        if convention == 'RelativeX':
-                            this_convention = MEGAlibRelativeX(attitude=attitude)
-                        elif convention == 'RelativeY':
-                            this_convention = MEGAlibRelativeY(attitude=attitude)
-                        elif convention == 'RelativeZ':
-                            this_convention = MEGAlibRelativeZ(attitude=attitude)
-                        else:
-                            raise RuntimeError("Response convention must be 'RelativeX', 'RelativeY', or 'RelativeZ'")
+                            attitude = Attitude.from_axes(x=scatt_map.axes['x'].pix2skycoord(pixels[0]), y=scatt_map.axes['y'].pix2skycoord(pixels[1]))
 
-                        polarization_angle_galactic = PolarizationAngle(self.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, polarization_angle.skycoord, convention=this_convention).transform_to(polarization_angle.convention)
+                            if convention == 'RelativeX':
+                                this_convention = MEGAlibRelativeX(attitude=attitude)
+                            elif convention == 'RelativeY':
+                                this_convention = MEGAlibRelativeY(attitude=attitude)
+                            elif convention == 'RelativeZ':
+                                this_convention = MEGAlibRelativeZ(attitude=attitude)
+                            else:
+                                raise RuntimeError("Response convention must be 'RelativeX', 'RelativeY', or 'RelativeZ'")
 
-                        if polarization_angle_galactic.angle.deg == 180.:
-                            polarization_angle_galactic = PolarizationAngle(0. * u.deg, polarization_angle_galactic.skycoord, convention=polarization_angle_galactic.convention)
+                            polarization_angle_galactic = PolarizationAngle(self.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, polarization_angle.skycoord, convention=this_convention).transform_to(polarization_angle.convention)
 
-                        polarization_angle_index = np.max(np.where(polarization_angle_galactic.angle.deg >= self.axes['Pol'].edges.to_value(u.deg)))
+                            if polarization_angle_galactic.angle.deg == 180.:
+                                polarization_angle_galactic = PolarizationAngle(0. * u.deg, polarization_angle_galactic.skycoord, convention=polarization_angle_galactic.convention)
 
-                        if hasattr(polarization_angle_components[polarization_angle_index], 'axes'):
-                            polarization_angle_components[polarization_angle_index] += response_slice * exposure / np.sum(scatt_map.project('x'))
-                        else:
-                            polarization_angle_components[polarization_angle_index] = response_slice * exposure / np.sum(scatt_map.project('x'))
+                            polarization_angle_index = np.max(np.where(polarization_angle_galactic.angle.deg >= self.axes['Pol'].edges.to_value(u.deg)))
+
+                            if hasattr(polarization_angle_components[polarization_angle_index], 'axes'):
+                                polarization_angle_components[polarization_angle_index] += response_slice * exposure / np.sum(scatt_map.project('x'))
+                            else:
+                                polarization_angle_components[polarization_angle_index] = response_slice * exposure / np.sum(scatt_map.project('x'))
+
+                    else:
+
+                        pol_edges = self.axes['Pol'].edges[i:i+2]
+
+                        child_pa_bin_size = (pol_edges[1] - pol_edges[0]) / child_pa_bins
+
+                        response_slice = response_slice / child_pa_bins
+
+                        for k in range(child_pa_bins):
+
+                            child_bin_center = pol_edges[0] + ((1 + (2*k)) * child_pa_bin_size / 2)
+
+                            for j, (pixels, exposure) in enumerate(zip(scatt_map.contents.coords.transpose(), scatt_map.contents.data)):
+
+                                attitude = Attitude.from_axes(x=scatt_map.axes['x'].pix2skycoord(pixels[0]), y=scatt_map.axes['y'].pix2skycoord(pixels[1]))
+
+                                if convention == 'RelativeX':
+                                    this_convention = MEGAlibRelativeX(attitude=attitude)
+                                elif convention == 'RelativeY':
+                                    this_convention = MEGAlibRelativeY(attitude=attitude)
+                                elif convention == 'RelativeZ':
+                                    this_convention = MEGAlibRelativeZ(attitude=attitude)
+                                else:
+                                    raise RuntimeError("Response convention must be 'RelativeX', 'RelativeY', or 'RelativeZ'")
+
+                                polarization_angle_galactic = PolarizationAngle(self.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, polarization_angle.skycoord, convention=this_convention).transform_to(polarization_angle.convention)
+
+                                if polarization_angle_galactic.angle.deg == 180.:
+                                    polarization_angle_galactic = PolarizationAngle(0. * u.deg, polarization_angle_galactic.skycoord, convention=polarization_angle_galactic.convention)
+
+                                polarization_angle_index = np.max(np.where(polarization_angle_galactic.angle.deg >= self.axes['Pol'].edges.to_value(u.deg)))
+
+                                if hasattr(polarization_angle_components[polarization_angle_index], 'axes'):
+                                    polarization_angle_components[polarization_angle_index] += response_slice * exposure / np.sum(scatt_map.project('x'))
+                                else:
+                                    polarization_angle_components[polarization_angle_index] = response_slice * exposure / np.sum(scatt_map.project('x'))
 
                 for i in range(self.axes['Pol'].nbins):
 
@@ -207,5 +246,8 @@ class PointSourceResponse(Histogram):
             expectation *= self.unit * flux.unit
 
         hist = Histogram(axes, contents=expectation)
+
+        if not hist.unit == u.dimensionless_unscaled:
+            raise RuntimeError("Expectation should be dimensionless, but has units of " + str(hist.unit) + ".")
 
         return hist
