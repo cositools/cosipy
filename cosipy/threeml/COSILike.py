@@ -162,9 +162,6 @@ class COSILike(PluginPrototype):
             # Save expected counts for source:
             self._expected_counts[name] = copy.deepcopy(total_expectation)
 
-            if not total_expectation.unit == u.dimensionless_unscaled:
-                raise RuntimeError("Expectation should be dimensionless, but has units of " + str(expectation.contents.unit) + ".")
-
             # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
             if type(total_expectation.contents) == u.quantity.Quantity:
                 total_expectation = total_expectation.contents.value
@@ -240,9 +237,6 @@ class COSILike(PluginPrototype):
             
             # Save expected counts for source:
             self._expected_counts[name] = copy.deepcopy(total_expectation)
-
-            if not total_expectation.unit == u.dimensionless_unscaled:
-                raise RuntimeError("Expectation should be dimensionless, but has units of " + str(expectation.contents.unit) + ".")
          
             # Need to check if self._signal type is dense (i.e. 'Quantity') or sparse (i.e. 'COO').
             if type(total_expectation.contents) == u.quantity.Quantity:
