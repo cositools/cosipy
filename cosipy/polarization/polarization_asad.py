@@ -45,7 +45,9 @@ class PolarizationASAD():
     def __init__(self, source_vector, source_spectrum, asad_bin_edges, data, background, sc_orientation, response_file, response_convention='RelativeX', fit_convention=IAUPolarizationConvention(), show_plots=False):
 
         if isinstance(fit_convention.frame, SpacecraftFrame) and not isinstance(source_vector.frame, SpacecraftFrame):
-            raise RuntimeError("To perform fit in spacecraft frame, source position must be provided in spacecraft frame.")
+            attitude = sc_orientation.get_attitude()[0]
+            source_vector = source_vector.transform_to(SpacecraftFrame(attitude=attitude))
+            logger.warning('The source direction is being converted to the spacecraft frame using the attitude at the first timestamp of the orientation.')
         elif not isinstance(fit_convention.frame, SpacecraftFrame):
             source_vector = source_vector.transform_to('icrs')
 
