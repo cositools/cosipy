@@ -48,3 +48,13 @@ def test_spacecraft_fit():
     assert np.allclose([polarization_fit_spacecraft['fraction'], polarization_fit_spacecraft['fraction uncertainty'], 
                         polarization_fit_spacecraft['angle'].angle.rad, polarization_fit_spacecraft['angle uncertainty'].rad],
                         [13.73038868282377, 2.1295224814008353, 1.4851296518928818, 0.07562763316088744], atol=[1.0, 0.5, 1.0, 0.1])
+
+def test_icrs_fit():
+
+    polarization_icrs = PolarizationASAD(source_direction.transform_to('galactic'), spectrum, bin_edges, data, background, sc_orientation, response_path, response_convention='RelativeZ', show_plots=True)
+
+    polarization_fit_icrs = polarization_icrs.fit(show_plots=True)
+
+    assert np.allclose([polarization_fit_icrs['fraction'], polarization_fit_icrs['fraction uncertainty'], 
+                        polarization_fit_icrs['angle'].angle.rad, polarization_fit_icrs['angle uncertainty'].rad],
+                        [2.057120422245168, 0.6877456532374626, 1.4377475471600978, 0.13124860832618374], atol=[1.0, 0.5, 1.0, 0.1])
