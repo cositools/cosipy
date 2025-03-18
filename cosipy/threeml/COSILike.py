@@ -7,6 +7,8 @@ from astromodels import Parameter
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.response.ExtendedSourceResponse import ExtendedSourceResponse
 from cosipy.image_deconvolution import AllSkyImageModel
+from cosipy.polarization.polarization_angle import PolarizationAngle
+from cosipy.polarization.conventions import IAUPolarizationConvention, MEGAlibRelativeX, MEGAlibRelativeY, MEGAlibRelativeZ
 
 from scoords import SpacecraftFrame, Attitude
 
@@ -63,9 +65,11 @@ class COSILike(PluginPrototype):
         Full path to precomputed point source response in Galactic coordinates
     earth_occ : bool, optional
         Option to include Earth occultation in fit (default is True).
+    response_pa_convention : str, optional
+        Polarization reference convention of response ('RelativeX', 'RelativeY', or 'RelativeZ'). Required if response contains polarization angle axis
     """
     def __init__(self, name, dr, data, bkg, sc_orientation, 
-                 nuisance_param=None, coordsys=None, precomputed_psr_file=None, earth_occ=True, **kwargs):
+                 nuisance_param=None, coordsys=None, precomputed_psr_file=None, earth_occ=True, response_pa_convention=None, **kwargs):
         
         # create the hash for the nuisance parameters. We have none for now.
         self._nuisance_parameters = collections.OrderedDict()
@@ -121,6 +125,22 @@ class COSILike(PluginPrototype):
             logger.info("... loading the pre-computed image response ...")
             self.image_response = ExtendedSourceResponse.open(self.precomputed_psr_file)
             logger.info("--> done")
+
+        if 'Pol' in self._dr.axes.labels:
+            self._response_pa_convention = response_pa_convention
+            if self._coordsys == 'spacecraftframe':
+                if self._response_pa_convention == 'RelativeX':
+                    self._pa_convention = MEGAlibRelativeX(attitude=self._sc_orientation.get_attitude()[0])
+                elif self._response_pa_convention == 'RelativeY':
+                    self._pa_convention = MEGAlibRelativeY(attitude=self._sc_orientation.get_attitude()[0])
+                elif self._response_pa_convention == 'RelativeZ':
+                    self._pa_convention = MEGAlibRelativeZ(attitude=self._sc_orientation.get_attitude()[0])
+                else:
+                    raise RuntimeError("Response convention must be 'RelativeX', 'RelativeY', or 'RelativeZ'")
+            elif self._coordsys == 'galactic':
+                self._pa_convention = IAUPolarizationConvention()
+            else:
+                raise RuntimeError("Unknown coordinate system")
         
     def set_model(self, model):
         """
@@ -219,7 +239,7 @@ class COSILike(PluginPrototype):
                     dwell_time_map = self._get_dwell_time_map(coord)
                     self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
                 elif self._coordsys == 'galactic':
-                    scatt_map = self._get_scatt_map()
+                    scatt_map = self._get_scatt_map(coord)
                     self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
                 else:
                     raise RuntimeError("Unknown coordinate system")
@@ -231,10 +251,40 @@ class COSILike(PluginPrototype):
 
             # Convolve with spectrum
             # See also the Detector Response and Source Injector tutorials
-            spectrum = source.spectrum.main.shape
 
-            total_expectation = self._psr[name].get_expectation(spectrum)
-            
+            if hasattr(source.spectrum, 'main'):
+
+                spectrum = source.spectrum.main.shape
+                total_expectation = self._psr[name].get_expectation(spectrum)
+
+            else:
+
+                component_counter = 0
+
+                for item in source.spectrum.to_dict():
+
+                    spectrum = getattr(source.spectrum, item).shape
+
+                    if not 'Pol' in self._dr.axes.labels:
+                        this_expectation = self._psr[name].get_expectation(spectrum)
+                    else:
+                        polarization_level = source.components['grb'].polarization.degree.value / 100.
+                        polarization_angle = PolarizationAngle(coords.Angle(source.components['grb'].polarization.angle.value, unit=u.deg), source.position.sky_coord, convention=self._pa_convention)
+                        if self._coordsys == 'spacecraftframe':
+                            this_expectation = self._psr[name].get_expectation(spectrum, polarization_level, polarization_angle)
+                        elif self._coordsys == 'galactic':
+                            scatt_map = self._get_scatt_map(source.position.sky_coord)
+                            this_expectation = self._psr[name].get_expectation(spectrum, polarization_level, polarization_angle, scatt_map, self._response_pa_convention)
+                        else:
+                            raise RuntimeError("Unknown coordinate system")
+
+                    if component_counter == 0:
+                        total_expectation = this_expectation
+                    else:
+                        total_expectation += this_expectation
+                    
+                    component_counter += 1
+
             # Save expected counts for source:
             self._expected_counts[name] = copy.deepcopy(total_expectation)
          
