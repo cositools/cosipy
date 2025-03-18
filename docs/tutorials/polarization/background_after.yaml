@@ -1,8 +1,8 @@
 #----------#
 # Data I/O:
 
-data_file: "none" # full path
-ori_file: '/Users/eneights/work/COSI/data-challenges/data_challenge_3/files/DC3_SAA.ori'
+data_file: '/path/to/data/file/' # full path
+ori_file: '/path/to/ori/file/' # full path
 unbinned_output: 'fits' # 'fits' or 'hdf5'
 time_bins: 1 # time bin size in seconds. Takes int or list of bin edges. 
 energy_bins: [200., 500., 1000., 2000., 10000.] # Takes list. Needs to match response.
