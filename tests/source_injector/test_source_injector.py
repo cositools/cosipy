@@ -202,7 +202,8 @@ def test_inject_extended_source():
     )
 
     hist = injected.project("Em").to_dense().contents
-
+    
+    assert isinstance(hist, u.quantity.Quantity) == True
     assert np.sum(hist[:].value) > 0  # ensure there is some non-zero expectation
 
 
