@@ -61,14 +61,14 @@ class FullDetectorResponse(HealpixBase):
         filename : str, :py:class:`~pathlib.Path`
         Path to the response file (.h5 or .rsp)
 
-        Spectrumfile : str, 
+        Spectrumfile : str,
              path to the input spectrum file used
              for the simulation (optional).
 
-         norm : str, 
+         norm : str,
              type of normalisation : file (then specify also SpectrumFile)
              ,powerlaw, Mono or Linear
-         
+
          alpha : int,
              if the normalisation is "powerlaw", value of the spectral index.
 
@@ -76,9 +76,9 @@ class FullDetectorResponse(HealpixBase):
              True if there is only one pixel and not full-sky.
 
          emin,emax : float
-             emin/emax used in the simulation source file.  
+             emin/emax used in the simulation source file.
         """
-        
+
         filename = Path(filename)
 
 
@@ -107,7 +107,7 @@ class FullDetectorResponse(HealpixBase):
         new._drm = new._file['DRM']
 
         new._unit = u.Unit(new._drm.attrs['UNIT'])
-        
+
         try:
              new._sparse = new._drm.attrs['SPARSE']
         except KeyError:
@@ -147,7 +147,7 @@ class FullDetectorResponse(HealpixBase):
     @classmethod
     def _open_rsp(cls, filename, Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000):
         """
-        
+
          Open a detector response rsp file.
 
          Parameters
@@ -155,14 +155,14 @@ class FullDetectorResponse(HealpixBase):
          filename : str, :py:class:`~pathlib.Path`
              Path to rsp file
 
-         Spectrumfile : str, 
+         Spectrumfile : str,
              path to the input spectrum file used
              for the simulation (optional).
 
-         norm : str, 
+         norm : str,
              type of normalisation : file (then specify also SpectrumFile)
              ,powerlaw, Mono or Linear
-         
+
          alpha : int,
              if the normalisation is "powerlaw", value of the spectral index.
 
@@ -173,8 +173,8 @@ class FullDetectorResponse(HealpixBase):
              emin/emax used in the simulation source file.
         """
 
-        
-        
+
+
         axes_names = []
         axes_edges = []
         axes_types = []
@@ -182,7 +182,7 @@ class FullDetectorResponse(HealpixBase):
         # get the header infos of the rsp file (nsim,area,bin_edges,etc...)
         with gzip.open(filename, "rt") as file:
             for n, line in enumerate(file):
-    
+
                 line = line.split()
 
                 if len(line) == 0:
@@ -195,9 +195,9 @@ class FullDetectorResponse(HealpixBase):
 
                 elif key == 'SA':
                     area_sim = float(line[1])
-                    
+
                 elif key == "SP" :
-                    
+
                     try :
                         norm = str(line[1])
                     except :
@@ -206,12 +206,12 @@ class FullDetectorResponse(HealpixBase):
                     if norm =="Linear" :
                         emin = int(line[2])
                         emax = int(line[3])
-                    
+
                     if norm == "Gaussian" :
-                        Gauss_mean = float(line[2])   
+                        Gauss_mean = float(line[2])
                         Gauss_sig = float(line[3])
-                        Gauss_cutoff = float(line[4])          
-  	
+                        Gauss_cutoff = float(line[4])
+
                 elif key == "MS":
                     if line[1] == "true" :
                         sparse = True
@@ -226,7 +226,7 @@ class FullDetectorResponse(HealpixBase):
                     if axes_types[-1] == "FISBEL":
 
                         raise RuntimeError("FISBEL binning not currently supported")
-                        
+
                     elif axes_types[-1] == "HEALPix":
 
                         if line[2] != "RING":
@@ -238,10 +238,10 @@ class FullDetectorResponse(HealpixBase):
                         else:
                             nside = int(2**int(line[1]))
                             axes_edges.append(int(12*nside**2))
-                        
-                        
+
+
                     else:
-                        
+
                         axes_edges.append(np.array(line[1:], dtype='float'))
 
                 elif key == 'AT':
@@ -249,7 +249,7 @@ class FullDetectorResponse(HealpixBase):
 
                 elif key == 'RD':
                     break
-                
+
                 elif key == "StartStream":
                     nbins = int(line[1])
                     break
@@ -263,14 +263,14 @@ class FullDetectorResponse(HealpixBase):
             labels = ("Ei", "NuLambda", "Em", "Phi", "PsiChi", "SigmaTau", "Dist")
         else:
             raise InputError("Unknown response format")
-        
+
         #check if the type of spectrum is known
-        assert norm=="powerlaw" or norm=="Mono" or norm=="Linear" or norm=="Gaussian",f"unknown normalisation ! {norm}" 
-         
+        assert norm=="powerlaw" or norm=="Mono" or norm=="Linear" or norm=="Gaussian",f"unknown normalisation ! {norm}"
+
         #check the number of simulated events is not 0
-        assert nevents_sim != 0,"number of simulated events is 0 !" 
-        
-        
+        assert nevents_sim != 0,"number of simulated events is 0 !"
+
+
         logger.info("normalisation is {0}".format(norm))
         if sparse == None :
             logger.info("Sparse paramater not found in the file : We assume this is a non sparse matrice !")
@@ -293,12 +293,12 @@ class FullDetectorResponse(HealpixBase):
                 raise RuntimeError("FISBEL binning not currently supported")
             else:
                 edges += (axis_edges,)
-        
+
         if sparse :
             axes = Axes(edges, labels=labels)
-        
+
         else :
-            axes = Axes(edges[:-2], labels=labels[:-2])            
+            axes = Axes(edges[:-2], labels=labels[:-2])
 
 
         if sparse :
@@ -315,7 +315,7 @@ class FullDetectorResponse(HealpixBase):
                 logger.info("Initial attempt failed.")
                 logger.info("Using long method...")
                 nlines = sum(1 for _ in gzip.open(filename,"rt"))
-                
+
             # Preallocate arrays
             coords = np.empty([axes.ndim, nlines], dtype=np.uint32)
             data = np.empty(nlines, dtype=np.uint32)
@@ -324,12 +324,12 @@ class FullDetectorResponse(HealpixBase):
             memory_size = ((nlines * data.itemsize)+(axes.ndim*nlines*coords.itemsize))/(1024*1024*1024)
             logger.info(f"Estimated RAM you need to read the file : {memory_size} GB")
 
-    
-                
+
+
         else :
-            nlines = nbins        
-            
-            # Preallocate arrays    
+            nlines = nbins
+
+            # Preallocate arrays
             data = np.empty(nlines, dtype=np.uint32)
 
             # Calculate the memory usage in Gigabytes
@@ -342,17 +342,17 @@ class FullDetectorResponse(HealpixBase):
 
         # read the rsp file and get the bin number and counts
         with gzip.open(filename, "rt") as file:
-             
+
 
 
             #sparse case
             if sparse :
-            
+
                 progress_bar = tqdm(file, total=nlines, desc="Progress", unit="line")
-                
+
                 for line in progress_bar:
 
-                
+
                     line = line.split()
 
                     if len(line) == 0:
@@ -369,74 +369,74 @@ class FullDetectorResponse(HealpixBase):
                         data[sbin] = c
 
                         sbin += 1
-                    if sbin%10e6 == 0 : 
+                    if sbin%10e6 == 0 :
                         progress_bar.update(10e6)
-            
+
                 progress_bar.close()
                 nbins_sparse = sbin
 
             #non sparse case
             else :
-                
 
-                 
-                binLine = False 
-                         
+
+
+                binLine = False
+
                 for line in file:
                     line = line.split()
-                    
+
                     if len(line) == 0:
                         continue
-                    
+
                     if line[0] == "StartStream" :
                         binLine = True
                         continue
-                        
+
                     if binLine :
                         #check we have same number of bin than values read
                         if len(line)!=nbins :
                             logger.info("nb of bin content read ({0}) != nb of bins {1}".format(len(line),nbins))
                             sys.exit()
-                        
+
                         for i in tqdm(range(nbins), desc="Processing", unit="bin"):
-                            data[i] = line[i]  
-                
+                            data[i] = line[i]
+
                         # we reshape the bincontent to the response matrice dimension
                         # note that for non sparse matrice SigmaTau and Dist are not used
                         data = np.reshape(data,tuple(axes.nbins),order="F")
 
                         break
-        
-        logger.info("response file read ! Now we create the histogram and weight in order to "+ 
+
+        logger.info("response file read ! Now we create the histogram and weight in order to "+
                 "get the effective area")
         # create histpy histogram
 
-        
+
         if sparse :
             dr = Histogram(axes, contents=COO(coords=coords[:, :nbins_sparse], data= data[:nbins_sparse], shape = tuple(axes.nbins)))
 
         else :
-        
+
             dr = Histogram(axes, contents=data)
-        
-        
-        
-	
-	
+
+
+
+
+
         # Weight to get effective area
 
         ewidth = dr.axes['Ei'].widths
         ecenters = dr.axes['Ei'].centers
-        
+
         #print(ewidth)
         #print(ecenters)
 
         #if we have one single bin, treat the gaussian norm like the mono one
-        #also check that the gaussian spectrum is fully contained in that bin 
+        #also check that the gaussian spectrum is fully contained in that bin
         if len(ewidth) == 1 and norm == "Gaussian":
             edges = dr.axes['Ei'].edges
             gauss_int = 0.5 * (1 + erf( (edges[0]-Gauss_mean)/(4*np.sqrt(2)) ) ) + 0.5 * (1 + erf( (edges[1]-Gauss_mean)/(4*np.sqrt(2)) ) )
-            
+
             assert gauss_int == 1, "The gaussian spectrum is not fully contained in this single bin !"
             logger.info("Only one bin so we will use the Mono normalisation")
             norm ="Mono"
@@ -472,22 +472,22 @@ class FullDetectorResponse(HealpixBase):
             if alpha == 1:
 
                 nperchannel_norm = np.log(e_hi/e_low) / np.log(emax/emin)
-                
+
             else:
 
                 a = 1 - alpha
-                
-                nperchannel_norm = (e_hi**a - e_lo**a) / (emax**a - emin**a)            
+
+                nperchannel_norm = (e_hi**a - e_lo**a) / (emax**a - emin**a)
 
         elif norm =="Linear" :
             logger.info("normalisation : linear with energy range [{0}-{1}]".format(emin,emax))
             nperchannel_norm = ewidth / (emax-emin)
-            
+
         elif norm=="Mono" :
             logger.info("normalisation : mono")
 
             nperchannel_norm = np.array([1.])
-        
+
         elif norm == "Gaussian" :
             raise NotImplementedError("Gausssian norm for multiple bins not yet implemented")
 
@@ -503,10 +503,10 @@ class FullDetectorResponse(HealpixBase):
         counts2area = area_sim / nperchannel
         dr_area = dr * dr.expand_dims(counts2area, 'Ei')
 
-        
+
 
         #delete the array of data in order to release some memory
-        del data 
+        del data
 
 
         # end of weight now we create the .h5 structure
@@ -540,7 +540,7 @@ class FullDetectorResponse(HealpixBase):
 
         #keep the same dimension order of the data
         axes_to_write = ['NuLambda', 'Ei']
-        
+
         if has_polarization:
             axes_to_write += ['Pol']
 
@@ -548,12 +548,12 @@ class FullDetectorResponse(HealpixBase):
 
         if sparse:
             drm.attrs['SPARSE'] = True
-            
+
             # singletos. Save space in dense
             axes_to_write += ['SigmaTau', 'Dist']
         else:
             drm.attrs['SPARSE'] = False
-            
+
         axes = drm.create_group('AXES', track_order=True)
 
         for axis in dr.axes[axes_to_write]:
@@ -592,7 +592,7 @@ class FullDetectorResponse(HealpixBase):
 
         #sparse matrice
         if sparse :
-        
+
             progress_bar = tqdm(total=npix, desc="Progress", unit="nbpixel")
             # Contents. Sparse arrays
             coords = drm.create_dataset('BIN_NUMBERS',
@@ -604,40 +604,40 @@ class FullDetectorResponse(HealpixBase):
                               (npix,),
                               dtype=h5.vlen_dtype(float),
                               compression="gzip")
-        
 
-        
+
+
 
 
             for b in range(npix):
-        
+
                 #print(f"{b}/{npix}")
-        
+
                 pix_slice = dr_area[{'NuLambda':b}]
-                
-        
+
+
                 coords[b] = pix_slice.coords.flatten()
                 data[b] = pix_slice.data
                 progress_bar.update(1)
-            
+
             progress_bar.close()
 
         #non sparse
         else :
-            
+
             if has_polarization == True:
                 rsp_axes = [1,0,2,3,4,5]
-	        
+
             else:
                 rsp_axes = [1,0,2,3,4]
 
             data = drm.create_dataset('CONTENTS',
 		        data=np.transpose(dr_area.contents, axes = rsp_axes),
                               compression="gzip")
-        
+
         #close the .h5 file in write mode in order to reopen it in read mode after
         f.close()
-        
+
         new = cls(filename)
 
         new._file = h5.File(filename, mode='r')
@@ -645,7 +645,7 @@ class FullDetectorResponse(HealpixBase):
 
         new._unit = u.Unit(new._drm.attrs['UNIT'])
         new._sparse = new._drm.attrs['SPARSE']
-        
+
 
         # Axes
         axes = []
@@ -671,7 +671,7 @@ class FullDetectorResponse(HealpixBase):
                                   scale=axis_type,
                                   label=axis_label)]
 
-                
+
 
         new._axes = Axes(axes)
 
@@ -738,11 +738,11 @@ class FullDetectorResponse(HealpixBase):
                                              data=data,
                                              shape=tuple(self.axes.nbins[1:])),
                                 unit=self.unit)
-                                
+
         else :
             data = self._file['DRM']['CONTENTS'][pix]
             return DetectorResponse(self.axes[1:],
-                                contents=data, unit=self.unit)                 
+                                contents=data, unit=self.unit)
 
     def close(self):
         """
@@ -793,13 +793,13 @@ class FullDetectorResponse(HealpixBase):
 
         pixels, weights = self.get_interp_weights(coord)
 
-        
+
 
         dr = DetectorResponse(self.axes[1:],
                               sparse=self._sparse,
                               unit=self.unit)
-        
-        
+
+
         for p, w in zip(pixels, weights):
 
             dr += self[p]*w
@@ -815,7 +815,7 @@ class FullDetectorResponse(HealpixBase):
         Convolve the all-sky detector response with exposure for a source at a given
         sky location.
 
-        Provide either a exposure map (aka dweel time map) or a combination of a 
+        Provide either a exposure map (aka dweel time map) or a combination of a
         sky coordinate and a spacecraft attitude map.
 
         Parameters
@@ -827,10 +827,10 @@ class FullDetectorResponse(HealpixBase):
         scatt_map : :py:class:`SpacecraftAttitudeMap`
             Spacecraft attitude map
         Earth_occ : bool, optional
-            Option to include Earth occultation in the respeonce. 
-            Default is True, in which case you can only pass one 
-            coord, which must be the same as was used for the scatt map. 
-        
+            Option to include Earth occultation in the respeonce.
+            Default is True, in which case you can only pass one
+            coord, which must be the same as was used for the scatt map.
+
         Returns
         -------
         :py:class:`PointSourceResponse`
@@ -838,7 +838,7 @@ class FullDetectorResponse(HealpixBase):
 
         # TODO: deprecate exposure_map in favor of coords + scatt map for both local
         # and interntial coords
-        
+
         if Earth_occ == True:
             if coord != None:
                 if coord.size > 1:
@@ -866,7 +866,7 @@ class FullDetectorResponse(HealpixBase):
 
             if coord is None or scatt_map is None:
                 raise ValueError("Provide either exposure map or coord + scatt_map")
-            
+
             if isinstance(coord.frame, SpacecraftFrame):
                 raise ValueError("Local coordinate + scatt_map not currently supported")
 
@@ -877,17 +877,17 @@ class FullDetectorResponse(HealpixBase):
 
             coords_axis = Axis(np.arange(coord.size+1), label = 'coords')
 
-            psr = Histogram([coords_axis] + list(deepcopy(self.axes[1:])), 
+            psr = Histogram([coords_axis] + list(deepcopy(self.axes[1:])),
                             unit = self.unit * scatt_map.unit)
-            
+
             psr.axes[axis].coordsys = coord.frame
 
             for i,(pixels, exposure) in \
                 enumerate(zip(scatt_map.contents.coords.transpose(),
-                              scatt_map.contents.data)):
+                              scatt_map.contents.data * scatt_map.unit)):
 
                 #gc.collect() # HDF5 cache issues
-                
+
                 att = Attitude.from_axes(x = scatt_map.axes['x'].pix2skycoord(pixels[0]),
                                          y = scatt_map.axes['y'].pix2skycoord(pixels[1]))
 
@@ -896,7 +896,7 @@ class FullDetectorResponse(HealpixBase):
                 #TODO: Change this to interpolation
                 loc_nulambda_pixels = np.array(self.axes['NuLambda'].find_bin(coord),
                                                ndmin = 1)
-                
+
                 dr_pix = Histogram.concatenate(coords_axis, [self[i] for i in loc_nulambda_pixels])
 
                 dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
@@ -909,7 +909,7 @@ class FullDetectorResponse(HealpixBase):
                                              sparse = psr.is_sparse,
                                              unit = psr.unit)
                          for data in psr[:]])
-            
+
             if coord.size == 1:
                 return psr[0]
             else:
@@ -943,12 +943,12 @@ class FullDetectorResponse(HealpixBase):
 
         if nside_scatt_map is None:
             nside_scatt_map = self.nside
-            
+
         return coordsys, nside_image, nside_scatt_map
 
     def get_point_source_response_per_image_pixel(self, ipix_image, orientation, coordsys = 'galactic', nside_image = None, nside_scatt_map = None, Earth_occ = True):
         """
-        Generate point source response for a specific HEALPix pixel by convolving 
+        Generate point source response for a specific HEALPix pixel by convolving
         the all-sky detector response with exposure.
 
         Parameters
@@ -974,7 +974,7 @@ class FullDetectorResponse(HealpixBase):
             Point source response for the specified pixel
         """
         coordsys, nside_image, nside_scatt_map = self._setup_extended_source_response_params(coordsys, nside_image, nside_scatt_map)
-        
+
         image_axes = HealpixAxis(nside = nside_image, coordsys = coordsys, scheme='ring', label = 'NuLambda') # The label should be 'lb' in the future
 
         coord = image_axes.pix2skycoord(ipix_image)
@@ -991,7 +991,7 @@ class FullDetectorResponse(HealpixBase):
 
     def get_extended_source_response(self, orientation, coordsys = 'galactic', nside_image = None, nside_scatt_map = None, Earth_occ = True):
         """
-        Generate extended source response by convolving the all-sky detector 
+        Generate extended source response by convolving the all-sky detector
         response with exposure over the entire sky.
 
         Parameters
@@ -1023,8 +1023,8 @@ class FullDetectorResponse(HealpixBase):
         extended_source_response = ExtendedSourceResponse(axes, unit = u.Unit("cm2 s"))
 
         for ipix in tqdm(range(hp.nside2npix(nside_image))):
-    
-            psr = self.get_point_source_response_per_image_pixel(ipix, orientation, coordsys = coordsys, 
+
+            psr = self.get_point_source_response_per_image_pixel(ipix, orientation, coordsys = coordsys,
                                                                  nside_image = nside_image, nside_scatt_map = nside_scatt_map, Earth_occ = Earth_occ)
 
             extended_source_response[ipix] = psr.contents
@@ -1034,8 +1034,8 @@ class FullDetectorResponse(HealpixBase):
     def merge_psr_to_extended_source_response(self, basename, coordsys = 'galactic', nside_image = None):
         """
         Create extended source response by merging multiple point source responses.
-    
-        Reads point source response files matching the pattern `basename` + index + file_extension. 
+
+        Reads point source response files matching the pattern `basename` + index + file_extension.
         For example, with basename='histograms/hist_', filenames are expected to be like 'histograms/hist_00001.hdf5'.
 
         Parameters
@@ -1065,7 +1065,7 @@ class FullDetectorResponse(HealpixBase):
         axes[-1].coordsys = coordsys
 
         extended_source_response = ExtendedSourceResponse(axes, unit = u.Unit("cm2 s"))
-        
+
         filled_pixels = []
 
         for filename in psr_files:
@@ -1073,7 +1073,7 @@ class FullDetectorResponse(HealpixBase):
             ipix = int(filename[len(basename):].split(".")[0])
 
             psr = Histogram.open(filename)
-        
+
             extended_source_response[ipix] = psr.contents
 
             filled_pixels.append(ipix)
@@ -1083,7 +1083,7 @@ class FullDetectorResponse(HealpixBase):
             raise ValueError(f"Missing pixels in the response files. Expected {extended_source_response.axes[0].npix} pixels, got {len(filled_pixels)} pixels")
 
         return extended_source_response
-            
+
     @staticmethod
     def _sum_rot_hist(h, h_new, exposure, axis = "PsiChi"):
         """
@@ -1092,7 +1092,7 @@ class FullDetectorResponse(HealpixBase):
 
         Meant to rotate the PsiChi of a CDS from local to galactic
         """
-        
+
         axis_id = h.axes.label_to_index(axis)
 
         old_axes = h.axes
@@ -1104,11 +1104,12 @@ class FullDetectorResponse(HealpixBase):
         # Convolve
         # TODO: Change this to interpolation (pixels + weights)
         old_pixels = old_axis.find_bin(new_axis.pix2skycoord(np.arange(new_axis.nbins)))
+
         # NOTE: there are some pixels that are duplicated, since the center 2 pixels
         # of the original grid can land within the boundaries of a single pixel
         # of the target grid. The following commented code fixes this, but it's slow, and
         # the effect is very small, so maybe not worth it
-        # nulambda_npix = h.axes['NuLamnda'].nbins    
+        # nulambda_npix = h.axes['NuLamnda'].nbins
         # new_norm = np.zeros(shape = nulambda_npix)
         # for p in old_pixels:
         #     h_slice = h[{axis:p}]
@@ -1120,15 +1121,12 @@ class FullDetectorResponse(HealpixBase):
 
             #h_new[{axis:new_pix}] += exposure * h[{axis: old_pix}] # * norm_corr
             # The following code does the same than the code above, but is faster
-            # However, it uses some internal functionality in histpy, which is bad practice
-            # TODO: change this in a future version. We might need to modify histpy so that
-            # this is not needed
-            
-            old_indices = tuple([slice(None)]*axis_id + [old_pix+1])
-            new_indices = tuple([slice(None)]*axis_id + [new_pix+1])
 
-            h_new._contents[new_indices] += exposure * h._contents[old_indices] # * norm_corr
-                        
+            old_index = (slice(None),)*axis_id + (old_pix,)
+            new_index = (slice(None),)*axis_id + (new_pix,)
+
+            h_new[new_index] += exposure * h[old_index] # * norm_corr
+
 
     def __str__(self):
         return f"{self.__class__.__name__}(filename = '{self.filename.resolve()}')"
