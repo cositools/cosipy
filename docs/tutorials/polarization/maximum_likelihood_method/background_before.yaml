@@ -1,0 +1,14 @@
+#----------#
+# Data I/O:
+
+data_file: "none" # full path
+ori_file: '/Users/eneights/work/COSI/data-challenges/data_challenge_4/data/orientations/DC3.ori'
+unbinned_output: 'fits' # 'fits' or 'hdf5'
+time_bins: 1 # time bin size in seconds. Takes int or list of bin edges. 
+energy_bins: [200., 500., 1000., 2000., 10000.] # Takes list. Needs to match response.
+phi_pix_size: 6 # binning of Compton scattering angle [deg]
+nside: 8 # healpix binning of psi chi local
+scheme: 'ring' # healpix binning of psi chi local
+tmin: 1835493292. # Min time cut in seconds.
+tmax: 1835493482.2 # Max time cut in seconds.
+#----------#
