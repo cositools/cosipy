@@ -8,7 +8,7 @@ import sys
 from mhealpy import HealpixMap
 
 class SourceInjector():
-    
+
     def __init__(self, response_path, response_frame = "local"):
 
         """
@@ -34,11 +34,11 @@ class SourceInjector():
 
     @staticmethod
     def get_psr_in_galactic(coordinate, response_path, spectrum):
-        
+
         """
         Get the point source response (psr) in galactic. Please be aware that you must use a galactic response!
         To do: to make the weight parameter not hardcoded
-        
+
         Parameters
         ----------
         coordinate : astropy.coordinates.SkyCoord
@@ -47,39 +47,27 @@ class SourceInjector():
             The path to the response.
         spectrum : astromodels.functions
             The spectrum of the source to be placed at the hypothesis coordinate.
-        
+
         Returns
         -------
         psr : histpy.Histogram
             The point source response of the spectrum at the hypothesis coordinate.
         """
-        
-        # Open the response
-        # Notes from Israel: Inside it contains a single histogram with all the regular axes for a Compton Data Space (CDS) analysis, in galactic coordinates. Since there is no class yet to handle it, this is how to read in the HDF5 manually.
-        
+
+        # Open the response Histogram, but don't read the whole thing into memory --
+        # just get the axes, the specific contents pixel(s), and its unit
         with h5.File(response_path) as f:
 
-            axes_group = f['hist/axes']
-            axes = []
-            for axis in axes_group.values():
-                # Get class. Backwards compatible with version
-                # with only Axis
-                axis_cls = Axis
-                if '__class__' in axis.attrs:
-                    class_module, class_name = axis.attrs['__class__']
-                    axis_cls = getattr(sys.modules[class_module], class_name)
-                axes += [axis_cls._open(axis)]
-        axes = Axes(axes)
-        
-        # get the pixel number of the hypothesis coordinate
-        map_temp = HealpixMap(base = axes[0])
-        coordinate_pix_number = map_temp.ang2pix(coordinate)
-        
-        # get the expectation for the hypothesis coordinate (a point source)
-        with h5.File(response_path) as f:
+            axes = Axes.open(f['hist/axes'])
+
+            # get the pixel number of the hypothesis coordinate
+            hp_axis = axes[0]
+            coordinate_pix_number = hp_axis.ang2pix(coordinate)
+
+            # get the expectation for the hypothesis coordinate (a point source)
             pix = coordinate_pix_number
-            psr = PointSourceResponse(axes[1:], f['hist/contents'][pix+1], unit = f['hist'].attrs['unit'])
-                
+            psr = PointSourceResponse(axes[1:], f['hist/contents'][pix], unit = f['hist'].attrs['unit'])
+
         return psr
 
 
@@ -105,25 +93,25 @@ class SourceInjector():
             The path to save the injected data to a `.h5` file. This should include the file name. (the default is `None`, which means the injected data won't be saved.
         project_axes : list, optional
             The axes to project before saving the data file (the default is `None`, which means the data won't be projected).
-            
+
         Returns
         -------
         histpy.Histogram
             The `Histogram object of the injected spectrum.`
         """
-        
-        
+
+
         # get the point source response in local frame
         if self.response_frame == "local":
 
             if orientation == None:
                 raise TypeError("The when the data are binned in local frame, orientation must be provided to compute the expected counts.")
-                
+
             # get the dwell time map
-            coord_in_sc_frame = orientation.get_target_in_sc_frame(target_name = source_name, 
-                                                                   target_coord = coordinate, 
+            coord_in_sc_frame = orientation.get_target_in_sc_frame(target_name = source_name,
+                                                                   target_coord = coordinate,
                                                                    quiet = True)
-            
+
             # get the dwell time map in the detector frame
             dwell_time_map = orientation.get_dwell_map(response = self.response_path)
 
@@ -154,7 +142,3 @@ class SourceInjector():
             injected.write(data_save_path)
 
         return injected
-
-        
-
-
