@@ -3,7 +3,7 @@ from pathlib import Path
 from cosipy.response import FullDetectorResponse
 import h5py as h5
 from histpy import Histogram, Axis, Axes
-from cosipy.response import PointSourceResponse
+from cosipy.response import PointSourceResponse, ExtendedSourceResponse
 import sys
 from mhealpy import HealpixMap
 
@@ -145,16 +145,84 @@ class SourceInjector():
 
         if make_spectrum_plot is True:
             ax, plot = injected.project("Em").draw(label = "Injected point source", color = "green")
-            ax.legend()
+            ax.legend(fontsize=12, loc="upper right", frameon=True)
             ax.set_xscale("log")
             ax.set_yscale("log")
-            ax.set_ylabel("Counts")
+            ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
+            ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
         if data_save_path is not None:
             injected.write(data_save_path)
 
         return injected
 
-        
+    @staticmethod
+    def get_esr(source_model, response_path):
+        """
+        Get the extended source response from the response file.
 
+        Parameters
+        ----------
+        source_model : astromodels.ExtendedSource
+            The model representing the extended source.
+        response_path : str or pathlib.Path
+            The path to the response file.
 
+        Returns
+        -------
+        esr : histpy.Histogram
+            The extended source response object.
+        """
+        try:
+            return ExtendedSourceResponse.open(response_path)
+        except Exception as e:
+            raise RuntimeError(f"Error loading Extended Source Response: {e}")
+
+    def inject_extended_source(
+        self,
+        source_model,
+        source_name="extended_source",
+        data_save_path=None,
+        project_axes=None,
+        make_spectrum_plot=False,
+    ):
+        """
+        Get the expected counts for an extended source.
+
+        Parameters
+        ----------
+        source_model : astromodels.ExtendedSource
+            The all sky model defined from an astromodels extended source model.
+        source_name : str, optional
+            The name of the source (the default is `extended_source`).
+        make_spectrum_plot : bool, optional
+            Set `True` to make the plot of the injected spectrum.
+        data_save_path : str or pathlib.Path, optional
+            The path to save the injected data to a `.h5` file. This should include the file name. (the default is `None`, which means the injected data won't be saved.
+        project_axes : list, optional
+            The axes to project before saving the data file (the default is `None`, which means the data won't be projected).
+
+        Returns
+        -------
+        histpy.Histogram
+            The `Histogram object of the injected spectrum.`
+        """
+
+        esr = self.get_esr(source_model, self.response_path)
+        injected = esr.get_expectation_from_astromodel(source_model)
+
+        if project_axes is not None:
+            injected = injected.project(project_axes)
+
+        if make_spectrum_plot:
+            ax, plot = injected.project("Em").draw(label=f"Injected {source_name}", color="blue", linewidth=2)
+            ax.legend(fontsize=12, loc="upper right", frameon=True)
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+            ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
+            ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
+
+        if data_save_path is not None:
+            injected.write(data_save_path)
+
+        return injected
