@@ -8,6 +8,7 @@ from scipy.optimize import curve_fit
 from cosipy.polarization.polarization_angle import PolarizationAngle
 from cosipy.polarization.conventions import MEGAlibRelativeX, MEGAlibRelativeY, MEGAlibRelativeZ, IAUPolarizationConvention
 from cosipy.response import FullDetectorResponse
+from threeML import LinearPolarization
 from scoords import SpacecraftFrame
 from histpy import Histogram
 
@@ -27,7 +28,7 @@ class PolarizationASAD():
     asad_bin_edges : astropy.coordinates.angles.core.Angle
         Bin edges for azimuthal scattering angle distribution
     data : dict or cosipy.data_io.BinnedData
-        Binned or unbinned data
+        Binned or unbinned data, or list of binned/unbinned data if separated in time
     background : dict or cosipy.data_io.BinnedData
         Binned or unbinned background model
     sc_orientation : cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile
@@ -62,8 +63,15 @@ class PolarizationASAD():
         self._source_vector = source_vector
         self._spectrum = source_spectrum
 
-        self._data = data
-        self._background = background
+        if not type(data) == list:
+            self._data = [data]
+        else:
+            self._data = data
+
+        if not type(background) == list:
+            self._background = [background]
+        else:
+            self._background = background
 
         self._asad_bin_edges = asad_bin_edges
 
@@ -181,7 +189,7 @@ class PolarizationASAD():
             target_in_sc_frame = self._ori.get_target_in_sc_frame(target_name='source', target_coord=self._source_vector.transform_to('galactic'))
             dwell_time_map = self._ori.get_dwell_map(response=self._response_file, src_path=target_in_sc_frame)
             psr = self._response.get_point_source_response(exposure_map=dwell_time_map, coord=self._source_vector.transform_to('galactic'))
-            expectation = psr.get_expectation(spectrum, polarization_level, polarization_angle)
+            expectation = psr.get_expectation(spectrum, LinearPolarization(polarization_level * 100., polarization_angle.angle.deg))
             
             azimuthal_angle_bins = []
 
@@ -194,7 +202,7 @@ class PolarizationASAD():
             
             scatt_map = self._ori.get_scatt_map(self._source_vector, nside=self._response.nside*2, coordsys='galactic')
             psr = self._response.get_point_source_response(coord=self._source_vector, scatt_map=scatt_map)
-            expectation = psr.get_expectation(spectrum, polarization_level, polarization_angle, scatt_map, self._response_convention)
+            expectation = psr.get_expectation(spectrum, LinearPolarization(polarization_level * 100., polarization_angle.angle.deg))
 
             azimuthal_angle_bins = []
 
@@ -374,24 +382,49 @@ class PolarizationASAD():
             Duration of background
         """
 
-        azimuthal_angles = {}
         asads = {}
 
-        if type(self._data) == dict:
-            azimuthal_angles['source & background'] = self.calculate_azimuthal_scattering_angles(self._data)
-            asads['source & background'] = self.bin_asad(azimuthal_angles['source & background'], self._asad_bin_edges)
-            source_duration = np.max(self._data['TimeTags']) - np.min(self._data['TimeTags'])
-        else:
-            asads['source & background'] = self.create_asad_from_binned_data(self._data, self._asad_bin_edges)
-            source_duration = (np.max(self._data.binned_data.axes['Time'].edges) - np.min(self._data.binned_data.axes['Time'].edges)).value
+        for i in range(len(self._data)):
 
-        if type(self._background) == dict:
-            azimuthal_angles['background'] = self.calculate_azimuthal_scattering_angles(self._background)
-            asads['background'] = self.bin_asad(azimuthal_angles['background'], self._asad_bin_edges)
-            background_duration = np.max(self._background['TimeTags']) - np.min(self._background['TimeTags'])
-        else:
-            asads['background'] = self.create_asad_from_binned_data(self._background, self._asad_bin_edges)
-            background_duration = (np.max(self._background.binned_data.axes['Time'].edges) - np.min(self._background.binned_data.axes['Time'].edges)).value
+            if type(self._data[i]) == dict:
+
+                azimuthal_angles = self.calculate_azimuthal_scattering_angles(self._data[i])
+                if i == 0:
+                    asads['source & background'] = self.bin_asad(azimuthal_angles, self._asad_bin_edges)
+                    source_duration = np.max(self._data[i]['TimeTags']) - np.min(self._data[i]['TimeTags'])
+                else:
+                    asads['source & background'] += self.bin_asad(azimuthal_angles, self._asad_bin_edges)
+                    source_duration += np.max(self._data[i]['TimeTags']) - np.min(self._data[i]['TimeTags'])
+
+            else:
+
+                if i == 0:
+                    asads['source & background'] = self.create_asad_from_binned_data(self._data[i], self._asad_bin_edges)
+                    source_duration = (np.max(self._data[i].binned_data.axes['Time'].edges) - np.min(self._data[i].binned_data.axes['Time'].edges)).value
+                else:
+                    asads['source & background'] += self.create_asad_from_binned_data(self._data[i], self._asad_bin_edges)
+                    source_duration += (np.max(self._data[i].binned_data.axes['Time'].edges) - np.min(self._data[i].binned_data.axes['Time'].edges)).value
+
+        for i in range(len(self._background)):
+
+            if type(self._background[i]) == dict:
+
+                azimuthal_angles = self.calculate_azimuthal_scattering_angles(self._background[i])
+                if i == 0:
+                    asads['background'] = self.bin_asad(azimuthal_angles, self._asad_bin_edges)
+                    background_duration = np.max(self._background[i]['TimeTags']) - np.min(self._background[i]['TimeTags'])
+                else:
+                    asads['background'] += self.bin_asad(azimuthal_angles, self._asad_bin_edges)
+                    background_duration += np.max(self._background[i]['TimeTags']) - np.min(self._background[i]['TimeTags'])
+
+            else:
+
+                if i == 0:
+                    asads['background'] = self.create_asad_from_binned_data(self._background[i], self._asad_bin_edges)
+                    background_duration = (np.max(self._background[i].binned_data.axes['Time'].edges) - np.min(self._background[i].binned_data.axes['Time'].edges)).value
+                else:
+                    asads['background'] += self.create_asad_from_binned_data(self._background[i], self._asad_bin_edges)
+                    background_duration += (np.max(self._background[i].binned_data.axes['Time'].edges) - np.min(self._background[i].binned_data.axes['Time'].edges)).value
 
         scaled_background_asad = (asads['background'].contents.data * source_duration / background_duration).astype(int)
         source_asad = asads['source & background'].contents.data - scaled_background_asad
