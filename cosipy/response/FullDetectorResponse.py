@@ -1,6 +1,7 @@
 from .PointSourceResponse import PointSourceResponse
 from .DetectorResponse import DetectorResponse
 from .ExtendedSourceResponse import ExtendedSourceResponse
+from cosipy.polarization.polarization_angle import PolarizationAngle
 from astromodels.core.model_parser import ModelParser
 import matplotlib.pyplot as plt
 from astropy.time import Time
