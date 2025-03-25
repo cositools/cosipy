@@ -1162,7 +1162,7 @@ class FullDetectorResponse(HealpixBase):
                 old_index = (slice(None),)*axis_id + (old_pix,)
                 new_index = (slice(None),)*axis_id + (new_pix,)
 
-                h_new[new_index] += exposure * h[old_index] # * norm_corr
+                h_new[new_index] += exposure * u.s * h[old_index] # * norm_corr
 
             else:
 
