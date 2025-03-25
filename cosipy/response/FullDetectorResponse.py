@@ -1,7 +1,6 @@
 from .PointSourceResponse import PointSourceResponse
 from .DetectorResponse import DetectorResponse
 from .ExtendedSourceResponse import ExtendedSourceResponse
-from cosipy.polarization.polarization_angle import PolarizationAngle
 from astromodels.core.model_parser import ModelParser
 import matplotlib.pyplot as plt
 from astropy.time import Time
@@ -902,7 +901,7 @@ class FullDetectorResponse(HealpixBase):
 
                 dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
 
-                self._sum_rot_hist(dr_pix, psr, exposure)
+                self._sum_rot_hist(dr_pix, psr, exposure, coord)
 
             # Convert to PSR
             psr = tuple([PointSourceResponse(psr.axes[1:],
@@ -1086,14 +1085,14 @@ class FullDetectorResponse(HealpixBase):
         return extended_source_response
             
     @staticmethod
-    def _sum_rot_hist(h, h_new, exposure, axis = "PsiChi"):
+    def _sum_rot_hist(h, h_new, exposure, coord, axis = "PsiChi"):
         """
         Rotate a histogram with HealpixAxis h into the grid of h_new, and sum
         it up with the weight of exposure.
 
         Meant to rotate the PsiChi of a CDS from local to galactic
         """
-        
+
         axis_id = h.axes.label_to_index(axis)
 
         old_axes = h.axes
@@ -1106,7 +1105,10 @@ class FullDetectorResponse(HealpixBase):
         # TODO: Change this to interpolation (pixels + weights)
         old_pixels = old_axis.find_bin(new_axis.pix2skycoord(np.arange(new_axis.nbins)))
 
-        if 'Pol' in h.axes.labels:
+        if 'Pol' in h.axes.labels and h_new.axes[axis].coordsys.name == 'galactic' or h_new.axes[axis].coordsys.name == 'icrs':
+
+            from cosipy.polarization.polarization_angle import PolarizationAngle
+            from cosipy.polarization.conventions import IAUPolarizationConvention
 
             pol_axis_id = h.axes.label_to_index('Pol')
 
@@ -1118,11 +1120,11 @@ class FullDetectorResponse(HealpixBase):
             old_pol_indices = []
             for i in range(h_new.axes['Pol'].nbins):
 
-                pa = PolarizationAngle(h_new.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, source_direction.transform_to('icrs'), convention=IAUPolarizationConvention())
-                pa_old = pa.transform_to('RelativeZ', attitude=att)
+                pa = PolarizationAngle(h_new.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, coord.transform_to('icrs'), convention=IAUPolarizationConvention())
+                pa_old = pa.transform_to('RelativeZ', attitude=coord.attitude)
 
                 if pa_old.angle.deg == 180.:
-                    pa_old = PolarizationAngle(0. * u.deg, source_direction.skycoord, convention=IAUPolarizationConvention())
+                    pa_old = PolarizationAngle(0. * u.deg, coord, convention=IAUPolarizationConvention())
 
                 old_pol_indices.append(old_pol_axis.find_bin(pa_old.angle))
 
@@ -1166,7 +1168,7 @@ class FullDetectorResponse(HealpixBase):
                         old_index = (slice(None),)*axis_id + (old_pix,) + (slice(None),)*(pol_axis_id-axis_id-1) + (old_pol_bin,)
                         new_index = (slice(None),)*axis_id + (new_pix,) + (slice(None),)*(pol_axis_id-axis_id-1) + (new_pol_bin,)
 
-                    h_new[new_index] += exposure * h[old_index] # * norm_corr
+                    h_new[new_index] += exposure * u.s * h[old_index] # * norm_corr
                         
 
     def __str__(self):
