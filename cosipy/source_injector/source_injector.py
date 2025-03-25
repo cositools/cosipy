@@ -6,10 +6,11 @@ from histpy import Histogram, Axis, Axes
 from cosipy.response import PointSourceResponse, ExtendedSourceResponse
 import sys
 from mhealpy import HealpixMap
+import copy
 
 class SourceInjector():
     
-    def __init__(self, response_path):
+    def __init__(self, response_path, response_frame = "spacecraftframe"):
 
         """
         `SourceInjector` convolve response, source model(s) and orientation to produce a mocked simulated data. The data can be saved for data anlysis with cosipy.
@@ -18,14 +19,13 @@ class SourceInjector():
         ----------
         response : str or pathlib.Path
             The path to the response file
+        response_frame : str, optional
+            The frame of the Compton data space (CDS) of the response. It only accepts `spacecraftframe` or "galactic". (the default is `spacecraftframe`, which means the CDS is in the detector frame.)
         """
 
         self.response_path =  response_path
-
-        with FullDetectorResponse.open(self.response_path) as response:
-            
-            self.response_frame = response.axes["PsiChi"].coordsys.name
-            # respoonse frame can be either spacecraftframe or galactic
+        
+        self.response_frame = response_frame
 
 
 
@@ -218,3 +218,61 @@ class SourceInjector():
             injected.write(data_save_path)
 
         return injected
+    
+    def inject_model(self, model, orientation = None, make_spectrum_plot = False, data_save_path = None, project_axes = None):
+        
+        if self.response_frame == "spacecraftframe":
+            if orientation == None:
+                raise TypeError("The when the data are binned in spacecraftframe frame, orientation must be provided to compute the expected counts.")
+                
+        self.components = {}
+        
+        # first inject point sources
+        point_sources = model.point_sources
+        
+        # iterate through all point sources
+        for name, source in point_sources.items():
+            
+            injected = self.inject_point_source(spectrum = source.spectrum.main.shape, coordinate = source.position.sky_coord,
+                                                orientation = orientation, source_name = name)
+            
+            injected.axes["Em"].axis_scale = "log"  # set to log scale manually. This inconsistency is from the detector response module
+            
+            self.components[name] = injected
+            
+        # second inject extended sources
+        extended_sources = model.extended_sources
+        
+        # iterate through all extended sources
+        for name, source in extended_sources.items():
+            
+            injected = self.inject_extended_source(source_model = source, source_name = name)
+            self.components[name] = injected
+            
+        
+        if len(self.components) == 1:
+            
+            # if there is only one component, the injected all is just the only component
+            injected_all = list(self.components.values())[0]
+            
+            if data_save_path is not None:
+                injected_all.write(data_save_path)
+                
+        elif len(self.components) > 1:
+            
+            injected_list = list(self.components.values())
+            
+            injected_all = copy.deepcopy(injected_list[0])
+            
+            # add the rest of the injected sources
+            for i in injected_list[1:]:
+                injected_all += i
+                
+        if make_spectrum_plot:
+            ax, plot = injected_all.project("Em").draw(color="green", linewidth=2)
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+            ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
+            ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
+                
+            return injected_all
