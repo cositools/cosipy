@@ -234,7 +234,6 @@ class COSILike(PluginPrototype):
             spectrum = source.spectrum.main.shape
 
             total_expectation = self._psr[name].get_expectation(spectrum)
-            
             # Save expected counts for source:
             self._expected_counts[name] = copy.deepcopy(total_expectation)
          
@@ -242,7 +241,7 @@ class COSILike(PluginPrototype):
             if type(total_expectation.contents) == u.quantity.Quantity:
                 total_expectation = total_expectation.project(['Em', 'Phi', 'PsiChi']).contents.value
             elif type(total_expectation.contents) == COO:
-                total_expectation = total_expectation.project(['Em', 'Phi', 'PsiChi']).contents.todense() 
+                total_expectation = total_expectation.project(['Em', 'Phi', 'PsiChi']).contents.todense()
             else:
                 raise RuntimeError("Expectation is an unknown object")
 
