@@ -9,7 +9,7 @@ from mhealpy import HealpixMap
 
 class SourceInjector():
     
-    def __init__(self, response_path, response_frame = "local"):
+    def __init__(self, response_path):
 
         """
         `SourceInjector` convolve response, source model(s) and orientation to produce a mocked simulated data. The data can be saved for data anlysis with cosipy.
@@ -18,18 +18,15 @@ class SourceInjector():
         ----------
         response : str or pathlib.Path
             The path to the response file
-        response_frame : str, optional
-            The frame of the Compton data space (CDS) of the response. It only accepts `local` or "galactic". (the default is `local`, which means the CDS is in the local detector frame.
         """
 
         self.response_path =  response_path
 
-        if response_frame == "local" or response_frame == "galactic":
+        with FullDetectorResponse.open(self.response_path) as response:
+            
+            self.response_frame = response.axes["PsiChi"].coordsys.name
+            # respoonse frame can be either spacecraftframe or galactic
 
-            self.response_frame = response_frame
-
-        else:
-            raise ValueError("The response frame can only be `local` or `galactic`!")
 
 
     @staticmethod
@@ -114,22 +111,17 @@ class SourceInjector():
         
         
         # get the point source response in local frame
-        if self.response_frame == "local":
+        if self.response_frame == "spacecraftframe":
 
             if orientation == None:
-                raise TypeError("The when the data are binned in local frame, orientation must be provided to compute the expected counts.")
-                
-            # get the dwell time map
-            coord_in_sc_frame = orientation.get_target_in_sc_frame(target_name = source_name, 
-                                                                   target_coord = coordinate, 
-                                                                   quiet = True)
-            
-            # get the dwell time map in the detector frame
-            dwell_time_map = orientation.get_dwell_map(response = self.response_path)
+                raise TypeError("The when the data are binned in spacecraftframe frame, orientation must be provided to compute the expected counts.")
 
             with FullDetectorResponse.open(self.response_path) as response:
-                psr = response.get_point_source_response(dwell_time_map)
-
+                
+                scatt_map = orientation.get_scatt_map(coordinate, response.nside*2, coordsys = 'galactic', earth_occ = True)
+                
+                psr = response.get_point_source_response(coord=coordinate, scatt_map=scatt_map)
+                
         # get the point source response in galactic frame
         elif self.response_frame == "galactic":
 
