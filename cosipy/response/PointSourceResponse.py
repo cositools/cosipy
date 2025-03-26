@@ -2,11 +2,7 @@ from histpy import Histogram#, Axes, Axis
 
 import numpy as np
 import astropy.units as u
-#from astropy.units import Quantity
-#from scipy import integrate
 from scoords import SpacecraftFrame, Attitude
-
-#from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
 
 from .functions import get_integrated_spectral_model
 
@@ -71,19 +67,17 @@ class PointSourceResponse(Histogram):
 
                 raise RuntimeError("Must include polarization in point source response if using polarization response")
 
-            else:
-
-                contents = self.contents
-                axes = self.axes[1:]
+            contents = self.contents
+            axes = self.axes[1:]
 
         else:
-
-            polarization_angle = polarization.angle.value
-            polarization_level = polarization.degree.value / 100.
 
             if not 'Pol' in self.axes.labels:
                 
                 raise RuntimeError("Response must have polarization angle axis to include polarization in point source response")
+
+            polarization_angle = polarization.angle.value
+            polarization_level = polarization.degree.value / 100.
 
             if polarization_angle == 180.:
                 polarization_angle = 0.
@@ -110,7 +104,7 @@ class PointSourceResponse(Histogram):
             polarization_hist *= np.sum(self.contents) / np.sum(polarization_hist)
 
             contents = polarization_hist
-            axes = self.project('Ei', 'Em', 'Phi', 'PsiChi').axes[1:]
+            axes = self.axes['Em', 'Phi', 'PsiChi']
 
         energy_axis = self.photon_energy_axis
 
