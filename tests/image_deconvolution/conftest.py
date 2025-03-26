@@ -10,7 +10,7 @@ from cosipy.image_deconvolution import DataIF_COSI_DC2, AllSkyImageModel
 def dataset():
 
     event_binned_data = Histogram.open(test_data.path / "test_event_histogram_galacticCDS.hdf5").project(["Em", "Phi", "PsiChi"])
-    dict_bkg_binned_data = {"bkg": Histogram.open(test_data.path / "test_event_histogram_galacticCDS.hdf5").project(["Em", "Phi", "PsiChi"])}
+    dict_bkg_binned_data = {"bkg": Histogram.open(test_data.path / "test_event_histogram_galacticCDS.hdf5").project(["Em", "Phi", "PsiChi"]) * 0.1}
     precomputed_response = Histogram.open(test_data.path / "test_precomputed_response.h5")
 
     data = DataIF_COSI_DC2.load(name = "testdata_galacticCDS", 
