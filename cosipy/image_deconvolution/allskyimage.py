@@ -154,6 +154,8 @@ class AllSkyImageModel(ModelBase):
                 self[:,idx] = value * unit
     #    elif algorithm_name == ... 
     #       ...
+        else:
+            raise ValueError(f'Model algorithm {algorithm_name} not supported')
 
     def set_values_from_extendedmodel(self, extendedmodel):
         """
