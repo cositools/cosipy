@@ -583,7 +583,7 @@ class PolarizationASAD():
 
         modulation = {'mu': mu, 'uncertainty': mu_uncertainty}
 
-        logger.info('Modulation:', round(mu, 3), '+/-', round(mu_uncertainty, 3))
+        logger.info('Modulation: ' + str(round(mu, 3)), ' +/- ' + str(round(mu_uncertainty, 3)))
     
         return modulation, parameter_values
     
@@ -653,7 +653,7 @@ class PolarizationASAD():
             plt.ylabel('mu_100')
             plt.show()
 
-        logger.info('mu_100:', round(mu_100['mu'], 2))
+        logger.info('mu_100: ' + str(round(mu_100['mu'], 2)))
 
         return mu_100
 
@@ -690,11 +690,11 @@ class PolarizationASAD():
 
         polarization = {'fraction': polarization_fraction, 'angle': polarization_angle, 'fraction uncertainty': polarization_fraction_uncertainty, 'angle uncertainty': polarization_angle_uncertainty, 'best fit parameter values': parameter_values, 'best fit parameter uncertainties': uncertainties}
     
-        logger.info('Best fit polarization fraction:', round(polarization_fraction, 3), '+/-', round(polarization_fraction_uncertainty, 3))
-        logger.info('Best fit polarization angle (IAU convention):', round(polarization_angle.angle.degree, 3), '+/-', round(polarization_angle_uncertainty.degree, 3))
+        logger.info('Best fit polarization fraction: ' + str(round(polarization_fraction, 3)), ' +/- ', str(round(polarization_fraction_uncertainty, 3)))
+        logger.info('Best fit polarization angle (IAU convention): ' + str(round(polarization_angle.angle.degree, 3)), ' +/- ', str(round(polarization_angle_uncertainty.degree, 3)))
 
         if self._mdp > polarization['fraction']:
-            logger.info('Polarization fraction is below MDP!', 'MDP:', round(self._mdp, 3))
+            logger.info('Polarization fraction is below MDP!', 'MDP: ', str(round(self._mdp, 3)))
 
         if show_plots == True:
             self.plot_asad(self._asads['source (corrected)'].contents.data, 'Corrected Source ASAD', self._sigma, coefficients=polarization['best fit parameter values'])
