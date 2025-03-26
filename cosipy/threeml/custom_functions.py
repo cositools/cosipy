@@ -102,7 +102,7 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
             A  spectrum loaded from a dat file
         parameters :
             K :
-                desc : Normalization
+                desc : Normalization factor.
                 initial value : 1.0
                 is_normalization : True
                 transformation : log10
@@ -128,7 +128,7 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
             dataEn = np.genfromtxt(self.dat.value,comments = "#",usecols = (1),skip_footer=1,skip_header=5)
             
             # Calculate the widths of the energy bins
-            ewidths = np.diff(dataEn, append=dataEn[-1])
+            ewidths = np.diff(dataEn, append=dataEn[-1]) * u.keV 
 
             # Normalize dataFlux using the energy bin widths
             dataFlux = dataFlux  / np.sum(dataFlux * ewidths)
