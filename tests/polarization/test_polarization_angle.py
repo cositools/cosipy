@@ -41,12 +41,12 @@ def test_from_scattering_direction():
     psichi = SkyCoord(lat=np.pi/8, lon=np.pi/6, unit=u.rad, frame=SpacecraftFrame(attitude = Attitude.identity()))
     pa = PolarizationAngle.from_scattering_direction(psichi, source_direction.transform_to(SpacecraftFrame(attitude = Attitude.identity())), MEGAlibRelativeX(attitude = Attitude.identity()))
 
-    assert np.isclose(pa.angle, -134.186*u.deg)
+    assert np.isclose(pa.angle.deg, -134.186)
 
     pa2 = PolarizationAngle.from_scattering_direction(psichi.transform_to('galactic'), source_direction.transform_to('galactic'), IAUPolarizationConvention())
 
-    assert np.isclose(pa2.angle, 97.930*u.deg)
+    assert np.isclose(pa2.angle.deg, 97.930)
 
     pa3 = PolarizationAngle.from_scattering_direction(psichi.transform_to('icrs'), source_direction, IAUPolarizationConvention())
 
-    assert np.isclose(pa3.angle, 80.349*u.deg)
+    assert np.isclose(pa3.angle.deg, 80.349)
