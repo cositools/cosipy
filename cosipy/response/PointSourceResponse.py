@@ -82,28 +82,17 @@ class PointSourceResponse(Histogram):
             if polarization_angle == 180.:
                 polarization_angle = 0.
 
-            polarization_angle_components = []
+            unpolarized_weights = np.full(self.axes['Pol'].nbins, (1. - polarization_level) / self.axes['Pol'].nbins)
+            polarized_weights = np.zeros(self.axes['Pol'].nbins)
 
-            for i in range(self.axes['Pol'].nbins):
-
-                polarization_angle_components.append(self.slice[{'Pol':slice(i,i+1)}].project('Ei', 'Em', 'Phi', 'PsiChi'))
-
+            for i in range(len(polarized_weights)):
                 if polarization_angle >= self.axes['Pol'].edges.to_value(u.deg)[i] and polarization_angle < self.axes['Pol'].edges.to_value(u.deg)[i+1]:
-                    polarized_component = polarization_angle_components[i].contents
+                    polarized_weights[i] = polarization_level
 
-            unpolarized_component = polarization_angle_components[0].contents
+            weights = unpolarized_weights + polarized_weights
 
-            for i in range(len(polarization_angle_components) - 1):
+            contents = np.tensordot(weights, self.contents, axes=([0], [self.axes.label_to_index('Pol')]))
 
-                unpolarized_component += polarization_angle_components[i+1].contents
-
-            polarized_component /= np.sum(polarized_component.value)
-            unpolarized_component /= np.sum(unpolarized_component.value)
-
-            polarization_hist = (polarization_level * polarized_component) + ((1 - polarization_level) * unpolarized_component)
-            polarization_hist *= np.sum(self.contents) / np.sum(polarization_hist)
-
-            contents = polarization_hist
             axes = self.axes['Em', 'Phi', 'PsiChi']
 
         energy_axis = self.photon_energy_axis
