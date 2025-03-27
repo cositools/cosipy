@@ -583,7 +583,7 @@ class PolarizationASAD():
 
         modulation = {'mu': mu, 'uncertainty': mu_uncertainty}
 
-        logger.info('Modulation: ' + str(round(mu, 3)), ' +/- ' + str(round(mu_uncertainty, 3)))
+        logger.info('Modulation: ' + str(round(mu, 3)) + ' +/- ' + str(round(mu_uncertainty, 3)))
     
         return modulation, parameter_values
     
