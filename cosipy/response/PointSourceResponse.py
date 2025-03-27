@@ -85,9 +85,8 @@ class PointSourceResponse(Histogram):
             unpolarized_weights = np.full(self.axes['Pol'].nbins, (1. - polarization_level) / self.axes['Pol'].nbins)
             polarized_weights = np.zeros(self.axes['Pol'].nbins)
 
-            for i in range(len(polarized_weights)):
-                if polarization_angle >= self.axes['Pol'].edges.to_value(u.deg)[i] and polarization_angle < self.axes['Pol'].edges.to_value(u.deg)[i+1]:
-                    polarized_weights[i] = polarization_level
+            polarization_bin_index = self.axes['Pol'].find_bin(polarization_angle * u.deg)
+            polarized_weights[polarization_bin_index] = polarization_level
 
             weights = unpolarized_weights + polarized_weights
 
