@@ -697,8 +697,8 @@ class PolarizationASAD():
 
         polarization = {'fraction': polarization_fraction, 'angle': polarization_angle, 'fraction uncertainty': polarization_fraction_uncertainty, 'angle uncertainty': polarization_angle_uncertainty, 'best fit parameter values': parameter_values, 'best fit parameter uncertainties': uncertainties}
     
-        logger.info('Best fit polarization fraction: ' + str(round(polarization_fraction, 3)), ' +/- ', str(round(polarization_fraction_uncertainty, 3)))
-        logger.info('Best fit polarization angle (IAU convention): ' + str(round(polarization_angle.angle.degree, 3)), ' +/- ', str(round(polarization_angle_uncertainty.degree, 3)))
+        logger.info('Best fit polarization fraction: ' + str(round(polarization_fraction, 3)) + ' +/- ' + str(round(polarization_fraction_uncertainty, 3)))
+        logger.info('Best fit polarization angle (IAU convention): ' + str(round(polarization_angle.angle.degree, 3)) + ' +/- ' + str(round(polarization_angle_uncertainty.degree, 3)))
 
         if self._mdp > polarization['fraction']:
             logger.info('Polarization fraction is below MDP!', 'MDP: ', str(round(self._mdp, 3)))
