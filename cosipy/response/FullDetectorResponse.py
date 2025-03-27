@@ -1115,8 +1115,6 @@ class FullDetectorResponse(HealpixBase):
             old_pol_axis = h.axes[pol_axis_id]
             new_pol_axis = h_new.axes[pol_axis_id]
 
-            old_pixels = old_axis.find_bin(new_axis.pix2skycoord(np.arange(new_axis.nbins)))
-
             old_pol_indices = []
             for i in range(h_new.axes['Pol'].nbins):
 
