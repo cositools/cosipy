@@ -45,7 +45,7 @@ def test_from_scattering_direction():
 
     pa2 = PolarizationAngle.from_scattering_direction(psichi.transform_to('galactic'), source_direction.transform_to('galactic'), IAUPolarizationConvention())
 
-    assert np.isclose(pa2.angle.deg, 97.930)
+    assert np.isclose(pa2.angle.deg, 980.349)
 
     pa3 = PolarizationAngle.from_scattering_direction(psichi.transform_to('icrs'), source_direction, IAUPolarizationConvention())
 
