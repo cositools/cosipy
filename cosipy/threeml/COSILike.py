@@ -215,10 +215,10 @@ class COSILike(PluginPrototype):
 
                     if self._coordsys == 'spacecraftframe':
                         dwell_time_map = self._get_dwell_time_map(coord)
-                        self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
+                        self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map, pol_convention=self._pa_convention)
                     elif self._coordsys == 'galactic':
                         scatt_map = self._get_scatt_map(coord)
-                        self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
+                        self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map, pol_convention=self._pa_convention)
                     else:
                         raise RuntimeError("Unknown coordinate system")
 
@@ -237,10 +237,10 @@ class COSILike(PluginPrototype):
                 
                 if self._coordsys == 'spacecraftframe':
                     dwell_time_map = self._get_dwell_time_map(coord)
-                    self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
+                    self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map, pol_convention=self._pa_convention)
                 elif self._coordsys == 'galactic':
                     scatt_map = self._get_scatt_map(coord)
-                    self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
+                    self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map, pol_convention=self._pa_convention)
                 else:
                     raise RuntimeError("Unknown coordinate system")
 
@@ -271,10 +271,10 @@ class COSILike(PluginPrototype):
                         polarization_level = source.components['grb'].polarization.degree.value / 100.
                         polarization_angle = PolarizationAngle(coords.Angle(source.components['grb'].polarization.angle.value, unit=u.deg), source.position.sky_coord, convention=self._pa_convention)
                         if self._coordsys == 'spacecraftframe':
-                            this_expectation = self._psr[name].get_expectation(spectrum, polarization_level, polarization_angle)
+                            this_expectation = self._psr[name].get_expectation(spectrum, source.components['grb'].polarization)
                         elif self._coordsys == 'galactic':
                             scatt_map = self._get_scatt_map(source.position.sky_coord)
-                            this_expectation = self._psr[name].get_expectation(spectrum, polarization_level, polarization_angle, scatt_map, self._response_pa_convention)
+                            this_expectation = self._psr[name].get_expectation(spectrum, source.components['grb'].polarization)
                         else:
                             raise RuntimeError("Unknown coordinate system")
 

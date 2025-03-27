@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
+from scoords import SpacecraftFrame
 
 from .conventions import PolarizationConvention
 
@@ -120,39 +121,30 @@ class PolarizationAngle:
             Azimuthal scattering angle
         """
 
-        if not psichi.frame.name == source_coord.frame.name:
-            raise RuntimeError('psichi and source_coord must have the same frame')
+        if convention.frame.name == 'spacecraftframe':
+
+            source_coord = source_coord.transform_to(SpacecraftFrame(attitude=source_coord.attitude))
+            psichi = psichi.transform_to(SpacecraftFrame(attitude=source_coord.attitude))
+
+        elif convention.frame.name == 'icrs':
+
+            source_coord = source_coord.transform_to('icrs')
+            psichi = psichi.transform_to('icrs')
+
+        elif convention.frame.name == 'galactic':
+
+            source_coord = source_coord.transform_to('galactic')
+            psichi = psichi.transform_to('galactic')
+
+        else:
+
+            raise RuntimeError('Unsupported polarization convention frame "' + convention.frame.name + '"')
 
         reference_coord = convention.get_basis(source_coord)[0]
 
-        source_vector_cartesian = [source_coord.cartesian.x.value,
-                                   source_coord.cartesian.y.value, 
-                                   source_coord.cartesian.z.value]
-
-        reference_vector_cartesian = [reference_coord.cartesian.x.value, 
-                                      reference_coord.cartesian.y.value,
-                                      reference_coord.cartesian.z.value]
-
-        if psichi.frame.name == 'spacecraftframe':
-
-            psi = (np.pi/2) - psichi.lat.rad
-            chi = psichi.lon.rad
-
-        elif psichi.frame.name == 'galactic':
-
-            psi = (np.pi/2) - psichi.b.rad
-            chi = psichi.l.rad
-
-        elif psichi.frame.name == 'icrs':
-
-            psi = (np.pi/2) - psichi.dec.rad
-            chi = psichi.ra.rad
-
-        else:
-            raise RuntimeError('Unsupported frame "' + psichi.frame.name + '"')
-
-        # Convert scattered photon vector from spherical to Cartesian coordinates
-        scattered_photon_vector = [np.sin(psi) * np.cos(chi), np.sin(psi) * np.sin(chi), np.cos(psi)]
+        source_vector_cartesian = source_coord.cartesian.xyz.value
+        reference_vector_cartesian = reference_coord.cartesian.xyz.value
+        scattered_photon_vector = psichi.cartesian.xyz.value
 
         # Project scattered photon vector onto plane perpendicular to source direction
         d = np.dot(scattered_photon_vector, source_vector_cartesian) / np.dot(source_vector_cartesian, source_vector_cartesian)
