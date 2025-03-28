@@ -188,7 +188,7 @@ class PolarizationASAD():
             
             target_in_sc_frame = self._ori.get_target_in_sc_frame(target_name='source', target_coord=self._source_vector.transform_to('galactic'))
             dwell_time_map = self._ori.get_dwell_map(response=self._response_file, src_path=target_in_sc_frame)
-            psr = self._response.get_point_source_response(exposure_map=dwell_time_map, coord=self._source_vector.transform_to('galactic'), pol_convention=self._response_convention)
+            psr = self._response.get_point_source_response(exposure_map=dwell_time_map, coord=self._source_vector.transform_to('galactic'))
             expectation = psr.get_expectation(spectrum, LinearPolarization(polarization_level * 100., polarization_angle.angle.deg))
             
             azimuthal_angle_bins = []
@@ -201,7 +201,7 @@ class PolarizationASAD():
         else:
             
             scatt_map = self._ori.get_scatt_map(self._source_vector, nside=self._response.nside*2, coordsys='galactic')
-            psr = self._response.get_point_source_response(coord=self._source_vector, scatt_map=scatt_map, pol_convention=self._response_convention)
+            psr = self._response.get_point_source_response(coord=self._source_vector, scatt_map=scatt_map)
             expectation = psr.get_expectation(spectrum, LinearPolarization(polarization_level * 100., polarization_angle.angle.deg))
 
             azimuthal_angle_bins = []
