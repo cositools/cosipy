@@ -1128,6 +1128,9 @@ class FullDetectorResponse(HealpixBase):
 
         if 'Pol' in h.axes.labels and h_new.axes[axis].coordsys.name == 'galactic' or h_new.axes[axis].coordsys.name == 'icrs':
 
+            if coord.size > 1:
+                raise ValueError("For polarization, only a single source coordinate is supported")
+
             from cosipy.polarization.polarization_angle import PolarizationAngle
             from cosipy.polarization.conventions import IAUPolarizationConvention
 
