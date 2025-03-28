@@ -932,7 +932,7 @@ class FullDetectorResponse(HealpixBase):
 
                 dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
 
-                self._sum_rot_hist(dr_pix, psr, exposure, coord)
+                self._sum_rot_hist(dr_pix, psr, exposure, coord, self.pa_convention)
 
             # Convert to PSR
             psr = tuple([PointSourceResponse(psr.axes[1:],
@@ -1116,7 +1116,7 @@ class FullDetectorResponse(HealpixBase):
         return extended_source_response
 
     @staticmethod
-    def _sum_rot_hist(h, h_new, exposure, coord, axis = "PsiChi"):
+    def _sum_rot_hist(h, h_new, exposure, coord, pa_convention, axis = "PsiChi"):
         """
         Rotate a histogram with HealpixAxis h into the grid of h_new, and sum
         it up with the weight of exposure.
@@ -1153,7 +1153,7 @@ class FullDetectorResponse(HealpixBase):
             for i in range(h_new.axes['Pol'].nbins):
 
                 pa = PolarizationAngle(h_new.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, coord.transform_to('icrs'), convention=IAUPolarizationConvention())
-                pa_old = pa.transform_to(self.pa_convention, attitude=coord.attitude)
+                pa_old = pa.transform_to(pa_convention, attitude=coord.attitude)
 
                 if pa_old.angle.deg == 180.:
                     pa_old = PolarizationAngle(0. * u.deg, coord, convention=IAUPolarizationConvention())
