@@ -86,7 +86,7 @@ class PolarizationASAD():
                                             self._reference_vector.cartesian.z.value]
 
         self._response_file = response_file
-        self._response = FullDetectorResponse.open(response_file)
+        self._response = FullDetectorResponse.open(response_file, pa_convention=self._response_convention)
 
         self._energy_range = [min(self._response.axes['Em'].edges.value), max(self._response.axes['Em'].edges.value)]
 

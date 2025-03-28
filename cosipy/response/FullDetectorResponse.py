@@ -52,7 +52,7 @@ class FullDetectorResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000, polarization=False):
+    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000, pa_convention=None):
         """
         Open a detector response file.
 
@@ -77,21 +77,24 @@ class FullDetectorResponse(HealpixBase):
 
          emin,emax : float
              emin/emax used in the simulation source file.  
+
+         pa_convention : str, optional
+             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') 
         """
         
         filename = Path(filename)
 
 
         if filename.suffix == ".h5":
-            return cls._open_h5(filename)
+            return cls._open_h5(filename, pa_convention)
         elif "".join(filename.suffixes[-2:]) == ".rsp.gz":
-            return cls._open_rsp(filename,Spectrumfile,norm ,single_pixel,alpha,emin,emax)
+            return cls._open_rsp(filename,Spectrumfile,norm ,single_pixel,alpha,emin,emax, pa_convention)
         else:
             raise ValueError(
                 "Unsupported file format. Only .h5 and .rsp.gz extensions are supported.")
 
     @classmethod
-    def _open_h5(cls, filename):
+    def _open_h5(cls, filename, pa_convention=None):
         """
          Open a detector response h5 file.
 
@@ -99,6 +102,9 @@ class FullDetectorResponse(HealpixBase):
          ----------
          filename : str, :py:class:`~pathlib.Path`
              Path to HDF5 file
+
+         pa_convention : str, optional
+             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') 
          """
         new = cls(filename)
 
@@ -142,10 +148,16 @@ class FullDetectorResponse(HealpixBase):
                                  base=new.axes['NuLambda'],
                                  coordsys=SpacecraftFrame())
 
+        if 'Pol' in new._axes:
+            if pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ':
+                new.pa_convention = pa_convention
+            else:
+                raise RuntimeError("Polarization angle convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') must be provided")
+            
         return new
 
     @classmethod
-    def _open_rsp(cls, filename, Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000):
+    def _open_rsp(cls, filename, Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000, pa_convention=None):
         """
         
          Open a detector response rsp file.
@@ -171,6 +183,9 @@ class FullDetectorResponse(HealpixBase):
 
          emin,emax : float
              emin/emax used in the simulation source file.
+
+         pa_convention : str, optional
+             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') 
         """
 
         
@@ -561,6 +576,12 @@ class FullDetectorResponse(HealpixBase):
                                  base=new.axes['NuLambda'],
                                  coordsys=SpacecraftFrame())
 
+        if 'Pol' in new._axes:
+            if pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ':
+                new.pa_convention = pa_convention
+            else:
+                raise RuntimeError("Polarization angle convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') must be provided")
+
         return new
 
     @staticmethod
@@ -820,8 +841,7 @@ class FullDetectorResponse(HealpixBase):
                                   exposure_map = None,
                                   coord = None,
                                   scatt_map = None,
-                                  Earth_occ = True,
-                                  pol_convention = 'RelativeX'):
+                                  Earth_occ = True):
         """
         Convolve the all-sky detector response with exposure for a source at a given
         sky location.
@@ -841,8 +861,6 @@ class FullDetectorResponse(HealpixBase):
             Option to include Earth occultation in the respeonce. 
             Default is True, in which case you can only pass one 
             coord, which must be the same as was used for the scatt map. 
-        pol_convention : str, optional
-            Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') 
         
         Returns
         -------
@@ -914,7 +932,7 @@ class FullDetectorResponse(HealpixBase):
 
                 dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
 
-                self._sum_rot_hist(dr_pix, psr, exposure, coord, pol_convention)
+                self._sum_rot_hist(dr_pix, psr, exposure, coord)
 
             # Convert to PSR
             psr = tuple([PointSourceResponse(psr.axes[1:],
@@ -1098,7 +1116,7 @@ class FullDetectorResponse(HealpixBase):
         return extended_source_response
 
     @staticmethod
-    def _sum_rot_hist(h, h_new, exposure, coord, pol_convention, axis = "PsiChi"):
+    def _sum_rot_hist(h, h_new, exposure, coord, axis = "PsiChi"):
         """
         Rotate a histogram with HealpixAxis h into the grid of h_new, and sum
         it up with the weight of exposure.
@@ -1132,7 +1150,7 @@ class FullDetectorResponse(HealpixBase):
             for i in range(h_new.axes['Pol'].nbins):
 
                 pa = PolarizationAngle(h_new.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, coord.transform_to('icrs'), convention=IAUPolarizationConvention())
-                pa_old = pa.transform_to(pol_convention, attitude=coord.attitude)
+                pa_old = pa.transform_to(self.pa_convention, attitude=coord.attitude)
 
                 if pa_old.angle.deg == 180.:
                     pa_old = PolarizationAngle(0. * u.deg, coord, convention=IAUPolarizationConvention())
