@@ -159,8 +159,15 @@ class PolarizationAngle:
         else:
             sign = 1
         normalization = np.sqrt(np.dot(projection, projection)) * np.sqrt(np.dot(reference_vector_cartesian, reference_vector_cartesian))
-    
-        angle = Angle(sign * np.arccos(np.dot(projection, reference_vector_cartesian) / normalization), unit=u.rad)
+
+        dot_product = np.dot(projection, reference_vector_cartesian) / normalization
+
+        if dot_product < -1. and np.isclose(dot_product, -1.):
+            dot_product = -1.
+        elif dot_product > 1. and np.isclose(dot_product, 1.):
+            dot_product = 1.
+
+        angle = Angle(sign * np.arccos(dot_product), unit=u.rad)
 
         azimuthal_scattering_angle = cls(angle, source_coord, convention=convention)
 
