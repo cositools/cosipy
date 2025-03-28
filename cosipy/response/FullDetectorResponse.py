@@ -148,7 +148,7 @@ class FullDetectorResponse(HealpixBase):
                                  base=new.axes['NuLambda'],
                                  coordsys=SpacecraftFrame())
 
-        if 'Pol' in new._axes:
+        if 'Pol' in new._axes.labels:
             if pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ':
                 new.pa_convention = pa_convention
             else:
@@ -576,7 +576,7 @@ class FullDetectorResponse(HealpixBase):
                                  base=new.axes['NuLambda'],
                                  coordsys=SpacecraftFrame())
 
-        if 'Pol' in new._axes:
+        if 'Pol' in new._axes.labels:
             if pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ':
                 new.pa_convention = pa_convention
             else:
