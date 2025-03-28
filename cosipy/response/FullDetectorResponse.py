@@ -148,11 +148,9 @@ class FullDetectorResponse(HealpixBase):
                                  base=new.axes['NuLambda'],
                                  coordsys=SpacecraftFrame())
 
-        if 'Pol' in new._axes.labels:
-            if pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ':
-                new.pa_convention = pa_convention
-            else:
-                raise RuntimeError("Polarization angle convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') must be provided")
+        new.pa_convention = pa_convention
+        if 'Pol' in new._axes.labels and not (pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ'):
+            raise RuntimeError("Polarization angle convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') must be provided")
             
         return new
 
@@ -576,11 +574,9 @@ class FullDetectorResponse(HealpixBase):
                                  base=new.axes['NuLambda'],
                                  coordsys=SpacecraftFrame())
 
-        if 'Pol' in new._axes.labels:
-            if pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ':
-                new.pa_convention = pa_convention
-            else:
-                raise RuntimeError("Polarization angle convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') must be provided")
+        new.pa_convention = pa_convention
+        if 'Pol' in new._axes.labels and not (pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ'):
+            raise RuntimeError("Polarization angle convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') must be provided")
 
         return new
 
