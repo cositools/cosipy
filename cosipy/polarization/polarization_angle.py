@@ -121,24 +121,8 @@ class PolarizationAngle:
             Azimuthal scattering angle
         """
 
-        if convention.frame.name == 'spacecraftframe':
-
-            source_coord = source_coord.transform_to(SpacecraftFrame(attitude=source_coord.attitude))
-            psichi = psichi.transform_to(SpacecraftFrame(attitude=source_coord.attitude))
-
-        elif convention.frame.name == 'icrs':
-
-            source_coord = source_coord.transform_to('icrs')
-            psichi = psichi.transform_to('icrs')
-
-        elif convention.frame.name == 'galactic':
-
-            source_coord = source_coord.transform_to('galactic')
-            psichi = psichi.transform_to('galactic')
-
-        else:
-
-            raise RuntimeError('Unsupported polarization convention frame "' + convention.frame.name + '"')
+        source_coord = source_coord.transform_to(convention.frame)
+        psichi = psichi.transform_to(convention.frame)
 
         reference_coord = convention.get_basis(source_coord)[0]
 
