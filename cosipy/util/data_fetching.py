@@ -1,7 +1,7 @@
 import os
 
-from IPython.utils.coloransi import value
-from awscli.clidriver import create_clidriver
+import boto3
+from hashlib import md5
 from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
@@ -22,7 +22,11 @@ def fetch_wasabi_file(file,
         Full path to file in Wasabi
     output : str,  optional
         Full path to the downloaded file in the local system. By default it will use 
-        the current durectory and the same file name as the input file.
+        the current directory and the same file name as the input file.
+    override: bool, optional
+        If True, it will override the output file if already exists. Otherwise, it will
+        throw and error, unless the existing file has the same checksum, in which case
+        it will simply skip it with a warning.
     bucket : str, optional
         Passed to aws --bucket option
     endpoint : str, optional
@@ -32,30 +36,27 @@ def fetch_wasabi_file(file,
     secret_key : str, optional
         AWS_SECRET_ACCESS_KEY
     """
-    
+
+    s3 = boto3.client('s3',
+                      endpoint_url=endpoint,
+                      aws_access_key_id=access_key,
+                      aws_secret_access_key=secret_key)
+
     if output is None:
         output = file.split('/')[-1]
 
     output = Path(output)    
         
-    if output.exists():
-        if override is False:
-            raise RuntimeError(f"File {output} already exists.")
-        elif override == 'skip':
-            logger.warning(f"File {output} already exists. Skipping.")
+    if output.exists() and not override:
+
+        existing_md5sum = md5(open(output, 'rb').read()).hexdigest()
+        wasabi_md5sum = s3.head_object(Bucket=bucket, Key=file)["ETag"][1:-1]
+
+        if existing_md5sum == wasabi_md5sum:
+            logger.warning(f"A file named {output} already exists and has same checksum ({wasabi_md5sum}) as the requested file. Skipping.")
             return
-        elif override is not True:
-            logger.warning(f"File {output} already exists. Overriding.")
-            raise ValueError(f"Parameter override can only be True, False or 'skip'. Got {override}")
+        else:
+            raise RuntimeError(f"A file named {output} already exists and has a different checksum ({existing_md5sum}) than the requested file ({wasabi_md5sum}).")
 
-    cli = create_clidriver()
-
-    cli.session.set_credentials(access_key, secret_key)
-    command = ['s3api', 'get-object',
-               '--bucket', bucket,
-               '--key', file,
-               '--endpoint-url', endpoint,
-               str(output)]
-
-    cli.main(command)
+    s3.download_file(Bucket=bucket, Key=file, Filename=output)
 
