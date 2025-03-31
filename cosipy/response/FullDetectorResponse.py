@@ -979,8 +979,8 @@ class FullDetectorResponse(HealpixBase):
 
         coord = image_axes.pix2skycoord(ipix_image)
 
-        scatt_map = orientation.get_scatt_map(target_coord = coord,
-                                              nside = nside_scatt_map,
+        scatt_map = orientation.get_scatt_map(nside = nside_scatt_map,
+                                              target_coord = coord,
                                               scheme='ring',
                                               coordsys=coordsys,
                                               earth_occ=Earth_occ)
