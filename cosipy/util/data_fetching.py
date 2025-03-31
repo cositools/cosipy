@@ -1,6 +1,10 @@
 import os
+
+from IPython.utils.coloransi import value
 from awscli.clidriver import create_clidriver
 from pathlib import Path
+import logging
+logger = logging.getLogger(__name__)
 
 def fetch_wasabi_file(file,
                       output = None,
@@ -34,8 +38,15 @@ def fetch_wasabi_file(file,
 
     output = Path(output)    
         
-    if output.exists() and not override:
-        raise RuntimeError(f"File {output} already exists.")
+    if output.exists():
+        if override is False:
+            raise RuntimeError(f"File {output} already exists.")
+        elif override == 'skip':
+            logger.warning(f"File {output} already exists. Skipping.")
+            return
+        elif override is not True:
+            logger.warning(f"File {output} already exists. Overriding.")
+            raise ValueError(f"Parameter override can only be True, False or 'skip'. Got {override}")
 
     cli = create_clidriver()
 
