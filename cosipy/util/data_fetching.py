@@ -3,12 +3,16 @@ import os
 import boto3
 from hashlib import md5
 from pathlib import Path
+import zipfile
+import gzip
 import logging
 logger = logging.getLogger(__name__)
 
 def fetch_wasabi_file(file,
                       output = None,
                       override = False,
+                      unzip = False,
+                      checksum = None,
                       bucket = 'cosi-pipeline-public',
                       endpoint = 'https://s3.us-west-1.wasabisys.com',
                       access_key = 'GBAL6XATQZNRV3GFH9Y4',
@@ -27,6 +31,11 @@ def fetch_wasabi_file(file,
         If True, it will override the output file if already exists. Otherwise, it will
         throw and error, unless the existing file has the same checksum, in which case
         it will simply skip it with a warning.
+    unzip: bool, optional
+        Uncompress a .gz or .zip file.
+    checksum: str
+        Expected MD5 sum (hex string) of the uncompressed file. Only used when unzip=True.
+        The checksum of the original file in wasabi is automatically obtained from the server.
     bucket : str, optional
         Passed to aws --bucket option
     endpoint : str, optional
@@ -46,7 +55,45 @@ def fetch_wasabi_file(file,
         output = file.split('/')[-1]
 
     output = Path(output)    
-        
+
+    if unzip:
+
+        zip_suffix = output.suffix
+
+        if zip_suffix not in ['.zip', '.gz']:
+            raise ValueError(f"Only the compression of of .zip and .gz files is supported. Got a '{zip_suffix}' file")
+
+        unzip_output = output.with_suffix('')
+
+        if unzip_output.exists():
+            if override:
+                unzip_output.unlink() # Delete
+            else:
+
+                if checksum is None:
+                    raise RuntimeError(f"A file named {unzip_output} already exists, override=False, and checksum was not provided.")
+
+                local_checksum = md5(open(unzip_output, 'rb').read()).hexdigest()
+
+                if local_checksum != checksum:
+                    raise RuntimeError(f"A file named {unzip_output} already exists but has a different checksum ({local_checksum}) than specified ({checksum}).")
+                else:
+                    logger.warning(f"A file named {unzip_output} already exists with the specified checksum ({checksum}). Skipping.")
+                    return
+
+        # Get zipped file
+        fetch_wasabi_file(file, output = output, override = override, unzip= False, bucket = bucket, endpoint = endpoint, access_key = access_key, secret_key = secret_key)
+
+        # Unzip
+        if zip_suffix == '.zip':
+            with zipfile.ZipFile(output, 'r') as f_in:
+                f_in.extractall(output.parent)
+        elif zip_suffix == '.gz':
+            with gzip.open(output, 'rb') as f_in, open(unzip_output, 'wb') as f_out:
+                f_out.write(f_in.read())
+
+        return
+
     if output.exists() and not override:
 
         def get_size_and_etag():
@@ -118,9 +165,9 @@ def fetch_wasabi_file(file,
         (remote_size, local_size), (remote_etag, local_etag) = get_size_and_etag()
 
         if remote_size != local_size:
-            raise RuntimeError(f"A file named {output} already exists but had the wrong file size ({local_size}) than the requested file ({remote_size}).")
+            raise RuntimeError(f"A file named {output} already exists but has the wrong file size ({local_size}) than the requested file ({remote_size}).")
         elif remote_etag != local_etag:
-            raise RuntimeError(f"A file named {output} already exists but a different ETag ({local_etag}) than the requested file ({remote_etag}).")
+            raise RuntimeError(f"A file named {output} already exists but has a different ETag ({local_etag}) than the requested file ({remote_etag}).")
         else:
             logger.warning(f"A file named {output} already exists with the same same ETag ({remote_etag}) as the requested file. Skipping.")
             return
