@@ -129,7 +129,10 @@ class UnBinnedData(DataIO):
         # Use same value as MEGAlib for direct comparison: 
         if run_test == True:
             c_E0 = 510.999
-
+    
+        # Event tracker:
+        new_event = 0
+        
         logger.info("Preparing to read file...")
 
         # Open .tra.gz file:
@@ -184,7 +187,35 @@ class UnBinnedData(DataIO):
             # Make sure line isn't empty:
             if len(this_line) == 0:
                 continue
+            
+            # New event:
+            if this_line[0] == "SE":
                 
+                # Check if there was a problem with last event:
+                # Note: Currently only checking for two detector hits.
+                if new_event == 1:
+                    logger.info("bad_event: no second hit info")
+                    logger.info("bad event ID: " + str(this_id))
+                    logger.info("bad event number: " + str(N_events))
+
+                    # remove bad photon info:
+                    if len(tt) != 0:
+                        N_events = N_events - 1
+                        et.pop()
+                        erg.pop()
+                        phi.pop()
+                        tt.pop()
+                        # Not all sims include ori info,
+                        # so also need to check before pop:
+                        if len(lonX) != 0:
+                            lonX.pop()
+                            latX.pop()
+                            lonZ.pop()
+                            latZ.pop()
+
+                # reset event tracker:
+                new_event = 1
+
             # Event type: 
             if this_line[0] == "ET":
                 # Check that we are looking at CO events
@@ -197,6 +228,9 @@ class UnBinnedData(DataIO):
             if this_line[0] == "ID":
                 N_events += 1
                 
+                # track id:
+                this_id = this_line[1]
+            
             # Option to only parse a subset of events:
             if event_min != None:
                 if N_events < event_min:
@@ -259,6 +293,9 @@ class UnBinnedData(DataIO):
                     dg_x.append(dg[0])
                     dg_y.append(dg[1])
                     dg_z.append(dg[2])
+                    
+                    # reset event
+                    new_event = 0
 
         # Close progress bar:
         pbar.close()
@@ -310,6 +347,7 @@ class UnBinnedData(DataIO):
         chi_loc = conv[2].value
 
         # Calculate chi_gal and psi_gal from x,y,z coordinates of events:
+         
         xcoords = SkyCoord(lonX*u.rad, latX*u.rad, frame = 'galactic')
         zcoords = SkyCoord(lonZ*u.rad, latZ*u.rad, frame = 'galactic')
         attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame = 'galactic')
@@ -633,6 +671,45 @@ class UnBinnedData(DataIO):
         for key in self.cosi_dataset:
 
             self.cosi_dataset[key] = self.cosi_dataset[key][time_cut_index]
+
+        # Write unbinned data to file (either fits or hdf5):
+        if output_name != None:
+            logger.info("Saving file...")
+            self.write_unbinned_output(output_name)
+
+        return
+
+    def select_data_energy(self, emin, emax, output_name=None, unbinned_data=None):
+
+        """Applies energy cuts to unbinnned data dictionary. 
+        
+        Parameters
+        ----------
+        emin : float or int
+            Minimum energy in keV.
+        emax : float or int
+            Maximum energy in keV.
+        unbinned_data : str, optional
+            Name of unbinned dictionary file.
+        output_name : str, optional
+            Prefix of output file (default is None, in which case no 
+            file is saved).
+        """
+        
+        logger.info("Making data selections on photon energy...")
+
+        # Option to read in unbinned data file:
+        if unbinned_data:
+            self.cosi_dataset = self.get_dict(unbinned_data)
+
+        # Get energy cut index:
+        energy_array = self.cosi_dataset["Energies"]
+        energy_cut_index = (energy_array >= emin) & (energy_array < emax)
+    
+        # Apply cuts to dictionary:
+        for key in self.cosi_dataset:
+
+            self.cosi_dataset[key] = self.cosi_dataset[key][energy_cut_index]
 
         # Write unbinned data to file (either fits or hdf5):
         if output_name != None:

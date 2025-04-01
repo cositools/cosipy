@@ -81,13 +81,18 @@ def test_unbinned_data_all(tmp_path):
             ,output_name=tmp_path/"temp_test_file")
     assert len(analysis.cosi_dataset['TimeTags']) == 2*n_events
     
-    # Test selections method.
+    # Test time selection method.
     # Make time selection, taking just the first second. 
     # Also test reading in the hdf5 file:
     analysis.unbinned_output = "hdf5"
     analysis.tmax = 1835478001.0
     analysis.select_data_time(unbinned_data=tmp_path/"test_h5.hdf5",output_name=tmp_path/"temp_test_file")
     assert np.amax(analysis.cosi_dataset['TimeTags']) <= 1835478001.0    
+
+    # Test energy selection method.
+    analysis.select_data_energy(200,300,unbinned_data=tmp_path/"test_h5.hdf5")
+    assert np.amax(analysis.cosi_dataset['Energies']) < 300
+    assert np.amin(analysis.cosi_dataset['Energies']) >= 200
 
     # Test reading tra with no pointing info:
     analysis.data_file = os.path.join(test_data.path,\
