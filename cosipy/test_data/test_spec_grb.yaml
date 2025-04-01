@@ -1,12 +1,9 @@
-
-  indir: "TDATAPATH"
-  odir: "TDATAPATH"
-  sou_data_path: "TDATAPATH/test_spectral_fit_data.h5"
-  bk_data_path: "TDATAPATH/test_spectral_fit_background.h5"
-  resp_path: "TDATAPATH/test_full_detector_response.h5"
-  ori_path : "TDATAPATH/20280301_2s.ori"
-  sou_yaml_path: "TDATAPATH/test_spectral_fit.yaml"
-  bk_yaml_path: "TDATAPATH/test_spectral_fit.yaml"
+  sou_data: "test_spectral_fit_data.h5"
+  bk_data: "test_spectral_fit_background.h5"
+  resp: "test_full_detector_response.h5"
+  ori: "20280301_2s.ori"
+  sou_yaml: "test_spectral_fit.yaml"
+  bk_yaml: "test_spectral_fit.yaml"
   souname: "grb_test"
   bkname: "test_bkcosi"
   l: 50
