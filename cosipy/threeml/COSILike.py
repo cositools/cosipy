@@ -342,7 +342,7 @@ class COSILike(PluginPrototype):
         scatt_map : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
         """
         
-        scatt_map = self._sc_orientation.get_scatt_map(coord, nside = self._dr.nside * 2, \
+        scatt_map = self._sc_orientation.get_scatt_map(nside = self._dr.nside * 2, target_coord = coord, \
                 coordsys = 'galactic', earth_occ = self.earth_occ)
         
         return scatt_map

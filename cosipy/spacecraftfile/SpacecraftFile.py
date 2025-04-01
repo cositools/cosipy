@@ -556,7 +556,7 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        target_coord : astropy.coordinates.SkyCoord
+        target_coord : astropy.coordinates.SkyCoord, optional
             The coordinates of the target object. 
         nside : int
             The nside of the scatt map.
