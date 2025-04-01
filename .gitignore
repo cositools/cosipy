@@ -133,3 +133,4 @@ dmypy.json
 
 # OS
 .DS_store
+/test_pipeline/
