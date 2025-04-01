@@ -169,7 +169,7 @@ def fetch_wasabi_file(file,
         elif remote_etag != local_etag:
             raise RuntimeError(f"A file named {output} already exists but has a different ETag ({local_etag}) than the requested file ({remote_etag}).")
         else:
-            logger.warning(f"A file named {output} already exists with the same same ETag ({remote_etag}) as the requested file. Skipping.")
+            logger.warning(f"A file named {output} with the same ETag ({remote_etag}) as the requested file already exists. Skipping.")
             return
 
     s3.download_file(Bucket=bucket, Key=file, Filename=output)
