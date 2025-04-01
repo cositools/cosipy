@@ -5,6 +5,8 @@ from scoords import SpacecraftFrame
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 
+from histpy import Histogram, HealpixAxis, Axis
+
 from cosipy import test_data
 from cosipy.response import FullDetectorResponse
 from cosipy.spacecraftfile import SpacecraftFile
@@ -25,7 +27,28 @@ def test_open():
 
         assert response.unit.is_equivalent('m2')
 
-    
+def test_write_h5(tmp_path):
+    """
+    Tests storing a Histogram as an HDF5 response
+    """
+
+    tmp_rsp = tmp_path / 'tmp_rsp.h5'
+
+    drm = Histogram([HealpixAxis(nside=1, label='NuLambda'),
+                     Axis(np.geomspace(200, 5000, 11) * u.keV, label='Ei'),
+                     Axis(np.geomspace(200, 5000, 11) * u.keV, label='Em'),
+                     Axis(np.linspace(0, 180, 11) * u.deg, label='Phi'),
+                     HealpixAxis(nside=1, label='PsiChi')],
+                    contents=np.ones([12, 10, 10, 10, 12]),
+                    unit='cm2')
+
+    FullDetectorResponse._write_h5(drm, tmp_rsp)
+
+    with FullDetectorResponse.open(tmp_rsp) as rsp:
+
+        assert arr_eq(rsp[0].project("Ei").contents.to_value('cm2'), (10*10*12)*np.ones(10))
+
+
 def test_get_item():
 
     with FullDetectorResponse.open(response_path) as response:
@@ -54,16 +77,16 @@ def test_get_interp_response():
 
         assert drm.unit.is_equivalent('m2')
         
-def test_get_extended_source_response():    
-    
+def test_get_extended_source_response():
+
     orientation = SpacecraftFile.parse_from_file(orientation_path)
 
     with FullDetectorResponse.open(response_path) as response:
 
-        extended_source_response = response.get_extended_source_response(orientation, 
-                                                                         coordsys = 'galactic', 
-                                                                         nside_image = None, 
-                                                                         nside_scatt_map = None, 
+        extended_source_response = response.get_extended_source_response(orientation,
+                                                                         coordsys = 'galactic',
+                                                                         nside_image = None,
+                                                                         nside_scatt_map = None,
                                                                          Earth_occ = True)
 
         assert extended_source_response.ndim == 5
@@ -81,7 +104,7 @@ def test_merge_psr_to_extended_source_response(tmp_path):
 
         for ipix_image in range(response.axes['NuLambda'].npix):
 
-            psr = response.get_point_source_response_per_image_pixel(ipix_image, orientation, 
+            psr = response.get_point_source_response_per_image_pixel(ipix_image, orientation,
                                                                      coordsys='galactic',
                                                                      nside_image=None,
                                                                      nside_scatt_map=None,
@@ -90,8 +113,8 @@ def test_merge_psr_to_extended_source_response(tmp_path):
             psr.write(tmp_path / f"psr_{ipix_image:08}.h5")
 
 
-        extended_source_response = response.merge_psr_to_extended_source_response(str(tmp_path / "psr_"), 
-                                                                                  coordsys = 'galactic', 
+        extended_source_response = response.merge_psr_to_extended_source_response(str(tmp_path / "psr_"),
+                                                                                  coordsys = 'galactic',
                                                                                   nside_image = None)
 
         assert extended_source_response.ndim == 5

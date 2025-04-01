@@ -541,8 +541,8 @@ class SpacecraftFile():
         return self.dwell_map
 
     def get_scatt_map(self,
-                       target_coord,
                        nside,
+                       target_coord=None,
                        scheme = 'ring',
                        coordsys = 'galactic',
                        r_earth = 6378.0,
@@ -556,7 +556,7 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        target_coord : astropy.coordinates.SkyCoord
+        target_coord : astropy.coordinates.SkyCoord, optional
             The coordinates of the target object. 
         nside : int
             The nside of the scatt map.
@@ -576,6 +576,10 @@ class SpacecraftFile():
             The spacecraft attitude map.
         """
         
+        # Check if target_coord is needed
+        if earth_occ and target_coord is None:
+            raise ValueError("target_coord is needed when earth_occ = True")
+
         # Get orientations
         timestamps = self.get_time()
         attitudes = self.get_attitude()
