@@ -5,17 +5,17 @@ kernel_name=python3
 # Local mirror
 cosi_pipeline_public="${HOME}/cosi/data/wasabi/cosi-pipelines-public"
 
-#ln -s "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori" DataIO
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori" DataIO
 #(cd DataIO && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} DataIO_example.ipynb)
 
-#ln -s "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori" response
-#ln -s "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip" response
-#ln -s "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5" response
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori" response
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip" response
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5" response
 #(cd response && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} SpacecraftFile.ipynb)
 
-ln -s "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori" response
-ln -s "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip" response
-ln -s "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5" response
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori" response
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip" response
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5" response
 (cd response && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} DetectorResponse.ipynb)
 
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/grb_spectral_fit_local_frame/grb_binned_data.hdf5" ts_map
