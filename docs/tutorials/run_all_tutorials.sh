@@ -20,5 +20,9 @@ ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPi
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Sources/Crab_DC2_3months_unbinned_data.fits.gz" ts_map
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz" ts_map
 
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/ts_maps/Crab_galactic_CDS_binned.hdf5" ts_map
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/ts_maps/Albedo_galactic_CDS_binned.hdf5" ts_map
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/PointSourceReponse/psr_gal_continuum_DC2.h5.zip" ts_map
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/PointSourceReponse/psr_gal_DC2.h5" ts_map
 
 (cd ts_map && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=python3 Parallel_TS_map_computation.ipynb)
