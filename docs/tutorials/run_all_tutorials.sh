@@ -13,7 +13,7 @@ cosi_pipeline_public="${HOME}/cosi/data/wasabi/cosi-pipelines-public"
 #ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5" response
 #(cd response && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} SpacecraftFile.ipynb)
 
-ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori" response
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori" response
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip" response
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5" response
 (cd response && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} DetectorResponse.ipynb)
