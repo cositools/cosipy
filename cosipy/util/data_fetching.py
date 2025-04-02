@@ -6,6 +6,9 @@ from pathlib import Path
 import zipfile
 import gzip
 import logging
+
+from ipyparallel.client.magics import output_args
+
 logger = logging.getLogger(__name__)
 
 def fetch_wasabi_file(file,
@@ -60,10 +63,21 @@ def fetch_wasabi_file(file,
 
         zip_suffix = output.suffix
 
-        if zip_suffix not in ['.zip', '.gz']:
-            raise ValueError(f"Only the compression of of .zip and .gz files is supported. Got a '{zip_suffix}' file")
+        if zip_suffix == '.zip':
+            with zipfile.ZipFile(output, 'r') as f_in:
+                file_list = f_in.infolist()
 
-        unzip_output = output.with_suffix('')
+                if len(file_list) > 1:
+                    # Multiple files requires tracking them and checking multiple checksums. Let's keep it simple for now.
+                    raise RuntimeError("Currently, only unzipping file containing a single file is supported")
+
+                unzip_output = output.parent/file_list[0].filename
+
+        elif zip_suffix == '.gz':
+            unzip_output = output.with_suffix('')
+
+        else:
+            raise ValueError(f"Only the compression of of .zip and .gz files is supported. Got a '{zip_suffix}' file")
 
         if unzip_output.exists():
             if override:
