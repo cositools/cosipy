@@ -41,14 +41,14 @@ cosi_pipeline_public="${HOME}/cosi/data/wasabi/cosi-pipelines-public"
 #ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5" $wdir
 #(cd $wdir && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} SpectralFit_GRB.ipynb)
 
-wdir=spectral_fits/continuum_fit/crab
-ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori" $wdir
-ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/crab_spectral_fit_galactic_frame/crab_bkg_binned_data.hdf5" $wdir
-ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/crab_spectral_fit_galactic_frame/crab_binned_data.hdf5" $wdir
-ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/crab_spectral_fit_galactic_frame/bkg_binned_data.hdf5" $wdir
-ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip" $wdir
-ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5" $wdir
-(cd $wdir && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} SpectralFit_Crab.ipynb)
+#wdir=spectral_fits/continuum_fit/crab
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori" $wdir
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/crab_spectral_fit_galactic_frame/crab_bkg_binned_data.hdf5" $wdir
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/crab_spectral_fit_galactic_frame/crab_binned_data.hdf5" $wdir
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/crab_spectral_fit_galactic_frame/bkg_binned_data.hdf5" $wdir
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip" $wdir
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5" $wdir
+#(cd $wdir && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} SpectralFit_Crab.ipynb)
 
 wdir=spectral_fits/extended_source_fit
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori" $wdir
@@ -61,5 +61,6 @@ ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/extended_source_spect
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/extended_source_spectral_fit_galactic_frame/gal_511_binned_data.hdf5" $wdir
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/extended_source_spectral_fit_galactic_frame/combined_binned_data.hdf5" $wdir
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/extended_source_spectral_fit_galactic_frame/combined_binned_data_thin_disk.hdf5" $wdir
+(cd $wdir && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} diffuse_511_spectral_fit.ipynb)
 
 
