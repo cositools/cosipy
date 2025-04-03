@@ -50,6 +50,10 @@ def fetch_wasabi_file(file,
         AWS_ACCESS_KEY_ID
     secret_key : str, optional
         AWS_SECRET_ACCESS_KEY
+
+    Returns
+    -------
+    dict containing file metadata
     """
 
     s3 = boto3.client('s3',
@@ -89,7 +93,7 @@ def fetch_wasabi_file(file,
                     raise RuntimeError(f"A file named {unzip_output} already exists but has a different checksum ({local_checksum}) than specified ({checksum}).")
                 else:
                     logger.warning(f"A file named {unzip_output} already exists with the specified checksum ({checksum}). Skipping.")
-                    return
+                    return file_hdr
 
         # Get zipped file
         fetch_wasabi_file(file, output = output, override = override, unzip= False, bucket = bucket, endpoint = endpoint, access_key = access_key, secret_key = secret_key)
@@ -109,7 +113,7 @@ def fetch_wasabi_file(file,
             with gzip.open(output, 'rb') as f_in, open(unzip_output, 'wb') as f_out:
                 f_out.write(f_in.read())
 
-        return
+        return file_hdr
 
     if output.exists() and not override:
 
@@ -185,8 +189,42 @@ def fetch_wasabi_file(file,
             raise RuntimeError(f"A file named {output} already exists but has a different ETag ({local_etag}) than the requested file ({remote_etag}).")
         else:
             logger.warning(f"A file named {output} with the same ETag ({remote_etag}) as the requested file already exists. Skipping.")
-            return
+            return file_hdr
 
     logger.info(f"Downloading {bucket}/{file} ({file_hdr['ContentLength']} bytes)")
     s3.download_file(Bucket=bucket, Key=file, Filename=output)
 
+    return file_hdr
+
+def fetch_wasabi_file_header(file,
+                             bucket = 'cosi-pipeline-public',
+                             endpoint = 'https://s3.us-west-1.wasabisys.com',
+                             access_key = 'GBAL6XATQZNRV3GFH9Y4',
+                             secret_key = 'GToOczY5hGX3sketNO2fUwiq4DJoewzIgvTCHoOv'):
+    """
+    Get the metadata for a file from COSI's Wasabi acccount.
+
+    Parameters
+    ----------
+    file : str
+        Full path to file in Wasabi
+    bucket : str, optional
+        Passed to aws --bucket option
+    endpoint : str, optional
+        Passed to aws --endpoint-url option
+    access_key : str, optional
+        AWS_ACCESS_KEY_ID
+    secret_key : str, optional
+        AWS_SECRET_ACCESS_KEY
+
+    Returns
+    -------
+    dict containing file metadata
+    """
+
+    s3 = boto3.client('s3',
+                      endpoint_url=endpoint,
+                      aws_access_key_id=access_key,
+                      aws_secret_access_key=secret_key)
+
+    return s3.head_object(Bucket=bucket, Key=file)
