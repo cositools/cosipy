@@ -82,10 +82,19 @@ cosi_pipeline_public="${HOME}/cosi/data/wasabi/cosi-pipelines-public"
 #jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} 511keV-ScAtt-ImageDeconvolution.ipynb)
 
 
-wdir=source_injector
+#wdir=source_injector
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.earthocc.zip" $wdir
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.earthocc.h5" $wdir
+#ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori" $wdir
+#(cd $wdir && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} Point_source_injector.ipynb)
+
+wdir=background_estimation/continuum_estimation/
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.earthocc.zip" $wdir
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.earthocc.h5" $wdir
-ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori" $wdir
+
+
+(cd $wdir && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} BG_estimation_example.html)
+
 
 
 
