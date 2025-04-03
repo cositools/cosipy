@@ -15,6 +15,7 @@ def fetch_wasabi_file(file,
                       output = None,
                       override = False,
                       unzip = False,
+                      unzip_output = None,
                       checksum = None,
                       bucket = 'cosi-pipeline-public',
                       endpoint = 'https://s3.us-west-1.wasabisys.com',
@@ -36,6 +37,8 @@ def fetch_wasabi_file(file,
         it will simply skip it with a warning.
     unzip: bool, optional
         Uncompress a .gz or .zip file.
+    unzip_output: str, Path, optional
+        Path to unzipped output, if different from output without .gz or .zip
     checksum: str
         Expected MD5 sum (hex string) of the uncompressed file. Only used when unzip=True.
         The checksum of the original file in wasabi is automatically obtained from the server.
@@ -59,27 +62,18 @@ def fetch_wasabi_file(file,
     if output is None:
         output = file.split('/')[-1]
 
-    output = Path(output)    
+    output = Path(output)
 
     if unzip:
 
         zip_suffix = output.suffix
-
-        if zip_suffix == '.zip':
-            with zipfile.ZipFile(output, 'r') as f_in:
-                file_list = f_in.infolist()
-
-                if len(file_list) > 1:
-                    # Multiple files requires tracking them and checking multiple checksums. Let's keep it simple for now.
-                    raise RuntimeError("Currently, only unzipping file containing a single file is supported")
-
-                unzip_output = output.parent/file_list[0].filename
-
-        elif zip_suffix == '.gz':
-            unzip_output = output.with_suffix('')
-
-        else:
+        if zip_suffix not in ['.gz', '.zip']:
             raise ValueError(f"Only the compression of of .zip and .gz files is supported. Got a '{zip_suffix}' file")
+
+        if unzip_output is None:
+            unzip_output = output.with_suffix('')
+        else:
+            unzip_output = Path(unzip_output)
 
         if unzip_output.exists():
             if override:
@@ -103,6 +97,13 @@ def fetch_wasabi_file(file,
         # Unzip
         if zip_suffix == '.zip':
             with zipfile.ZipFile(output, 'r') as f_in:
+
+                file_list = f_in.infolist()
+
+                if len(file_list) > 1:
+                    # Multiple files requires tracking them and checking multiple checksums. Let's keep it simple for now.
+                    raise RuntimeError("Currently, only unzipping file containing a single file is supported")
+
                 f_in.extractall(output.parent)
         elif zip_suffix == '.gz':
             with gzip.open(output, 'rb') as f_in, open(unzip_output, 'wb') as f_out:
