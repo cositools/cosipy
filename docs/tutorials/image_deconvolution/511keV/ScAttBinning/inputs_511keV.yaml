@@ -2,7 +2,7 @@
 # Data I/O:
 
 data_file: 
-ori_file: "/Users/ckierans/Software/COSItools/COSItools/cosipy/data/ori/DC3_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.ori"
+ori_file: "" # No needed for this tutorial
 unbinned_output: 'hdf5' # 'fits' or 'hdf5'
 time_bins: 15 # time bin size in seconds. Takes int or list of bin edges. 
 tmin: 1835487300.0
