@@ -54,6 +54,8 @@ def fetch_wasabi_file(file,
                       aws_access_key_id=access_key,
                       aws_secret_access_key=secret_key)
 
+    file_hdr = s3.head_object(Bucket=bucket, Key=file)
+
     if output is None:
         output = file.split('/')[-1]
 
@@ -134,12 +136,10 @@ def fetch_wasabi_file(file,
             """
 
             # Get header information
-            remote_head = s3.head_object(Bucket=bucket, Key=file)
-
-            remote_etag = remote_head["ETag"][1:-1]  # Remove quotes
+            remote_etag = file_hdr["ETag"][1:-1]  # Remove quotes
 
             # Compare sizes
-            remote_size = remote_head['ContentLength']
+            remote_size = file_hdr['ContentLength']
             local_size = output.stat().st_size
 
             if remote_size != local_size:
@@ -186,5 +186,6 @@ def fetch_wasabi_file(file,
             logger.warning(f"A file named {output} with the same ETag ({remote_etag}) as the requested file already exists. Skipping.")
             return
 
+    logger.info(f"Downloading {bucket}/{file} ({file_hdr['ContentLength']} bytes)")
     s3.download_file(Bucket=bucket, Key=file, Filename=output)
 
