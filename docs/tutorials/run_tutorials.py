@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import logging
+import traceback
+
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
@@ -152,7 +154,7 @@ def main():
                 local_copy = wasabi_mirror/rel_path
 
                 if local_copy.exists():
-                    os.symlink(local_copy, wdir/rel_path)
+                    os.symlink(local_copy, wdir/local_copy.name)
 
         # Run
         for notebook in notebooks:
@@ -162,6 +164,7 @@ def main():
             with (open(nb_path) as nb_file):
                 nb = nbformat.read(nb_file, as_version=nbformat.NO_CONVERT)
 
+                logger.info(f"Executing notebook {source_nb_path}...")
                 start_time = timeit.default_timer()
                 ep = ExecutePreprocessor(timeout=config['globals:timeout'], kernel_name=config['globals:kernel'])
                 ep_out = ep.preprocess(nb, {'metadata': {'path': str(wdir)}})
@@ -194,6 +197,7 @@ def main():
                 run_tutorial(tutorial)
             except Exception as e:
                 logger.error(f"Tutorial {tutorial} failed. Error:\n{e}")
+                traceback.print_exc()
                 succeeded = False
             else:
                 succeeded = True

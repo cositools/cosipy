@@ -25,12 +25,12 @@ tutorials:
         - test_tutorial/ancillary_test_file.txt
       wasabi_files:
         - test_file.txt
+
     DataIO:
       notebooks: DataIO/DataIO_example.ipynb
       ancillary_files:
         - DataIO/inputs.yaml
         - DataIO/inputs_half_time.yaml
       wasabi_files:
-        - test_file.txt
-        - COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori
+        - ComptonSphere/mini-DC2/GalacticScan.inc1.id1.crab2hr.extracted.tra.gz
 
