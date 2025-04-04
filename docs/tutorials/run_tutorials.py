@@ -5,6 +5,7 @@ import logging
 import os
 import shutil
 import timeit
+from pathlib import Path
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
@@ -35,7 +36,7 @@ def main():
                    help=("Path to local wasabi mirror. We will try to symlink existing file from there."
                          "Otherwise they will be downloaded. If provided and the needed files do not exists, "
                          "they will be cached here. Overrides path in config."))
-    p.add_argument('--tutorials', nargs='*', default = None,
+    p.add_argument('--tutorial', nargs='*', default = None,
                    help = "Which tutorials to run. All by default.")
     p.add_argument("--fetch-only", action='store_true', default=False,
                    help = "Only download wasabi file. Do not run tutorials.")
@@ -50,10 +51,14 @@ def main():
     if args.override is not None:
         config.override(*args.override)
 
+    wasabi_bucket = config['globals:wasabi_bucket']
     wasabi_mirror = args.wasabi_mirror
 
     if wasabi_mirror is None:
         wasabi_mirror = config['globals:wasabi_mirror']
+
+    if wasabi_mirror is not None:
+        wasabi_mirror = Path(wasabi_mirror)
 
     output_dir = args.output
     if output_dir is None:
@@ -65,7 +70,7 @@ def main():
     logger.info(f"Config:\n{config.dump()}")
 
     # Which tutorials to run
-    tutorials = args.tutorials
+    tutorials = args.tutorial
 
     if tutorials is None:
         tutorials = list(config['tutorials'].keys())
@@ -78,8 +83,8 @@ def main():
             Print header all file for a given tutorial
             """
             for file in config['tutorials'][tutorial]['wasabi_files']:
-                metadata = fetch_wasabi_file_header(file)
-                print(yaml.dump({file: metadata}))3
+                metadata = fetch_wasabi_file_header(file, bucket=wasabi_bucket)
+                print(yaml.dump({wasabi_bucket + "/" + file: metadata}))
 
         for tutorial in tutorials:
             get_wasabi_header(tutorial)
@@ -95,8 +100,8 @@ def main():
         Cache all file for a given tutorial
         """
         for file in config['tutorials'][tutorial]['wasabi_files']:
-            output = wasabi_mirror/file.split('/')[-1]
-            metadata = fetch_wasabi_file(file, output, override=True)
+            output = wasabi_mirror/file
+            metadata = fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket)
             logger.info(yaml.dump(metadata))
 
     if wasabi_mirror is not None:
