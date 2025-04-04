@@ -71,6 +71,17 @@ tutorials:
           unzip_output: psr_gal_DC2.h5
           checksum: e817e1d4b5d1add566a56338cba38410
 
-
-
+    spectral_fit_grb:
+      notebook: spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb
+      ancillary_files:
+        - spectral_fits/continuum_fit/grb/background.yaml
+        - spectral_fits/continuum_fit/grb/grb.yaml
+      wasabi_files:
+        - COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori
+        - COSI-SMEX/cosipy_tutorials/grb_spectral_fit_local_frame/grb_bkg_binned_data.hdf5
+        - COSI-SMEX/cosipy_tutorials/grb_spectral_fit_local_frame/grb_binned_data.hdf5
+        - COSI-SMEX/cosipy_tutorials/grb_spectral_fit_local_frame/bkg_binned_data_1s_local.hdf5
+      wasabi_files_unzip:
+        COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip:
+          checksum: e8ff763c5d9e63d3797567a4a51d9eda
 
