@@ -32,7 +32,7 @@ def fetch_wasabi_file(file,
         Full path to the downloaded file in the local system. By default it will use 
         the current directory and the same file name as the input file.
     override: bool, optional
-        Whether to override the file or throw an error if the file already exists
+        Whether to overwrite the file or throw an error if the file already exists
         and has as different checksum. If the file exists but has the same checksum
         it will always throw a warning and skip the file.
     unzip: bool, optional
@@ -83,7 +83,9 @@ def fetch_wasabi_file(file,
 
             if checksum is None:
 
-                if not override:
+                if override:
+                    logger.warning(f"A file named {unzip_output} already exists, but checksum was not provided. Will override.")
+                else:
                     raise RuntimeError(
                         f"A file named {unzip_output} already exists, override=False, and checksum was not provided.")
 
@@ -93,6 +95,7 @@ def fetch_wasabi_file(file,
 
                 if local_checksum != checksum:
                     if override:
+                        logger.warning(f"A file named {unzip_output} already exists but has a different checksum ({local_checksum}) than specified ({checksum}). Will override.")
                         unzip_output.unlink() #Delete
                     else:
                         raise RuntimeError(f"A file named {unzip_output} already exists but has a different checksum ({local_checksum}) than specified ({checksum}).")
@@ -188,10 +191,11 @@ def fetch_wasabi_file(file,
 
         (remote_size, local_size), (remote_etag, local_etag) = get_size_and_etag()
 
-        if remote_size != local_size and not override:
-            raise RuntimeError(f"A file named {output} already exists but has the wrong file size ({local_size}) than the requested file ({remote_size}).")
-        elif remote_etag != local_etag and not override:
-            raise RuntimeError(f"A file named {output} already exists but has a different ETag ({local_etag}) than the requested file ({remote_etag}).")
+        if (remote_size != local_size) or remote_etag != local_etag:
+            if override:
+                logger.warning(f"A file named {output} already exists but has a different checksum than the requested file ({remote_etag}). Will override.")
+            else:
+                raise RuntimeError(f"A file named {output} already exists but has a different checksum than the requested file ({remote_etag})")
         else:
             logger.warning(f"A file named {output} with the same ETag ({remote_etag}) as the requested file already exists. Skipping.")
             return file_hdr
