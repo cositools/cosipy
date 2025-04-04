@@ -18,7 +18,7 @@ tutorials:
     # a specific tutorial in run_tutorial.py
 
     test_tutorial:
-      notebooks:
+      notebook:
         - test_tutorial/test_tutorial.ipynb
         - test_tutorial/test_tutorial_2.ipynb
       ancillary_files:
@@ -26,11 +26,18 @@ tutorials:
       wasabi_files:
         - test_file.txt
 
-    DataIO:
-      notebooks: DataIO/DataIO_example.ipynb
+    dataIO:
+      notebook: DataIO/DataIO_example.ipynb
       ancillary_files:
         - DataIO/inputs.yaml
         - DataIO/inputs_half_time.yaml
       wasabi_files:
         - ComptonSphere/mini-DC2/GalacticScan.inc1.id1.crab2hr.extracted.tra.gz
+
+    spacecraft_file:
+      notebooks: response/SpacecraftFile.ipynb
+      wasabi_file:
+        - COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori
+        - COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip
+
 

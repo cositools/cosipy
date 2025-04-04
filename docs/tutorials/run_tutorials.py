@@ -138,7 +138,7 @@ def main():
         logger.addHandler(file_handler)
 
         # Copy notebook and ancillary files
-        notebooks = np.atleast_1d(config['tutorials'][tutorial]['notebooks'])
+        notebooks = np.atleast_1d(config['tutorials'][tutorial]['notebook'])
 
         for notebook in notebooks:
             source_nb = config.absolute_path(notebook)
