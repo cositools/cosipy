@@ -64,13 +64,12 @@ tutorials:
         - COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz
         - COSI-SMEX/cosipy_tutorials/ts_maps/Crab_galactic_CDS_binned.hdf5
         - COSI-SMEX/cosipy_tutorials/ts_maps/Albedo_galactic_CDS_binned.hdf5
-        -
       wasabi_files_unzip:
         COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip:
           checksum: e8ff763c5d9e63d3797567a4a51d9eda
         COSI-SMEX/DC2/Responses/PointSourceReponse/psr_gal_continuum_DC2.h5.zip:
-          output_unzip: psr_gal_DC2.h5
-          checksum: e8ff763c5d9e63d3797567a4a51d9eda
+          unzip_output: psr_gal_DC2.h5
+          checksum: e817e1d4b5d1add566a56338cba38410
 
 
 
