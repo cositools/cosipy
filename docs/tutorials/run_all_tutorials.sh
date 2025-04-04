@@ -89,11 +89,13 @@ cosi_pipeline_public="${HOME}/cosi/data/wasabi/cosi-pipelines-public"
 #(cd $wdir && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} Point_source_injector.ipynb)
 
 wdir=background_estimation/continuum_estimation/
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.earthocc.h5" $wdir
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC3/Data/Orientation/DC3_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.ori" $wdir
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.earthocc.zip" $wdir
 ln -fs "${cosi_pipeline_public}/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.earthocc.h5" $wdir
-
-
-(cd $wdir && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} BG_estimation_example.html)
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/background_estimation/crab_bkg_binned_data_galactic.hdf5" $wdir
+ln -fs "${cosi_pipeline_public}/COSI-SMEX/cosipy_tutorials/background_estimation/inputs_crab.yaml" $wdir
+(cd $wdir && jupyter nbconvert --to html --execute --ExecutePreprocessor.kernel_name=${kernel_name} BG_estimation_example.ipynb)
 
 
 
