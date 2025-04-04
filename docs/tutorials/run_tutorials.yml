@@ -18,7 +18,9 @@ tutorials:
     # a specific tutorial in run_tutorial.py
 
     test_tutorial:
-      notebooks: test_tutorial/test_tutorial.ipynb
+      notebooks:
+        - test_tutorial/test_tutorial.ipynb
+        - test_tutorial/test_tutorial_2.ipynb
       ancillary_files:
         - test_tutorial/ancillary_test_file.txt
       wasabi_files:
