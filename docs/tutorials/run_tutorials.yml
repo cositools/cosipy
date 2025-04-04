@@ -42,6 +42,19 @@ tutorials:
       notebook: response/SpacecraftFile.ipynb
       wasabi_files:
         - COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori
-        - COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip
+      wasabi_files_unzip:
+        COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip:
+          checksum: e8ff763c5d9e63d3797567a4a51d9eda
+
+    response:
+      notebook: response/DetectorResponse.ipynb
+      wasabi_files:
+        - COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori
+      wasabi_files_unzip:
+        COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip:
+          checksum: e8ff763c5d9e63d3797567a4a51d9eda
+
+
+
 
 
