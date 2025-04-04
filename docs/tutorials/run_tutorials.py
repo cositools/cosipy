@@ -44,12 +44,10 @@ def main():
                          "they will be cached here. Overrides path in config."))
     p.add_argument('--tutorial', nargs='*', default = None,
                    help = "Which tutorials to run. All by default.")
-    p.add_argument("--fetch-only", action='store_true', default=False,
-                   help = "Only download wasabi file. Do not run tutorials.")
-    p.add_argument("--fetch-header-only", action='store_true', default=False,
-                   help="Only download wasabi file. Do not run tutorials.")
     p.add_argument('--log-level', default='info',
                     help='Set the logging level (debug, info, warning, error, critical)')
+    p.add_argument('--dry', action='store_true', default=False,
+                   help='Perform the setup, fetching and checks, but do not execute the notebooks')
     args = p.parse_args()
 
     # Logger
@@ -88,34 +86,34 @@ def main():
     if tutorials is None:
         tutorials = list(config['tutorials'].keys())
 
-    # Fetch header
-    if args.fetch_header_only:
-
-        def get_wasabi_header(tutorial):
-            """
-            Print header all file for a given tutorial
-            """
-            for file in config['tutorials'][tutorial]['wasabi_files']:
-                metadata = fetch_wasabi_file_header(file, bucket=wasabi_bucket)
-                print(yaml.dump({wasabi_bucket + "/" + file: metadata}))
-
-        for tutorial in tutorials:
-            get_wasabi_header(tutorial)
-
-        return
-
     # Cache files
-    if args.fetch_only and wasabi_mirror is None:
-        raise p.error("You need to pass --wasabi-mirror to use --fetch-only.")
-
     def cache_wasabi_files(tutorial):
         """
         Cache all file for a given tutorial
         """
-        for file in config['tutorials'][tutorial]['wasabi_files']:
-            output = wasabi_mirror/file
-            metadata = fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket)
-            logger.info(yaml.dump(metadata))
+        if 'wasabi_files' in config['tutorials'][tutorial]:
+            for file in config['tutorials'][tutorial]['wasabi_files']:
+                output = wasabi_mirror/file
+                logger.info(f"Fetching {file} to {output}")
+                metadata = fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket)
+                logger.info(yaml.dump(metadata))
+
+        if 'wasabi_files_unzip' in config['tutorials'][tutorial]:
+            for file,file_args in config['tutorials'][tutorial]['wasabi_files_unzip'].items():
+                output = wasabi_mirror / file
+
+                unzip_output = None
+                if 'unzip_output' in file_args:
+                    unzip_output = output.parent/file_args['unzip_output']
+
+                checksum = None
+                if 'checksum' in file_args:
+                    checksum = file_args['checksum']
+
+                logger.info(f"Fetching {file} and unzipping it to unzip_output")
+                metadata = fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket, unzip = True, unzip_output=unzip_output, checksum=checksum)
+
+                logger.info(yaml.dump(metadata))
 
     if wasabi_mirror is not None:
         for tutorial in tutorials:
@@ -144,71 +142,72 @@ def main():
             source_nb = config.absolute_path(notebook)
             shutil.copyfile(source_nb, wdir/source_nb.name)
 
-        for file in config['tutorials'][tutorial]['ancillary_files']:
-            source_file = config.absolute_path(file)
-            shutil.copyfile(source_file, wdir/source_file.name)
+        if 'ancillary_files' in config['tutorials'][tutorial]:
+            for file in config['tutorials'][tutorial]['ancillary_files']:
+                source_file = config.absolute_path(file)
+                shutil.copyfile(source_file, wdir/source_file.name)
 
         # Link wasabi files from cache is they exists
         if wasabi_mirror is not None:
-            for rel_path in config['tutorials'][tutorial]['wasabi_files']:
-                local_copy = wasabi_mirror/rel_path
+            if 'wasabi_files' in config['tutorials'][tutorial]:
+                for rel_path in config['tutorials'][tutorial]['wasabi_files']:
+                    local_copy = wasabi_mirror/rel_path
 
-                if local_copy.exists():
-                    os.symlink(local_copy, wdir/local_copy.name)
+                    if local_copy.exists():
+                        os.symlink(local_copy, wdir/local_copy.name)
 
         # Run
-        for notebook in notebooks:
-            source_nb_path = config.absolute_path(notebook)
-            nb_path = wdir/source_nb_path.name
+        if not args.dry:
+            for notebook in notebooks:
+                source_nb_path = config.absolute_path(notebook)
+                nb_path = wdir/source_nb_path.name
 
-            with (open(nb_path) as nb_file):
-                nb = nbformat.read(nb_file, as_version=nbformat.NO_CONVERT)
+                with (open(nb_path) as nb_file):
+                    nb = nbformat.read(nb_file, as_version=nbformat.NO_CONVERT)
 
-                logger.info(f"Executing notebook {source_nb_path}...")
-                start_time = timeit.default_timer()
-                ep = ExecutePreprocessor(timeout=config['globals:timeout'], kernel_name=config['globals:kernel'])
-                ep_out = ep.preprocess(nb, {'metadata': {'path': str(wdir)}})
-                elapsed = timeit.default_timer() - start_time
-                logger.info(f"Notebook {source_nb_path} took {elapsed} seconds to finish.")
+                    logger.info(f"Executing notebook {source_nb_path}...")
+                    start_time = timeit.default_timer()
+                    ep = ExecutePreprocessor(timeout=config['globals:timeout'], kernel_name=config['globals:kernel'])
+                    ep_out = ep.preprocess(nb, {'metadata': {'path': str(wdir)}})
+                    elapsed = timeit.default_timer() - start_time
+                    logger.info(f"Notebook {source_nb_path} took {elapsed} seconds to finish.")
 
-                nb_exec_path = nb_path.with_name(nb_path.stem + "_executed" + nb_path.suffix)
-                with open(nb_exec_path, 'w', encoding='utf-8') as exec_nb_file:
-                    nbformat.write(nb, exec_nb_file)
-                    logger.info(f"Saved executed file to {nb_exec_path}")
+                    nb_exec_path = nb_path.with_name(nb_path.stem + "_executed" + nb_path.suffix)
+                    with open(nb_exec_path, 'w', encoding='utf-8') as exec_nb_file:
+                        nbformat.write(nb, exec_nb_file)
+                        logger.info(f"Saved executed file to {nb_exec_path}")
 
-                html_path = nb_exec_path.with_suffix('.html')
-                html_exporter = HTMLExporter(template_name="classic")
-                (body, resources) = html_exporter.from_notebook_node(nb)
-                html_writer = FilesWriter()
-                html_writer.write(body, resources, notebook_name = str(html_path.with_suffix('')))
+                    html_path = nb_exec_path.with_suffix('.html')
+                    html_exporter = HTMLExporter(template_name="classic")
+                    (body, resources) = html_exporter.from_notebook_node(nb)
+                    html_writer = FilesWriter()
+                    html_writer.write(body, resources, notebook_name = str(html_path.with_suffix('')))
 
         # Remove file logger
         logger.removeHandler(file_handler)
 
-    if not (args.fetch_header_only or args.fetch_only):
-        summary = {}
-        for tutorial in tutorials:
+    summary = {}
+    for tutorial in tutorials:
 
-            summary[tutorial] = {}
-            summary_entry = summary[tutorial]
+        summary[tutorial] = {}
+        summary_entry = summary[tutorial]
 
-            start_time = timeit.default_timer()
-            try:
-                run_tutorial(tutorial)
-            except Exception as e:
-                logger.error(f"Tutorial {tutorial} failed. Error:\n{e}")
-                traceback.print_exc()
-                succeeded = False
-            else:
-                succeeded = True
+        start_time = timeit.default_timer()
+        try:
+            run_tutorial(tutorial)
+        except Exception as e:
+            logger.error(f"Tutorial {tutorial} failed. Error:\n{e}")
+            traceback.print_exc()
+            succeeded = False
+        else:
+            succeeded = True
 
-            elapsed = timeit.default_timer() - start_time
+        elapsed = timeit.default_timer() - start_time
 
-            summary_entry['succeeded'] = succeeded
-            summary_entry['elapsed_sec'] = elapsed
+        summary_entry['succeeded'] = succeeded
+        summary_entry['elapsed_sec'] = elapsed
 
-
-        logger.info(f"Run summary:\n{yaml.dump(summary)}")
+    logger.info(f"Run summary:\n{yaml.dump(summary)}")
 
 
 if __name__ == "__main__":
