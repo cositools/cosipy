@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 def fetch_wasabi_file(file,
                       output = None,
-                      override = False,
+                      overwrite = False,
                       unzip = False,
                       unzip_output = None,
                       checksum = None,
@@ -31,7 +31,7 @@ def fetch_wasabi_file(file,
     output : str,  optional
         Full path to the downloaded file in the local system. By default it will use 
         the current directory and the same file name as the input file.
-    override: bool, optional
+    overwrite: bool, optional
         Whether to overwrite the file or throw an error if the file already exists
         and has as different checksum. If the file exists but has the same checksum
         it will always throw a warning and skip the file.
@@ -83,7 +83,7 @@ def fetch_wasabi_file(file,
 
             if checksum is None:
 
-                if override:
+                if overwrite:
                     logger.warning(f"A file named {unzip_output} already exists, but checksum was not provided. Will override.")
                 else:
                     raise RuntimeError(
@@ -94,7 +94,7 @@ def fetch_wasabi_file(file,
                 local_checksum = md5(open(unzip_output, 'rb').read()).hexdigest()
 
                 if local_checksum != checksum:
-                    if override:
+                    if overwrite:
                         logger.warning(f"A file named {unzip_output} already exists but has a different checksum ({local_checksum}) than specified ({checksum}). Will override.")
                         unzip_output.unlink() #Delete
                     else:
@@ -104,7 +104,7 @@ def fetch_wasabi_file(file,
                     return file_hdr
 
         # Get zipped file
-        fetch_wasabi_file(file, output = output, override = override, unzip= False, bucket = bucket, endpoint = endpoint, access_key = access_key, secret_key = secret_key)
+        fetch_wasabi_file(file, output = output, overwrite= overwrite, unzip= False, bucket = bucket, endpoint = endpoint, access_key = access_key, secret_key = secret_key)
 
         # Unzip
         if zip_suffix == '.zip':
@@ -192,7 +192,7 @@ def fetch_wasabi_file(file,
         (remote_size, local_size), (remote_etag, local_etag) = get_size_and_etag()
 
         if (remote_size != local_size) or remote_etag != local_etag:
-            if override:
+            if overwrite:
                 logger.warning(f"A file named {output} already exists but has a different checksum than the requested file ({remote_etag}). Will override.")
             else:
                 raise RuntimeError(f"A file named {output} already exists but has a different checksum than the requested file ({remote_etag})")

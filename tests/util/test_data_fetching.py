@@ -21,7 +21,7 @@ def test_fetch_wasabi_file():
         # Current directory default and override
         os.chdir(tmpdir)
         
-        fetch_wasabi_file(filename, override = True)
+        fetch_wasabi_file(filename, overwrite= True)
         
         f = open(filename)
         
