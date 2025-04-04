@@ -1,0 +1,25 @@
+# Local paths are relative to where this file lives
+# Wasabi paths are relative to the wasabi bucket used by default
+# The notebook can be either a specific path, or a list. The latter will
+# run all in the list in series.
+# Each tutorial entry is run independently from each other.
+# The notebook and the ancillary files are copied to the output directory
+# The notebook, by default, should use paths relative to the notebook
+
+tutorials:
+  globals:
+    output_dir: # Will append tutorial name to each tutorial. Not optional, it needs to be provided either here or on the command line
+    wasabi_mirror:  # Optional
+    kernel: python3 # Optional but recommended
+    timeout:  # in seconds, per cell. Optional
+  tutorials:
+    # Tutorial names are arbitrary, but can be used to specify
+    # a specific tutorial in run_tutorial.py
+    DataIO:
+      notebooks: DataIO/DataIO_example.ipynb
+      ancillary_files:
+        - DataIO/inputs.yaml
+        - DataIO/inputs_half_time.yaml
+      wasabi_files:
+        - COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori
+
