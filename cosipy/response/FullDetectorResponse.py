@@ -419,10 +419,7 @@ class FullDetectorResponse(HealpixBase):
         
             dr = Histogram(axes, contents=data)
         
-        
-        
-	
-	
+
         # Weight to get effective area
 
         ewidth = dr.axes['Ei'].widths
@@ -511,8 +508,6 @@ class FullDetectorResponse(HealpixBase):
 
         # end of weight now we create the .h5 structure
 
-        npix = dr_area.axes['NuLambda'].nbins
-
         # remove the .h5 file if it already exist
         try:
             os.remove(filename.replace(".rsp.gz", "_nside{0}.area.h5".format(nside)))
@@ -521,123 +516,9 @@ class FullDetectorResponse(HealpixBase):
 
         # create a .h5 file with the good structure
         filename = Path(str(filename).replace(".rsp.gz","_nside{0}.area.h5".format(nside)))
-        f = h5.File(filename, mode='w')
 
-        drm = f.create_group('DRM')
+        cls._write_h5(dr_area, filename)
 
-        # Header
-        drm.attrs['UNIT'] = 'cm2'
-
-        axis_description = {'Ei': "Initial simulated energy",
-                            'NuLambda': "Location of the simulated source in the spacecraft coordinates",
-                            'Pol': "Polarization angle",
-                            'Em': "Measured energy",
-                            'Phi': "Compton angle",
-                            'PsiChi': "Location in the Compton Data Space",
-                            'SigmaTau': "Electron recoil angle",
-                            'Dist': "Distance from first interaction"
-                            }
-
-        #keep the same dimension order of the data
-        axes_to_write = ['NuLambda', 'Ei']
-        
-        if has_polarization:
-            axes_to_write += ['Pol']
-
-        axes_to_write += ['Em', 'Phi', 'PsiChi']
-
-        if sparse:
-            drm.attrs['SPARSE'] = True
-            
-            # singletos. Save space in dense
-            axes_to_write += ['SigmaTau', 'Dist']
-        else:
-            drm.attrs['SPARSE'] = False
-            
-        axes = drm.create_group('AXES', track_order=True)
-
-        for axis in dr.axes[axes_to_write]:
-
-            axis_dataset = axes.create_dataset(axis.label,
-                                    data=axis.edges)
-
-
-            if axis.label in ['NuLambda', 'PsiChi','SigmaTau']:
-
-                # HEALPix
-                axis_dataset.attrs['TYPE'] = 'healpix'
-
-                axis_dataset.attrs['NSIDE'] = nside
-
-                axis_dataset.attrs['SCHEME'] = 'ring'
-
-            else:
-
-                # 1D
-                axis_dataset.attrs['TYPE'] = axis.axis_scale
-
-                if axis.label in ['Ei', 'Em']:
-                    axis_dataset.attrs['UNIT'] = 'keV'
-                    axis_dataset.attrs['TYPE'] = 'log'
-                elif axis.label in ['Phi', 'Pol']:
-                    axis_dataset.attrs['UNIT'] = 'deg'
-                    axis_dataset.attrs['TYPE'] = 'linear'
-                elif axis.label in ['Dist']:
-                    axis_dataset.attrs['UNIT'] = 'cm'
-                    axis_dataset.attrs['TYPE'] = 'linear'
-                else:
-                   raise ValueError("Shouldn't happend")
-
-            axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
-
-        #sparse matrice
-        if sparse :
-        
-            progress_bar = tqdm(total=npix, desc="Progress", unit="nbpixel")
-            # Contents. Sparse arrays
-            coords = drm.create_dataset('BIN_NUMBERS',
-                                (npix,),
-                                dtype=h5.vlen_dtype(int),
-                                compression="gzip")
-
-            data = drm.create_dataset('CONTENTS',
-                              (npix,),
-                              dtype=h5.vlen_dtype(float),
-                              compression="gzip")
-        
-
-        
-
-
-            for b in range(npix):
-        
-                #print(f"{b}/{npix}")
-        
-                pix_slice = dr_area[{'NuLambda':b}]
-                
-        
-                coords[b] = pix_slice.coords.flatten()
-                data[b] = pix_slice.data
-                progress_bar.update(1)
-            
-            progress_bar.close()
-
-        #non sparse
-        else :
-            
-            if has_polarization == True:
-                rsp_axes = [1,0,2,3,4,5]
-	        
-            else:
-                rsp_axes = [1,0,2,3,4]
-
-            data = drm.create_dataset('CONTENTS',
-		        data=np.transpose(dr_area.contents, axes = rsp_axes),
-                              compression="gzip")
-        
-        #close the .h5 file in write mode in order to reopen it in read mode after
-        f.close()
-        
         new = cls(filename)
 
         new._file = h5.File(filename, mode='r')
@@ -645,7 +526,7 @@ class FullDetectorResponse(HealpixBase):
 
         new._unit = u.Unit(new._drm.attrs['UNIT'])
         new._sparse = new._drm.attrs['SPARSE']
-        
+
 
         # Axes
         axes = []
@@ -671,7 +552,7 @@ class FullDetectorResponse(HealpixBase):
                                   scale=axis_type,
                                   label=axis_label)]
 
-                
+
 
         new._axes = Axes(axes)
 
@@ -681,6 +562,135 @@ class FullDetectorResponse(HealpixBase):
                                  coordsys=SpacecraftFrame())
 
         return new
+
+    @staticmethod
+    def _write_h5(dr_area, filename):
+        """
+        Write a Histogram containing the response into a HDF5 file response format
+
+        Parameters
+        ----------
+        dr_area : Histogram,
+             Histogram containing the response matrix in unit of differential area
+
+         filename : str, :py:class:`~pathlib.Path`
+             Path to .h5 file
+        """
+
+        npix = dr_area.axes['NuLambda'].nbins
+        nside = HealpixBase(npix = npix).nside
+        has_polarization = "Pol" in dr_area.axes.labels
+        sparse = dr_area.is_sparse
+
+        f = h5.File(filename, mode='w')
+
+        drm = f.create_group('DRM')
+
+        # Header
+        drm.attrs['UNIT'] = 'cm2'
+
+        axis_description = {'Ei': "Initial simulated energy",
+                            'NuLambda': "Location of the simulated source in the spacecraft coordinates",
+                            'Pol': "Polarization angle",
+                            'Em': "Measured energy",
+                            'Phi': "Compton angle",
+                            'PsiChi': "Location in the Compton Data Space",
+                            'SigmaTau': "Electron recoil angle",
+                            'Dist': "Distance from first interaction"
+                            }
+
+        #keep the same dimension order of the data
+        axes_to_write = ['NuLambda', 'Ei']
+
+        if has_polarization:
+            axes_to_write += ['Pol']
+
+        axes_to_write += ['Em', 'Phi', 'PsiChi']
+
+        if sparse:
+            drm.attrs['SPARSE'] = True
+
+            # singletos. Save space in dense
+            axes_to_write += ['SigmaTau', 'Dist']
+        else:
+            drm.attrs['SPARSE'] = False
+
+        axes = drm.create_group('AXES', track_order=True)
+
+        for axis in dr_area.axes[axes_to_write]:
+
+            axis_dataset = axes.create_dataset(axis.label,
+                                               data=axis.edges)
+
+            if axis.label in ['NuLambda', 'PsiChi', 'SigmaTau']:
+
+                # HEALPix
+                axis_dataset.attrs['TYPE'] = 'healpix'
+
+                axis_dataset.attrs['NSIDE'] = nside
+
+                axis_dataset.attrs['SCHEME'] = 'ring'
+
+            else:
+
+                # 1D
+                axis_dataset.attrs['TYPE'] = axis.axis_scale
+
+                if axis.label in ['Ei', 'Em']:
+                    axis_dataset.attrs['UNIT'] = 'keV'
+                    axis_dataset.attrs['TYPE'] = 'log'
+                elif axis.label in ['Phi', 'Pol']:
+                    axis_dataset.attrs['UNIT'] = 'deg'
+                    axis_dataset.attrs['TYPE'] = 'linear'
+                elif axis.label in ['Dist']:
+                    axis_dataset.attrs['UNIT'] = 'cm'
+                    axis_dataset.attrs['TYPE'] = 'linear'
+                else:
+                    raise ValueError("Shouldn't happend")
+
+            axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
+
+        # sparse matrice
+        if sparse:
+
+            progress_bar = tqdm(total=npix, desc="Progress", unit="nbpixel")
+            # Contents. Sparse arrays
+            coords = drm.create_dataset('BIN_NUMBERS',
+                                        (npix,),
+                                        dtype=h5.vlen_dtype(int),
+                                        compression="gzip")
+
+            data = drm.create_dataset('CONTENTS',
+                                      (npix,),
+                                      dtype=h5.vlen_dtype(float),
+                                      compression="gzip")
+
+            for b in range(npix):
+                # print(f"{b}/{npix}")
+
+                pix_slice = dr_area[{'NuLambda': b}]
+
+                coords[b] = pix_slice.coords.flatten()
+                data[b] = pix_slice.data
+                progress_bar.update(1)
+
+            progress_bar.close()
+
+        # non sparse
+        else:
+
+            if has_polarization == True:
+                rsp_axes = [1,0,2,3,4,5]
+
+            else:
+                rsp_axes = [1,0,2,3,4]
+
+            data = drm.create_dataset('CONTENTS',
+		                              data=np.transpose(dr_area.contents, axes = rsp_axes),
+                                      compression="gzip")
+        
+        #close the .h5 file in write mode in order to reopen it in read mode after
+        f.close()
 
     @property
     def is_sparse(self):
@@ -943,12 +953,12 @@ class FullDetectorResponse(HealpixBase):
 
         if nside_scatt_map is None:
             nside_scatt_map = self.nside
-            
+
         return coordsys, nside_image, nside_scatt_map
 
     def get_point_source_response_per_image_pixel(self, ipix_image, orientation, coordsys = 'galactic', nside_image = None, nside_scatt_map = None, Earth_occ = True):
         """
-        Generate point source response for a specific HEALPix pixel by convolving 
+        Generate point source response for a specific HEALPix pixel by convolving
         the all-sky detector response with exposure.
 
         Parameters
@@ -974,7 +984,7 @@ class FullDetectorResponse(HealpixBase):
             Point source response for the specified pixel
         """
         coordsys, nside_image, nside_scatt_map = self._setup_extended_source_response_params(coordsys, nside_image, nside_scatt_map)
-        
+
         image_axes = HealpixAxis(nside = nside_image, coordsys = coordsys, scheme='ring', label = 'NuLambda') # The label should be 'lb' in the future
 
         coord = image_axes.pix2skycoord(ipix_image)
@@ -991,7 +1001,7 @@ class FullDetectorResponse(HealpixBase):
 
     def get_extended_source_response(self, orientation, coordsys = 'galactic', nside_image = None, nside_scatt_map = None, Earth_occ = True):
         """
-        Generate extended source response by convolving the all-sky detector 
+        Generate extended source response by convolving the all-sky detector
         response with exposure over the entire sky.
 
         Parameters
@@ -1023,8 +1033,8 @@ class FullDetectorResponse(HealpixBase):
         extended_source_response = ExtendedSourceResponse(axes, unit = u.Unit("cm2 s"))
 
         for ipix in tqdm(range(hp.nside2npix(nside_image))):
-    
-            psr = self.get_point_source_response_per_image_pixel(ipix, orientation, coordsys = coordsys, 
+
+            psr = self.get_point_source_response_per_image_pixel(ipix, orientation, coordsys = coordsys,
                                                                  nside_image = nside_image, nside_scatt_map = nside_scatt_map, Earth_occ = Earth_occ)
 
             extended_source_response[ipix] = psr.contents
@@ -1034,8 +1044,8 @@ class FullDetectorResponse(HealpixBase):
     def merge_psr_to_extended_source_response(self, basename, coordsys = 'galactic', nside_image = None):
         """
         Create extended source response by merging multiple point source responses.
-    
-        Reads point source response files matching the pattern `basename` + index + file_extension. 
+
+        Reads point source response files matching the pattern `basename` + index + file_extension.
         For example, with basename='histograms/hist_', filenames are expected to be like 'histograms/hist_00001.hdf5'.
 
         Parameters
@@ -1065,7 +1075,7 @@ class FullDetectorResponse(HealpixBase):
         axes[-1].coordsys = coordsys
 
         extended_source_response = ExtendedSourceResponse(axes, unit = u.Unit("cm2 s"))
-        
+
         filled_pixels = []
 
         for filename in psr_files:
@@ -1073,7 +1083,7 @@ class FullDetectorResponse(HealpixBase):
             ipix = int(filename[len(basename):].split(".")[0])
 
             psr = Histogram.open(filename)
-        
+
             extended_source_response[ipix] = psr.contents
 
             filled_pixels.append(ipix)
@@ -1083,7 +1093,7 @@ class FullDetectorResponse(HealpixBase):
             raise ValueError(f"Missing pixels in the response files. Expected {extended_source_response.axes[0].npix} pixels, got {len(filled_pixels)} pixels")
 
         return extended_source_response
-            
+
     @staticmethod
     def _sum_rot_hist(h, h_new, exposure, axis = "PsiChi"):
         """
