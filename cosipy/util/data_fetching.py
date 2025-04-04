@@ -32,9 +32,9 @@ def fetch_wasabi_file(file,
         Full path to the downloaded file in the local system. By default it will use 
         the current directory and the same file name as the input file.
     override: bool, optional
-        If True, it will override the output file if already exists. Otherwise, it will
-        throw and error, unless the existing file has the same checksum, in which case
-        it will simply skip it with a warning.
+        Whether to override the file or throw an error if the file already exists
+        and has as different checksum. If the file exists but has the same checksum
+        it will always throw a warning and skip the file.
     unzip: bool, optional
         Uncompress a .gz or .zip file.
     unzip_output: str, Path, optional
@@ -80,17 +80,22 @@ def fetch_wasabi_file(file,
             unzip_output = Path(unzip_output)
 
         if unzip_output.exists():
-            if override:
-                unzip_output.unlink() # Delete
-            else:
 
-                if checksum is None:
-                    raise RuntimeError(f"A file named {unzip_output} already exists, override=False, and checksum was not provided.")
+            if checksum is None:
+
+                if not override:
+                    raise RuntimeError(
+                        f"A file named {unzip_output} already exists, override=False, and checksum was not provided.")
+
+            else:
 
                 local_checksum = md5(open(unzip_output, 'rb').read()).hexdigest()
 
                 if local_checksum != checksum:
-                    raise RuntimeError(f"A file named {unzip_output} already exists but has a different checksum ({local_checksum}) than specified ({checksum}).")
+                    if override:
+                        unzip_output.unlink() #Delete
+                    else:
+                        raise RuntimeError(f"A file named {unzip_output} already exists but has a different checksum ({local_checksum}) than specified ({checksum}).")
                 else:
                     logger.warning(f"A file named {unzip_output} already exists with the specified checksum ({checksum}). Skipping.")
                     return file_hdr
@@ -115,7 +120,7 @@ def fetch_wasabi_file(file,
 
         return file_hdr
 
-    if output.exists() and not override:
+    if output.exists():
 
         def get_size_and_etag():
             """
@@ -183,9 +188,9 @@ def fetch_wasabi_file(file,
 
         (remote_size, local_size), (remote_etag, local_etag) = get_size_and_etag()
 
-        if remote_size != local_size:
+        if remote_size != local_size and not override:
             raise RuntimeError(f"A file named {output} already exists but has the wrong file size ({local_size}) than the requested file ({remote_size}).")
-        elif remote_etag != local_etag:
+        elif remote_etag != local_etag and not override:
             raise RuntimeError(f"A file named {output} already exists but has a different ETag ({local_etag}) than the requested file ({remote_etag}).")
         else:
             logger.warning(f"A file named {output} with the same ETag ({remote_etag}) as the requested file already exists. Skipping.")
