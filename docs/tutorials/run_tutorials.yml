@@ -152,3 +152,12 @@ tutorials:
         COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip:
           checksum: e8ff763c5d9e63d3797567a4a51d9eda
 
+    background_line:
+      notebook: background_estimation/line_background/line_background_estimation_example_notebook.ipynb
+      ancillary_files:
+        - background_estimation/line_background/inputs_bkg_estimation.yaml
+        - background_estimation/line_background/inputs_check_results.yaml
+      wasabi_files:
+        - COSI-SMEX/DC3/Data/Sources/26Al_NE2001_3months_unbinned_data_filtered_with_SAAcut.fits.gz
+        - COSI-SMEX/DC3/Data/Backgrounds/Ge/AlbedoPhotons_3months_unbinned_data_filtered_with_SAAcut.fits.gz
+
