@@ -117,3 +117,38 @@ tutorials:
         COSI-SMEX/DC2/Responses/PointSourceReponse/psr_gal_511_DC2.h5.gz:
           checksum: daaace1b814728b8410aee0367e449a3
 
+    imaging_511_scatt:
+      notebook:
+        - image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-DataReduction.ipynb
+        - image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.ipynb
+      ancillary_files:
+        - image_deconvolution/511keV/ScAttBinning/imagedeconvolution_parfile_scatt_511keV.yml
+        - image_deconvolution/511keV/ScAttBinning/inputs_511keV.yaml
+      wasabi_files:
+        - COSI-SMEX/DC2/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5
+        - COSI-SMEX/DC2/Data/Sources/511_thin_disk_3months_unbinned_data.fits.gz
+        - COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz
+        - COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori
+
+    source_injector:
+      notebook: source_injector/Point_source_injector.ipynb
+      ancillary_files:
+        - source_injector/OPsSpectrum.dat
+        - source_injector/crab_spec.dat
+        - source_injector/model_injected.h5
+      wasabi_files:
+        - COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori
+      wasabi_files_unzip:
+        COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip:
+          checksum: e8ff763c5d9e63d3797567a4a51d9eda
+
+    background_continuum:
+      notebook: background_estimation/continuum_estimation/BG_estimation_example.ipynb
+      wasabi_files:
+        - COSI-SMEX/DC3/Data/Orientation/DC3_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.ori
+        - COSI-SMEX/cosipy_tutorials/background_estimation/crab_bkg_binned_data_galactic.hdf5
+        - COSI-SMEX/cosipy_tutorials/background_estimation/inputs_crab.yaml
+      wasabi_files_unzip:
+        COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip:
+          checksum: e8ff763c5d9e63d3797567a4a51d9eda
+
