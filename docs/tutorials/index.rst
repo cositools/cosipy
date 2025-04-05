@@ -69,7 +69,9 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
 11. Line background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/line_background/line_background_estimation_example_notebook.ipynb>`_
   - Estimating the background from neighboring energy bins.
 
-    
+12. Polarization (ASAD method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/ASAD_method.ipynb>`_
+  - Estimating the polarization degree and angle of a GRB using the Azimuthal Scattering Angle Distribution (ASAD)
+
 .. warning::
    Under construction. Some of the explanations described above might be missing. However, the notebooks are fully functional. If you have a question not yet covered by the tutorials, please discuss `issue <https://github.com/cositools/cosipy/discussions>`_ so we can prioritize it.
     
@@ -87,4 +89,4 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    Source injector <source_injector/Point_source_injector.ipynb>
    Continuum Background Estimation <background_estimation/continuum_estimation/BG_estimation_example.ipynb>
    Line background estimation <background_estimation/line_background/line_background_estimation_example_notebook.ipynb>
-   
+   Polarization (ASAD method) <polarization/ASAD_method.ipynb>
