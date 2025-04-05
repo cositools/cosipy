@@ -95,6 +95,7 @@ def main():
             for file in config['tutorials'][tutorial]['wasabi_files']:
                 output = wasabi_mirror/file
                 logger.info(f"Fetching {file} to {output}")
+                output.parent.mkdir(parents=True, exist_ok=True)
                 metadata = fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket)
                 logger.info(yaml.dump(metadata))
 
@@ -111,8 +112,8 @@ def main():
                     checksum = file_args['checksum']
 
                 logger.info(f"Fetching {file} and unzipping it to {unzip_output}")
+                output.parent.mkdir(parents=True, exist_ok=True)
                 metadata = fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket, unzip = True, unzip_output=unzip_output, checksum=checksum)
-
                 logger.info(yaml.dump(metadata))
 
     if wasabi_mirror is not None:
