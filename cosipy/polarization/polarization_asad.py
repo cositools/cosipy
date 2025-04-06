@@ -200,7 +200,7 @@ class PolarizationASAD():
         
         else:
             
-            scatt_map = self._ori.get_scatt_map(self._source_vector, nside=self._response.nside*2, coordsys='galactic')
+            scatt_map = self._ori.get_scatt_map(nside=self._response.nside*2, target_coord=self._source_vector, coordsys='galactic')
             psr = self._response.get_point_source_response(coord=self._source_vector, scatt_map=scatt_map)
             expectation = psr.get_expectation(spectrum, LinearPolarization(polarization_level * 100., polarization_angle.angle.deg))
 
