@@ -576,10 +576,6 @@ class PolarizationASAD():
             Fitted parameter values
         """
 
-        # Defaults
-        if bounds is None:
-            bounds = (-np.inf, np.inf)
-
         parameter_values, uncertainties = self.fit_asad(counts_corrected, p0, bounds, sigma)
     
         mu = parameter_values[1] / parameter_values[0]
@@ -681,7 +677,7 @@ class PolarizationASAD():
         """
 
         if bounds is None:
-            bounds = (-np.inf, np.inf)
+            bounds = ([0, 0, 0], [np.inf,np.inf,np.pi])
 
         parameter_values, uncertainties = self.fit_asad(self._asads['source (corrected)'].contents.data, p0, bounds, self._sigma)
 
