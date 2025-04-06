@@ -41,9 +41,9 @@ background = {'Psi local': [0, 0], 'Chi local': [0, 0], 'Psi galactic': [0, 0], 
 
 def test_spacecraft_fit():
 
-    polarization_spacecraft = PolarizationASAD(source_direction, spectrum, bin_edges, data, background, sc_orientation, response_path, response_convention='RelativeZ', show_plots=True, fit_convention=MEGAlibRelativeZ(attitude=attitude))
+    polarization_spacecraft = PolarizationASAD(source_direction, spectrum, bin_edges, data, background, sc_orientation, response_path, response_convention='RelativeZ', show_plots=False, fit_convention=MEGAlibRelativeZ(attitude=attitude))
 
-    polarization_fit_spacecraft = polarization_spacecraft.fit(show_plots=True)
+    polarization_fit_spacecraft = polarization_spacecraft.fit(show_plots=False)
 
     assert np.allclose([polarization_fit_spacecraft['fraction'], polarization_fit_spacecraft['fraction uncertainty'], 
                         polarization_fit_spacecraft['angle'].angle.rad, polarization_fit_spacecraft['angle uncertainty'].rad],
@@ -51,9 +51,9 @@ def test_spacecraft_fit():
 
 def test_icrs_fit():
 
-    polarization_icrs = PolarizationASAD(source_direction.transform_to('galactic'), spectrum, bin_edges, data, background, sc_orientation, response_path, response_convention='RelativeZ', show_plots=True)
+    polarization_icrs = PolarizationASAD(source_direction.transform_to('galactic'), spectrum, bin_edges, data, background, sc_orientation, response_path, response_convention='RelativeZ', show_plots=False)
 
-    polarization_fit_icrs = polarization_icrs.fit(show_plots=True)
+    polarization_fit_icrs = polarization_icrs.fit(show_plots=False)
 
     assert np.allclose([polarization_fit_icrs['fraction'], polarization_fit_icrs['fraction uncertainty'], 
                         polarization_fit_icrs['angle'].angle.rad, polarization_fit_icrs['angle uncertainty'].rad],
