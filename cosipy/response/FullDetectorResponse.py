@@ -1132,7 +1132,7 @@ class FullDetectorResponse(HealpixBase):
         # TODO: Change this to interpolation (pixels + weights)
         old_pixels = old_axis.find_bin(new_axis.pix2skycoord(np.arange(new_axis.nbins)))
 
-        if 'Pol' in h.axes.labels and h_new.axes[axis].coordsys.name == 'galactic' or h_new.axes[axis].coordsys.name == 'icrs':
+        if 'Pol' in h.axes.labels and h_new.axes[axis].coordsys.name != 'spacecraftframe':
 
             if coord.size > 1:
                 raise ValueError("For polarization, only a single source coordinate is supported")
