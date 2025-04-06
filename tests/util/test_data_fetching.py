@@ -27,7 +27,11 @@ def test_fetch_wasabi_file():
         
         assert f.read() == 'Small file used for testing purposes.\n'
 
-        # Test error when file exists and no override
+        # Test error when file exists, is different, and no overwrite
+        file = open(output, "a")
+        file.write("Append test line.\n")
+        file.close()
+
         with pytest.raises(RuntimeError):
             fetch_wasabi_file(filename)
         
