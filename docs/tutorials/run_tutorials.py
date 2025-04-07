@@ -111,7 +111,7 @@ def main():
                 if 'checksum' in file_args:
                     checksum = file_args['checksum']
 
-                logger.info(f"Fetching {file} and unzipping it to {unzip_output}")
+                logger.info(f"Fetching and unzipping {file}")
                 output.parent.mkdir(parents=True, exist_ok=True)
                 metadata = fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket, unzip = True, unzip_output=unzip_output, checksum=checksum)
                 logger.info(yaml.dump(metadata))
