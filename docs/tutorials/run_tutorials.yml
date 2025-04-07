@@ -24,9 +24,9 @@ tutorials:
       ancillary_files:
         - test/ancillary_test_file.txt
       wasabi_files:
-        - test_file.txt
+        - test_files/test_file.txt
       wasabi_files_unzip:
-        test_file.txt.gz:
+        test_files/test_file.txt.gz:
           #unzip_output: # Optional, if the unzipped file name is different from just removing the .zip or .gz
           checksum: c29015230d84e5e44e773c51c99b5911 # MD5 sum
 
