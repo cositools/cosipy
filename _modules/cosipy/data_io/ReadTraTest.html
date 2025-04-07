@@ -1,0 +1,325 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.data_io.ReadTraTest &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.data_io.ReadTraTest</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.data_io.ReadTraTest</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Import</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.data_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">UnBinnedData</span> 
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="c1"># Load MEGAlib into ROOT</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">ROOT</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">M</span>
+    <span class="n">M</span><span class="o">.</span><span class="n">gSystem</span><span class="o">.</span><span class="n">Load</span><span class="p">(</span><span class="s2">&quot;$(MEGAlib)/lib/libMEGAlib.so&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Initialize MEGAlib</span>
+    <span class="n">G</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">MGlobal</span><span class="p">()</span>
+    <span class="n">G</span><span class="o">.</span><span class="n">Initialize</span><span class="p">()</span>
+    
+<span class="k">except</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<div class="viewcode-block" id="ReadTraTest">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.ReadTraTest">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ReadTraTest</span><span class="p">(</span><span class="n">UnBinnedData</span><span class="p">):</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Old method for reading tra file, used for unit testing.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ReadTraTest.read_tra_old">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.ReadTraTest.read_tra_old">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_tra_old</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_name</span><span class="p">,</span> <span class="n">make_plots</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reads in MEGAlib .tra (or .tra.gz) file.</span>
+<span class="sd">       </span>
+<span class="sd">        This method uses MEGAlib to read events from the tra file. </span>
+<span class="sd">        This is used to compare to the new event reader, which is </span>
+<span class="sd">        independent of MEGAlib. </span>
+<span class="sd">        </span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_name : str</span>
+<span class="sd">            Prefix of output file.</span>
+<span class="sd">        make_plots : bool, optional</span>
+<span class="sd">            Option to make binning plot.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        cosi_dataset : dict</span>
+<span class="sd">            Returns COSI dataset as a dictionary of the form:</span>
+<span class="sd">            cosi_dataset = {&#39;Full filename&#39;:self.data_file,\</span>
+<span class="sd">                        &#39;Energies&#39;:erg,\</span>
+<span class="sd">                        &#39;TimeTags&#39;:tt,\</span>
+<span class="sd">                        &#39;Xpointings&#39;:np.array([lonX,latX]).T,\</span>
+<span class="sd">                        &#39;Ypointings&#39;:np.array([lonY,latY]).T,\</span>
+<span class="sd">                        &#39;Zpointings&#39;:np.array([lonZ,latZ]).T,\</span>
+<span class="sd">                        &#39;Phi&#39;:phi,\</span>
+<span class="sd">                        &#39;Chi local&#39;:chi_loc,\</span>
+<span class="sd">                        &#39;Psi local&#39;:psi_loc,\</span>
+<span class="sd">                        &#39;Distance&#39;:dist,\</span>
+<span class="sd">                        &#39;Chi galactic&#39;:chi_gal,\</span>
+<span class="sd">                        &#39;Psi galactic&#39;:psi_gal}</span>
+<span class="sd">        </span>
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">        This method sets the instance attribute, cosi_dataset, </span>
+<span class="sd">        but it does not explicitly return this.  </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># tra file to use:</span>
+        <span class="n">tra_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_file</span>
+
+        <span class="c1"># Log message:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Read tra test...&quot;</span><span class="p">)</span>
+        
+         
+        <span class="c1"># Check if file exists:</span>
+        <span class="n">Reader</span> <span class="o">=</span> <span class="n">M</span><span class="o">.</span><span class="n">MFileEventsTra</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">Reader</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">M</span><span class="o">.</span><span class="n">MString</span><span class="p">(</span><span class="n">tra_file</span><span class="p">))</span> <span class="o">==</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Unable to open file </span><span class="si">%s</span><span class="s2">. Aborting!&quot;</span> <span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+
+        <span class="c1"># Initialise empty lists:</span>
+            
+        <span class="c1"># Total photon energy</span>
+        <span class="n">erg</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Time tag in UNIX time</span>
+        <span class="n">tt</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Event Type (0: CE; 4:PE; ...)</span>
+        <span class="n">et</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Latitude of X direction of spacecraft</span>
+        <span class="n">latX</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Lontitude of X direction of spacecraft</span>
+        <span class="n">lonX</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Latitude of Z direction of spacecraft</span>
+        <span class="n">latZ</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Longitude of Z direction of spacecraft</span>
+        <span class="n">lonZ</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Compton scattering angle</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Measured data space angle chi (azimuth direction; 0..360 deg)</span>
+        <span class="n">chi_loc</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Measured data space angle psi (polar direction; 0..180 deg)</span>
+        <span class="n">psi_loc</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># First lever arm distance in cm</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Measured gal angle chi (lon direction)</span>
+        <span class="n">chi_gal</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Measured gal angle psi (lat direction)</span>
+        <span class="n">psi_gal</span> <span class="o">=</span> <span class="p">[]</span> 
+
+        <span class="c1"># Browse through tra file, select events, and sort into corresponding list:</span>
+        <span class="c1"># Note: The Reader class from MEGAlib knows where an event starts and ends and</span>
+        <span class="c1"># returns the Event object which includes all information of an event.</span>
+        <span class="c1"># Note: Here only select Compton events (will add Photo events later as optional).</span>
+        <span class="c1"># Note: All calculations and definitions taken from:</span>
+        <span class="c1"># /MEGAlib/src/response/src/MResponseImagingBinnedMode.cxx.</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            
+            <span class="n">Event</span> <span class="o">=</span> <span class="n">Reader</span><span class="o">.</span><span class="n">GetNextEvent</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">Event</span><span class="p">:</span>
+                <span class="k">break</span>
+                
+            <span class="c1"># Total Energy:</span>
+            <span class="n">erg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">Ei</span><span class="p">())</span>
+            <span class="c1"># Time tag in UNIX seconds:</span>
+            <span class="n">tt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">GetTime</span><span class="p">()</span><span class="o">.</span><span class="n">GetAsSeconds</span><span class="p">())</span>
+            <span class="c1"># Event type (0 = Compton, 4 = Photo):</span>
+            <span class="n">et</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">GetEventType</span><span class="p">())</span>
+            <span class="c1"># x axis of space craft pointing at GAL latitude:</span>
+            <span class="n">latX</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">GetGalacticPointingXAxisLatitude</span><span class="p">())</span>
+            <span class="c1"># x axis of space craft pointing at GAL longitude:</span>
+            <span class="n">lonX</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">GetGalacticPointingXAxisLongitude</span><span class="p">())</span>
+            <span class="c1"># z axis of space craft pointing at GAL latitude:</span>
+            <span class="n">latZ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">GetGalacticPointingZAxisLatitude</span><span class="p">())</span>
+            <span class="c1"># z axis of space craft pointing at GAL longitude:</span>
+            <span class="n">lonZ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">GetGalacticPointingZAxisLongitude</span><span class="p">())</span>    
+            <span class="c1"># Compton scattering angle:</span>
+            <span class="n">phi</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">Phi</span><span class="p">())</span> 
+            <span class="c1"># Data space angle chi (azimuth):</span>
+            <span class="n">chi_loc</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="o">-</span><span class="n">Event</span><span class="o">.</span><span class="n">Dg</span><span class="p">())</span><span class="o">.</span><span class="n">Phi</span><span class="p">())</span>
+            <span class="c1"># Data space angle psi (polar):</span>
+            <span class="n">psi_loc</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="o">-</span><span class="n">Event</span><span class="o">.</span><span class="n">Dg</span><span class="p">())</span><span class="o">.</span><span class="n">Theta</span><span class="p">())</span>
+            <span class="c1"># Interaction length between first and second scatter in cm:</span>
+            <span class="n">dist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Event</span><span class="o">.</span><span class="n">FirstLeverArm</span><span class="p">())</span>
+            <span class="c1"># Gal longitude angle corresponding to chi:</span>
+            <span class="n">chi_gal</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">Event</span><span class="o">.</span><span class="n">GetGalacticPointingRotationMatrix</span><span class="p">()</span><span class="o">*</span><span class="n">Event</span><span class="o">.</span><span class="n">Dg</span><span class="p">())</span><span class="o">.</span><span class="n">Phi</span><span class="p">())</span>
+            <span class="c1"># Gal longitude angle corresponding to chi:</span>
+            <span class="n">psi_gal</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">Event</span><span class="o">.</span><span class="n">GetGalacticPointingRotationMatrix</span><span class="p">()</span><span class="o">*</span><span class="n">Event</span><span class="o">.</span><span class="n">Dg</span><span class="p">())</span><span class="o">.</span><span class="n">Theta</span><span class="p">())</span>
+                
+        <span class="c1"># Initialize arrays:</span>
+        <span class="n">erg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">erg</span><span class="p">)</span>
+        <span class="n">tt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span>
+        <span class="n">et</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">et</span><span class="p">)</span>
+
+        <span class="n">latX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">latX</span><span class="p">)</span>
+        <span class="n">lonX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lonX</span><span class="p">)</span>
+        <span class="c1"># Change longitudes to from 0..360 deg to -180..180 deg</span>
+        <span class="n">lonX</span><span class="p">[</span><span class="n">lonX</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+
+        <span class="n">latZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">latZ</span><span class="p">)</span>
+        <span class="n">lonZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lonZ</span><span class="p">)</span>
+        <span class="c1"># Change longitudes to from 0..360 deg to -180..180 deg</span>
+        <span class="n">lonZ</span><span class="p">[</span><span class="n">lonZ</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+
+        <span class="n">chi_loc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">chi_loc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi_loc_old</span> <span class="o">=</span> <span class="n">chi_loc</span>
+
+        <span class="c1"># Change azimuth angle to 0..360 deg</span>
+        <span class="n">chi_loc</span><span class="p">[</span><span class="n">chi_loc</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+
+        <span class="n">psi_loc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">psi_loc</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi_loc_old</span> <span class="o">=</span> <span class="n">psi_loc</span>
+        
+        <span class="c1"># For comparing chi_loc, psi_loc=0 values are arbitrary,</span>
+        <span class="c1"># so we exclude them from the comparison. </span>
+        <span class="n">psi_zero_index</span> <span class="o">=</span> <span class="n">psi_loc</span> <span class="o">==</span> <span class="mi">0</span>
+
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dist</span><span class="p">)</span>
+
+        <span class="n">chi_gal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">chi_gal</span><span class="p">)</span>
+        <span class="n">psi_gal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">psi_gal</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi_gal_old</span> <span class="o">=</span> <span class="n">chi_gal</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi_gal_old</span> <span class="o">=</span> <span class="n">psi_gal</span>
+         
+        <span class="c1"># Construct Y direction from X and Z direction</span>
+        <span class="n">lonlatY</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">construct_scy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">lonX</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">latX</span><span class="p">),</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">lonZ</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">latZ</span><span class="p">))</span>
+        <span class="n">lonY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">lonlatY</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">latY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">lonlatY</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c1"># Avoid negative zeros</span>
+        <span class="n">chi_loc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">chi_loc</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">)]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">chi_loc</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">chi_loc</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">)])</span>
+       
+        <span class="c1"># Make observation dictionary</span>
+        <span class="n">cosi_dataset</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Energies&#39;</span><span class="p">:</span><span class="n">erg</span><span class="p">,</span>
+                        <span class="s1">&#39;TimeTags&#39;</span><span class="p">:</span><span class="n">tt</span><span class="p">,</span>
+                        <span class="s1">&#39;Xpointings&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lonX</span><span class="p">,</span><span class="n">latX</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                        <span class="s1">&#39;Ypointings&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lonY</span><span class="p">,</span><span class="n">latY</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                        <span class="s1">&#39;Zpointings&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lonZ</span><span class="p">,</span><span class="n">latZ</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                        <span class="s1">&#39;Phi&#39;</span><span class="p">:</span><span class="n">phi</span><span class="p">,</span>
+                        <span class="s1">&#39;Chi local&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">chi_loc_old</span><span class="p">,</span>
+                        <span class="s1">&#39;Psi local&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">psi_loc_old</span><span class="p">,</span>
+                        <span class="s1">&#39;Distance&#39;</span><span class="p">:</span><span class="n">dist</span><span class="p">,</span>
+                        <span class="s1">&#39;Chi galactic&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">chi_gal_old</span><span class="p">,</span>
+                        <span class="s1">&#39;Psi galactic&#39;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">psi_gal_old</span><span class="p">}</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span> <span class="o">=</span> <span class="n">cosi_dataset</span>
+
+        <span class="c1"># Write unbinned data to file (either fits or hdf5):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">write_unbinned_output</span><span class="p">(</span><span class="n">output_name</span><span class="p">)</span> 
+        
+        <span class="k">return</span> </div>
+</div>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

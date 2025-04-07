@@ -1,0 +1,254 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.response.ExtendedSourceResponse &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.response.ExtendedSourceResponse</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.response.ExtendedSourceResponse</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Histogram</span><span class="p">,</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">Axis</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_integrated_extended_model</span>
+
+<div class="viewcode-block" id="ExtendedSourceResponse">
+<a class="viewcode-back" href="../../../api/response.html#cosipy.response.ExtendedSourceResponse">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExtendedSourceResponse</span><span class="p">(</span><span class="n">Histogram</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to represent and manipulate extended source response data.</span>
+
+<span class="sd">    This class provides methods to load data from HDF5 files, access contents,</span>
+<span class="sd">    units, and axes information, and calculate expectations based on sky models.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    get_expectation(allsky_image_model)</span>
+<span class="sd">        Calculate expectation based on an all-sky image model.</span>
+<span class="sd">    get_expectation_from_astromodel(source)</span>
+<span class="sd">        Calculate expectation from an astronomical model source.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+<span class="sd">    Currently, the axes of the response must be [&#39;NuLambda&#39;, &#39;Ei&#39;, &#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize an ExtendedSourceResponse object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Not to track the under/overflow bins</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;track_overflow&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">labels</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;NuLambda&#39;</span><span class="p">,</span> <span class="s1">&#39;Ei&#39;</span><span class="p">,</span> <span class="s1">&#39;Em&#39;</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">,</span> <span class="s1">&#39;PsiChi&#39;</span><span class="p">]):</span>
+            <span class="c1"># &#39;NuLambda&#39; should be &#39;lb&#39; if it is in the gal. coordinates?</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The input axes </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">labels</span><span class="si">}</span><span class="s2"> is not supported by ExtendedSourceResponse class.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ExtendedSourceResponse.open">
+<a class="viewcode-back" href="../../../api/response.html#cosipy.response.ExtendedSourceResponse.open">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">open</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;hist&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load data from an HDF5 file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            The path to the HDF5 file.</span>
+<span class="sd">        name : str, optional</span>
+<span class="sd">            The name of the histogram group in the HDF5 file (default is &#39;hist&#39;).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ExtendedSourceResponse</span>
+<span class="sd">            A new instance of ExtendedSourceResponse with loaded data.</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If the shape of the contents does not match the axes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">hist</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">axes</span>
+        <span class="n">contents</span> <span class="o">=</span> <span class="n">hist</span><span class="p">[:]</span>
+        <span class="n">sumw2</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">sumw2</span> 
+        <span class="n">unit</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">unit</span>
+        <span class="n">track_overflow</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="n">new</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">contents</span><span class="p">,</span>
+                        <span class="n">sumw2</span> <span class="o">=</span> <span class="n">sumw2</span><span class="p">,</span>
+                        <span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span><span class="p">,</span>
+                        <span class="n">track_overflow</span> <span class="o">=</span> <span class="n">track_overflow</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">new</span><span class="o">.</span><span class="n">is_sparse</span><span class="p">:</span>
+            <span class="n">new</span> <span class="o">=</span> <span class="n">new</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+        
+        <span class="k">del</span> <span class="n">hist</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">new</span></div>
+
+
+<div class="viewcode-block" id="ExtendedSourceResponse.get_expectation">
+<a class="viewcode-back" href="../../../api/response.html#cosipy.response.ExtendedSourceResponse.get_expectation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_expectation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">allsky_image_model</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate expectation based on an all-sky image model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        allsky_image_model : Histogram </span>
+<span class="sd">            The all-sky image model to use for calculation.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Histogram</span>
+<span class="sd">            A histogram representing the calculated expectation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">label</span> <span class="o">==</span> <span class="n">allsky_image_model</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">label</span> \
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">label</span> <span class="o">==</span> <span class="n">allsky_image_model</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">label</span> \
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span> <span class="o">==</span> <span class="n">allsky_image_model</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span> \
+            <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span> <span class="o">==</span> <span class="n">allsky_image_model</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span> \
+            <span class="ow">and</span> <span class="n">allsky_image_model</span><span class="o">.</span><span class="n">unit</span> <span class="o">==</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="s1">&#39;1/(s*cm*cm*sr)&#39;</span><span class="p">):</span>
+            
+            <span class="n">contents</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">allsky_image_model</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="n">contents</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pixarea</span><span class="p">()</span>
+
+            <span class="k">return</span> <span class="n">Histogram</span><span class="p">(</span><span class="n">edges</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">contents</span><span class="o">=</span><span class="n">contents</span><span class="p">)</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The input allskymodel mismatches with the extended source response.&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ExtendedSourceResponse.get_expectation_from_astromodel">
+<a class="viewcode-back" href="../../../api/response.html#cosipy.response.ExtendedSourceResponse.get_expectation_from_astromodel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_expectation_from_astromodel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate expectation from an astromodels extended source model.</span>
+
+<span class="sd">        This method creates an AllSkyImageModel based on the current axes configuration,</span>
+<span class="sd">        sets its values from the provided astromodels extended source model, and then</span>
+<span class="sd">        calculates the expectation using the get_expectation method.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source : astromodels.ExtendedSource</span>
+<span class="sd">            An astromodels extended source model object. This model represents</span>
+<span class="sd">            the spatial and spectral distribution of an extended astronomical source.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Histogram</span>
+<span class="sd">            A histogram representing the calculated expectation based on the</span>
+<span class="sd">            provided extended source model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">allsky_image_model</span> <span class="o">=</span> <span class="n">get_integrated_extended_model</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">image_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">energy_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_expectation</span><span class="p">(</span><span class="n">allsky_image_model</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

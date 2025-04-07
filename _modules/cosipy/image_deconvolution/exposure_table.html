@@ -1,0 +1,526 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.image_deconvolution.exposure_table &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.image_deconvolution.exposure_table</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.image_deconvolution.exposure_table</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.autonotebook</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">healpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.spacecraftfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpacecraftAttitudeMap</span>
+
+<div class="viewcode-block" id="SpacecraftAttitudeExposureTable">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SpacecraftAttitudeExposureTable</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to analyze exposure time per each spacecraft attitude</span>
+<span class="sd">    </span>
+<span class="sd">    Table columns are:</span>
+<span class="sd">    - scatt_binning_index: int </span>
+<span class="sd">    - healpix_index: list of tuple. Each tuple is (healpix_index_zpointing, healpix_index_xpointing).</span>
+<span class="sd">    - zpointing: np.array of [l, b] in degrees. Array of z-pointings assigned to each scatt bin.</span>
+<span class="sd">    - xpointing: np.array of [l, b] in degrees. Array of x-pointings assigned to each scatt bin.</span>
+<span class="sd">    - zpointing_averaged: [l, b] in degrees. Averaged z-pointing in each scatt bin.</span>
+<span class="sd">    - xpointing_averaged: [l, b] in degrees. Averaged x-pointing in each scatt bin.</span>
+<span class="sd">    - delta_time: np.array of float in second. Exposure times for pointings assigned to each scatt bin.</span>
+<span class="sd">    - exposure: float in second. total exposure for each scatt bin.</span>
+<span class="sd">    - num_pointings: number of pointings assigned to each scatt bin.</span>
+<span class="sd">    - bkg_group: index of the backgroud group. will be used in the data analysis.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : :py:class:`pd.DataFrame`</span>
+<span class="sd">        pandas dataframe with the above columns</span>
+<span class="sd">    nside : int</span>
+<span class="sd">        Healpix NSIDE parameter.</span>
+<span class="sd">    scheme : str, default &#39;ring&#39;</span>
+<span class="sd">        Healpix scheme. Either &#39;ring&#39;, &#39;nested&#39;. </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">nside</span><span class="p">,</span> <span class="n">scheme</span> <span class="o">=</span> <span class="s1">&#39;ring&#39;</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">df</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">nside</span> <span class="o">=</span> <span class="n">nside</span>
+
+        <span class="k">if</span> <span class="n">scheme</span> <span class="o">==</span> <span class="s1">&#39;ring&#39;</span> <span class="ow">or</span> <span class="n">scheme</span> <span class="o">==</span> <span class="s1">&#39;nested&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span> <span class="o">=</span> <span class="n">scheme</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;The scheme should be &quot;ring&quot; or &quot;nested&quot; in SpacecraftAttitudeExposureTable. It will be set to &quot;ring&quot;.&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span> <span class="o">=</span> <span class="s1">&#39;ring&#39;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;scatt_binning_index&#39;</span><span class="p">,</span> <span class="s1">&#39;healpix_index&#39;</span><span class="p">,</span> <span class="s1">&#39;exposure&#39;</span><span class="p">,</span> <span class="s1">&#39;num_pointings&#39;</span><span class="p">,</span> <span class="s1">&#39;bkg_group&#39;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">==</span> <span class="n">other</span><span class="p">[</span><span class="n">name</span><span class="p">]):</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;delta_time&#39;</span><span class="p">,</span> <span class="s1">&#39;zpointing&#39;</span><span class="p">,</span> <span class="s1">&#39;xpointing&#39;</span><span class="p">,</span> <span class="s1">&#39;zpointing_averaged&#39;</span><span class="p">,</span> <span class="s1">&#39;xpointing_averaged&#39;</span><span class="p">]:</span>
+            <span class="k">for</span> <span class="n">self_</span><span class="p">,</span> <span class="n">other_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="n">other</span><span class="p">[</span><span class="n">name</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">self_</span> <span class="o">==</span> <span class="n">other_</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nside</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">nside</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">scheme</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SpacecraftAttitudeExposureTable.from_orientation">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_orientation">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_orientation</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">orientation</span><span class="p">,</span> <span class="n">nside</span><span class="p">,</span> <span class="n">scheme</span> <span class="o">=</span> <span class="s1">&#39;ring&#39;</span><span class="p">,</span> <span class="n">start</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">stop</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_exposure</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_num_pointings</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Produce exposure table from orientation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        orientation : :py:class:`cosipy.spacecraftfile.SpacecraftFile` </span>
+<span class="sd">            Orientation</span>
+<span class="sd">        nside : int</span>
+<span class="sd">            Healpix NSIDE parameter.</span>
+<span class="sd">        scheme : str, default &#39;ring&#39;</span>
+<span class="sd">            Healpix scheme. Either &#39;ring&#39;, &#39;nested&#39;.</span>
+<span class="sd">        start : :py:class:`astropy.time.Time` or None, default None</span>
+<span class="sd">            Start time to analyze the orientation</span>
+<span class="sd">        stop : :py:class:`astropy.time.Time` or None, default None</span>
+<span class="sd">            Stop time to analyze the orientation</span>
+<span class="sd">        min_exposure : float or None, default None</span>
+<span class="sd">            Minimum exposure time required for each scatt bin</span>
+<span class="sd">        min_num_pointings : int or None, default None</span>
+<span class="sd">            Minimum number of pointings required for each scatt bin</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`cosipy.spacecraftfile.SpacecraftAttitudeExposureTable`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">analyze_orientation</span><span class="p">(</span><span class="n">orientation</span><span class="p">,</span> <span class="n">nside</span><span class="p">,</span> <span class="n">scheme</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">min_exposure</span><span class="p">,</span> <span class="n">min_num_pointings</span><span class="p">)</span>
+
+        <span class="n">new</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">nside</span><span class="p">,</span> <span class="n">scheme</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">new</span></div>
+
+
+    <span class="c1"># GTI should be a mandary parameter</span>
+<div class="viewcode-block" id="SpacecraftAttitudeExposureTable.analyze_orientation">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.analyze_orientation">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_orientation</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">orientation</span><span class="p">,</span> <span class="n">nside</span><span class="p">,</span> <span class="n">scheme</span> <span class="o">=</span> <span class="s1">&#39;ring&#39;</span><span class="p">,</span> <span class="n">start</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">stop</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_exposure</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_num_pointings</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Produce pd.DataFrame from orientation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        orientation : :py:class:`cosipy.spacecraftfile.SpacecraftFile` </span>
+<span class="sd">            Orientation</span>
+<span class="sd">        nside : int</span>
+<span class="sd">            Healpix NSIDE parameter.</span>
+<span class="sd">        scheme : str, default &#39;ring&#39;</span>
+<span class="sd">            Healpix scheme. Either &#39;ring&#39;, &#39;nested&#39;.</span>
+<span class="sd">        start : :py:class:`astropy.time.Time` or None, default None</span>
+<span class="sd">            Start time to analyze the orientation</span>
+<span class="sd">        stop : :py:class:`astropy.time.Time` or None, default None</span>
+<span class="sd">            Stop time to analyze the orientation</span>
+<span class="sd">        min_exposure : float or None, default None</span>
+<span class="sd">            Minimum exposure time required for each scatt bin</span>
+<span class="sd">        min_num_pointings : int or None, default None</span>
+<span class="sd">            Minimum number of pointings required for each scatt bin</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`pd.DataFrame`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;angular resolution: &quot;</span><span class="p">,</span> <span class="n">hp</span><span class="o">.</span><span class="n">nside2resol</span><span class="p">(</span><span class="n">nside</span><span class="p">)</span> <span class="o">*</span> <span class="mi">180</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="s2">&quot;deg.&quot;</span><span class="p">)</span>    
+    
+        <span class="n">indices_healpix</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># (idx_z, idx_x)</span>
+        <span class="n">delta_times</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">xpointings</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># [l_x, b_x]</span>
+        <span class="n">zpointings</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1"># [l_z, b_z]</span>
+                
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">orientation</span> <span class="o">=</span> <span class="n">orientation</span><span class="o">.</span><span class="n">source_interval</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;please specify the stop time&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">elif</span> <span class="n">stop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;please specify the start time&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="n">ori_time</span> <span class="o">=</span> <span class="n">orientation</span><span class="o">.</span><span class="n">get_time</span><span class="p">()</span>
+            
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;duration: &quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">ori_time</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">ori_time</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;day&quot;</span><span class="p">))</span>
+        
+        <span class="n">attitude</span> <span class="o">=</span> <span class="n">orientation</span><span class="o">.</span><span class="n">get_attitude</span><span class="p">()</span>
+        
+        <span class="n">pointing_list</span> <span class="o">=</span> <span class="n">attitude</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="s2">&quot;galactic&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">as_axes</span><span class="p">()</span>
+
+        <span class="n">n_pointing</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pointing_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="n">x_1</span><span class="p">,</span> <span class="n">x_2</span> <span class="o">=</span> <span class="n">pointing_list</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">pointing_list</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">l_x</span><span class="p">,</span> <span class="n">b_x</span> <span class="o">=</span>  <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_1</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="n">x_2</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">degree</span><span class="p">),</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">x_1</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="n">x_2</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+
+        <span class="n">z_1</span><span class="p">,</span> <span class="n">z_2</span> <span class="o">=</span> <span class="n">pointing_list</span><span class="p">[</span><span class="mi">2</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">pointing_list</span><span class="p">[</span><span class="mi">2</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">l_z</span><span class="p">,</span> <span class="n">b_z</span> <span class="o">=</span>  <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">z_1</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="n">z_2</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">degree</span><span class="p">),</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span><span class="n">z_1</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">degree</span> <span class="o">+</span> <span class="n">z_2</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">degree</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">scheme</span> <span class="o">==</span> <span class="s1">&#39;ring&#39;</span><span class="p">:</span>
+            <span class="n">nest</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">scheme</span> <span class="o">==</span> <span class="s1">&#39;nested&#39;</span><span class="p">:</span>
+            <span class="n">nest</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Warning: the scheme should be &quot;ring&quot; or &quot;nested&quot;. It was set to &quot;ring&quot;.&#39;</span><span class="p">)</span>
+            <span class="n">nest</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="n">idx_x</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">ang2pix</span><span class="p">(</span><span class="n">nside</span><span class="p">,</span> <span class="n">l_x</span><span class="p">,</span> <span class="n">b_x</span><span class="p">,</span> <span class="n">nest</span><span class="o">=</span><span class="n">nest</span><span class="p">,</span> <span class="n">lonlat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">idx_z</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">ang2pix</span><span class="p">(</span><span class="n">nside</span><span class="p">,</span> <span class="n">l_z</span><span class="p">,</span> <span class="n">b_z</span><span class="p">,</span> <span class="n">nest</span><span class="o">=</span><span class="n">nest</span><span class="p">,</span> <span class="n">lonlat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="n">delta_time</span> <span class="o">=</span> <span class="p">(</span><span class="n">ori_time</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">ori_time</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;s&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n_pointing</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)):</span>
+            
+            <span class="k">if</span> <span class="p">(</span><span class="n">idx_z</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">idx_x</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="ow">in</span> <span class="n">indices_healpix</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">indices_healpix</span><span class="o">.</span><span class="n">index</span><span class="p">((</span><span class="n">idx_z</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">idx_x</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">delta_times</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">delta_time</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                <span class="n">xpointings</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">l_x</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">b_x</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+                <span class="n">zpointings</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">l_z</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">b_z</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>            
+                
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">indices_healpix</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">idx_z</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">idx_x</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="n">delta_times</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">delta_time</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+                <span class="n">xpointings</span><span class="o">.</span><span class="n">append</span><span class="p">([[</span><span class="n">l_x</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">b_x</span><span class="p">[</span><span class="n">i</span><span class="p">]]])</span>
+                <span class="n">zpointings</span><span class="o">.</span><span class="n">append</span><span class="p">([[</span><span class="n">l_z</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">b_z</span><span class="p">[</span><span class="n">i</span><span class="p">]]])</span>
+        
+        <span class="n">indices_scatt_binning</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices_healpix</span><span class="p">))]</span> 
+        
+        <span class="c1"># to numpy</span>
+        <span class="n">zpointings</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">zpointings</span><span class="p">]</span>
+        <span class="n">xpointings</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">xpointings</span><span class="p">]</span>
+
+        <span class="n">zpointings_averaged</span> <span class="o">=</span> <span class="p">[</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_averaged_pointing</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">zpointings</span><span class="p">,</span> <span class="n">delta_times</span><span class="p">)</span> <span class="p">]</span>
+        <span class="n">xpointings_averaged</span> <span class="o">=</span> <span class="p">[</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_get_averaged_pointing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dt</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xpointings</span><span class="p">,</span> <span class="n">delta_times</span><span class="p">)</span> <span class="p">]</span>
+
+        <span class="n">exposures</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">_</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">delta_times</span><span class="p">]</span>
+        <span class="n">num_pointings</span> <span class="o">=</span> <span class="p">[</span> <span class="nb">len</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">delta_times</span><span class="p">]</span>
+        <span class="n">bkg_groups</span> <span class="o">=</span> <span class="p">[</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">delta_times</span><span class="p">]</span>
+        
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;scatt_binning_index&#39;</span><span class="p">:</span> <span class="n">indices_scatt_binning</span><span class="p">,</span> <span class="s1">&#39;healpix_index&#39;</span><span class="p">:</span> <span class="n">indices_healpix</span><span class="p">,</span> 
+                                  <span class="s1">&#39;zpointing&#39;</span><span class="p">:</span> <span class="n">zpointings</span><span class="p">,</span>
+                                  <span class="s1">&#39;xpointing&#39;</span><span class="p">:</span> <span class="n">xpointings</span><span class="p">,</span>
+                                  <span class="s1">&#39;zpointing_averaged&#39;</span><span class="p">:</span> <span class="n">zpointings_averaged</span><span class="p">,</span>
+                                  <span class="s1">&#39;xpointing_averaged&#39;</span><span class="p">:</span> <span class="n">xpointings_averaged</span><span class="p">,</span>
+                                  <span class="s1">&#39;delta_time&#39;</span><span class="p">:</span> <span class="n">delta_times</span><span class="p">,</span> 
+                                  <span class="s1">&#39;exposure&#39;</span><span class="p">:</span> <span class="n">exposures</span><span class="p">,</span>
+                                  <span class="s1">&#39;num_pointings&#39;</span><span class="p">:</span> <span class="n">num_pointings</span><span class="p">,</span>
+                                  <span class="s1">&#39;bkg_group&#39;</span><span class="p">:</span> <span class="n">bkg_groups</span><span class="p">})</span>
+        
+        <span class="k">if</span> <span class="n">min_exposure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;exposure&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">min_exposure</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">min_num_pointings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;num_pointings&#39;</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">min_num_pointings</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">min_exposure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">min_num_pointings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">df</span><span class="p">[</span><span class="s1">&#39;scatt_binning_index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">))]</span> 
+        
+        <span class="k">return</span> <span class="n">df</span> </div>
+
+
+<div class="viewcode-block" id="SpacecraftAttitudeExposureTable.from_fits">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_fits">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_fits</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read exposure table from a fits file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Path to file</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`cosipy.image_deconvolution.SpacecraftAttitudeExposureTable`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">infile</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="n">hdu</span> <span class="o">=</span> <span class="n">infile</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    
+        <span class="k">if</span> <span class="n">hdu</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s2">&quot;EXPOSURETABLE&quot;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;cannot find EXPOSURETABLE&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+    
+        <span class="n">indices_scatt_binning</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;scatt_binning_index&#39;</span><span class="p">]</span>
+        <span class="n">indices_healpix</span> <span class="o">=</span> <span class="p">[</span> <span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;healpix_index_z_pointing&#39;</span><span class="p">],</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;healpix_index_x_pointing&#39;</span><span class="p">])</span> <span class="p">]</span>
+
+        <span class="n">zpointings</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span> <span class="p">[</span><span class="n">l</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="k">for</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">z_l</span><span class="p">,</span> <span class="n">z_b</span><span class="p">)</span> <span class="p">]</span> <span class="k">for</span> <span class="p">(</span><span class="n">z_l</span><span class="p">,</span> <span class="n">z_b</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;zpointing_l&#39;</span><span class="p">],</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;zpointing_b&#39;</span><span class="p">])</span> <span class="p">]</span>
+        <span class="n">zpointings</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">zpointings</span><span class="p">]</span>
+
+        <span class="n">xpointings</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span> <span class="p">[</span><span class="n">l</span><span class="p">,</span> <span class="n">b</span><span class="p">]</span> <span class="k">for</span> <span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_l</span><span class="p">,</span> <span class="n">x_b</span><span class="p">)</span> <span class="p">]</span> <span class="k">for</span> <span class="p">(</span><span class="n">x_l</span><span class="p">,</span> <span class="n">x_b</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;xpointing_l&#39;</span><span class="p">],</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;xpointing_b&#39;</span><span class="p">])</span> <span class="p">]</span>
+        <span class="n">xpointings</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">xpointings</span><span class="p">]</span>
+
+        <span class="n">zpointings_averaged</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">z_ave_l</span><span class="p">,</span> <span class="n">z_ave_b</span><span class="p">])</span> <span class="k">for</span> <span class="p">(</span><span class="n">z_ave_l</span><span class="p">,</span> <span class="n">z_ave_b</span><span class="p">)</span>  <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;zpointing_averaged_l&#39;</span><span class="p">],</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;zpointing_averaged_b&#39;</span><span class="p">])</span> <span class="p">]</span>
+
+        <span class="n">xpointings_averaged</span> <span class="o">=</span> <span class="p">[</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x_ave_l</span><span class="p">,</span> <span class="n">x_ave_b</span><span class="p">])</span> <span class="k">for</span> <span class="p">(</span><span class="n">x_ave_l</span><span class="p">,</span> <span class="n">x_ave_b</span><span class="p">)</span>  <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;xpointing_averaged_l&#39;</span><span class="p">],</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;xpointing_averaged_b&#39;</span><span class="p">])</span> <span class="p">]</span>
+
+        <span class="n">delta_times</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;delta_time&#39;</span><span class="p">])</span>
+
+        <span class="n">exposures</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;exposure&#39;</span><span class="p">]</span>
+
+        <span class="n">num_pointings</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;num_pointings&#39;</span><span class="p">]</span>
+
+        <span class="n">bkg_groups</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;bkg_group&#39;</span><span class="p">]</span>
+        
+        <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;scatt_binning_index&#39;</span><span class="p">:</span> <span class="n">indices_scatt_binning</span><span class="p">,</span> <span class="s1">&#39;healpix_index&#39;</span><span class="p">:</span> <span class="n">indices_healpix</span><span class="p">,</span> 
+                                  <span class="s1">&#39;zpointing&#39;</span><span class="p">:</span> <span class="n">zpointings</span><span class="p">,</span>
+                                  <span class="s1">&#39;xpointing&#39;</span><span class="p">:</span> <span class="n">xpointings</span><span class="p">,</span>
+                                  <span class="s1">&#39;zpointing_averaged&#39;</span><span class="p">:</span> <span class="n">zpointings_averaged</span><span class="p">,</span>
+                                  <span class="s1">&#39;xpointing_averaged&#39;</span><span class="p">:</span> <span class="n">xpointings_averaged</span><span class="p">,</span>
+                                  <span class="s1">&#39;delta_time&#39;</span><span class="p">:</span> <span class="n">delta_times</span><span class="p">,</span> 
+                                  <span class="s1">&#39;exposure&#39;</span><span class="p">:</span> <span class="n">exposures</span><span class="p">,</span>
+                                  <span class="s1">&#39;num_pointings&#39;</span><span class="p">:</span> <span class="n">num_pointings</span><span class="p">,</span>
+                                  <span class="s1">&#39;bkg_group&#39;</span><span class="p">:</span> <span class="n">bkg_groups</span><span class="p">})</span>
+
+        <span class="n">nside</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;NSIDE&#39;</span><span class="p">]</span>
+        <span class="n">scheme</span> <span class="o">=</span> <span class="n">hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;SCHEME&#39;</span><span class="p">]</span>
+        
+        <span class="n">new</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">nside</span><span class="p">,</span> <span class="n">scheme</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">new</span></div>
+
+
+<div class="viewcode-block" id="SpacecraftAttitudeExposureTable.save_as_fits">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.save_as_fits">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_as_fits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">overwrite</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save exposure table as a fits file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename : str</span>
+<span class="sd">            Path to file</span>
+<span class="sd">        overwrite : bool, default False</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># primary HDU</span>
+        <span class="n">primary_hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">PrimaryHDU</span><span class="p">()</span>
+    
+        <span class="c1">#exposure table</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;scatt_binning_index&#39;</span><span class="p">,</span> <span class="s1">&#39;exposure&#39;</span><span class="p">,</span> <span class="s1">&#39;num_pointings&#39;</span><span class="p">,</span> <span class="s1">&#39;bkg_group&#39;</span><span class="p">]</span>
+        <span class="n">formats</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;K&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;K&#39;</span><span class="p">,</span> <span class="s1">&#39;K&#39;</span><span class="p">]</span>
+        <span class="n">units</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">]</span>
+        
+        <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">array</span><span class="o">=</span><span class="bp">self</span><span class="p">[</span><span class="n">names</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(),</span> <span class="nb">format</span> <span class="o">=</span> <span class="n">formats</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">units</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> 
+                     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">))]</span>
+        
+        <span class="n">column_healpix_index_z_pointing</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;healpix_index_z_pointing&#39;</span><span class="p">,</span> 
+                                                      <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;healpix_index&#39;</span><span class="p">]]),</span> <span class="nb">format</span> <span class="o">=</span> <span class="s1">&#39;K&#39;</span><span class="p">)</span>
+        <span class="n">column_healpix_index_x_pointing</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;healpix_index_x_pointing&#39;</span><span class="p">,</span> 
+                                                      <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">idx</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;healpix_index&#39;</span><span class="p">]]),</span> <span class="nb">format</span> <span class="o">=</span> <span class="s1">&#39;K&#39;</span><span class="p">)</span>
+        
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_healpix_index_z_pointing</span><span class="p">)</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_healpix_index_x_pointing</span><span class="p">)</span>
+    
+        <span class="n">column_delta_time</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;delta_time&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;PD()&#39;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span>
+                                        <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;delta_time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_delta_time</span><span class="p">)</span>    
+        
+        <span class="n">column_zpointing_l</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;zpointing_l&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;PD()&#39;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;degree&#39;</span><span class="p">,</span>
+                                        <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">pointing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">pointing</span> <span class="ow">in</span> <span class="n">pointings</span><span class="p">]</span> <span class="k">for</span> <span class="n">pointings</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;zpointing&#39;</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_zpointing_l</span><span class="p">)</span>    
+    
+        <span class="n">column_zpointing_b</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;zpointing_b&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;PD()&#39;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;degree&#39;</span><span class="p">,</span>
+                                        <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">pointing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">pointing</span> <span class="ow">in</span> <span class="n">pointings</span><span class="p">]</span> <span class="k">for</span> <span class="n">pointings</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;zpointing&#39;</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_zpointing_b</span><span class="p">)</span>   
+    
+        <span class="n">column_xpointing_l</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;xpointing_l&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;PD()&#39;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;degree&#39;</span><span class="p">,</span>
+                                        <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">pointing</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">pointing</span> <span class="ow">in</span> <span class="n">pointings</span><span class="p">]</span> <span class="k">for</span> <span class="n">pointings</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;xpointing&#39;</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_xpointing_l</span><span class="p">)</span>    
+    
+        <span class="n">column_xpointing_b</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;xpointing_b&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;PD()&#39;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;degree&#39;</span><span class="p">,</span>
+                                        <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="n">pointing</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">pointing</span> <span class="ow">in</span> <span class="n">pointings</span><span class="p">]</span> <span class="k">for</span> <span class="n">pointings</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;xpointing&#39;</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">object_</span><span class="p">))</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_xpointing_b</span><span class="p">)</span>  
+
+        <span class="n">column_zpointing_averaged_l</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;zpointing_averaged_l&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;degree&#39;</span><span class="p">,</span>
+                                                  <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;zpointing_averaged&#39;</span><span class="p">]]))</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_zpointing_averaged_l</span><span class="p">)</span>    
+
+        <span class="n">column_zpointing_averaged_b</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;zpointing_averaged_b&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;degree&#39;</span><span class="p">,</span>
+                                                  <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;zpointing_averaged&#39;</span><span class="p">]]))</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_zpointing_averaged_b</span><span class="p">)</span>    
+
+        <span class="n">column_xpointing_averaged_l</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;xpointing_averaged_l&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;degree&#39;</span><span class="p">,</span>
+                                                  <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;xpointing_averaged&#39;</span><span class="p">]]))</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_xpointing_averaged_l</span><span class="p">)</span>    
+
+        <span class="n">column_xpointing_averaged_b</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">Column</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;xpointing_averaged_b&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;degree&#39;</span><span class="p">,</span>
+                                                  <span class="n">array</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;xpointing_averaged&#39;</span><span class="p">]]))</span>
+        <span class="n">columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">column_xpointing_averaged_b</span><span class="p">)</span>    
+        
+        <span class="n">table_hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">BinTableHDU</span><span class="o">.</span><span class="n">from_columns</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span> 
+        <span class="n">table_hdu</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;exposuretable&#39;</span>
+
+        <span class="n">table_hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;nside&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nside</span>
+        <span class="n">table_hdu</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;scheme&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span>
+        
+        <span class="c1">#save file    </span>
+        <span class="n">hdul</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">HDUList</span><span class="p">([</span><span class="n">primary_hdu</span><span class="p">,</span> <span class="n">table_hdu</span><span class="p">])</span>    
+        <span class="n">hdul</span><span class="o">.</span><span class="n">writeto</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">overwrite</span> <span class="o">=</span> <span class="n">overwrite</span><span class="p">)</span></div>
+
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_averaged_pointing</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">pointing</span><span class="p">,</span> <span class="n">delta_time</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate an averaged pointing from given lists of pointings and exposure time on each pointing</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        pointing : list of np.array</span>
+<span class="sd">            List of pointings in degrees, e.g., [ np.array([l, b]), np.array([l, b]), ...]</span>
+<span class="sd">        delta_time : list of float</span>
+<span class="sd">            List of exposure time in seconds for each pointing, e.g, [ 1.0, 1.0, ...] </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`np.array`</span>
+<span class="sd">            Averaged pointing in degrees, as np.array([l, b])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">averaged_vector</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">hp</span><span class="o">.</span><span class="n">ang2vec</span><span class="p">(</span><span class="n">pointing</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">pointing</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">lonlat</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">T</span> <span class="o">*</span> <span class="n">delta_time</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">averaged_vector</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">averaged_vector</span><span class="p">)</span>
+
+        <span class="n">averaged_l</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">vec2ang</span><span class="p">(</span><span class="n">averaged_vector</span><span class="p">,</span> <span class="n">lonlat</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">averaged_b</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">vec2ang</span><span class="p">(</span><span class="n">averaged_vector</span><span class="p">,</span> <span class="n">lonlat</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    
+        <span class="n">averaged_pointing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">averaged_l</span><span class="p">,</span> <span class="n">averaged_b</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">averaged_pointing</span> 
+
+<div class="viewcode-block" id="SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_pointing_trajectory_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate a 2-dimensional map showing exposure time for each spacecraft attitude.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`cosipy.spacecraft.SpacecraftAttitudeMap`</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The default axes in SpacecraftAttitudeMap is x- and y-pointings,</span>
+<span class="sd">        but here the spacecraft attitude is described with z- and x-pointings. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+    
+        <span class="n">map_pointing_zx</span> <span class="o">=</span> <span class="n">SpacecraftAttitudeMap</span><span class="p">(</span><span class="n">nside</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nside</span><span class="p">,</span> <span class="n">scheme</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">coordsys</span> <span class="o">=</span> <span class="s1">&#39;galactic&#39;</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">])</span>
+    
+        <span class="k">for</span> <span class="n">hp_index</span><span class="p">,</span> <span class="n">exposure</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="s1">&#39;healpix_index&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="p">[</span><span class="s1">&#39;exposure&#39;</span><span class="p">]):</span>
+            <span class="n">map_pointing_zx</span><span class="p">[</span><span class="n">hp_index</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hp_index</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">exposure</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">s</span>
+        
+        <span class="k">return</span> <span class="n">map_pointing_zx</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

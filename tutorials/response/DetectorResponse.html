@@ -1,0 +1,783 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Full detector response &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Parallel TS Map computation" href="../ts_map/Parallel_TS_map_computation.html" />
+    <link rel="prev" title="Spacecraft file: attitude and position" href="SpacecraftFile.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../DataIO/DataIO_example.html">Data format and handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SpacecraftFile.html">Spacecraft file: attitude and position</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Detector response and signal expectation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Dependencies">Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#File-downloads">File downloads</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Opening-a-full-detector-response">Opening a full detector response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Detector-response-matrix">Detector response matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Point-source-response-and-expected-counts">Point source response and expected counts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Point-source-response-in-inertial-coordinates">Point source response in inertial coordinates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#XSPEC-support">XSPEC support</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../ts_map/Parallel_TS_map_computation.html">TS Map: localizing a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spectral_fits/continuum_fit/grb/SpectralFit_GRB.html">Fitting the spectrum of a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spectral_fits/continuum_fit/crab/SpectralFit_Crab.html">Fitting the spectrum of the Crab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spectral_fits/extended_source_fit/diffuse_511_spectral_fit.html">Extended source model fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../source_injector/Point_source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../background_estimation/continuum_estimation/BG_estimation_example.html">Continuum Background Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../background_estimation/line_background/line_background_estimation_example_notebook.html">Line background estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../polarization/ASAD_method.html">Polarization (ASAD method)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Full detector response</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tutorials/response/DetectorResponse.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Full-detector-response">
+<h1>Full detector response<a class="headerlink" href="#Full-detector-response" title="Link to this heading"></a></h1>
+<p>The detector response provides us with the the following information:</p>
+<ul class="simple">
+<li><p>The effective area at given energy for given direction. This allows us to convert from counts to physical quantities like flux</p></li>
+<li><p>The expected distribution of measured energy and other reconstructed quantities. This allows us to account for all sorts of detector effects when we do our analysis.</p></li>
+</ul>
+<p>This tutorial will show you how to handle detector response and extrat useful information from it.</p>
+<section id="Dependencies">
+<h2>Dependencies<a class="headerlink" href="#Dependencies" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%capture
+import numpy as np
+import astropy.units as u
+from astropy.units import Quantity
+from astropy.coordinates import SkyCoord
+from astropy.io import fits
+from astropy.time import Time
+
+import matplotlib.pyplot as plt
+import matplotlib.pyplot as ply
+
+from mhealpy import HealpixMap, HealpixBase
+import pandas as pd
+from pathlib import Path
+
+from scoords import Attitude, SpacecraftFrame
+from cosipy.response import FullDetectorResponse
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy import test_data
+from cosipy.util import fetch_wasabi_file
+from histpy import Histogram
+import gc
+
+from threeML import Model, Powerlaw
+
+from cosipy.response import FullDetectorResponse
+
+import shutil
+import os
+</pre></div>
+</div>
+</div>
+</section>
+<section id="File-downloads">
+<h2>File downloads<a class="headerlink" href="#File-downloads" title="Link to this heading"></a></h2>
+<p>You can skip this step if you already downloaded the files. Make sure that paths point to the right files</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>data_dir = Path(&quot;&quot;) # Current directory by default. Modify if you can want a different path
+
+ori_path = data_dir/&quot;20280301_3_month_with_orbital_info.ori&quot;
+response_path = data_dir/&quot;SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5&quot;
+
+# download orientation file ~684.38 MB
+if not ori_path.exists():
+    fetch_wasabi_file(&quot;COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori&quot;, ori_path)
+
+# download response file ~839.62 MB
+if not response_path.exists():
+
+    response_path_zip = str(response_path) + &#39;.zip&#39;
+    fetch_wasabi_file(&quot;COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip&quot;,response_path_zip)
+
+    # unzip the response file
+    shutil.unpack_archive(response_path_zip)
+
+    # delete the zipped response to save space
+    os.remove(response_path_zip)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Opening-a-full-detector-response">
+<h2>Opening a full detector response<a class="headerlink" href="#Opening-a-full-detector-response" title="Link to this heading"></a></h2>
+<p>The response of the instrument in encoded in a series of matrices cointained in a file. you can open the file like this:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>response = FullDetectorResponse.open(response_path)
+
+print(response.filename)
+
+response.close()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5
+</pre></div></div>
+</div>
+<p>Or if you don’t want to worry about closing the file, use a context manager statement:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>with FullDetectorResponse.open(response_path) as response:
+
+    print(repr(response))
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+FILENAME: &#39;/Users/imartin5/software/cosipy/docs/tutorials/response/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5&#39;
+AXES:
+  NuLambda:
+    DESCRIPTION: &#39;Location of the simulated source in the spacecraft coordinates&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 768
+    NSIDE: 8
+    SCHEME: &#39;RING&#39;
+  Ei:
+    DESCRIPTION: &#39;Initial simulated energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 10
+    EDGES: [100.0 keV, 158.489 keV, 251.189 keV, 398.107 keV, 630.957 keV, 1000.0 keV, 1584.89 keV, 2511.89 keV, 3981.07 keV, 6309.57 keV, 10000.0 keV]
+  Em:
+    DESCRIPTION: &#39;Measured energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 10
+    EDGES: [100.0 keV, 158.489 keV, 251.189 keV, 398.107 keV, 630.957 keV, 1000.0 keV, 1584.89 keV, 2511.89 keV, 3981.07 keV, 6309.57 keV, 10000.0 keV]
+  Phi:
+    DESCRIPTION: &#39;Compton angle&#39;
+    TYPE: &#39;linear&#39;
+    UNIT: &#39;deg&#39;
+    NBINS: 36
+    EDGES: [0.0 deg, 5.0 deg, 10.0 deg, 15.0 deg, 20.0 deg, 25.0 deg, 30.0 deg, 35.0 deg, 40.0 deg, 45.0 deg, 50.0 deg, 55.0 deg, 60.0 deg, 65.0 deg, 70.0 deg, 75.0 deg, 80.0 deg, 85.0 deg, 90.0 deg, 95.0 deg, 100.0 deg, 105.0 deg, 110.0 deg, 115.0 deg, 120.0 deg, 125.0 deg, 130.0 deg, 135.0 deg, 140.0 deg, 145.0 deg, 150.0 deg, 155.0 deg, 160.0 deg, 165.0 deg, 170.0 deg, 175.0 deg, 180.0 deg]
+  PsiChi:
+    DESCRIPTION: &#39;Location in the Compton Data Space&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 768
+    NSIDE: 8
+    SCHEME: &#39;RING&#39;
+
+</pre></div></div>
+</div>
+<p>Although opening a detector response does not load the matrices, it loads all the header information above. This allows us to pass it around for various analysis at a very low cost.</p>
+</section>
+<section id="Detector-response-matrix">
+<h2>Detector response matrix<a class="headerlink" href="#Detector-response-matrix" title="Link to this heading"></a></h2>
+<p>The full –i.e. all-sky– detector response is encoded in a HEALPix grid. For each pixel there is a multidimensional matrix describing the response of the instrument for that particular direction in the spacefraft coordinates. For this response has the following grid:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>with FullDetectorResponse.open(response_path) as response:
+
+    print(f&quot;NSIDE = {response.nside}&quot;)
+    print(f&quot;SCHEME = {response.scheme}&quot;)
+    print(f&quot;NPIX = {response.npix}&quot;)
+    print(f&quot;Pixel size = {np.sqrt(response.pixarea()).to(u.deg):.2f}&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+NSIDE = 8
+SCHEME = RING
+NPIX = 768
+Pixel size = 7.33 deg
+</pre></div></div>
+</div>
+<p>To retrieve the detector response matrix for a given pixel simply use the <code class="docutils literal notranslate"><span class="pre">[]</span></code> operator</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>with FullDetectorResponse.open(response_path) as response:
+
+    print(f&quot;Pixel 0 centered at {response.pix2skycoord(0)}&quot;)
+    drm = response[0]
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Pixel 0 centered at &lt;SkyCoord (SpacecraftFrame: attitude=None, obstime=None, location=None): (lon, lat) in deg
+    (45., 84.14973294)&gt;
+</pre></div></div>
+</div>
+<p>Or better, get the interpolated matrix for a given direction. In this case, for the on-axis response:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>with FullDetectorResponse.open(response_path) as response:
+
+    drm = response.get_interp_response(SkyCoord(lon = 0*u.deg, lat = 0*u.deg, frame = SpacecraftFrame()))
+</pre></div>
+</div>
+</div>
+<p>The matrix has multiple dimensions, including real photon initial energy, the measured energy, the Compton data space, and possibly other:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>drm.axes.labels
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([&#39;Ei&#39;, &#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;], dtype=&#39;&lt;U6&#39;)
+</pre></div></div>
+</div>
+<p>However, one of the most common operation is to get the effective area and the energy dispersion matrix. This is encoded in a reduced detector response, which is the projection of the full matrix into the initial and measured energy axes:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>drm.get_spectral_response().plot();
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_23_0.png" src="../../_images/tutorials_response_DetectorResponse_23_0.png" />
+</div>
+</div>
+<p>You can further project it into the initial energy to get the effective area:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ax,plot = drm.get_effective_area().plot();
+
+ax.set_ylabel(f&#39;Aeff [{drm.unit}]&#39;);
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_25_0.png" src="../../_images/tutorials_response_DetectorResponse_25_0.png" />
+</div>
+</div>
+<p>Get the interpolated effective area</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>drm.get_effective_area(511*u.keV)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$6.3406481 \; \mathrm{cm^{2}}$</div></div>
+</div>
+<p>Or the energy dispersion matrix</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>drm.get_dispersion_matrix().plot();
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_29_0.png" src="../../_images/tutorials_response_DetectorResponse_29_0.png" />
+</div>
+</div>
+</section>
+<section id="Point-source-response-and-expected-counts">
+<h2>Point source response and expected counts<a class="headerlink" href="#Point-source-response-and-expected-counts" title="Link to this heading"></a></h2>
+<p>Once we have the response, the next step is usually to get the expected counts for a specific source. However, it is not trivial for the case of a spacecraft because the response we have here is the detector response. This response records the detector effects to given points viewed from the reference frame attached to the spacecraft (SC).</p>
+<p>A source with a fixed position on the sky is moving from the perspective of the spacecraft (detector). Therefore, we need to convert the coordinate of a source to the reference frame, which results in a moving point viewed the spacecraft. By convolving the trajectory of the source in the spacecraft frame with the detector response, we will get the so-called point source response.</p>
+<p>See the spacecraft file tutorial for a discussion of the SC attitude history, transformations to/from galactic coordinates, and the dwell time map.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># read the full oritation
+ori = SpacecraftFile.parse_from_file(ori_path)
+
+# define the target coordinates (Crab)
+target_coord = SkyCoord(184.5551, -05.7877, unit = &quot;deg&quot;, frame = &quot;galactic&quot;)
+
+# get the target movement in the reference frame attached to the detector
+target_in_sc_frame = ori.get_target_in_sc_frame(target_name = &quot;Crab&quot;, target_coord = target_coord)
+
+# Get the dwell time map
+dwell_time_map = ori.get_dwell_map(response = response_path, src_path = target_in_sc_frame)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now converting to the Spacecraft frame...
+Conversion completed!
+</pre></div></div>
+</div>
+<p>We can now convolve the exposure map with the full detector response, and get a PointSourceResponse</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>with FullDetectorResponse.open(response_path) as response:
+    psr = response.get_point_source_response(exposure_map = dwell_time_map, coord = target_coord)
+</pre></div>
+</div>
+</div>
+<p>Note that a PointSourceResponse only depends on the path of the source, not on the spectrum of the source. It has units of area*time</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>psr.unit
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$\mathrm{cm^{2}\,s}$</div></div>
+</div>
+<p>Finally, we convolve a spectrum to get the spected excess for each <em>measured</em> energy bin:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>index = -2.2
+K = 10**-3 / u.cm / u.cm / u.s / u.keV
+piv = 100 * u.keV
+
+spectrum = Powerlaw()
+spectrum.index.value = index
+spectrum.K.value = K.value
+spectrum.piv.value = piv.value
+spectrum.K.unit = K.unit
+spectrum.piv.unit = piv.unit
+
+expectation = psr.get_expectation(spectrum)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ax, plot = expectation.project(&#39;Em&#39;).plot()
+
+ax.set_ylabel(&#39;Expected counts&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;Expected counts&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_39_1.png" src="../../_images/tutorials_response_DetectorResponse_39_1.png" />
+</div>
+</div>
+<p>Try changing the spectrum and se how the expected excess changes.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>spectrum.index.value = -1
+
+expectation = psr.get_expectation(spectrum)
+
+ax, plot = expectation.project(&#39;Em&#39;).plot()
+
+ax.set_ylabel(&#39;Expected counts&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;Expected counts&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_41_1.png" src="../../_images/tutorials_response_DetectorResponse_41_1.png" />
+</div>
+</div>
+</section>
+<section id="Point-source-response-in-inertial-coordinates">
+<h2>Point source response in inertial coordinates<a class="headerlink" href="#Point-source-response-in-inertial-coordinates" title="Link to this heading"></a></h2>
+<p>In the previous example we obtained the response for a point source as seen in the reference frame attached to the spacecraft (SC) frame. As the spacecraft rotates, a fixed source in the sky is seen by the detector from multiple direction, so binnind the data on the spacecraft coordinate, without binning it simultenously in time, can wash out the signal. As shown in this section, we can instead rotate the response and convolve it the attitude history of the spacecraft, resulting in a point
+source response with a Compton data space binned in inertial coordinates.</p>
+<p>We use a scatt map, which tracks the amount of time the spacecraft spent in a given orientation. See spacecraft file tutorial for more details.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coord = SkyCoord.from_name(&#39;Crab&#39;).galactic
+
+scatt_map = ori.get_scatt_map(coord, nside = 16, coordsys = &#39;galactic&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING ErfaWarning: ERFA function &#34;utctai&#34; yielded 7979956 of &#34;dubious year (Note 3)&#34;
+
+</pre></div></div>
+</div>
+<p>Now we can let cosipy perform the convolution with the scatt map and get the point source response:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+from astropy.coordinates import SkyCoord
+
+with FullDetectorResponse.open(response_path) as response:
+    psr = response.get_point_source_response(coord = coord, scatt_map = scatt_map)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 46 s, sys: 5.45 s, total: 51.4 s
+Wall time: 54.3 s
+</pre></div></div>
+</div>
+<p>This is how a slice of the response looks like in galactic coordinates:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>psichi_slice = psr.slice[{&#39;Ei&#39;:4, &#39;Phi&#39;:4}].project(&#39;PsiChi&#39;)
+
+ax,plot = psichi_slice.plot(ax_kw = {&#39;coord&#39;:&#39;G&#39;})
+
+ax.scatter([coord.l.deg], [coord.b.deg], transform = ax.get_transform(&#39;world&#39;), marker = &#39;x&#39;, color = &#39;red&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.PathCollection at 0x12eac1220&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_48_1.png" src="../../_images/tutorials_response_DetectorResponse_48_1.png" />
+</div>
+</div>
+<p>And here in ICRC (RA/Dec), the default coordinates for plot()</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ax,plot = psichi_slice.plot()
+
+ax.scatter([coord.icrs.ra.deg], [coord.icrs.dec.deg], transform = ax.get_transform(&#39;world&#39;), marker = &#39;x&#39;, color = &#39;red&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.PathCollection at 0x12eb2ce20&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_50_1.png" src="../../_images/tutorials_response_DetectorResponse_50_1.png" />
+</div>
+</div>
+<p>You can also used it the same way as a point source response obtained from a exposure map. e.g.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>expectation = psr.get_expectation(spectrum)
+
+ax, plot = expectation.project(&#39;Em&#39;).plot()
+
+ax.set_ylabel(&#39;Expected counts&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;Expected counts&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_52_1.png" src="../../_images/tutorials_response_DetectorResponse_52_1.png" />
+</div>
+</div>
+</section>
+<section id="XSPEC-support">
+<h2>XSPEC support<a class="headerlink" href="#XSPEC-support" title="Link to this heading"></a></h2>
+<p>You can also convert the point source response to XSPEC readable files (arf, rmf and pha) if you want to do spetral fitting or simulation in XSPEC. See the <code class="docutils literal notranslate"><span class="pre">SpacecraftFile</span></code> class functions <code class="docutils literal notranslate"><span class="pre">get_arf()</span></code>, <code class="docutils literal notranslate"><span class="pre">get_rmf()</span></code> and <code class="docutils literal notranslate"><span class="pre">get_pha()</span></code>, respectively.</p>
+<div class="alert alert-block alert-info"><p>Note: This functionality will be moved to the DetectorResponse class in the near future.</p>
+</div><div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ori.get_psr_rsp(response = response_path);
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Getting the effective area ...
+Getting the energy redistribution matrix ...
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ori.get_arf()
+ori.plot_arf()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_57_0.png" src="../../_images/tutorials_response_DetectorResponse_57_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ori.get_rmf()
+ori.plot_rmf()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes) is deprecated. If you meant to do this, you must specify &#39;dtype=object&#39; when creating the ndarray.
+
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_response_DetectorResponse_58_1.png" src="../../_images/tutorials_response_DetectorResponse_58_1.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="SpacecraftFile.html" class="btn btn-neutral float-left" title="Spacecraft file: attitude and position" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../ts_map/Parallel_TS_map_computation.html" class="btn btn-neutral float-right" title="Parallel TS Map computation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

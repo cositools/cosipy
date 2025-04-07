@@ -1,0 +1,226 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.response.PointSourceResponse &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.response.PointSourceResponse</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.response.PointSourceResponse</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Histogram</span><span class="c1">#, Axes, Axis</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scoords</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpacecraftFrame</span><span class="p">,</span> <span class="n">Attitude</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_integrated_spectral_model</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PointSourceResponse">
+<a class="viewcode-back" href="../../../api/response.html#cosipy.response.PointSourceResponse">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PointSourceResponse</span><span class="p">(</span><span class="n">Histogram</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handles the multi-dimensional matrix that describes the expected</span>
+<span class="sd">    response of the instrument for a particular point in the sky.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    axes : :py:class:`histpy.Axes`</span>
+<span class="sd">        Binning information for each variable. The following labels are expected:\n</span>
+<span class="sd">        - ``Ei``: Real energy</span>
+<span class="sd">        - ``Em``: Measured energy. Optional</span>
+<span class="sd">        - ``Phi``: Compton angle. Optional.</span>
+<span class="sd">        - ``PsiChi``:  Location in the Compton Data Space (HEALPix pixel). Optional.</span>
+<span class="sd">        - ``SigmaTau``: Electron recoil angle (HEALPix pixel). Optional.</span>
+<span class="sd">        - ``Dist``: Distance from first interaction. Optional.</span>
+<span class="sd">    contents : array, :py:class:`astropy.units.Quantity` or :py:class:`sparse.SparseArray`</span>
+<span class="sd">        Array containing the differential effective area convolved with wht source exposure.</span>
+<span class="sd">    unit : :py:class:`astropy.units.Unit`, optional</span>
+<span class="sd">        Physical units, if not specified as part of ``contents``. Units of ``area*time``</span>
+<span class="sd">        are expected.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">photon_energy_axis</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Real energy bins (``Ei``).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`histpy.Axes`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Ei&#39;</span><span class="p">]</span>
+       
+<div class="viewcode-block" id="PointSourceResponse.get_expectation">
+<a class="viewcode-back" href="../../../api/response.html#cosipy.response.PointSourceResponse.get_expectation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_expectation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spectrum</span><span class="p">,</span> <span class="n">polarization</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convolve the response with a spectral (and optionally, polarization) hypothesis to obtain the expected</span>
+<span class="sd">        excess counts from the source.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        spectrum : :py:class:`threeML.Model`</span>
+<span class="sd">            Spectral hypothesis.</span>
+<span class="sd">        polarization : &#39;astromodels.core.polarization.LinearPolarization&#39;, optional</span>
+<span class="sd">            Polarization angle and degree. The angle is assumed to have same convention as point source response.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`histpy.Histogram`</span>
+<span class="sd">             Histogram with the expected counts on each analysis bin</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">polarization</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="s1">&#39;Pol&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">labels</span><span class="p">:</span>
+
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Must include polarization in point source response if using polarization response&quot;</span><span class="p">)</span>
+
+            <span class="n">contents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">contents</span>
+            <span class="n">axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="s1">&#39;Pol&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">labels</span><span class="p">:</span>
+                
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Response must have polarization angle axis to include polarization in point source response&quot;</span><span class="p">)</span>
+
+            <span class="n">polarization_angle</span> <span class="o">=</span> <span class="n">polarization</span><span class="o">.</span><span class="n">angle</span><span class="o">.</span><span class="n">value</span>
+            <span class="n">polarization_level</span> <span class="o">=</span> <span class="n">polarization</span><span class="o">.</span><span class="n">degree</span><span class="o">.</span><span class="n">value</span> <span class="o">/</span> <span class="mf">100.</span>
+
+            <span class="k">if</span> <span class="n">polarization_angle</span> <span class="o">==</span> <span class="mf">180.</span><span class="p">:</span>
+                <span class="n">polarization_angle</span> <span class="o">=</span> <span class="mf">0.</span>
+
+            <span class="n">unpolarized_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="p">,</span> <span class="p">(</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">polarization_level</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
+            <span class="n">polarized_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
+
+            <span class="n">polarization_bin_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Pol&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">find_bin</span><span class="p">(</span><span class="n">polarization_angle</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+            <span class="n">polarized_weights</span><span class="p">[</span><span class="n">polarization_bin_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">polarization_level</span>
+
+            <span class="n">weights</span> <span class="o">=</span> <span class="n">unpolarized_weights</span> <span class="o">+</span> <span class="n">polarized_weights</span>
+
+            <span class="n">contents</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="o">.</span><span class="n">label_to_index</span><span class="p">(</span><span class="s1">&#39;Pol&#39;</span><span class="p">)]))</span>
+
+            <span class="n">axes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Em&#39;</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">,</span> <span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span>
+
+        <span class="n">energy_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">photon_energy_axis</span>
+
+        <span class="n">flux</span> <span class="o">=</span> <span class="n">get_integrated_spectral_model</span><span class="p">(</span><span class="n">spectrum</span><span class="p">,</span> <span class="n">energy_axis</span><span class="p">)</span>
+        
+        <span class="n">expectation</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="n">flux</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        
+        <span class="c1"># Note: np.tensordot loses unit if we use a sparse matrix as it input.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_sparse</span><span class="p">:</span>
+            <span class="n">expectation</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span> <span class="o">*</span> <span class="n">flux</span><span class="o">.</span><span class="n">unit</span>
+
+        <span class="n">hist</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">contents</span><span class="o">=</span><span class="n">expectation</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">hist</span><span class="o">.</span><span class="n">unit</span> <span class="o">==</span> <span class="n">u</span><span class="o">.</span><span class="n">dimensionless_unscaled</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Expectation should be dimensionless, but has units of &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">hist</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">hist</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

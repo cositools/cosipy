@@ -1,0 +1,637 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.data_io.BinnedData &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.data_io.BinnedData</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.data_io.BinnedData</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Imports:</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Histogram</span><span class="p">,</span> <span class="n">HealpixAxis</span><span class="p">,</span> <span class="n">Axis</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scoords</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpacecraftFrame</span><span class="p">,</span> <span class="n">Attitude</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mhealpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">HealpixMap</span><span class="p">,</span> <span class="n">HealpixBase</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">healpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.data_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">UnBinnedData</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.coordinates</span><span class="w"> </span><span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="BinnedData">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BinnedData</span><span class="p">(</span><span class="n">UnBinnedData</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handles binned data.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BinnedData.get_binned_data">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData.get_binned_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_binned_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unbinned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> \
+            <span class="n">make_binning_plots</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">show_plots</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> \
+            <span class="n">psichi_binning</span><span class="o">=</span><span class="s2">&quot;galactic&quot;</span><span class="p">,</span> <span class="n">event_range</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Bin the data using histpy and mhealpy.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        unbinned_data : str, optional</span>
+<span class="sd">            Name of unbinned data file to use. Input file is either </span>
+<span class="sd">            .fits or .hdf5 as specified in the unbinned_output </span>
+<span class="sd">            parameter in inputs.yaml.     </span>
+<span class="sd">        output_name : str, optional</span>
+<span class="sd">            Prefix of output file.</span>
+<span class="sd">        make_binning_plots : bool, optional</span>
+<span class="sd">            Option to make basic plots of the binning (default is False).</span>
+<span class="sd">        show_plots : bool, optional</span>
+<span class="sd">            Option to show plots (default is False).</span>
+<span class="sd">        psichi_binning : str, optional</span>
+<span class="sd">            &#39;galactic&#39; for binning psichi in Galactic coordinates, or </span>
+<span class="sd">            &#39;local&#39; for binning in local coordinates. Default is Galactic. </span>
+<span class="sd">        event_range : list of integers, optional </span>
+<span class="sd">            min and max event to use for the binning. </span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        binned_data : histpy:Histogram</span>
+<span class="sd">            Data is binned in four axes: time, measured energy, </span>
+<span class="sd">            Compton scattering angle (phi), and scattering direction </span>
+<span class="sd">            (PsiChi).</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">        This method constructs the instance attribute, binned_data, </span>
+<span class="sd">        but it does not explicitly return it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Log message:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;binning data...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Option to read in unbinned data file:</span>
+        <span class="k">if</span> <span class="n">unbinned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dict</span><span class="p">(</span><span class="n">unbinned_data</span><span class="p">)</span>
+
+        <span class="c1"># Get time bins:</span>
+        <span class="n">min_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tmin</span>
+        <span class="n">max_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tmax</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_bins</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;int&#39;</span><span class="p">,</span><span class="s1">&#39;float&#39;</span><span class="p">]:</span>
+            <span class="c1"># Get time bins: </span>
+            <span class="n">delta_t</span> <span class="o">=</span> <span class="n">max_time</span> <span class="o">-</span> <span class="n">min_time</span>
+            <span class="n">num_bins</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">delta_t</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_bins</span><span class="p">)</span>
+            <span class="n">new_bin_size</span> <span class="o">=</span> <span class="n">delta_t</span> <span class="o">/</span> <span class="n">num_bins</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_bins</span> <span class="o">!=</span> <span class="n">new_bin_size</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Note: time bins must be equally spaced between min and max time.&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using time bin size [s]: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">new_bin_size</span><span class="p">))</span>
+            <span class="n">time_bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">min_time</span><span class="p">,</span><span class="n">max_time</span><span class="p">,</span><span class="n">num_bins</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_bins</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;list&#39;</span><span class="p">:</span>
+            <span class="c1"># Check that bins correspond to min and max time:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">min_time</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">max_time</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;ERROR: Time bins do not cover the full selected data range!&quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+            <span class="n">time_bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_bins</span><span class="p">)</span>
+
+        <span class="c1"># Get energy bins:</span>
+        <span class="n">energy_bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_bins</span><span class="p">)</span>
+
+        <span class="c1"># Get phi bins:</span>
+        <span class="n">number_phi_bins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mf">180.</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">phi_pix_size</span><span class="p">)</span>
+        <span class="n">phi_bin_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">180</span><span class="p">,</span><span class="n">number_phi_bins</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Define psichi axis and data for binning:</span>
+        <span class="k">if</span> <span class="n">psichi_binning</span> <span class="o">==</span> <span class="s1">&#39;galactic&#39;</span><span class="p">:</span>
+            <span class="n">psichi_axis</span> <span class="o">=</span> <span class="n">HealpixAxis</span><span class="p">(</span><span class="n">nside</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nside</span><span class="p">,</span> 
+                    <span class="n">scheme</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">coordsys</span> <span class="o">=</span> <span class="s1">&#39;galactic&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">)</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">l</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;Chi galactic&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> 
+                    <span class="n">b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;Psi galactic&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="s1">&#39;galactic&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">psichi_binning</span> <span class="o">==</span> <span class="s1">&#39;local&#39;</span><span class="p">:</span>
+            <span class="n">psichi_axis</span> <span class="o">=</span> <span class="n">HealpixAxis</span><span class="p">(</span><span class="n">nside</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nside</span><span class="p">,</span> 
+                    <span class="n">scheme</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> <span class="n">coordsys</span> <span class="o">=</span> <span class="n">SpacecraftFrame</span><span class="p">(),</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">)</span>
+            <span class="n">coords</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">lon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;Chi local&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> 
+                    <span class="n">lat</span><span class="o">=</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.0</span><span class="p">)</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;Psi local&#39;</span><span class="p">])</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> 
+                    <span class="n">frame</span> <span class="o">=</span> <span class="n">SpacecraftFrame</span><span class="p">())</span>
+
+        <span class="c1"># Initialize histogram:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">([</span><span class="n">Axis</span><span class="p">(</span><span class="n">time_bin_edges</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Time&#39;</span><span class="p">),</span> 
+            <span class="n">Axis</span><span class="p">(</span><span class="n">energy_bin_edges</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">keV</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Em&#39;</span><span class="p">),</span> 
+            <span class="n">Axis</span><span class="p">(</span><span class="n">phi_bin_edges</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Phi&#39;</span><span class="p">),</span> 
+            <span class="n">psichi_axis</span><span class="p">],</span> 
+            <span class="n">sparse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+         
+        <span class="c1"># Fill histogram:</span>
+        <span class="k">if</span> <span class="n">event_range</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;TimeTags&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;Energies&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">keV</span><span class="p">,</span> 
+                    <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;Phi&#39;</span><span class="p">])</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> 
+                    <span class="n">coords</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">event_range</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">low</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event_range</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">high</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event_range</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;TimeTags&#39;</span><span class="p">][</span><span class="n">low</span><span class="p">:</span><span class="n">high</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">s</span><span class="p">,</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;Energies&#39;</span><span class="p">][</span><span class="n">low</span><span class="p">:</span><span class="n">high</span><span class="p">]</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">keV</span><span class="p">,</span> 
+                    <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;Phi&#39;</span><span class="p">][</span><span class="n">low</span><span class="p">:</span><span class="n">high</span><span class="p">])</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> 
+                    <span class="n">coords</span><span class="p">[</span><span class="n">low</span><span class="p">:</span><span class="n">high</span><span class="p">])</span>
+
+        <span class="c1"># Save binned data to hdf5 file:</span>
+        <span class="k">if</span> <span class="n">output_name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.hdf5&#39;</span> <span class="o">%</span><span class="n">output_name</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Get binning information:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_binning_info</span><span class="p">()</span>
+
+        <span class="c1"># Plot the binned data:</span>
+        <span class="k">if</span> <span class="n">make_binning_plots</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">plot_binned_data</span><span class="p">(</span><span class="n">show_plots</span><span class="o">=</span><span class="n">show_plots</span><span class="p">)</span>  
+
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="BinnedData.load_binned_data_from_hdf5">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData.load_binned_data_from_hdf5">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_binned_data_from_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">binned_data</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Loads binned histogram from hdf5 file.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        binned_data : str</span>
+<span class="sd">            Name of binned data file to load. </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        binned_data : histpy:Histogram</span>
+<span class="sd">            Data is binned in four axes: time, measured energy, </span>
+<span class="sd">            Compton scattering angle (phi), and scattering direction </span>
+<span class="sd">            (PsiChi).</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">        This method sets the instance attribute, binned_data, </span>
+<span class="sd">        but it does not explicitly return it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span> <span class="o">=</span> <span class="n">Histogram</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">binned_data</span><span class="p">)</span>    
+
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="BinnedData.get_binning_info">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData.get_binning_info">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_binning_info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get binning information from Histpy histogram.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        binned_data : str</span>
+<span class="sd">            Name of binned data hdf5 file to use.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Option to read in binned data from hdf5 file:</span>
+        <span class="k">if</span> <span class="n">binned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_binned_data_from_hdf5</span><span class="p">(</span><span class="n">binned_data</span><span class="p">)</span>
+       
+        <span class="c1"># Print units of axes:</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">each</span><span class="o">.</span><span class="n">label</span> <span class="o">+</span> <span class="s2">&quot; unit: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">each</span><span class="o">.</span><span class="n">unit</span><span class="p">))</span>
+
+        <span class="c1"># Get time binning information:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_hist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s1">&#39;Time&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_time_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_bin_centers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_bin_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_bin_widths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Time&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">widths</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_bin_edges</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_bin_edges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Get energy binning information:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_hist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s1">&#39;Em&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_energy_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Em&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_centers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Em&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Em&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_widths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Em&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">widths</span>
+
+        <span class="c1"># Get Phi binning information:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_hist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s1">&#39;Phi&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_phi_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Phi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_bin_centers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Phi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_bin_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Phi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_bin_widths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Phi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">widths</span>
+
+        <span class="c1"># Get PsiChi binning information:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psichi_hist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_psichi_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psichi_bin_centers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psichi_bin_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psichi_bin_widths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">widths</span>
+         
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="BinnedData.plot_binned_data">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData.plot_binned_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_binned_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_plots</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot binnned data for all axes.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        binned_data : histpy:Histogram, optional</span>
+<span class="sd">            Name of binned histogram to use. </span>
+<span class="sd">        show_plots : bool, optional</span>
+<span class="sd">            Option to show plots (default is True).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Option to read in binned data from hdf5 file:</span>
+        <span class="k">if</span> <span class="n">binned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_binned_data_from_hdf5</span><span class="p">(</span><span class="n">binned_data</span><span class="p">)</span>
+    
+        <span class="c1"># Define plot dictionaries:</span>
+        <span class="n">time_energy_plot</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;projection&quot;</span><span class="p">:[</span><span class="s2">&quot;Time&quot;</span><span class="p">,</span><span class="s2">&quot;Em&quot;</span><span class="p">],</span><span class="s2">&quot;xlabel&quot;</span><span class="p">:</span><span class="s2">&quot;Time [s]&quot;</span><span class="p">,</span>\
+                <span class="s2">&quot;ylabel&quot;</span><span class="p">:</span><span class="s2">&quot;Em [keV]&quot;</span><span class="p">,</span><span class="s2">&quot;savefig&quot;</span><span class="p">:</span><span class="s2">&quot;2d_time_energy.png&quot;</span><span class="p">}</span>
+        <span class="n">time_plot</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;projection&quot;</span><span class="p">:</span><span class="s2">&quot;Time&quot;</span><span class="p">,</span><span class="s2">&quot;xlabel&quot;</span><span class="p">:</span><span class="s2">&quot;Time [s]&quot;</span><span class="p">,</span>\
+                <span class="s2">&quot;ylabel&quot;</span><span class="p">:</span><span class="s2">&quot;Counts&quot;</span><span class="p">,</span><span class="s2">&quot;savefig&quot;</span><span class="p">:</span><span class="s2">&quot;time_binning.pdf&quot;</span><span class="p">}</span>
+        <span class="n">energy_plot</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;projection&quot;</span><span class="p">:</span><span class="s2">&quot;Em&quot;</span><span class="p">,</span><span class="s2">&quot;xlabel&quot;</span><span class="p">:</span><span class="s2">&quot;Em [keV]&quot;</span><span class="p">,</span>\
+                <span class="s2">&quot;ylabel&quot;</span><span class="p">:</span><span class="s2">&quot;Counts&quot;</span><span class="p">,</span><span class="s2">&quot;savefig&quot;</span><span class="p">:</span><span class="s2">&quot;energy_binning.pdf&quot;</span><span class="p">}</span>
+        <span class="n">phi_plot</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;projection&quot;</span><span class="p">:</span><span class="s2">&quot;Phi&quot;</span><span class="p">,</span><span class="s2">&quot;xlabel&quot;</span><span class="p">:</span><span class="s2">&quot;Phi [deg]&quot;</span><span class="p">,</span>\
+                <span class="s2">&quot;ylabel&quot;</span><span class="p">:</span><span class="s2">&quot;Counts&quot;</span><span class="p">,</span><span class="s2">&quot;savefig&quot;</span><span class="p">:</span><span class="s2">&quot;phi_binning.pdf&quot;</span><span class="p">}</span>
+        <span class="n">psichi_plot</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;projection&quot;</span><span class="p">:</span><span class="s2">&quot;PsiChi&quot;</span><span class="p">,</span>\
+                <span class="s2">&quot;xlabel&quot;</span><span class="p">:</span><span class="s2">&quot;PsiChi [HEALPix ring pixel number]&quot;</span><span class="p">,</span>\
+                <span class="s2">&quot;ylabel&quot;</span><span class="p">:</span><span class="s2">&quot;Counts&quot;</span><span class="p">,</span><span class="s2">&quot;savefig&quot;</span><span class="p">:</span><span class="s2">&quot;psichi_binning.pdf&quot;</span><span class="p">}</span>
+        
+        <span class="c1"># Make plots:</span>
+        <span class="n">plot_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">time_energy_plot</span><span class="p">,</span><span class="n">time_plot</span><span class="p">,</span><span class="n">energy_plot</span><span class="p">,</span><span class="n">phi_plot</span><span class="p">,</span><span class="n">psichi_plot</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">plot_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">each</span><span class="p">[</span><span class="s2">&quot;projection&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;PsiChi&quot;</span><span class="p">:</span>
+                <span class="n">coordsys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">coordsys</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;plotting psichi map in </span><span class="si">{</span><span class="n">coordsys</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="s2">&quot;projection&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">coord</span> <span class="o">=</span> <span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="n">ax_kw</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;coord&#39;</span><span class="p">:</span><span class="s1">&#39;G&#39;</span><span class="p">})</span>
+            <span class="k">else</span><span class="p">:</span> 
+                <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="s2">&quot;projection&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="s2">&quot;xlabel&quot;</span><span class="p">],</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="s2">&quot;ylabel&quot;</span><span class="p">],</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">each</span><span class="p">[</span><span class="s2">&quot;savefig&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">show_plots</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span> 
+ 
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="BinnedData.plot_psichi_map">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData.plot_psichi_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_psichi_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_plots</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot psichi healpix map.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        binned_data : histpy:Histogram, optional</span>
+<span class="sd">            Name of binned histogram to use. </span>
+<span class="sd">        show_plots : bool, optional</span>
+<span class="sd">            Option to show plot (default is True).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Option to read in binned data from hdf5 file:</span>
+        <span class="k">if</span> <span class="n">binned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_binned_data_from_hdf5</span><span class="p">(</span><span class="n">binned_data</span><span class="p">)</span>
+    
+        <span class="c1"># Get psichi coordinate frame: </span>
+        <span class="n">coordsys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">coordsys</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;plotting psichi map in </span><span class="si">{</span><span class="n">coordsys</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+ 
+        <span class="n">plot</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">coord</span> <span class="o">=</span> <span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="n">ax_kw</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;coord&#39;</span><span class="p">:</span><span class="s1">&#39;G&#39;</span><span class="p">})</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span><span class="o">.</span><span class="n">set_figwidth</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span><span class="o">.</span><span class="n">set_figheight</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;PsiChi Binning (counts)&quot;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;psichi_default.png&quot;</span><span class="p">,</span><span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">show_plots</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="BinnedData.plot_psichi_map_slices">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData.plot_psichi_map_slices">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_psichi_map_slices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Em</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">binned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> \
+            <span class="n">coords</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_plots</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot psichi map in slices of Em and phi.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Em : int </span>
+<span class="sd">            Bin of energy slice.</span>
+<span class="sd">        phi : int </span>
+<span class="sd">            Bin of phi slice.</span>
+<span class="sd">        output : str</span>
+<span class="sd">            Prefix of output plot. </span>
+<span class="sd">        binned_data : histpy:Histogram, optional</span>
+<span class="sd">            Name of binned histogram to use. </span>
+<span class="sd">        coords : list, optional</span>
+<span class="sd">            Coordinates of source position. Galactic longitude and </span>
+<span class="sd">            latidude for Galactic coordinates. Azimuthal and latitude </span>
+<span class="sd">            for local coordinates. </span>
+<span class="sd">        show_plots : bool, optional</span>
+<span class="sd">            Option to show plots (default is True).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Option to read in binned data from hdf5 file:</span>
+        <span class="k">if</span> <span class="n">binned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_binned_data_from_hdf5</span><span class="p">(</span><span class="n">binned_data</span><span class="p">)</span>
+
+        <span class="c1"># Make healpix map with binned data slice:</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binned_data</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s1">&#39;Em&#39;</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">,</span> <span class="s1">&#39;PsiChi&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">slice</span><span class="p">[{</span><span class="s1">&#39;Em&#39;</span><span class="p">:</span><span class="n">Em</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">:</span><span class="n">phi</span><span class="p">}]</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s1">&#39;PsiChi&#39;</span><span class="p">)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">HealpixMap</span><span class="p">(</span><span class="n">base</span> <span class="o">=</span> <span class="n">HealpixBase</span><span class="p">(</span><span class="n">npix</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">nbins</span><span class="p">),</span> <span class="n">data</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">todense</span><span class="p">())</span>
+        
+        <span class="c1"># Plot standard view:</span>
+        <span class="n">plot</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="s1">&#39;mollview&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">coords</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">get_transform</span><span class="p">(</span><span class="s1">&#39;world&#39;</span><span class="p">),</span> <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;dotted&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span><span class="o">.</span><span class="n">set_figwidth</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span><span class="o">.</span><span class="n">set_figheight</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">.pdf&quot;</span> <span class="o">%</span><span class="n">output</span><span class="p">,</span><span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">show_plots</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="c1"># Plot rotated view:</span>
+        <span class="k">if</span> <span class="n">coords</span><span class="p">:</span>
+            <span class="n">plot</span><span class="p">,</span><span class="n">ax</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="s1">&#39;orthview&#39;</span><span class="p">,</span> <span class="n">ax_kw</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;rot&#39;</span><span class="p">:[</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="mi">0</span><span class="p">]})</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">coords</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">coords</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">transform</span><span class="o">=</span><span class="n">ax</span><span class="o">.</span><span class="n">get_transform</span><span class="p">(</span><span class="s1">&#39;world&#39;</span><span class="p">),</span> <span class="n">color</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">coords</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;grey&#39;</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">&#39;dotted&#39;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span><span class="o">.</span><span class="n">set_figwidth</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">get_figure</span><span class="p">()</span><span class="o">.</span><span class="n">set_figheight</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_rotated.pdf&quot;</span> <span class="o">%</span><span class="n">output</span><span class="p">,</span><span class="n">bbox_inches</span><span class="o">=</span><span class="s1">&#39;tight&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">show_plots</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="BinnedData.make_basic_plot">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData.make_basic_plot">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">make_basic_plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">plt_scale</span><span class="o">=</span><span class="s1">&#39;loglog&#39;</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>\
+        <span class="n">x_error</span><span class="o">=</span><span class="p">[],</span> <span class="n">plot_kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="n">fig_kwargs</span><span class="o">=</span><span class="p">{},</span> <span class="n">show_plots</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Make a basic plot.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        x : list or array</span>
+<span class="sd">            x-axis data to be plotted</span>
+<span class="sd">        y : list or array </span>
+<span class="sd">            y-axis data to be plotted</span>
+<span class="sd">        plt_scale : str, optional</span>
+<span class="sd">            scale of axes: loglog, semilogx, or semilogy.</span>
+<span class="sd">            Default is loglog.</span>
+<span class="sd">        x_error : list or array, optional </span>
+<span class="sd">            x error bars</span>
+<span class="sd">        output_name : str, optional</span>
+<span class="sd">            Prefix of saved figure (default is None).</span>
+<span class="sd">        plot_kwargs : dict, optional</span>
+<span class="sd">            Pass any kwargs to plt.plot().</span>
+<span class="sd">        fig_kwargs : dict, optional </span>
+<span class="sd">            Pass any kwargs to plt.gca().set().</span>
+<span class="sd">        show_plots : bool</span>
+<span class="sd">            Wether or not to show plot (default is True).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Setup figure:</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">gca</span><span class="p">()</span>
+
+        <span class="c1"># Main plot:</span>
+        <span class="k">if</span> <span class="n">plt_scale</span> <span class="o">==</span> <span class="s2">&quot;loglog&quot;</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">loglog</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">plot_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plt_scale</span> <span class="o">==</span> <span class="s2">&quot;semilogx&quot;</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">semilogx</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">plot_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">plt_scale</span> <span class="o">==</span> <span class="s2">&quot;semilogy&quot;</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">**</span><span class="n">plot_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># Include x error bars:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_error</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            
+            <span class="c1"># Remove label if defined:</span>
+            <span class="k">if</span> <span class="s2">&quot;label&quot;</span> <span class="ow">in</span> <span class="n">plot_kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">plot_kwargs</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;_nolabel_&quot;</span>
+
+            <span class="n">plt</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">xerr</span><span class="o">=</span><span class="n">x_error</span><span class="p">,</span> <span class="o">**</span><span class="n">plot_kwargs</span><span class="p">)</span>
+
+        <span class="c1"># axes and labels:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;grey&quot;</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span><span class="n">ls</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">**</span><span class="n">fig_kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;label&quot;</span> <span class="ow">in</span> <span class="n">plot_kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span><span class="n">frameon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># Save and show:</span>
+        <span class="k">if</span> <span class="n">output_name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">.pdf&quot;</span> <span class="o">%</span><span class="n">output_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">show_plots</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">return</span></div>
+
+    
+<div class="viewcode-block" id="BinnedData.get_raw_spectrum">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData.get_raw_spectrum">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_raw_spectrum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">time_rate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_plots</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates raw spectrum of binned data, plots, and writes to file. </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        binned_data : str, optional</span>
+<span class="sd">            Name of binnned hdf5 data file.</span>
+<span class="sd">        output_name : str, optional</span>
+<span class="sd">            Prefix of output files. Writes both pdf and dat file. </span>
+<span class="sd">        time_rate : bool, optional</span>
+<span class="sd">            If True, calculates ct/keV/s. The defualt is ct/keV. </span>
+<span class="sd">        show_plot : bool, optional</span>
+<span class="sd">            Wether or not to show plot (default is False).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Log message:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;getting raw spectrum...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Option to read in binned data from hdf5 file:</span>
+        <span class="k">if</span> <span class="n">binned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_binned_data_from_hdf5</span><span class="p">(</span><span class="n">binned_data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_binning_info</span><span class="p">()</span> 
+
+        <span class="c1"># Option to normalize by total time:</span>
+        <span class="k">if</span> <span class="n">time_rate</span><span class="o">==</span><span class="kc">False</span><span class="p">:</span>
+            <span class="n">raw_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_hist</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_widths</span>
+            <span class="n">ylabel</span> <span class="o">=</span> <span class="s2">&quot;$\mathrm{ct \ keV^{-1}}$&quot;</span>
+            <span class="n">data_label</span> <span class="o">=</span> <span class="s2">&quot;Rate[ct/keV]&quot;</span>
+        <span class="k">if</span> <span class="n">time_rate</span><span class="o">==</span><span class="kc">True</span><span class="p">:</span>
+            <span class="n">raw_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">energy_hist</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_widths</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">total_time</span>
+            <span class="n">ylabel</span> <span class="o">=</span> <span class="s2">&quot;$\mathrm{ct \ keV^{-1} \ s^{-1}}$&quot;</span>
+            <span class="n">data_label</span> <span class="o">=</span> <span class="s2">&quot;Rate[ct/keV/s]&quot;</span>
+
+        <span class="c1"># Plot:</span>
+        <span class="n">plot_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;label&quot;</span><span class="p">:</span><span class="s2">&quot;raw spectrum&quot;</span><span class="p">,</span> <span class="s2">&quot;ls&quot;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;marker&quot;</span><span class="p">:</span><span class="s2">&quot;o&quot;</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span><span class="s2">&quot;black&quot;</span><span class="p">}</span>
+        <span class="n">fig_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;xlabel&quot;</span><span class="p">:</span><span class="s2">&quot;Energy [keV]&quot;</span><span class="p">,</span> <span class="s2">&quot;ylabel&quot;</span><span class="p">:</span><span class="n">ylabel</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_basic_plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_centers</span><span class="p">,</span> <span class="n">raw_rate</span><span class="p">,</span>\
+            <span class="n">x_error</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_widths</span><span class="o">/</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="n">output_name</span><span class="p">,</span>\
+            <span class="n">plot_kwargs</span><span class="o">=</span><span class="n">plot_kwargs</span><span class="p">,</span> <span class="n">fig_kwargs</span><span class="o">=</span><span class="n">fig_kwargs</span><span class="p">,</span> <span class="n">show_plots</span><span class="o">=</span><span class="n">show_plots</span><span class="p">)</span>
+
+        <span class="c1"># Write data:</span>
+        <span class="k">if</span> <span class="n">output_name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Energy[keV]&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">energy_bin_centers</span><span class="p">,</span><span class="n">data_label</span><span class="p">:</span><span class="n">raw_rate</span><span class="p">}</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">d</span><span class="p">)</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">.dat&quot;</span> <span class="o">%</span><span class="n">output_name</span><span class="p">,</span><span class="n">float_format</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%10.5e</span><span class="s1">&#39;</span><span class="p">,</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Energy[keV]&quot;</span><span class="p">,</span><span class="n">data_label</span><span class="p">])</span>
+        
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="BinnedData.get_raw_lightcurve">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.BinnedData.get_raw_lightcurve">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_raw_lightcurve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">show_plots</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates raw lightcurve of binned data, plots, and writes data to file.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        binned_data : str, optional</span>
+<span class="sd">            Name of binnned hdf5 data file to use.</span>
+<span class="sd">        output_name : str, optional</span>
+<span class="sd">            Prefix of output files. Writes both pdf and dat file. </span>
+<span class="sd">        show_plots : bool, optional</span>
+<span class="sd">            Wether or not to show plot (default is False).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Log message:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;getting raw lightcurve...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Option to read in binned data from hdf5 file:</span>
+        <span class="k">if</span> <span class="n">binned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">load_binned_data_from_hdf5</span><span class="p">(</span><span class="n">binned_data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_binning_info</span><span class="p">()</span> 
+        
+        <span class="c1"># Calculate raw light curve:</span>
+        <span class="n">raw_lc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_hist</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">time_bin_widths</span>
+
+        <span class="c1"># Plot:</span>
+        <span class="n">plot_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;ls&quot;</span><span class="p">:</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;marker&quot;</span><span class="p">:</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span><span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span><span class="s2">&quot;raw lightcurve&quot;</span><span class="p">}</span>
+        <span class="n">fig_kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;xlabel&quot;</span><span class="p">:</span><span class="s2">&quot;Time [s]&quot;</span><span class="p">,</span> <span class="s2">&quot;ylabel&quot;</span><span class="p">:</span><span class="s2">&quot;Rate [$\mathrm{ct \ s^{-1}}$]&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_basic_plot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_bin_centers</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_bin_centers</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">raw_lc</span><span class="p">,</span>\
+            <span class="n">output_name</span><span class="o">=</span><span class="n">output_name</span><span class="p">,</span> <span class="n">plt_scale</span><span class="o">=</span><span class="s2">&quot;semilogy&quot;</span><span class="p">,</span> 
+            <span class="n">plot_kwargs</span><span class="o">=</span><span class="n">plot_kwargs</span><span class="p">,</span> <span class="n">fig_kwargs</span><span class="o">=</span><span class="n">fig_kwargs</span><span class="p">,</span> <span class="n">show_plots</span><span class="o">=</span><span class="n">show_plots</span><span class="p">)</span>
+            
+        <span class="c1"># Write data:</span>
+        <span class="k">if</span> <span class="n">output_name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Time[UTC]&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">time_bin_centers</span><span class="p">,</span><span class="s2">&quot;Rate[ct/s]&quot;</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">time_hist</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">time_bin_widths</span><span class="p">}</span>
+            <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">d</span><span class="p">)</span>
+            <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">.dat&quot;</span> <span class="o">%</span><span class="n">output_name</span><span class="p">,</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span><span class="n">sep</span><span class="o">=</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Time[UTC]&quot;</span><span class="p">,</span><span class="s2">&quot;Rate[ct/s]&quot;</span><span class="p">])</span>
+
+        <span class="k">return</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

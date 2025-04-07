@@ -1,0 +1,376 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Point Source Response with Earth Occultation &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="API" href="../../api/index.html" />
+    <link rel="prev" title="Other examples" href="../other_examples.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Tutorials</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../other_examples.html">Other examples</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Point source response with Earth occultation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Now-let's-do-a-simple-test:">Now let’s do a simple test:</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../other_examples.html">Other examples</a></li>
+      <li class="breadcrumb-item active">Point Source Response with Earth Occultation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tutorials/response/PSR_with_Earth_occultation_example.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Point-Source-Response-with-Earth-Occultation">
+<h1>Point Source Response with Earth Occultation<a class="headerlink" href="#Point-Source-Response-with-Earth-Occultation" title="Link to this heading"></a></h1>
+<p>This notebook requires downloading the following files from wasabi:</p>
+<ol class="arabic simple">
+<li><p>DC3_final_530km_3_month_with_slew_15sbins_GalacticEarth.ori (from DC3)</p></li>
+<li><p>SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5 (from DC2)</p></li>
+</ol>
+<p>Additionally, you need test_earth_occ.ori, which is included in the same directory as this notebook.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Imports
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.response import FullDetectorResponse
+from cosipy.util import fetch_wasabi_file
+import astropy.units as u
+from astropy.coordinates import SkyCoord
+import numpy as np
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">16:35:19 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The naima package is not available. Models that depend on it will not be         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#48" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">48</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                         </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The GSL library or the pygsl wrapper cannot be loaded. Models that depend on it  </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#69" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">69</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">will not be available.                                                            </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">16:35:20 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The ebltable package is not available. Models that depend on it will not be     </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">absorption.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py#33" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">33</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                        </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">                </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">16:35:21 </span><span style="color: #00ffaf; text-decoration-color: #00ffaf">INFO    </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Starting 3ML!                                                                     </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#39" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">39</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> WARNINGs here are </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">NOT</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> errors                                                      </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#40" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">40</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> but are inform you about optional packages that can be installed                  </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#41" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">41</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold"> to disable these messages, turn off start_warning in your config file</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">            </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> no display variable set. using backend for graphics without display (agg)         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#50" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">50</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">16:35:22 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> ROOT minimizer not available                                                </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py#1345" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1345</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Multinest minimizer not available                                           </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py#1357" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1357</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> PyGMO is not available                                                      </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py#1369" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1369</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">16:35:23 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The cthreeML package is not installed. You will not be able to use plugins which  </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#94" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">94</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">require the C/C++ interface (currently HAWC)                                       </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">              </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin FermiLATLike.py. Do you have the relative instrument     </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">16:35:24 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin HAWCLike.py. Do you have the relative instrument         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">16:35:26 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> No fermitools installed                                              </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">lat_transient_builder.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">16:35:26 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable OMP_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable MKL_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable NUMEXPR_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal     </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<p>Load orientation file:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ori_file = &quot;your/path/DC3_final_530km_3_month_with_slew_15sbins_GalacticEarth.ori&quot;
+ori = SpacecraftFile.parse_from_file(ori_file)
+</pre></div>
+</div>
+</div>
+<p>Define coordinate of source (Crab):</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coord = SkyCoord(l=184.56*u.deg,b=-5.78*u.deg,frame=&quot;galactic&quot;)
+</pre></div>
+</div>
+</div>
+<p>Calculate scatt map for given coordinate:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>scatt_map = ori.get_scatt_map(coord, nside = 16, coordsys = &#39;galactic&#39;)
+</pre></div>
+</div>
+</div>
+<p>Calculate psr:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>response_path = &quot;your/path/&quot;
+response_file = response_path + &quot;SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5&quot;
+with FullDetectorResponse.open(response_file) as response:
+    psr = response.get_point_source_response(coord = coord, scatt_map = scatt_map)
+print(&quot;Works!&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Works!
+</pre></div></div>
+</div>
+<section id="Now-let's-do-a-simple-test:">
+<h2>Now let’s do a simple test:<a class="headerlink" href="#Now-let's-do-a-simple-test:" title="Link to this heading"></a></h2>
+<p>Load test orientation file: the z-axis of the instrument points to the Galactic center for 30 seconds. For the first 15 seconds, the instrument is in front of Earth, and then for the last 15.1 seconds the instrument is behind Earth. This should be reflected in the scatt map.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ori_file = &quot;your/path/test_earth_occ.ori&quot;
+ori = SpacecraftFile.parse_from_file(ori_file)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coord = SkyCoord(l=0*u.deg,b=0*u.deg,frame=&quot;galactic&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>scatt_map = ori.get_scatt_map(coord, nside = 16, coordsys = &#39;galactic&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>np.sum(scatt_map.contents.todense())
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+15.099999904632568
+</pre></div></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../other_examples.html" class="btn btn-neutral float-left" title="Other examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../api/index.html" class="btn btn-neutral float-right" title="API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

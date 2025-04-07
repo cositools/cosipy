@@ -1,0 +1,892 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DC2 Image Analysis, Crab, Data Reduction &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">DC2 Image Analysis, Crab, Data Reduction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/tutorials/image_deconvolution/Crab/ScAttBinning/Crab-DC2-ScAtt-DataReduction.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="DC2-Image-Analysis,-Crab,-Data-Reduction">
+<h1>DC2 Image Analysis, Crab, Data Reduction<a class="headerlink" href="#DC2-Image-Analysis,-Crab,-Data-Reduction" title="Link to this heading"></a></h1>
+<p>updated on 2024-02-22 (the commit f27cd0bee26c56a93d34a06f2c0af88cb1f59f6e)</p>
+<p>This notebook focuses on how to produce the binned datasets with the spacecraft attitude (scatt) binning method for DC2. An example of the image analysis will be presented using the Crab 3-month simulation data created for DC2. After running through this notebook, you can go to the next notebook, Crab-DC2-ScAtt-ImageDeconvolution.ipynb.</p>
+<section id="Notes-on-the-coordinate-system-of-Compton-data-space-in-the-image-deconvolution">
+<h2>Notes on the coordinate system of Compton data space in the image deconvolution<a class="headerlink" href="#Notes-on-the-coordinate-system-of-Compton-data-space-in-the-image-deconvolution" title="Link to this heading"></a></h2>
+<p>We have two options on the coordinate system to describe the Compton scattering direction (<span class="math notranslate nohighlight">\(\chi\psi\)</span>) with, namely the Galactic coordinate or the detector coordinate.</p>
+<p>Using the Galactic coordinate is intuitive, and the spectral fitting adopts this coordinate. Thus, we suppose that Galactic coordinate should be adopted also for image deconvolution eventually. However, in this case, we need to convert the detector response into the Galactic coordinate for each pixel in the sky because the response matrix is described in the detector coordinate. As for now, it takes a long time to compute it. Thus, the pre-computed converted response are provided in DC2 for
+several main sources (511 keV, Al-26, Ti-44, continuum). The pre-computed responses assume that we analyze 3-month data without extracting some time intervals, and the pixel resolution of the model map is already fixed in them. While there is less flexibility in binning/modeling, it is relatively fast to perform the image deconvolution in DC2 since the most computationally heavy part, the coordinate conversion of the response, can be skipped.</p>
+<p>Using the detector coordinates for Compton data space may not be so intuitive. However, the advantage is that we do not have to convert the response matrix. Instead, we will convert the model map into the detector coordinate. Because the model map generally has a much smaller data size than the response, we can compute this coordinate conversion quickly.</p>
+<p>The disadvantage of this method is that we need more bins due to continuous pointing changes of the COSI satellite. Since COSI is an all-sky monitoring satellite with ∼90-minute orbits, it changes its pointing by ∼4 degrees every minute. Thus, in this case, we need to divide the data into several bins so that astronomical sources can be considered at rest in the detector coordinate for each bin within the COSI’s angular resolution. The straightforward way could be to divide the data every
+$:nbsphinx-math:<cite>sim`$15 seconds, considering that the COSI’s angular resolution is an order of degrees. However, we need :math:`5times10^5</cite> time bins for 3-month observations, which makes the event histogram very huge. To avoid this issue, the spacecraft attitude (scatt) binning method is introduced. Instead of binning data over time, we first analyze the satellite attitude and find the time intervals when the satellite has almost the same attitude within the angular resolution. Then, we
+assign the events in such intervals into the same CDS. In the DC2 simulation, the orbit inclination is assumed to be 0 degrees. In this case, the number of the scatt bins becomes 100-1000, which makes the computation more executable. With this method, at least in DC2, we can perform the image deconvolution using the original response matrix and have flexibilities to change binning/modeling, e.g., the pixel resolution can be changed in a relatively easy way.</p>
+<p>While both methods have pros and cons, our baseline is to eventually use the Galactic coordinate. But we still need to carefully investigate how they will be scaled with longer exposure, finer pixel resolution, etc. Thus, we provide the notebooks of both methods for the image deconvolution in DC2.</p>
+<p>For the Crab image analysis, the following notebooks are based on the scatt binning method</p>
+<ul class="simple">
+<li><p>ScAttBinning/Crab-DC2-ScAtt-DataReduction.ipynb</p></li>
+<li><p>ScAttBinning/Crab-DC2-ScAtt-ImageDeconvolution.ipynb</p></li>
+<li><p>ScAttBinning/Crab-DC2-ScAtt-Upsampling.ipynb</p></li>
+</ul>
+<p>GalacticCDS/Crab-DC2-Galactic-ImageDeconvolution.ipynb uses the galactic coordinate.</p>
+<p>If you want to know about the other analysis, e.g., the spectral analysis, you can see the notebooks in docs/tutorials/spectral_fits.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from histpy import Histogram, HealpixAxis, Axis, Axes
+from mhealpy import HealpixMap
+from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
+
+from cosipy.response import FullDetectorResponse
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.ts_map.TSMap import TSMap
+from cosipy.data_io import UnBinnedData, BinnedData
+from cosipy.image_deconvolution import SpacecraftAttitudeExposureTable, CoordsysConversionMatrix
+from cosipy.util import fetch_wasabi_file
+
+# cosipy uses astropy units
+import astropy.units as u
+from astropy.units import Quantity
+from astropy.coordinates import SkyCoord
+from astropy.time import Time
+from astropy.table import Table
+from astropy.io import fits
+from scoords import Attitude, SpacecraftFrame
+
+#3ML is needed for spectral modeling
+from threeML import *
+from astromodels import Band
+
+#Other standard libraries
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+import healpy as hp
+from tqdm.autonotebook import tqdm
+
+%matplotlib inline
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="0.-Prepare-the-data">
+<h1>0. Prepare the data<a class="headerlink" href="#0.-Prepare-the-data" title="Link to this heading"></a></h1>
+<p>Before running the cells, please download the files needed for this notebook. You can get them from wasabi.</p>
+<p>Basically, the data reduction from raw tra files may take hours depending on your environments. So we can skip this process. Please download the following data files and then run the following cells.</p>
+<p>From wasabi</p>
+<ul class="simple">
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5 (please unzip it)</p></li>
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Data/Sources/Crab_DC2_3months_unbinned_data.fits.gz</p></li>
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz</p>
+<ul>
+<li><p>In this notebook, only the albedo gamma-ray background is considered for a tutorial.</p></li>
+<li><p>If you want to consider all of the background components, please replace it with cosi-pipeline-public/COSI-SMEX/DC2/Data/Backgrounds/total_bg_3months_unbinned_data.fits.gz</p></li>
+<li><p>Note that total_bg_3months_unbinned_data.fits.gz is 14.15 GB.</p></li>
+</ul>
+</li>
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori</p></li>
+</ul>
+<p>From docs/tutorials/image_deconvolution/Crab/ScAttBinning</p>
+<ul class="simple">
+<li><p>inputs_Crab_DC2.yaml</p></li>
+</ul>
+<p>You can download the data and detector response from wasabi. You can skip this cell if you already have downloaded the files.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Source file (Crab):
+# wasabi path: COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip
+# File size: 840M
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip&#39;)
+os.system(&quot;unzip SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Source file (Crab):
+# wasabi path: COSI-SMEX/DC2/Data/Sources/Crab_DC2_3months_unbinned_data.fits.gz
+# File size: 619.22 MB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Sources/Crab_DC2_3months_unbinned_data.fits.gz&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Background file (albedo gamma):
+# wasabi path: COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz
+# File size: 2.69 GB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Orientation file:
+# wasabi path: COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori
+# File size: 684.38 MB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori&#39;)
+</pre></div>
+</div>
+</div>
+<p>please modify “path_data” corresponding to your environment.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>path_data = &quot;path/to/data/&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+ori_filepath = path_data + &quot;20280301_3_month.ori&quot;
+ori = SpacecraftFile.parse_from_file(ori_filepath)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 16.6 s, sys: 1.57 s, total: 18.2 s
+Wall time: 17.7 s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>full_detector_response_filename = path_data + &quot;SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5&quot;
+full_detector_response = FullDetectorResponse.open(full_detector_response_filename)
+
+nside = full_detector_response.nside
+npix = hp.nside2npix(nside)
+
+nside, npix
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(8, 768)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>full_detector_response
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+FILENAME: &#39;/Users/yoneda/Work/Exp/COSI/cosipy-2/data_challenge/DC2/prework/data/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5&#39;
+AXES:
+  NuLambda:
+    DESCRIPTION: &#39;Location of the simulated source in the spacecraft coordinates&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 768
+    NSIDE: 8
+    SCHEME: &#39;RING&#39;
+  Ei:
+    DESCRIPTION: &#39;Initial simulated energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 10
+    EDGES: [100.0 keV, 158.489 keV, 251.189 keV, 398.107 keV, 630.957 keV, 1000.0 keV, 1584.89 keV, 2511.89 keV, 3981.07 keV, 6309.57 keV, 10000.0 keV]
+  Em:
+    DESCRIPTION: &#39;Measured energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 10
+    EDGES: [100.0 keV, 158.489 keV, 251.189 keV, 398.107 keV, 630.957 keV, 1000.0 keV, 1584.89 keV, 2511.89 keV, 3981.07 keV, 6309.57 keV, 10000.0 keV]
+  Phi:
+    DESCRIPTION: &#39;Compton angle&#39;
+    TYPE: &#39;linear&#39;
+    UNIT: &#39;deg&#39;
+    NBINS: 36
+    EDGES: [0.0 deg, 5.0 deg, 10.0 deg, 15.0 deg, 20.0 deg, 25.0 deg, 30.0 deg, 35.0 deg, 40.0 deg, 45.0 deg, 50.0 deg, 55.0 deg, 60.0 deg, 65.0 deg, 70.0 deg, 75.0 deg, 80.0 deg, 85.0 deg, 90.0 deg, 95.0 deg, 100.0 deg, 105.0 deg, 110.0 deg, 115.0 deg, 120.0 deg, 125.0 deg, 130.0 deg, 135.0 deg, 140.0 deg, 145.0 deg, 150.0 deg, 155.0 deg, 160.0 deg, 165.0 deg, 170.0 deg, 175.0 deg, 180.0 deg]
+  PsiChi:
+    DESCRIPTION: &#39;Location in the Compton Data Space&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 768
+    NSIDE: 8
+    SCHEME: &#39;RING&#39;
+
+</pre></div></div>
+</div>
+</section>
+<section id="1.-analyze-the-orientation-file">
+<h1>1. analyze the orientation file<a class="headerlink" href="#1.-analyze-the-orientation-file" title="Link to this heading"></a></h1>
+<p>Here the orientation file is analyzed to define the indices of the spacecraft attitude binning.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+exposure_table = SpacecraftAttitudeExposureTable.from_orientation(ori, nside = nside, start = None, stop = None)
+exposure_table
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+angular resolution:  7.329037678543799 deg.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING ErfaWarning: ERFA function &#34;utctai&#34; yielded 1 of &#34;dubious year (Note 3)&#34;
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+duration:  92.36059027777777 d
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING ErfaWarning: ERFA function &#34;utctai&#34; yielded 7979955 of &#34;dubious year (Note 3)&#34;
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "a3c41c4036b94bad945ff87f8864345b", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 32.6 s, sys: 1.71 s, total: 34.3 s
+Wall time: 34.4 s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>scatt_binning_index</th>
+      <th>healpix_index</th>
+      <th>zpointing</th>
+      <th>xpointing</th>
+      <th>zpointing_averaged</th>
+      <th>xpointing_averaged</th>
+      <th>delta_time</th>
+      <th>exposure</th>
+      <th>num_pointings</th>
+      <th>bkg_group</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>(532, 13)</td>
+      <td>[[44.62664815323754, -21.585226694584346], [44...</td>
+      <td>[[44.62664815323755, 68.41477330541565], [44.6...</td>
+      <td>[44.77592919492308, -21.83137450725276]</td>
+      <td>[44.79590102793104, 68.17007080261746]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>71072.0</td>
+      <td>71072</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>(532, 26)</td>
+      <td>[[45.66020516346508, -23.269427365755966], [45...</td>
+      <td>[[45.6602051634651, 66.73057263424403], [45.69...</td>
+      <td>[45.955010022713545, -23.741156770888438]</td>
+      <td>[45.95764244902919, 66.25906763976249]</td>
+      <td>[1.0000000000065512, 0.9999999999969589, 0.999...</td>
+      <td>26359.0</td>
+      <td>26359</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>(532, 42)</td>
+      <td>[[46.29919922293719, -24.286823740507035], [46...</td>
+      <td>[[46.29919922293719, 65.71317625949297], [46.3...</td>
+      <td>[47.169799754806256, -25.642813300423782]</td>
+      <td>[47.188380045186555, 64.35902575261872]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 1.000...</td>
+      <td>71137.0</td>
+      <td>71137</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>(564, 42)</td>
+      <td>[[48.1115581160702, -27.07000329743496], [48.1...</td>
+      <td>[[48.111558116070206, 62.92999670256505], [48....</td>
+      <td>[49.549399237968544, -29.168814518824405]</td>
+      <td>[49.59320571194872, 60.83674837374497]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>111115.0</td>
+      <td>111115</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>(564, 63)</td>
+      <td>[[51.09862804289071, -31.321406880638527], [51...</td>
+      <td>[[51.09862804289071, 58.67859311936147], [51.1...</td>
+      <td>[51.90542254254405, -32.39811966891759]</td>
+      <td>[51.917215575378705, 57.603714738909005]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>57871.0</td>
+      <td>57871</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>133</th>
+      <td>133</td>
+      <td>(468, 13)</td>
+      <td>[[40.16189499252812, -13.801710443269755], [40...</td>
+      <td>[[40.161894992528104, 76.19828955673026], [40....</td>
+      <td>[40.89892831460051, -15.138427135287458]</td>
+      <td>[40.92208802371745, 74.8623891583036]</td>
+      <td>[1.0000000000065512, 0.9999999999969589, 0.999...</td>
+      <td>67576.0</td>
+      <td>67576</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>134</th>
+      <td>134</td>
+      <td>(499, 13)</td>
+      <td>[[41.655148156368654, -16.49006256585185], [41...</td>
+      <td>[[41.655148156368654, 73.50993743414816], [41....</td>
+      <td>[42.7796358426142, -18.460371889534287]</td>
+      <td>[42.82335612555313, 71.54190445396517]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>99833.0</td>
+      <td>99833</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>135</th>
+      <td>135</td>
+      <td>(716, 188)</td>
+      <td>[[145.12720043519377, -61.03941171474516], [14...</td>
+      <td>[[145.12720043519377, 28.960588285254847], [14...</td>
+      <td>[145.15270150626816, -61.035193201971055]</td>
+      <td>[145.1526970180014, 28.964811462201155]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 1.000...</td>
+      <td>992.0</td>
+      <td>992</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>136</th>
+      <td>136</td>
+      <td>(128, 128)</td>
+      <td>[[180.0238082643748, 46.67626678787605], [180....</td>
+      <td>[[180.0238082643748, 43.32373321212394], [180....</td>
+      <td>[180.01420731505038, 46.68360608975279]</td>
+      <td>[180.01420553833427, 43.316394483057174]</td>
+      <td>[0.9999999999969589, 1.000000000001755, 1.0000...</td>
+      <td>646.0</td>
+      <td>646</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>137</th>
+      <td>137</td>
+      <td>(58, 188)</td>
+      <td>[[325.1571038593629, 61.0351405587937], [325.1...</td>
+      <td>[[145.15710385936296, 28.964859441206304], [14...</td>
+      <td>[325.15317939441115, 61.03567974667542]</td>
+      <td>[145.15317503922358, 28.964324759952632]</td>
+      <td>[1.000000000001755, 0.9999999999969589, 0.9999...</td>
+      <td>970.0</td>
+      <td>970</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<p>138 rows × 10 columns</p>
+</div></div>
+</div>
+<p>You can save SpacecraftAttitudeExposureTable as a fits file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>exposure_table.save_as_fits(&quot;exposure_table.fits&quot;, overwrite = True)
+</pre></div>
+</div>
+</div>
+<p>You can also read the fits file.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>exposure_table_from_fits = SpacecraftAttitudeExposureTable.from_fits(&quot;exposure_table.fits&quot;)
+exposure_table == exposure_table_from_fits
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+True
+</pre></div></div>
+</div>
+<p>The sum of values in the ‘exposure’ column should be the same of the observation duration.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>(np.sum(exposure_table[&#39;exposure&#39;]) * u.s).to(&quot;day&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$92.36059 \; \mathrm{d}$</div></div>
+</div>
+<p>SpacecraftAttitudeExposureTable can produce SpacecraftAttitudeMap that has an exposure time in each Z- and X-poiting pixels.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>map_pointing_zx = exposure_table.calc_pointing_trajectory_map()
+map_pointing_zx = map_pointing_zx.to_dense()
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>hp.mollview(map_pointing_zx.project(&#39;z&#39;).contents, rot=(0,0), unit = u.s, title = &quot;Exposure map projected in the Z-axis pointing&quot;)
+hp.graticule(color=&#39;gray&#39;, dpar = 30)
+plt.show()
+
+hp.mollview(map_pointing_zx.project(&#39;z&#39;).contents, rot=(0,90), unit = u.s, title = &quot;Exposure map projected in the Z-axis pointing&quot;)
+hp.graticule(color=&#39;gray&#39;, dpar = 30)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_Crab_ScAttBinning_Crab-DC2-ScAtt-DataReduction_23_0.png" src="../../../../_images/tutorials_image_deconvolution_Crab_ScAttBinning_Crab-DC2-ScAtt-DataReduction_23_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_Crab_ScAttBinning_Crab-DC2-ScAtt-DataReduction_23_1.png" src="../../../../_images/tutorials_image_deconvolution_Crab_ScAttBinning_Crab-DC2-ScAtt-DataReduction_23_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>hp.mollview(map_pointing_zx.project(&#39;x&#39;).contents, rot=(0,0), unit = u.s, title = &quot;Exposure map projected in the X-axis pointing&quot;)
+hp.graticule(color=&#39;gray&#39;, dpar = 30)
+plt.show()
+
+hp.mollview(map_pointing_zx.project(&#39;x&#39;).contents, rot=(0,90), unit = u.s, title = &quot;Exposure map projected in the X-axis pointing&quot;)
+hp.graticule(color=&#39;gray&#39;, dpar = 30)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_Crab_ScAttBinning_Crab-DC2-ScAtt-DataReduction_24_0.png" src="../../../../_images/tutorials_image_deconvolution_Crab_ScAttBinning_Crab-DC2-ScAtt-DataReduction_24_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_Crab_ScAttBinning_Crab-DC2-ScAtt-DataReduction_24_1.png" src="../../../../_images/tutorials_image_deconvolution_Crab_ScAttBinning_Crab-DC2-ScAtt-DataReduction_24_1.png" />
+</div>
+</div>
+</section>
+<section id="2.-Calculate-the-coordinate-conversion-matrix">
+<h1>2. Calculate the coordinate conversion matrix<a class="headerlink" href="#2.-Calculate-the-coordinate-conversion-matrix" title="Link to this heading"></a></h1>
+<p>CoordsysConversionMatrix.spacecraft_attitude_binning_ccm can produce the coordinate conversion matrix for the spacecraft attitude binning.</p>
+<p>In this calculation, we calculate the exposure time map in the detector coordinate for each model pixel and each scatt_binning_index. We refer to it as the dwell time map.</p>
+<p>If use_averaged_pointing is True, first the averaged Z- and X-pointings are calculated (the average of zpointing or xpointing in the exposure table) for each scatt_binning_index, and then the dwell time map is calculated assuming the averaged pointings for each model pixel and each scatt_binning_index.</p>
+<p>If use_averaged_pointing is False, the dwell time map is calculated for each attitude in zpointing and xpointing (basically every 1 second), and then the calculated dwell time maps are summed up for each model pixel and each scatt_binning_index.</p>
+<p>In the former case, the computation is fast but may lose the angular resolution. In the latter case, the conversion matrix is more accurate, but it takes a very long time to calculate it.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+coordsys_conv_matrix = CoordsysConversionMatrix.spacecraft_attitude_binning_ccm(full_detector_response, exposure_table, use_averaged_pointing = True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "65fd936705e540f7a3340adb29e6e9fe", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 1min 27s, sys: 1.28 s, total: 1min 28s
+Wall time: 1min 28s
+</pre></div></div>
+</div>
+<p>You can save CoordsysConversionMatrix as a hdf5 file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix.write(&quot;ccm.hdf5&quot;, overwrite = True)
+</pre></div>
+</div>
+</div>
+<p>You can also read the saved file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix = CoordsysConversionMatrix.open(&quot;ccm.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="3.-produce-the-binned-data">
+<h1>3. produce the binned data<a class="headerlink" href="#3.-produce-the-binned-data" title="Link to this heading"></a></h1>
+<p>Using the exposure table, we can produce the binned data.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def get_binned_data_scatt(unbinned_event, exposure_table, psichi_binning = &#39;local&#39;, sparse = False):
+    exposure_dict = {row[&#39;healpix_index&#39;]: row[&#39;scatt_binning_index&#39;] for _, row in exposure_table.iterrows()}
+
+    # from BinnedData.py
+
+    # Get energy bins:
+    energy_bin_edges = np.array(unbinned_event.energy_bins)
+
+    # Get phi bins:
+    number_phi_bins = int(180./unbinned_event.phi_pix_size)
+    phi_bin_edges = np.linspace(0,180,number_phi_bins+1)
+
+    # Define psichi axis and data for binning:
+    if psichi_binning == &#39;galactic&#39;:
+        psichi_axis = HealpixAxis(nside = unbinned_event.nside, scheme = unbinned_event.scheme, coordsys = &#39;galactic&#39;, label=&#39;PsiChi&#39;)
+        coords = SkyCoord(l=unbinned_event.cosi_dataset[&#39;Chi galactic&#39;]*u.deg, b=unbinned_event.cosi_dataset[&#39;Psi galactic&#39;]*u.deg, frame = &#39;galactic&#39;)
+    if psichi_binning == &#39;local&#39;:
+        psichi_axis = HealpixAxis(nside = unbinned_event.nside, scheme = unbinned_event.scheme, coordsys = SpacecraftFrame(), label=&#39;PsiChi&#39;)
+        coords = SkyCoord(lon=unbinned_event.cosi_dataset[&#39;Chi local&#39;]*u.rad, lat=((np.pi/2.0) - unbinned_event.cosi_dataset[&#39;Psi local&#39;])*u.rad, frame = SpacecraftFrame())
+
+    # Define scatt axis and data for binning
+    n_scatt_bins = len(exposure_table)
+    scatt_axis = Axis(np.arange(n_scatt_bins + 1), label=&#39;ScAtt&#39;)
+
+    is_nest = True if exposure_table.scheme == &#39;nested&#39; else False
+
+    nside_scatt = exposure_table.nside
+
+    zindex = hp.ang2pix(nside_scatt, unbinned_event.cosi_dataset[&#39;Zpointings (glon,glat)&#39;].T[0] * 180 / np.pi,
+                        unbinned_event.cosi_dataset[&#39;Zpointings (glon,glat)&#39;].T[1] * 180 / np.pi, nest=is_nest, lonlat=True)
+    xindex = hp.ang2pix(nside_scatt, unbinned_event.cosi_dataset[&#39;Xpointings (glon,glat)&#39;].T[0] * 180 / np.pi,
+                        unbinned_event.cosi_dataset[&#39;Xpointings (glon,glat)&#39;].T[1] * 180 / np.pi, nest=is_nest, lonlat=True)
+    scatt_data = np.array( [ exposure_dict[(z, x)] + 0.5 if (z,x) in exposure_dict.keys() else -1 for z, x in zip(zindex, xindex)] ) # should this &quot;0.5&quot; be needed?
+
+    # Initialize histogram:
+    binned_data = Histogram([scatt_axis,
+                              Axis(energy_bin_edges*u.keV, label=&#39;Em&#39;),
+                              Axis(phi_bin_edges*u.deg, label=&#39;Phi&#39;),
+                              psichi_axis],
+                              sparse=sparse)
+
+    # Fill histogram:
+    binned_data.fill(scatt_data, unbinned_event.cosi_dataset[&#39;Energies&#39;]*u.keV, np.rad2deg(unbinned_event.cosi_dataset[&#39;Phi&#39;])*u.deg, coords)
+
+    return binned_data
+</pre></div>
+</div>
+</div>
+<p>Load the Crab data (without background)</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+signal_filepath = path_data + &quot;Crab_DC2_3months_unbinned_data.fits.gz&quot;
+
+unbinned_signal = UnBinnedData(input_yaml = &quot;inputs_Crab_DC2.yaml&quot;)
+
+unbinned_signal.cosi_dataset = unbinned_signal.get_dict_from_fits(signal_filepath)
+
+binned_signal = get_binned_data_scatt(unbinned_signal, exposure_table, psichi_binning = &#39;local&#39;, sparse = False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 15.3 s, sys: 689 ms, total: 16 s
+Wall time: 16 s
+</pre></div></div>
+</div>
+<p>Load the background data</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+bkg_filepath = path_data + &quot;albedo_photons_3months_unbinned_data.fits.gz&quot;
+
+unbinned_bkg = UnBinnedData(input_yaml = &quot;inputs_Crab_DC2.yaml&quot;)
+
+unbinned_bkg.cosi_dataset = unbinned_bkg.get_dict_from_fits(bkg_filepath)
+
+binned_bkg = get_binned_data_scatt(unbinned_bkg, exposure_table, psichi_binning = &#39;local&#39;, sparse = False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 1min 36s, sys: 4.31 s, total: 1min 40s
+Wall time: 1min 42s
+</pre></div></div>
+</div>
+<p>Sum up the signal and background data</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>binned_event = binned_signal + binned_bkg
+</pre></div>
+</div>
+</div>
+<p>Save them</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>binned_event.write(&quot;Crab_scatt_binning_DC2_event.hdf5&quot;)
+binned_bkg.write(&quot;Crab_scatt_binning_DC2_bkg.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+<p><strong>You can move on the next notebook (Crab-DC2-ScAtt-ImageDeconvolution.ipynb).</strong></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

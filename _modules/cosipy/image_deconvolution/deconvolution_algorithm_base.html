@@ -1,0 +1,426 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.image_deconvolution.deconvolution_algorithm_base &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.image_deconvolution.deconvolution_algorithm_base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.image_deconvolution.deconvolution_algorithm_base</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DeconvolutionAlgorithmBase</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A base class for image deconvolution algorithms.</span>
+<span class="sd">    Subclasses should override these methods:</span>
+
+<span class="sd">    - initialization </span>
+<span class="sd">    - pre_processing</span>
+<span class="sd">    - Estep</span>
+<span class="sd">    - Mstep</span>
+<span class="sd">    - post_processing</span>
+<span class="sd">    - register_result</span>
+<span class="sd">    - check_stopping_criteria</span>
+<span class="sd">    - finalization</span>
+<span class="sd">    </span>
+<span class="sd">    When the method run_deconvolution is called in ImageDeconvolution class, </span>
+<span class="sd">    the iteration method in this class is called for each iteration.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    initial_model: :py:class:`cosipy.image_deconvolution.ModelBase` or its subclass</span>
+<span class="sd">    dataset: list of :py:class:`cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase` or its subclass</span>
+<span class="sd">    parameter : py:class:`yayc.Configurator`</span>
+<span class="sd">    results: list of results</span>
+<span class="sd">    dict_bkg_norm: the dictionary of background normalizations</span>
+<span class="sd">    dict_dataset_indexlist_for_bkg_models: the indices of data corresponding to each background model in the dataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initial_model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">parameter</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">initial_model</span> <span class="o">=</span> <span class="n">initial_model</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">parameter</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dict_bkg_norm</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dict_dataset_indexlist_for_bkg_models</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys_bkg_models</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict_bkg_norm</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dict_bkg_norm</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dict_dataset_indexlist_for_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict_dataset_indexlist_for_bkg_models</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys_bkg_models</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dict_dataset_indexlist_for_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;dict_bkg_norm: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dict_bkg_norm</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;dict_dataset_indexlist_for_bkg_models: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">dict_dataset_indexlist_for_bkg_models</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">minimum_flux</span> <span class="o">=</span> <span class="n">parameter</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;minimum_flux:value&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="n">minimum_flux_unit</span> <span class="o">=</span> <span class="n">parameter</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;minimum_flux:unit&#39;</span><span class="p">,</span> <span class="n">initial_model</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">minimum_flux_unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">minimum_flux</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimum_flux</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">minimum_flux_unit</span><span class="p">)</span>
+
+        <span class="c1"># parameters of the iteration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iteration_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iteration_max</span> <span class="o">=</span> <span class="n">parameter</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;iteration_max&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.initialization">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.initialization">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialization</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        initialization before running the image deconvolution</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.pre_processing">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.pre_processing">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pre_processing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        pre-processing for each iteration</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.Estep">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.Estep">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">Estep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        E-step. </span>
+<span class="sd">        In this step, only self.expectation_list should be updated.</span>
+<span class="sd">        If it will be performed in other step, typically post_processing() or check_stopping_criteria(),</span>
+<span class="sd">        this step can be skipped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.Mstep">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.Mstep">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">Mstep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        M-step. </span>
+<span class="sd">        In this step, only self.delta_model should be updated.</span>
+<span class="sd">        If you want to apply some operations to self.delta_model,</span>
+<span class="sd">        these should be performed in post_processing().</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.post_processing">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.post_processing">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">post_processing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Post-processing for each iteration. </span>
+<span class="sd">        In this step, if needed, you can apply some filters to self.delta_model and set it as self.processed_delta_model.</span>
+<span class="sd">        Then, the updated model should be calculated as self.model.</span>
+<span class="sd">        For example, Gaussian smoothing can be applied to self.delta_model in this step.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.register_result">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.register_result">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_result</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register results at the end of each iteration. </span>
+<span class="sd">        Users can define what kinds of values are stored in this method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.check_stopping_criteria">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.check_stopping_criteria">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_stopping_criteria</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the iteration process should be continued or stopped.</span>
+<span class="sd">        When it returns True, the iteration will stopped.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.finalization">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.finalization">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">finalization</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        finalization after running the image deconvolution</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<span class="c1">### A subclass should not override the methods below. ###</span>
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.iteration">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.iteration">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">iteration</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform one iteration of image deconvolution.</span>
+<span class="sd">        This method should not be overrided in subclasses.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iteration_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;## Iteration </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iteration_count</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">iteration_max</span><span class="si">}</span><span class="s2"> ##&quot;</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&lt;&lt; Pre-processing &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_processing</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&lt;&lt; E-step &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Estep</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&lt;&lt; M-step &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Mstep</span><span class="p">()</span>
+            
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&lt;&lt; Post-processing &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">post_processing</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&lt;&lt; Registering Result &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_result</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&lt;&lt; Checking Stopping Criteria &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="n">stop_iteration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_stopping_criteria</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;--&gt; </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;Stop&quot;</span> <span class="k">if</span> <span class="n">stop_iteration</span> <span class="k">else</span> <span class="s2">&quot;Continue&quot;</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">stop_iteration</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.calc_expectation_list">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_expectation_list">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_expectation_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">dict_bkg_norm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">almost_zero</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate a list of expected count histograms corresponding to each data in the registered dataset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model: :py:class:`cosipy.image_deconvolution.ModelBase` or its subclass</span>
+<span class="sd">            Model</span>
+<span class="sd">        dict_bkg_norm : dict, default None</span>
+<span class="sd">            background normalization for each background model, e.g, {&#39;albedo&#39;: 0.95, &#39;activation&#39;: 1.05}</span>
+<span class="sd">        almost_zero : float, default 1e-12</span>
+<span class="sd">            In order to avoid zero components in extended count histogram, a tiny offset is introduced.</span>
+<span class="sd">            It should be small enough not to effect statistics.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list of :py:class:`histpy.Histogram`</span>
+<span class="sd">            List of expected count histograms</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">calc_expectation</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dict_bkg_norm</span> <span class="o">=</span> <span class="n">dict_bkg_norm</span><span class="p">,</span> <span class="n">almost_zero</span> <span class="o">=</span> <span class="n">almost_zero</span><span class="p">)</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.calc_loglikelihood_list">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_loglikelihood_list">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_loglikelihood_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expectation_list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate a list of loglikelihood from each data in the registered dataset and the corresponding given expected count histogram.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expectation_list : list of :py:class:`histpy.Histogram`</span>
+<span class="sd">            List of expected count histograms</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list of float</span>
+<span class="sd">            List of Log-likelood</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="o">.</span><span class="n">calc_loglikelihood</span><span class="p">(</span><span class="n">expectation</span><span class="p">)</span> <span class="k">for</span> <span class="n">data</span><span class="p">,</span> <span class="n">expectation</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">expectation_list</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.calc_summed_exposure_map">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_exposure_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_summed_exposure_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate a list of exposure maps from the registered dataset.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list of :py:class:`histpy.Histogram`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">data</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">exposure_map</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.calc_summed_bkg_model">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_bkg_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_summed_bkg_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the sum of histograms for a given background model in the registered dataset.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key: str</span>
+<span class="sd">            Background model name</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">indexlist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict_dataset_indexlist_for_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">summed_bkg_model</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indexlist</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.calc_summed_T_product">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_T_product">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_summed_T_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataspace_histogram_list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For each data in the registered dataset, the product of the corresponding input histogram with the transonse of the response function is computed.</span>
+<span class="sd">        Then, this method returns the sum of all of the products.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataspace_histogram_list: list of :py:class:`histpy.Histogram`</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`histpy.Histogram`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">data</span><span class="p">,</span> <span class="n">hist</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">calc_T_product</span><span class="p">(</span><span class="n">hist</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">dataspace_histogram_list</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="DeconvolutionAlgorithmBase.calc_summed_bkg_model_product">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_bkg_model_product">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_summed_bkg_model_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">dataspace_histogram_list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        For each data in the registered dataset, the product of the corresponding input histogram with the specified background model is computed.</span>
+<span class="sd">        Then, this method returns the sum of all of the products.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key: str</span>
+<span class="sd">            Background model name</span>
+<span class="sd">        dataspace_histogram_list: list of :py:class:`histpy.Histogram`</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        flaot</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">indexlist</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dict_dataset_indexlist_for_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">calc_bkg_model_product</span><span class="p">(</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="p">,</span> <span class="n">dataspace_histogram</span> <span class="o">=</span> <span class="n">dataspace_histogram_list</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">indexlist</span><span class="p">))</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

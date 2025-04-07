@@ -1,0 +1,1006 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>511 keV ScAtt Binning for Image Deconvolution &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">511 keV ScAtt Binning for Image Deconvolution</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/tutorials/image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-DataReduction.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="511-keV-ScAtt-Binning-for-Image-Deconvolution">
+<h1>511 keV ScAtt Binning for Image Deconvolution<a class="headerlink" href="#511-keV-ScAtt-Binning-for-Image-Deconvolution" title="Link to this heading"></a></h1>
+<p>updated on 2025-03-19</p>
+<p>This notebook focuses on how to produce the binned datasets with the spacecraft attitude (ScAtt) binning method. Using a 511keV thin disk 3-month simulation dataset created for DC2, an example of the image analysis will be presented. After running through this notebook, you can go to the next notebook, <a class="reference external" href="https://github.com/cositools/cosipy/blob/main/docs/tutorials/image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.ipynb">511keV-ScAtt-ImageDeconvolution.ipynb</a>.</p>
+<section id="Notes-on-the-coordinate-system-of-Compton-Data-Space-in-the-image-deconvolution">
+<h2>Notes on the coordinate system of Compton Data Space in the image deconvolution<a class="headerlink" href="#Notes-on-the-coordinate-system-of-Compton-Data-Space-in-the-image-deconvolution" title="Link to this heading"></a></h2>
+<p>We have two options for the coordinate system to describe the Compton scattering direction (<span class="math notranslate nohighlight">\(\chi\psi\)</span>), namely Galactic coordinates or detector coordinates.</p>
+<p>Using Galactic coordinates is intuitive, and the spectral fitting adopts this convention. However, using Galactic coordinates for the iamging is computationally expensive since we need to convert the detector response into the Galactic coordinates for each pixel in the sky. Thus, the pre-computed converted response are provided in DC2 and DC3 for several main sources (511 keV, Al-26, Ti-44, continuum). These pre-computed responses assume that we analyze 3-month data without extracting some time
+intervals, and the pixel resolution of the model map is already fixed. While there is less flexibility in binning/modeling, it is relatively fast to perform the image deconvolution since the most computationally heavy part, the coordinate conversion of the response, can be skipped.</p>
+<p>Using the detector coordinates to describe the Compton scattering direction (<span class="math notranslate nohighlight">\(\chi\psi\)</span>) may not be as intuitive. However, the advantage is that we do not have to convert the response matrix; instead, we convert the model map into the detector coordinate. Because the model map is generally smaller in size than the response, we can compute this coordinate conversion quickly. The disadvantage of this method is that we need more bins due to continuous pointing changes of the COSI satellite.
+Since COSI is an all-sky monitoring satellite with ∼90-minute orbits, it changes its pointing by ∼4 degrees every minute. Thus, in this case, we need to divide the data into several bins so that astronomical sources can be considered at rest in the detector coordinate for each bin within the COSI’s angular resolution. A straightforward approach would be to divide the data every $:nbsphinx-math:<cite>sim`$15 seconds, considering that the COSI’s angular resolution is an order of degrees. However, we
+need :math:`5times10^5</cite> time bins for 3-month observations, which makes the event histogram very large. To avoid this, the spacecraft attitude (ScAtt) binning method is introduced. Instead of binning data over time, we first analyze the satellite attitude and find the time intervals when the satellite has almost the same attitude within the angular resolution. Then, we add the events in such intervals into the same CDS bin. In the DC2 simulation, the orbit inclination is 0 degrees (5 degrees
+for DC3). In this case, the number of the scatt bins is only ~1000 which makes the computation more executable. With this method, at least in DC2 and DC3, we can perform the image deconvolution using the original response matrix and have flexibilities to change binning/modeling, e.g., the pixel resolution can be changed in a relatively easy way.</p>
+<p>While both methods have pros and cons, our baseline is to eventually use the Galactic coordinate. But we still need to carefully investigate how it will be scaled with longer exposure, finer pixel resolution, etc. Thus, we provide the notebooks of both methods for the image deconvolution to be used for DC2 and DC3.</p>
+<p>For the 511 keV image analysis, the following notebooks are based on the scatt binning method</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://github.com/cositools/cosipy/blob/main/docs/tutorials/image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-DataReduction.ipynb">ScAttBinning/511keV-ScAtt-DataReduction.ipynb</a></p></li>
+<li><p><a class="reference external" href="https://github.com/cositools/cosipy/blob/main/docs/tutorials/image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.ipynb">ScAttBinning/511keV-ScAtt-ImageDeconvolution.ipynb</a></p></li>
+</ul>
+<p>Note: data that is binned in this notebook is not suitable for analysis performed in Galactic coordinates, such as the spectral fitting or Galactic coordinate imaging.</p>
+<p><a class="reference external" href="https://github.com/cositools/cosipy/blob/main/docs/tutorials/image_deconvolution/511keV/GalacticCDS/511keV-Galactic-ImageDeconvolution.ipynb">GalacticCDS/511keV-Galactic-ImageDeconvolution.ipynb</a> uses Galactic coordinates.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from histpy import Histogram, HealpixAxis, Axis, Axes
+from mhealpy import HealpixMap
+from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
+
+from cosipy.response import FullDetectorResponse
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.ts_map.TSMap import TSMap
+from cosipy.data_io import UnBinnedData, BinnedData
+from cosipy.image_deconvolution import SpacecraftAttitudeExposureTable, CoordsysConversionMatrix
+from cosipy.util import fetch_wasabi_file
+
+# cosipy uses astropy units
+import astropy.units as u
+from astropy.units import Quantity
+from astropy.coordinates import SkyCoord
+from astropy.time import Time
+from astropy.table import Table
+from astropy.io import fits
+from scoords import Attitude, SpacecraftFrame
+
+#3ML is needed for spectral modeling
+from threeML import *
+from astromodels import Band
+
+#Other standard libraries
+import numpy as np
+import matplotlib.pyplot as plt
+import os
+
+import healpy as hp
+from tqdm.autonotebook import tqdm
+
+%matplotlib inline
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">22:18:30 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The naima package is not available. Models that depend on it will not be         </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#48" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">48</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                         </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The GSL library or the pygsl wrapper cannot be loaded. Models that depend on it  </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#69" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">69</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">will not be available.                                                            </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/numba-0.58.0-py3.10-macosx-14-arm64.egg/numba/core/decorators.py:262: NumbaDeprecationWarning: <span class="ansi-bold">numba.generated_jit is deprecated. Please see the documentation at: https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-generated-jit for more information and advice on a suitable replacement.</span>
+  warnings.warn(msg, NumbaDeprecationWarning)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The ebltable package is not available. Models that depend on it will not be     </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">absorption.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py#33" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">33</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                        </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">                </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/numba-0.58.0-py3.10-macosx-14-arm64.egg/numba/core/decorators.py:262: NumbaDeprecationWarning: <span class="ansi-bold">numba.generated_jit is deprecated. Please see the documentation at: https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-generated-jit for more information and advice on a suitable replacement.</span>
+  warnings.warn(msg, NumbaDeprecationWarning)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #00ffaf; text-decoration-color: #00ffaf">INFO    </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Starting 3ML!                                                                     </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#39" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">39</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> WARNINGs here are </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">NOT</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> errors                                                      </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#40" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">40</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> but are inform you about optional packages that can be installed                  </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#41" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">41</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold"> to disable these messages, turn off start_warning in your config file</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">            </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">22:18:30 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> ROOT minimizer not available                                                </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/minimizer/minimization.py#1345" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1345</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Multinest minimizer not available                                           </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/minimizer/minimization.py#1357" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1357</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> PyGMO is not available                                                      </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/minimizer/minimization.py#1369" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1369</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The cthreeML package is not installed. You will not be able to use plugins which  </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#94" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">94</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">require the C/C++ interface (currently HAWC)                                       </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">              </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin HAWCLike.py. Do you have the relative instrument         </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin FermiLATLike.py. Do you have the relative instrument     </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> No fermitools installed                                              </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/utils/data_builders/fermi/lat_transient_builder.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">lat_transient_builder.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/utils/data_builders/fermi/lat_transient_builder.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable OMP_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable MKL_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable NUMEXPR_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal     </span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///Users/ckierans/Software/COSItools/COSItools/python-env/lib/python3.10/site-packages/threeML-2.4.3.dev1-py3.10.egg/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="0.-Prepare-the-data">
+<h1>0. Prepare the data<a class="headerlink" href="#0.-Prepare-the-data" title="Link to this heading"></a></h1>
+<p>Before running the notebook, please download the files needed for this analysis. You can get them from wasabi.</p>
+<p>The data reduction from raw fits files may take hours depending on your environment. So we can skip this process. Please download the following data files and then run the following cells.</p>
+<p>From wasabi</p>
+<ul class="simple">
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5</p></li>
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Data/Sources/511_thin_disk_3months_unbinned_data.fits.gz</p></li>
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz</p>
+<ul>
+<li><p>In this notebook, only the albedo gamma-ray background is considered for a tutorial.</p></li>
+<li><p>If you want to consider all of the background components, please combined them all and retry the analysis.</p></li>
+</ul>
+</li>
+<li><p>cosi-pipeline-public/COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori</p></li>
+</ul>
+<p>From docs/tutorials/image_deconvolution/511keV/ScAttBinning</p>
+<ul class="simple">
+<li><p>inputs_511keV_DC3.yaml</p></li>
+</ul>
+<p>You can download the data and detector response from wasabi. You can skip the following cells if you already have downloaded the files.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Response file:
+# wasabi path: COSI-SMEX/DC2/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5
+# File size: 350.43 MB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Source file (511 keV thin disk model):
+# wasabi path: COSI-SMEX/DC2/Data/Sources/511_thin_disk_3months_unbinned_data.fits.gz
+# File size: 202.45 MB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Sources/511_thin_disk_3months_unbinned_data.fits.gz&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Background file (albedo gamma):
+# wasabi path: COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz
+# File size: 2.69 GB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Orientation file:
+# wasabi path: COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori
+# File size: 684.38 MB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori&#39;)
+</pre></div>
+</div>
+</div>
+<p>please modify “path_data” corresponding to your environment.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>path_data = &quot;/path/to/data/&quot;
+# example
+# path_data = &quot;/Users/ckierans/Software/COSItools/COSItools/cosipy/docs/tutorials/image_deconvolution/511keV/ScAttBinning/&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+ori_filepath = path_data + &quot;20280301_3_month_with_orbital_info.ori&quot;
+ori = SpacecraftFile.parse_from_file(ori_filepath)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 10.2 s, sys: 520 ms, total: 10.8 s
+Wall time: 10.7 s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>full_detector_response_filename = path_data + &quot;SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&quot;
+full_detector_response = FullDetectorResponse.open(full_detector_response_filename)
+
+nside_local = full_detector_response.nside
+npix_local = hp.nside2npix(nside_local)
+
+nside_local, npix_local
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(16, 3072)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>full_detector_response
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+FILENAME: &#39;/Users/ckierans/Software/COSItools/COSItools/cosipy/docs/tutorials/image_deconvolution/511keV/ScAttBinning/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&#39;
+AXES:
+  NuLambda:
+    DESCRIPTION: &#39;Location of the simulated source in the spacecraft coordinates&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 3072
+    NSIDE: 16
+    SCHEME: &#39;RING&#39;
+  Ei:
+    DESCRIPTION: &#39;Initial simulated energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 1
+    EDGES: [509.0 keV, 513.0 keV]
+  Em:
+    DESCRIPTION: &#39;Measured energy&#39;
+    TYPE: &#39;log&#39;
+    UNIT: &#39;keV&#39;
+    NBINS: 1
+    EDGES: [509.0 keV, 513.0 keV]
+  Phi:
+    DESCRIPTION: &#39;Compton angle&#39;
+    TYPE: &#39;linear&#39;
+    UNIT: &#39;deg&#39;
+    NBINS: 60
+    EDGES: [0.0 deg, 3.0 deg, 6.0 deg, 9.0 deg, 12.0 deg, 15.0 deg, 18.0 deg, 21.0 deg, 24.0 deg, 27.0 deg, 30.0 deg, 33.0 deg, 36.0 deg, 39.0 deg, 42.0 deg, 45.0 deg, 48.0 deg, 51.0 deg, 54.0 deg, 57.0 deg, 60.0 deg, 63.0 deg, 66.0 deg, 69.0 deg, 72.0 deg, 75.0 deg, 78.0 deg, 81.0 deg, 84.0 deg, 87.0 deg, 90.0 deg, 93.0 deg, 96.0 deg, 99.0 deg, 102.0 deg, 105.0 deg, 108.0 deg, 111.0 deg, 114.0 deg, 117.0 deg, 120.0 deg, 123.0 deg, 126.0 deg, 129.0 deg, 132.0 deg, 135.0 deg, 138.0 deg, 141.0 deg, 144.0 deg, 147.0 deg, 150.0 deg, 153.0 deg, 156.0 deg, 159.0 deg, 162.0 deg, 165.0 deg, 168.0 deg, 171.0 deg, 174.0 deg, 177.0 deg, 180.0 deg]
+  PsiChi:
+    DESCRIPTION: &#39;Location in the Compton Data Space&#39;
+    TYPE: &#39;healpix&#39;
+    NPIX: 3072
+    NSIDE: 16
+    SCHEME: &#39;RING&#39;
+
+</pre></div></div>
+</div>
+</section>
+<section id="1.-analyze-the-orientation-file">
+<h1>1. analyze the orientation file<a class="headerlink" href="#1.-analyze-the-orientation-file" title="Link to this heading"></a></h1>
+<p>Here the orientation file is analyzed to define the indices of the spacecraft attitude binning.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+nside_scatt = nside_local
+
+exposure_table = SpacecraftAttitudeExposureTable.from_orientation(ori, nside = nside_scatt, start = None, stop = None)
+exposure_table
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "f8a30b31a8fc4c80bb5fde2531fc6443", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 36.1 s, sys: 1.25 s, total: 37.3 s
+Wall time: 37.3 s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>scatt_binning_index</th>
+      <th>healpix_index</th>
+      <th>zpointing</th>
+      <th>xpointing</th>
+      <th>zpointing_averaged</th>
+      <th>xpointing_averaged</th>
+      <th>delta_time</th>
+      <th>exposure</th>
+      <th>num_pointings</th>
+      <th>bkg_group</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0</td>
+      <td>(2088, 87)</td>
+      <td>[[44.62664815323754, -21.58522669458435], [44....</td>
+      <td>[[44.62664815323755, 68.41477330541565], [44.6...</td>
+      <td>[44.77592919492308, -21.83137450725276]</td>
+      <td>[44.79590102793104, 68.17007080261746]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>71072.0</td>
+      <td>71072</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>(2088, 116)</td>
+      <td>[[45.66020516346508, -23.26942736575596], [45....</td>
+      <td>[[45.66020516346508, 66.73057263424404], [45.6...</td>
+      <td>[45.792486557202956, -23.48162697469867]</td>
+      <td>[45.79313907872796, 66.51842748236865]</td>
+      <td>[1.0000000000065512, 0.9999999999969589, 0.999...</td>
+      <td>13091.0</td>
+      <td>13091</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>2</td>
+      <td>(2152, 116)</td>
+      <td>[[45.97845494588554, -23.778456203550505], [46...</td>
+      <td>[[45.978454945885545, 66.2215437964495], [46.0...</td>
+      <td>[46.11600105920392, -23.997057178710705]</td>
+      <td>[46.11666483156789, 66.00300061062126]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 1.000...</td>
+      <td>13268.0</td>
+      <td>13268</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>3</td>
+      <td>(2152, 148)</td>
+      <td>[[46.299199222937176, -24.28682374050704], [46...</td>
+      <td>[[46.299199222937176, 65.71317625949297], [46....</td>
+      <td>[47.169799754806256, -25.642813300423782]</td>
+      <td>[47.188380045186555, 64.35902575261872]</td>
+      <td>[0.9999999999969589, 0.9999999999969589, 1.000...</td>
+      <td>71137.0</td>
+      <td>71137</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>4</td>
+      <td>(2217, 148)</td>
+      <td>[[48.1115581160702, -27.07000329743496], [48.1...</td>
+      <td>[[48.11155811607021, 62.92999670256505], [48.1...</td>
+      <td>[48.22733567147042, -27.24260105367847]</td>
+      <td>[48.22779496794004, 62.75745007981912]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>11295.0</td>
+      <td>11295</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th>273</th>
+      <td>273</td>
+      <td>(2732, 574)</td>
+      <td>[[169.8606861124748, -53.117736603001354], [16...</td>
+      <td>[[169.8606861124748, 36.88226339699865], [169....</td>
+      <td>[169.88431682515662, -53.105715691570055]</td>
+      <td>[169.88431237591922, 36.89428628084324]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 1.000...</td>
+      <td>919.0</td>
+      <td>919</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>274</th>
+      <td>274</td>
+      <td>(450, 512)</td>
+      <td>[[180.0238082643748, 46.67626678787606], [180....</td>
+      <td>[[180.0238082643748, 43.32373321212393], [180....</td>
+      <td>[180.01420731505038, 46.68360608975279]</td>
+      <td>[180.01420553833427, 43.31639448305716]</td>
+      <td>[0.9999999999969589, 1.000000000001755, 1.0000...</td>
+      <td>646.0</td>
+      <td>646</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>275</th>
+      <td>275</td>
+      <td>(2864, 819)</td>
+      <td>[[109.12274453361954, -62.18192897402973], [10...</td>
+      <td>[[109.12274453361954, 27.818071025970276], [10...</td>
+      <td>[109.11536622684899, -62.18125087710709]</td>
+      <td>[109.1153664213486, 27.818749379017405]</td>
+      <td>[1.000000000001755, 0.9999999999969589, 0.9999...</td>
+      <td>210.0</td>
+      <td>210</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>276</th>
+      <td>276</td>
+      <td>(216, 761)</td>
+      <td>[[325.1571038593629, 61.0351405587937], [325.1...</td>
+      <td>[[145.15710385936296, 28.964859441206304], [14...</td>
+      <td>[325.15317939441115, 61.03567974667542]</td>
+      <td>[145.15317503922358, 28.964324759952632]</td>
+      <td>[1.000000000001755, 0.9999999999969589, 0.9999...</td>
+      <td>970.0</td>
+      <td>970</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>277</th>
+      <td>277</td>
+      <td>(212, 819)</td>
+      <td>[[289.1161733315789, 62.182064711183735], [289...</td>
+      <td>[[109.11617333157892, 27.817935288816265], [10...</td>
+      <td>[289.1158698854739, 62.181869345669966]</td>
+      <td>[109.11587008833249, 27.818130910219594]</td>
+      <td>[0.9999999999969589, 1.0000000000065512, 0.999...</td>
+      <td>216.0</td>
+      <td>216</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+<p>278 rows × 10 columns</p>
+</div></div>
+</div>
+<p>You can save SpacecraftAttitudeExposureTable as a fits file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>exposure_table.save_as_fits(&quot;exposure_table_dc2.fits&quot;, overwrite = True)
+</pre></div>
+</div>
+</div>
+<p>You can also read the fits file.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>exposure_table_from_fits = SpacecraftAttitudeExposureTable.from_fits(&quot;exposure_table_dc2.fits&quot;)
+exposure_table == exposure_table_from_fits
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+True
+</pre></div></div>
+</div>
+<p>The sum of values in the ‘exposure’ column should be the same of the observation duration.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>(np.sum(exposure_table[&#39;exposure&#39;]) * u.s).to(&quot;day&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$92.36059 \; \mathrm{d}$</div></div>
+</div>
+<p>SpacecraftAttitudeExposureTable can produce SpacecraftAttitudeMap that has an exposure time in each Z- and X-pointing pixels.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>map_pointing_zx = exposure_table.calc_pointing_trajectory_map()
+map_pointing_zx = map_pointing_zx.to_dense()
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>hp.mollview(map_pointing_zx.project(&#39;z&#39;).contents, rot=(0,0), unit = u.s, title = &quot;Exposure map projected in the Z-axis pointing&quot;)
+hp.graticule(color=&#39;gray&#39;, dpar = 30)
+plt.show()
+
+hp.mollview(map_pointing_zx.project(&#39;z&#39;).contents, rot=(0,90), unit = u.s, title = &quot;Exposure map projected in the Z-axis pointing&quot;)
+hp.graticule(color=&#39;gray&#39;, dpar = 30)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-ScAtt-DataReduction_23_0.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-ScAtt-DataReduction_23_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-ScAtt-DataReduction_23_1.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-ScAtt-DataReduction_23_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>hp.mollview(map_pointing_zx.project(&#39;x&#39;).contents, rot=(0,0), unit = u.s, title = &quot;Exposure map projected in the X-axis pointing&quot;)
+hp.graticule(color=&#39;gray&#39;, dpar = 30)
+plt.show()
+
+hp.mollview(map_pointing_zx.project(&#39;x&#39;).contents, rot=(0,90), unit = u.s, title = &quot;Exposure map projected in the X-axis pointing&quot;)
+hp.graticule(color=&#39;gray&#39;, dpar = 30)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-ScAtt-DataReduction_24_0.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-ScAtt-DataReduction_24_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-ScAtt-DataReduction_24_1.png" src="../../../../_images/tutorials_image_deconvolution_511keV_ScAttBinning_511keV-ScAtt-DataReduction_24_1.png" />
+</div>
+</div>
+</section>
+<section id="2.-Calculate-the-coordinate-conversion-matrix">
+<h1>2. Calculate the coordinate conversion matrix<a class="headerlink" href="#2.-Calculate-the-coordinate-conversion-matrix" title="Link to this heading"></a></h1>
+<p>CoordsysConversionMatrix.spacecraft_attitude_binning_ccm can produce the coordinate conversion matrix for the spacecraft attitude binning. In this calculation, we calculate the exposure time map in the detector coordinate for each model pixel and each scatt_binning_index. We refer to it as the dwell time map.</p>
+<p>If use_averaged_pointing is True, first the averaged Z- and X-pointings are calculated (the average of zpointing or xpointing in the exposure table) for each scatt_binning_index, and then the dwell time map is calculated assuming the averaged pointings for each model pixel and each scatt_binning_index.</p>
+<p>If use_averaged_pointing is False, the dwell time map is calculated for each attitude in Z-pointing and X-pointing (every 15 seconds), and then the calculated dwell time maps are summed up for each model pixel and each scatt_binning_index.</p>
+<p>In the former case, the computation faster but may lose the angular resolution. In the latter case, the conversion matrix is more accurate, but it takes a very long time to calculate it.</p>
+<p><strong>On a MacBook Pro with M2 Max and 96 GB memory, it takes 8 minutes to calculate the conversion matrix.</strong></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+nside_model = nside_local
+
+coordsys_conv_matrix = CoordsysConversionMatrix.spacecraft_attitude_binning_ccm(full_detector_response, exposure_table, nside_model = nside_model, use_averaged_pointing = True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "df7161e126054ad7a04e464bd57dbd58", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 8min 19s, sys: 3.22 s, total: 8min 22s
+Wall time: 8min 21s
+</pre></div></div>
+</div>
+<p>You can save CoordsysConversionMatrix as a hdf5 file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix.write(&quot;ccm_dc2.hdf5&quot;, overwrite = True)
+</pre></div>
+</div>
+</div>
+<p>You can also read the saved file.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix = CoordsysConversionMatrix.open(&quot;ccm_dc2.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="3.-produce-the-binned-data">
+<h1>3. produce the binned data<a class="headerlink" href="#3.-produce-the-binned-data" title="Link to this heading"></a></h1>
+<p>Using the exposure table, we can produce the binned data. Note that here we generate the binned histogram manually. We plan to implement this functionality in the DataIO class in the future.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def get_binned_data_scatt(unbinned_event, exposure_table, psichi_binning = &#39;local&#39;, sparse = False):
+    exposure_dict = {row[&#39;healpix_index&#39;]: row[&#39;scatt_binning_index&#39;] for _, row in exposure_table.iterrows()}
+
+    # from BinnedData.py
+
+    # Get energy bins:
+    energy_bin_edges = np.array(unbinned_event.energy_bins)
+
+    # Get phi bins:
+    number_phi_bins = int(180./unbinned_event.phi_pix_size)
+    phi_bin_edges = np.linspace(0,180,number_phi_bins+1)
+
+    # Define psichi axis and data for binning:
+    if psichi_binning == &#39;galactic&#39;:
+        psichi_axis = HealpixAxis(nside = unbinned_event.nside, scheme = unbinned_event.scheme, coordsys = &#39;galactic&#39;, label=&#39;PsiChi&#39;)
+        coords = SkyCoord(l=unbinned_event.cosi_dataset[&#39;Chi galactic&#39;]*u.deg, b=unbinned_event.cosi_dataset[&#39;Psi galactic&#39;]*u.deg, frame = &#39;galactic&#39;)
+    if psichi_binning == &#39;local&#39;:
+        psichi_axis = HealpixAxis(nside = unbinned_event.nside, scheme = unbinned_event.scheme, coordsys = SpacecraftFrame(), label=&#39;PsiChi&#39;)
+        coords = SkyCoord(lon=unbinned_event.cosi_dataset[&#39;Chi local&#39;]*u.rad, lat=((np.pi/2.0) - unbinned_event.cosi_dataset[&#39;Psi local&#39;])*u.rad, frame = SpacecraftFrame())
+
+    # Define scatt axis and data for binning
+    n_scatt_bins = len(exposure_table)
+    scatt_axis = Axis(np.arange(n_scatt_bins + 1), label=&#39;ScAtt&#39;)
+
+    is_nest = True if exposure_table.scheme == &#39;nested&#39; else False
+
+    nside_scatt = exposure_table.nside
+
+    zindex = hp.ang2pix(nside_scatt, unbinned_event.cosi_dataset[&#39;Zpointings (glon,glat)&#39;].T[0] * 180 / np.pi,
+                        unbinned_event.cosi_dataset[&#39;Zpointings (glon,glat)&#39;].T[1] * 180 / np.pi, nest=is_nest, lonlat=True)
+    xindex = hp.ang2pix(nside_scatt, unbinned_event.cosi_dataset[&#39;Xpointings (glon,glat)&#39;].T[0] * 180 / np.pi,
+                        unbinned_event.cosi_dataset[&#39;Xpointings (glon,glat)&#39;].T[1] * 180 / np.pi, nest=is_nest, lonlat=True)
+    scatt_data = np.array( [ exposure_dict[(z, x)] + 0.5 if (z,x) in exposure_dict.keys() else -1 for z, x in zip(zindex, xindex)] ) # should this &quot;0.5&quot; be needed?
+
+    # Initialize histogram:
+    binned_data = Histogram([scatt_axis,
+                              Axis(energy_bin_edges*u.keV, label=&#39;Em&#39;),
+                              Axis(phi_bin_edges*u.deg, label=&#39;Phi&#39;),
+                              psichi_axis],
+                              sparse=sparse)
+
+    # Fill histogram:
+    binned_data.fill(scatt_data, unbinned_event.cosi_dataset[&#39;Energies&#39;]*u.keV, np.rad2deg(unbinned_event.cosi_dataset[&#39;Phi&#39;])*u.deg, coords)
+
+    return binned_data
+</pre></div>
+</div>
+</div>
+<p>Load the 511keV data (without background)</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+signal_filepath = path_data + &quot;511_thin_disk_3months_unbinned_data.fits.gz&quot;
+
+unbinned_signal = UnBinnedData(input_yaml = &quot;inputs_511keV.yaml&quot;)
+
+unbinned_signal.cosi_dataset = unbinned_signal.get_dict_from_fits(signal_filepath)
+
+binned_signal = get_binned_data_scatt(unbinned_signal, exposure_table, psichi_binning = &#39;local&#39;, sparse = False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 5.07 s, sys: 214 ms, total: 5.28 s
+Wall time: 5.28 s
+</pre></div></div>
+</div>
+<p>Load the background data</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+bkg_filepath = path_data + &quot;albedo_photons_3months_unbinned_data.fits.gz&quot;
+
+unbinned_bkg = UnBinnedData(input_yaml = &quot;inputs_511keV.yaml&quot;)
+
+unbinned_bkg.cosi_dataset = unbinned_bkg.get_dict_from_fits(bkg_filepath)
+
+binned_bkg = get_binned_data_scatt(unbinned_bkg, exposure_table, psichi_binning = &#39;local&#39;, sparse = False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 1min 9s, sys: 3.1 s, total: 1min 12s
+Wall time: 1min 12s
+</pre></div></div>
+</div>
+<p>Sum up the signal and background data</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>binned_event = binned_signal + binned_bkg
+</pre></div>
+</div>
+</div>
+<p>Save them</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>binned_bkg.write(path_data + &quot;511keV_dc2_scatt_bkg.hdf5&quot;)
+binned_signal.write(path_data + &quot;511keV_dc2_scatt_signal.hdf5&quot;)
+binned_event.write(path_data + &quot;511keV_dc2_scatt_event.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+<p><strong>You can move on the next notebook (511keV-ScAtt-ImageDeconvolution.ipynb).</strong></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

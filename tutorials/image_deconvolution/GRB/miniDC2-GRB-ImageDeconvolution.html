@@ -1,0 +1,2621 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GRB image analysis (miniDC2) &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">GRB image analysis (miniDC2)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/tutorials/image_deconvolution/GRB/miniDC2-GRB-ImageDeconvolution.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="GRB-image-analysis-(miniDC2)">
+<h1>GRB image analysis (miniDC2)<a class="headerlink" href="#GRB-image-analysis-(miniDC2)" title="Link to this heading"></a></h1>
+<p>updated on 2024-07-29 (the commit 14fc4c42f8b33749bd2053603643ca693dbc3954)</p>
+<p>Using the GRB simulation data created for miniDC2, an example of the image analysis will be presented.</p>
+<p>If you want to know about the other analysis, e.g., the spectral analysis, you can see the notebooks in docs/tutorials/spectral_fits.</p>
+<p><strong>Note that it is not necessary to run the following cell when the headline is inside parentheses. These cells are prepared for readers to understand the code more clearly</strong></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import logging
+import sys
+logger = logging.getLogger(&#39;cosipy&#39;)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from cosipy.response import FullDetectorResponse
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy import BinnedData, Band_Eflux
+from cosipy.image_deconvolution import DataIF_COSI_DC2, ImageDeconvolution, CoordsysConversionMatrix
+from cosipy.util import fetch_wasabi_file
+
+from histpy import Histogram, HealpixAxis, Axis
+from mhealpy import HealpixMap,HealpixBase
+
+import astropy.units as u
+from astropy.units import Quantity
+from astropy.coordinates import SkyCoord, ICRS, Galactic, FK4, FK5
+from astropy.time import Time
+from scoords import Attitude, SpacecraftFrame
+
+#3ML is needed for spectral modeling
+from astromodels import Band
+from threeML import Band, PointSource, Model, JointLikelihood, DataList
+from astromodels import Parameter
+
+#Other standard libraries
+import numpy as np
+from scipy import integrate
+import matplotlib.pyplot as plt
+import healpy as hp
+import os
+import pprint
+
+%matplotlib inline
+</pre></div>
+</div>
+</div>
+</section>
+<section id="0.-Data-reduction">
+<h1>0. Data reduction<a class="headerlink" href="#0.-Data-reduction" title="Link to this heading"></a></h1>
+<p>Before running the cells, please download the files needed for this notebook. You can get them from wasabi.</p>
+<p>From wasabi</p>
+<ul class="simple">
+<li><p>cosi-pipeline-public/ComptonSphere/mini-DC2/FlatContinuumIsotropic.LowRes.binnedimaging.imagingresponse.area.nside8.cosipy.h5.zip (please unzip it)</p></li>
+<li><p>cosi-pipeline-public/ComptonSphere/mini-DC2/bkg_binned_data_full.hdf5</p></li>
+<li><p>cosi-pipeline-public/ComptonSphere/mini-DC2/grb_binned_data.hdf5</p></li>
+<li><p>cosi-pipeline-public/ComptonSphere/mini-DC2/grb_bkg_binned_data.hdf5</p></li>
+</ul>
+<p>From docs/tutorials/image_deconvolution/GRB</p>
+<ul class="simple">
+<li><p>20280301_first_2hrs.ori</p></li>
+<li><p>grb_dataIO_config.yml</p></li>
+<li><p>imagedeconvolution_parfile_GRB_miniDC2.yml</p></li>
+</ul>
+<p>You can download the data and detector response from wasabi. You can skip this cell if you already have downloaded the files</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Background file:
+# wasabi path: ComptonSphere/mini-DC2/bkg_binned_data_full.hdf5
+# File size: 194M
+fetch_wasabi_file(&#39;ComptonSphere/mini-DC2/bkg_binned_data_full.hdf5&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Source file:
+# wasabi path: ComptonSphere/mini-DC2/grb_binned_data.hdf5
+# File size: 101K
+fetch_wasabi_file(&#39;ComptonSphere/mini-DC2/grb_binned_data.hdf5&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Source+Background file:
+# wasabi path: ComptonSphere/mini-DC2/grb_bkg_binned_data.hdf5
+# File size: 194M
+fetch_wasabi_file(&#39;ComptonSphere/mini-DC2/grb_bkg_binned_data.hdf5&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Response file:
+# wasabi path: ComptonSphere/mini-DC2/FlatContinuumIsotropic.LowRes.binnedimaging.imagingresponse.area.nside8.cosipy.h5.zip
+# File size: 119M
+fetch_wasabi_file(&#39;ComptonSphere/mini-DC2/FlatContinuumIsotropic.LowRes.binnedimaging.imagingresponse.area.nside8.cosipy.h5.zip&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>os.system(&quot;unzip FlatContinuumIsotropic.LowRes.binnedimaging.imagingresponse.area.nside8.cosipy.h5.zip&quot;)
+</pre></div>
+</div>
+</div>
+<p><strong>If you receive an error in the above cell, please try to unzip the response file by opening the directory where it is and uncompress it directly, e.g., double-clicking it.</strong></p>
+</section>
+<section id="1.-Read-the-response-matrix">
+<h1>1. Read the response matrix<a class="headerlink" href="#1.-Read-the-response-matrix" title="Link to this heading"></a></h1>
+<p>please modify “path_data” corresponding to your environment.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>path_data = &quot;path/to/data/&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>response_path = path_data + &quot;FlatContinuumIsotropic.LowRes.binnedimaging.imagingresponse.area.nside8.cosipy.h5&quot;
+
+response = FullDetectorResponse.open(response_path)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="2.-Read-binned-GRB-files-(source-and-background)">
+<h1>2. Read binned GRB files (source and background)<a class="headerlink" href="#2.-Read-binned-GRB-files-(source-and-background)" title="Link to this heading"></a></h1>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+#  background over 2-hour observation
+bkg_data = BinnedData(path_data + &quot;grb_dataIO_config.yml&quot;)
+bkg_data.load_binned_data_from_hdf5(path_data + &#39;bkg_binned_data_full.hdf5&#39;)
+
+#  GRB + background around the event
+grb_data = BinnedData(path_data + &quot;grb_dataIO_config.yml&quot;)
+grb_data.load_binned_data_from_hdf5(path_data + &#39;grb_bkg_binned_data.hdf5&#39;)
+
+# only the GRB signal around the event (we don&#39;t use it in the analysis)
+signal_data = BinnedData(path_data + &quot;grb_dataIO_config.yml&quot;)
+signal_data.load_binned_data_from_hdf5(path_data + &#39;grb_binned_data.hdf5&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 10.3 s, sys: 1.18 s, total: 11.5 s
+Wall time: 11.6 s
+</pre></div></div>
+</div>
+<section id="Check-that-the-duration-of-bkg_data-is-7200-sec-=-2-hours">
+<h2>Check that the duration of bkg_data is 7200 sec = 2 hours<a class="headerlink" href="#Check-that-the-duration-of-bkg_data-is-7200-sec-=-2-hours" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_data.binned_data.axes[&#39;Time&#39;].hi_lim - bkg_data.binned_data.axes[&#39;Time&#39;].lo_lim
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+7200.0
+</pre></div></div>
+</div>
+</section>
+<section id="Check-that-the-duration-of-grb_data-is-2-sec">
+<h2>Check that the duration of grb_data is 2 sec<a class="headerlink" href="#Check-that-the-duration-of-grb_data-is-2-sec" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>grb_data.binned_data.axes[&#39;Time&#39;].hi_lim - grb_data.binned_data.axes[&#39;Time&#39;].lo_lim
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+1.999995231628418
+</pre></div></div>
+</div>
+</section>
+<section id="Defne-the-scale-factor-for-the-background-data">
+<h2>Defne the scale factor for the background data<a class="headerlink" href="#Defne-the-scale-factor-for-the-background-data" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ratio_bkg_to_grbdata = (bkg_data.binned_data.axes[&#39;Time&#39;].hi_lim - bkg_data.binned_data.axes[&#39;Time&#39;].lo_lim) / (grb_data.binned_data.axes[&#39;Time&#39;].hi_lim - grb_data.binned_data.axes[&#39;Time&#39;].lo_lim)
+ratio_bkg_to_grbdata
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+3600.0085830893113
+</pre></div></div>
+</div>
+</section>
+<section id="The-start-and-stop-times-of-the-GRB-binned-data">
+<h2>The start and stop times of the GRB binned data<a class="headerlink" href="#The-start-and-stop-times-of-the-GRB-binned-data" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>grb_start_time = int(grb_data.binned_data.axes[&#39;Time&#39;].lo_lim)
+grb_stop_time = int(grb_data.binned_data.axes[&#39;Time&#39;].hi_lim)
+
+print(&quot;GRB start time:&quot;, grb_start_time)
+print(&quot;GRB stop time:&quot;, grb_stop_time)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+GRB start time: 1835481433
+GRB stop time: 1835481435
+</pre></div></div>
+</div>
+</section>
+<section id="Modify-the-axis">
+<h2>Modify the axis<a class="headerlink" href="#Modify-the-axis" title="Link to this heading"></a></h2>
+<p>Here the time axis in the data and background files are modified as a single time bin. This is because the current code requires the same time intervals in both files.</p>
+<p>The background files is renormalized because the background is 2-hour data while the source data is 2-s duration.</p>
+<p>Such a procedure might be confusing, but it will be improved in the future, for example, by introducing a user-friendly background generator.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+grb_data.binned_data = Histogram.concatenate(Axis([grb_start_time, grb_stop_time], label = &#39;Time&#39;), [grb_data.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;)])
+bkg_data.binned_data = Histogram.concatenate(Axis([grb_start_time, grb_stop_time], label = &#39;Time&#39;), [bkg_data.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;)/ratio_bkg_to_grbdata])
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 19.5 s, sys: 1.75 s, total: 21.3 s
+Wall time: 21.3 s
+</pre></div></div>
+</div>
+<section id="(View-the-events-in-Compton-Data-Space)">
+<h3>(View the events in Compton Data Space)<a class="headerlink" href="#(View-the-events-in-Compton-Data-Space)" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>h = grb_data.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;).slice[{&#39;Em&#39;:2, &#39;Phi&#39;:3}].project(&#39;PsiChi&#39;)
+m = HealpixMap(base = HealpixBase(npix = h.nbins), data = h.contents.todense())
+
+_,ax = m.plot(&#39;orthview&#39;, ax_kw = {&#39;rot&#39;:[0,90,0]})
+#_,ax = m.plot(&#39;mollview&#39;)
+
+ax.scatter(0, 70, transform=ax.get_transform(&#39;world&#39;), color = &#39;red&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.collections.PathCollection at 0x2cf97d7b0&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_29_1.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_29_1.png" />
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="3.-Calculate-the-coordinate-conversion-matrix">
+<h1>3. Calculate the coordinate conversion matrix<a class="headerlink" href="#3.-Calculate-the-coordinate-conversion-matrix" title="Link to this heading"></a></h1>
+<p>CoordsysConversionMatrix.spacecraft_time_binning_ccm can produce the ccm for the time binning.</p>
+<p>Here we calculate the dwell time map on each sky pixel and each time bin, and then combine them as a coordinate conversion matrix (ccm).</p>
+<p>The ccm <span class="math notranslate nohighlight">\(C^{lb, \nu\lambda}_{t}\)</span> is a three-dimensional matrix with the axes of ‘lb’, ‘Time’ and ‘NuLambda’.</p>
+<p><span class="math notranslate nohighlight">\(C^{lb, \nu\lambda}_{t}\)</span> is the exposure time on the pixel <span class="math notranslate nohighlight">\(\nu\lambda\)</span> on the detector coordinate for the model pixel <span class="math notranslate nohighlight">\(lb\)</span> (in the galactic coordinate) during the time bin <span class="math notranslate nohighlight">\(t\)</span>.</p>
+<p>By multiplying <span class="math notranslate nohighlight">\(C^{lb, \nu\lambda}_{t}\)</span> with the model map, it can be converted into the detector coordinate for each time bin.</p>
+<section id="Read-the-orientation-file-and-extract-the-orientation-information-around-the-GRB-event">
+<h2>Read the orientation file and extract the orientation information around the GRB event<a class="headerlink" href="#Read-the-orientation-file-and-extract-the-orientation-information-around-the-GRB-event" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ori = SpacecraftFile.parse_from_file(path_data + &quot;20280301_first_2hrs.ori&quot;)
+
+#Set the GRB duration
+Timemin = Time(grb_start_time,format = &#39;unix&#39;)
+Timemax = Time(grb_stop_time,format = &#39;unix&#39;)
+grbori = ori.source_interval(Timemin, Timemax)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Calculate-the-coordinate-conversion-matrix">
+<h2>Calculate the coordinate conversion matrix<a class="headerlink" href="#Calculate-the-coordinate-conversion-matrix" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+time_intervals = grb_data.binned_data.axes[&#39;Time&#39;].edges
+
+coordsys_conv_matrix = CoordsysConversionMatrix.time_binning_ccm(response,
+                                                                 ori,
+                                                                 time_intervals,
+                                                                 nside_model = response.nside)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "21eb358eb5154371ac44bc4d0b3e4a5b", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 1.59 s, sys: 93.9 ms, total: 1.69 s
+Wall time: 1.66 s
+</pre></div></div>
+</div>
+<section id="(you-can-save/load-the-ccm-as-follows)">
+<h3>(you can save/load the ccm as follows)<a class="headerlink" href="#(you-can-save/load-the-ccm-as-follows)" title="Link to this heading"></a></h3>
+<p>If you save the coordsys conversion matrix, you can load it and do not have to calculate it again, which may save your time.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>coordsys_conv_matrix.write(&quot;coordsys_conv_matrix.hdf5&quot;, overwrite = True)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+coordsys_conv_matrix = CoordsysConversionMatrix.open(&quot;coordsys_conv_matrix.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 9.2 ms, sys: 2.89 ms, total: 12.1 ms
+Wall time: 12.2 ms
+</pre></div></div>
+</div>
+</section>
+<section id="(calculate-the-dwell-time-map,-not-mandatory)">
+<h3>(calculate the dwell time map, not mandatory)<a class="headerlink" href="#(calculate-the-dwell-time-map,-not-mandatory)" title="Link to this heading"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Simulating a 2 second GRB at l = 51, b = -17 in Galacti coordinates.
+coord = SkyCoord(l = 51*u.deg, b = -17*u.deg,
+                 frame = &#39;galactic&#39;, attitude = Attitude.identity(frame = &#39;galactic&#39;))
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Initiate a SpacecraftPositionAttitude object with the coordinates of the source
+#SCPosition = SpacecraftPositionAttitude.SourceSpacecraft(&quot;GRB&quot;, coord)
+
+# From the orientation, get the attitude and define the source movement in the spacecraft FOV
+dts = grbori.get_time_delta()
+
+src_movement = grbori.get_target_in_sc_frame(&quot;GRB&quot;, coord)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Now converting to the Spacecraft frame...
+Conversion completed!
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dwell_time_map = grbori.get_dwell_map(response = response_path, src_path = src_movement)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dwell_time_map.plot()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+Failed to transform from &#39;spacecraftframe&#39; to &#39;icrs&#39;. Rasterizing in &#39;spacecraftframe&#39; frame. ERROR: Spacecraft coordinates need attitude to transform from ICRS
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&lt;matplotlib.image.AxesImage at 0x2d10ce1d0&gt;, &lt;Mollview: &gt;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_42_2.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_42_2.png" />
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="4.-Imaging-deconvolution">
+<h1>4. Imaging deconvolution<a class="headerlink" href="#4.-Imaging-deconvolution" title="Link to this heading"></a></h1>
+<section id="Brief-overview-of-the-image-deconvolution">
+<h2>Brief overview of the image deconvolution<a class="headerlink" href="#Brief-overview-of-the-image-deconvolution" title="Link to this heading"></a></h2>
+<p>Basically, we have to maximize the following likelihood function</p>
+<div class="math notranslate nohighlight">
+\[\log L = \sum_i X_i \log \epsilon_i - \sum_i \epsilon_i\]</div>
+<p><span class="math notranslate nohighlight">\(X_i\)</span>: detected counts at <span class="math notranslate nohighlight">\(i\)</span>-th bin ( <span class="math notranslate nohighlight">\(i\)</span> : index of the Compton Data Space)</p>
+<p><span class="math notranslate nohighlight">\(\epsilon_i = \sum_j R_{ij} \lambda_j + b_i\)</span> : expected counts ( <span class="math notranslate nohighlight">\(j\)</span> : index of the model space)</p>
+<p><span class="math notranslate nohighlight">\(\lambda_j\)</span> : the model map (basically gamma-ray flux at <span class="math notranslate nohighlight">\(j\)</span>-th pixel)</p>
+<p><span class="math notranslate nohighlight">\(b_i\)</span> : the background at <span class="math notranslate nohighlight">\(i\)</span>-th bin</p>
+<p><span class="math notranslate nohighlight">\(R_{ij}\)</span> : the response matrix</p>
+<p>Since we have to optimize the flux in each pixel, and the number of parameters is large, we adopt an iterative approach to find a solution of the above equation. The simplest one is the ML-EM (Maximum Likelihood Expectation Maximization) algorithm. It is also known as the Richardson-Lucy algorithm.</p>
+<div class="math notranslate nohighlight">
+\[\lambda_{j}^{k+1} = \lambda_{j}^{k} + \delta \lambda_{j}^{k}\]</div>
+<div class="math notranslate nohighlight">
+\[\delta \lambda_{j}^{k} = \frac{\lambda_{j}^{k}}{\sum_{i} R_{ij}} \sum_{i} \left(\frac{ X_{i} }{\epsilon_{i}} - 1 \right) R_{ij}\]</div>
+<p>We refer to <span class="math notranslate nohighlight">\(\delta \lambda_{j}^{k}\)</span> as the delta map.</p>
+<p>As for now, the two improved algorithms are implemented in COSIpy.</p>
+<ul class="simple">
+<li><p>Accelerated ML-EM algorithm (Knoedlseder+99)</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\lambda_{j}^{k+1} = \lambda_{j}^{k} + \alpha^{k} \delta \lambda_{j}^{k}\]</div>
+<div class="math notranslate nohighlight">
+\[\alpha^{k} &lt; \mathrm{max}(- \lambda_{j}^{k} / \delta \lambda_{j}^{k})\]</div>
+<p>Practically, in order not to accelerate the algorithm excessively, we set the maximum value of <span class="math notranslate nohighlight">\(\alpha\)</span> (<span class="math notranslate nohighlight">\(\alpha_{\mathrm{max}}\)</span>). Then, <span class="math notranslate nohighlight">\(\alpha\)</span> is calculated as:</p>
+<div class="math notranslate nohighlight">
+\[\alpha^{k} = \mathrm{min}(\mathrm{max}(- \lambda_{j}^{k} / \delta \lambda_{j}^{k}), \alpha_{\mathrm{max}})\]</div>
+<ul class="simple">
+<li><p>Noise damping using gaussian smoothing (Knoedlseder+05, Siegert+20)</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[\lambda_{j}^{k+1} = \lambda_{j}^{k} + \alpha^{k} \left[ w_j \delta \lambda_{j}^{k} \right]_{\mathrm{gauss}}\]</div>
+<div class="math notranslate nohighlight">
+\[w_j = \left(\sum_{i} R_{ij}\right)^\beta\]</div>
+<p><span class="math notranslate nohighlight">\(\left[ ... \right]_{\mathrm{gauss}}\)</span> means that the differential image is smoothed by a gaussian filter.</p>
+</section>
+<section id="4-1.-Prepare-DataInterface-containing-all-neccesary-datasets">
+<h2>4-1. Prepare DataInterface containing all neccesary datasets<a class="headerlink" href="#4-1.-Prepare-DataInterface-containing-all-neccesary-datasets" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+data_interface = DataIF_COSI_DC2.load(name = &quot;GRB&quot;,
+                                      event_binned_data = grb_data.binned_data,
+                                      dict_bkg_binned_data = {&quot;bkg_model&quot;: bkg_data.binned_data},
+                                      rsp = response,
+                                      coordsys_conv_matrix = coordsys_conv_matrix,
+                                      is_miniDC2_format = True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loading the response matrix onto your computer memory...
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "36857fa6efc948728517271fcc9ca7eb", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Finished
+Note that _modify_axes() in DataLoader was implemented for a temporary use. It will be removed in the future.
+... checking the axis Time of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+... checking the axis Em of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+... checking the axis Phi of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+... checking the axis PsiChi of the event and background files...
+    --&gt; pass (edges)
+    --&gt; pass (unit)
+...checking the axis Em of the event and response files...
+    --&gt; pass (edges)
+...checking the axis Phi of the event and response files...
+    --&gt; pass (edges)
+...checking the axis PsiChi of the event and response files...
+    --&gt; pass (edges)
+The axes in the event and background files are redefined. Now they are consistent with those of the response file.
+Calculating an exposure map...
+Finished...
+CPU times: user 16.6 s, sys: 15.5 s, total: 32.1 s
+Wall time: 32 s
+</pre></div></div>
+</div>
+<p>DataInterface is a data container for the image deconvolution. It also calculates several auxiliary matrices for the analysis. The response file will be loaded on the CPU memory. It requires a few GB. In the actual COSI satellite analysis, the response could be much larger, perhaps ~1TB wiht finer bin size. So loading it on the memory might be unrealistic in the future. The optimized (lazy) loading would be a next work.</p>
+</section>
+<section id="4-2.-Initialize-the-instance-of-the-image-deconvolution-class">
+<h2>4-2. Initialize the instance of the image deconvolution class<a class="headerlink" href="#4-2.-Initialize-the-instance-of-the-image-deconvolution-class" title="Link to this heading"></a></h2>
+<p>First, we prepare an instance of the ImageDeconvolution class and then register the dataset and parameters for the deconvolution. After that, you can start the calculation.</p>
+<p>please modify this parameter_filepath corresponding to your environment.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>parameter_filepath = path_data + &quot;imagedeconvolution_parfile_GRB_miniDC2.yml&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution = ImageDeconvolution()
+
+# set data_interface to image_deconvolution
+image_deconvolution.set_dataset([data_interface])
+
+# set a parameter file for the image deconvolution
+image_deconvolution.read_parameterfile(parameter_filepath)
+</pre></div>
+</div>
+</div>
+<section id="Initialize-image_deconvolution">
+<h3>Initialize image_deconvolution<a class="headerlink" href="#Initialize-image_deconvolution" title="Link to this heading"></a></h3>
+<p>In this process, a model map is defined following the input parameters, and it is initialized. Also, it prepares ancillary data for the image deconvolution, e.g., the expected counts with the initial model map, gaussian smoothing filter etc.</p>
+<p>I describe parameters in the parameter file.</p>
+<section id="model_property">
+<h4>model_property<a class="headerlink" href="#model_property" title="Link to this heading"></a></h4>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>coordinate</p></td>
+<td><p>str</p></td>
+<td><p>the coordinate system of the model map</p></td>
+<td><p>As for now, it must be ‘galactic’</p></td>
+</tr>
+<tr class="row-odd"><td><p>nside</p></td>
+<td><p>int</p></td>
+<td><p>NSIDE of the model map</p></td>
+<td><p>it must be the same as NSIDE of ‘lb’ axis of the coordinate conversion matrix</p></td>
+</tr>
+<tr class="row-even"><td><p>scheme</p></td>
+<td><p>str</p></td>
+<td><p>SCHEME of the model map</p></td>
+<td><p>As for now, it must be ‘ring’</p></td>
+</tr>
+<tr class="row-odd"><td><p>energy_edges</p></td>
+<td><p>list of float [keV]</p></td>
+<td><p>The definition of the energy bins of the model map</p></td>
+<td><p>As for now, it must be the same as that of the response matrix</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="model_initialization">
+<h4>model_initialization<a class="headerlink" href="#model_initialization" title="Link to this heading"></a></h4>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>algorithm</p></td>
+<td><p>str</p></td>
+<td><p>the method name to initialize the model map</p></td>
+<td><p>As for now, only ‘flat’ can be used</p></td>
+</tr>
+<tr class="row-odd"><td><p>parameter_flat:values</p></td>
+<td><p>list of float [cm-2 s-1 sr-1]</p></td>
+<td><p>the list of photon fluxes for each energy band</p></td>
+<td><p>the length of the list should be the same as the length of “energy_edges” - 1</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="deconvolution">
+<h4>deconvolution<a class="headerlink" href="#deconvolution" title="Link to this heading"></a></h4>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Unit</p></th>
+<th class="head"><p>Description</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>algorithm</p></td>
+<td><p>str</p></td>
+<td><p>the name of the image deconvolution algorithm</p></td>
+<td><p>As for now, only ‘RL’ is supported</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>parameter_RL:iteration</p></td>
+<td><p>int</p></td>
+<td><p>The maximum number of the iteration</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>parameter_RL:acceleration</p></td>
+<td><p>bool</p></td>
+<td><p>whether the accelerated ML-EM algorithm (Knoedlseder+99) is used</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>parameter_RL:alpha_max</p></td>
+<td><p>float</p></td>
+<td><p>the maximum value for the acceleration parameter</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>parameter_RL:save_results_each_iteration</p></td>
+<td><p>bool</p></td>
+<td><p>whether an updated model map, detal map, likelihood etc. are saved at the end of each iteration</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>parameter_RL:response_weighting</p></td>
+<td><p>bool</p></td>
+<td><p>whether a delta map is renormalized based on the exposure time on each pixel, namely
+<span class="math notranslate nohighlight">\(w_j = (\sum_{i} R_{ij})^{\beta}\)</span> (see Knoedlseder+05, Siegert+20)</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>parameter_RL:response_weighting_index</p></td>
+<td><p>float</p></td>
+<td><p><span class="math notranslate nohighlight">\(\beta\)</span> in the above equation</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>parameter_RL:smoothing</p></td>
+<td><p>bool</p></td>
+<td><p>whether a Gaussian filter is used (see Knoedlseder+05, Siegert+20)</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>parameter_RL:smoothing_FWHM</p></td>
+<td><p>float, degree</p></td>
+<td><p>the FWHM of the Gaussian in the filter</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>parameter_RL:background_normalization_fitting</p></td>
+<td><p>bool</p></td>
+<td><p>whether the background normalization factor is optimized at each iteration</p></td>
+<td><p>As for now, the single background normalization factor is used in all of the bins</p></td>
+</tr>
+<tr class="row-odd"><td><p>parameter_RL:background_normalization_range</p></td>
+<td><p>list of float</p></td>
+<td><p>the range of the normalization factor</p></td>
+<td><p>should be positive</p></td>
+</tr>
+</tbody>
+</table>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution.initialize()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+#### Initialization Starts ####
+&lt;&lt; Instantiating the model class AllSkyImage &gt;&gt;
+---- parameters ----
+coordinate: galactic
+energy_edges:
+  unit: keV
+  value:
+  - 100.0
+  - 200.0
+  - 500.0
+  - 1000.0
+  - 2000.0
+  - 5000.0
+nside: 8
+scheme: ring
+unit: cm-2 s-1 sr-1
+
+&lt;&lt; Setting initial values of the created model object &gt;&gt;
+---- parameters ----
+algorithm: flat
+parameter:
+  unit: cm-2 s-1 sr-1
+  value:
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
+
+&lt;&lt; Registering the deconvolution algorithm &gt;&gt;
+Gaussian filter with FWHM of 2.0 deg will be applied to delta images ...
+---- parameters ----
+algorithm: RL
+parameter:
+  acceleration: true
+  alpha_max: 10.0
+  background_normalization_optimization: true
+  background_normalization_range:
+    bkg_model:
+    - 0.01
+    - 10.0
+  iteration_max: 10
+  response_weighting: true
+  response_weighting_index: 0.5
+  save_results: false
+  save_results_directory: ./results
+  smoothing: true
+  smoothing_FWHM:
+    unit: deg
+    value: 2.0
+
+#### Initialization Finished ####
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="(You-can-change-the-parameters-as-follows)">
+<h3>(You can change the parameters as follows)<a class="headerlink" href="#(You-can-change-the-parameters-as-follows)" title="Link to this heading"></a></h3>
+<p>Note that when you modify the parameters, do not forget to run “initialize” again!</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution.override_parameter(&quot;deconvolution:parameter:iteration_max = 30&quot;)
+image_deconvolution.override_parameter(&quot;deconvolution:parameter:background_normalization_optimization = True&quot;)
+image_deconvolution.override_parameter(&quot;deconvolution:parameter:alpha_max = 5&quot;)
+image_deconvolution.override_parameter(&quot;deconvolution:parameter:smoothing_FWHM:value = 4.0&quot;)
+
+image_deconvolution.initialize()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+#### Initialization Starts ####
+&lt;&lt; Instantiating the model class AllSkyImage &gt;&gt;
+---- parameters ----
+coordinate: galactic
+energy_edges:
+  unit: keV
+  value:
+  - 100.0
+  - 200.0
+  - 500.0
+  - 1000.0
+  - 2000.0
+  - 5000.0
+nside: 8
+scheme: ring
+unit: cm-2 s-1 sr-1
+
+&lt;&lt; Setting initial values of the created model object &gt;&gt;
+---- parameters ----
+algorithm: flat
+parameter:
+  unit: cm-2 s-1 sr-1
+  value:
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
+  - 0.01
+
+&lt;&lt; Registering the deconvolution algorithm &gt;&gt;
+Gaussian filter with FWHM of 4.0 deg will be applied to delta images ...
+---- parameters ----
+algorithm: RL
+parameter:
+  acceleration: true
+  alpha_max: 5
+  background_normalization_optimization: true
+  background_normalization_range:
+    bkg_model:
+    - 0.01
+    - 10.0
+  iteration_max: 30
+  response_weighting: true
+  response_weighting_index: 0.5
+  save_results: false
+  save_results_directory: ./results
+  smoothing: true
+  smoothing_FWHM:
+    unit: deg
+    value: 4.0
+
+#### Initialization Finished ####
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="4-3.-Start-the-image-deconvolution">
+<h2>4-3. Start the image deconvolution<a class="headerlink" href="#4-3.-Start-the-image-deconvolution" title="Link to this heading"></a></h2>
+<p><strong>With MacBook Pro with M1 Max and 64 GB memory, it takes about 40 seconds for 30 iterations.</strong></p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+image_deconvolution.run_deconvolution()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+#### Image Deconvolution Starts ####
+&lt;&lt; Initialization &gt;&gt;
+The response weighting filter was calculated.
+The expected count histograms were calculated with the initial model map.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<script type="application/vnd.jupyter.widget-view+json">{"model_id": "b3666628550946fba5cc2a5316895e44", "version_major": 2, "version_minor": 0}</script></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+## Iteration 1/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 4.5275791395743985
+  background_normalization: {&#39;bkg_model&#39;: 1.9156089682938398}
+  loglikelihood: [6949.836551805813]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 2/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.3794097585952207}
+  loglikelihood: [21587.020960688867]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 3/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.3410619300819213}
+  loglikelihood: [25842.54660092949]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 4/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.296189276010488}
+  loglikelihood: [29169.369576411234]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 5/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.2478778728734279}
+  loglikelihood: [31697.255886588624]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 6/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.2041914548955384}
+  loglikelihood: [33580.419278604386]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 7/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.167688135164011}
+  loglikelihood: [34974.36385432206]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 8/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.1379590541992315}
+  loglikelihood: [36020.0668820171]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 9/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.1137555245258839}
+  loglikelihood: [36818.28882326213]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 10/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.09357530619674}
+  loglikelihood: [37440.874631595114]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 11/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.0761567001657628}
+  loglikelihood: [37939.56254403836]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 12/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.0606041938725719}
+  loglikelihood: [38341.47427939852]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 13/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.0461696085885381}
+  loglikelihood: [38671.928236146996]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 14/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.0325857876178401}
+  loglikelihood: [38946.54897799413]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 15/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.0197386162451312}
+  loglikelihood: [39174.98786028565]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 16/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 1.0076196203228835}
+  loglikelihood: [39368.54594479015]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 17/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9962548411128542}
+  loglikelihood: [39532.7153721262]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 18/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9856397698758381}
+  loglikelihood: [39674.34882377919]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 19/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9758388571617309}
+  loglikelihood: [39795.399437488595]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 20/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9667767617217397}
+  loglikelihood: [39900.42381855365]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 21/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9585048724227766}
+  loglikelihood: [39993.07552347798]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 22/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9510279451931342}
+  loglikelihood: [40074.51617909923]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 23/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9442575519963199}
+  loglikelihood: [40146.23450572183]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 24/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9381540575134116}
+  loglikelihood: [40209.88582429616]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 25/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.932660879338984}
+  loglikelihood: [40268.003993306585]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 26/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9278272040879665}
+  loglikelihood: [40321.1110161547]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 27/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9235907113285142}
+  loglikelihood: [40369.03198589789]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 28/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9198552112064011}
+  loglikelihood: [40412.529419374565]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 29/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+&lt;&lt; Post-processing &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9165723972893048}
+  loglikelihood: [40452.97238491004]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Continue
+## Iteration 30/30 ##
+&lt;&lt; Pre-processing &gt;&gt;
+&lt;&lt; E-step &gt;&gt;
+&lt;&lt; M-step &gt;&gt;
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+WARNING RuntimeWarning: invalid value encountered in divide
+
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;&lt; Post-processing &gt;&gt;
+&lt;&lt; Registering Result &gt;&gt;
+  alpha: 1.0
+  background_normalization: {&#39;bkg_model&#39;: 0.9136931254863789}
+  loglikelihood: [40490.13040170964]
+&lt;&lt; Checking Stopping Criteria &gt;&gt;
+--&gt; Stop
+&lt;&lt; Finalization &gt;&gt;
+#### Image Deconvolution Finished ####
+CPU times: user 1min, sys: 1min 49s, total: 2min 50s
+Wall time: 31.9 s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>image_deconvolution.results
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+[{&#39;iteration&#39;: 1,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d1000&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0fa0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2dd0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.9156089682938398},
+  &#39;alpha&#39;: &lt;Quantity 4.52757914&gt;,
+  &#39;loglikelihood&#39;: [6949.836551805813]},
+ {&#39;iteration&#39;: 2,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d03d0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d04c0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0220&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.3794097585952207},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [21587.020960688867]},
+ {&#39;iteration&#39;: 3,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0bb0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2bf0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0280&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.3410619300819213},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [25842.54660092949]},
+ {&#39;iteration&#39;: 4,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d3370&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d3b50&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2860&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.296189276010488},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [29169.369576411234]},
+ {&#39;iteration&#39;: 5,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0ac0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d30d0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2920&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.2478778728734279},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [31697.255886588624]},
+ {&#39;iteration&#39;: 6,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d01c0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d1b70&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d36a0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.2041914548955384},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [33580.419278604386]},
+ {&#39;iteration&#39;: 7,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d3610&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d38b0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d1067b20&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.167688135164011},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [34974.36385432206]},
+ {&#39;iteration&#39;: 8,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0c40&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d1ae0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d09a0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.1379590541992315},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [36020.0668820171]},
+ {&#39;iteration&#39;: 9,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d04f0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d3580&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d10655d0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.1137555245258839},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [36818.28882326213]},
+ {&#39;iteration&#39;: 10,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0d60&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d3670&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2980&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.09357530619674},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [37440.874631595114]},
+ {&#39;iteration&#39;: 11,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0a30&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0c70&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2ec0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.0761567001657628},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [37939.56254403836]},
+ {&#39;iteration&#39;: 12,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0670&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d1cc0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e4250&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.0606041938725719},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [38341.47427939852]},
+ {&#39;iteration&#39;: 13,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d06a0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2290&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e4af0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.0461696085885381},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [38671.928236146996]},
+ {&#39;iteration&#39;: 14,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d10230d0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d10235b0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e4d30&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.0325857876178401},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [38946.54897799413]},
+ {&#39;iteration&#39;: 15,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d02e0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d1480&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e5db0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.0197386162451312},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [39174.98786028565]},
+ {&#39;iteration&#39;: 16,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d1067d60&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d10665f0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e6260&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 1.0076196203228835},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [39368.54594479015]},
+ {&#39;iteration&#39;: 17,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0400&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2b90&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e6740&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9962548411128542},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [39532.7153721262]},
+ {&#39;iteration&#39;: 18,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d1067340&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d1067e50&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e61d0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9856397698758381},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [39674.34882377919]},
+ {&#39;iteration&#39;: 19,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d1066710&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e41c0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e48b0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9758388571617309},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [39795.399437488595]},
+ {&#39;iteration&#39;: 20,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d0970&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2350&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e6440&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9667767617217397},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [39900.42381855365]},
+ {&#39;iteration&#39;: 21,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d10659f0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d1067760&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e7eb0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9585048724227766},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [39993.07552347798]},
+ {&#39;iteration&#39;: 22,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d1067490&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e77f0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e4910&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9510279451931342},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [40074.51617909923]},
+ {&#39;iteration&#39;: 23,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e47f0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e7160&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e5330&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9442575519963199},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [40146.23450572183]},
+ {&#39;iteration&#39;: 24,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e6da0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e6b30&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e7430&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9381540575134116},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [40209.88582429616]},
+ {&#39;iteration&#39;: 25,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e6d70&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e72e0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e7f10&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.932660879338984},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [40268.003993306585]},
+ {&#39;iteration&#39;: 26,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e4fd0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e75b0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e55d0&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9278272040879665},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [40321.1110161547]},
+ {&#39;iteration&#39;: 27,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d3190&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d1330&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d1067670&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9235907113285142},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [40369.03198589789]},
+ {&#39;iteration&#39;: 28,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e73d0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7e7c70&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2d1066140&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9198552112064011},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [40412.529419374565]},
+ {&#39;iteration&#39;: 29,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d3a00&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2cb0&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d2e30&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9165723972893048},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [40452.97238491004]},
+ {&#39;iteration&#39;: 30,
+  &#39;model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d19c0&gt;,
+  &#39;delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf7d1240&gt;,
+  &#39;processed_delta_model&#39;: &lt;cosipy.image_deconvolution.allskyimage.AllSkyImageModel at 0x2cf8e8340&gt;,
+  &#39;background_normalization&#39;: {&#39;bkg_model&#39;: 0.9136931254863789},
+  &#39;alpha&#39;: 1.0,
+  &#39;loglikelihood&#39;: [40490.13040170964]}]
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="5.-Analyze-the-results">
+<h1>5. Analyze the results<a class="headerlink" href="#5.-Analyze-the-results" title="Link to this heading"></a></h1>
+<p>Examples to see/analyze the results are shown below.</p>
+<section id="Log-likelihood">
+<h2>Log-likelihood<a class="headerlink" href="#Log-likelihood" title="Link to this heading"></a></h2>
+<p>Plotting the log-likelihood vs the number of iterations</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x, y = [], []
+
+for result in image_deconvolution.results:
+    x.append(result[&#39;iteration&#39;])
+    y.append(result[&#39;loglikelihood&#39;])
+
+plt.plot(x, y)
+plt.grid()
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;loglikelihood&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;loglikelihood&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_61_1.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_61_1.png" />
+</div>
+</div>
+</section>
+<section id="Alpha-(the-factor-used-for-the-acceleration)">
+<h2>Alpha (the factor used for the acceleration)<a class="headerlink" href="#Alpha-(the-factor-used-for-the-acceleration)" title="Link to this heading"></a></h2>
+<p>Plotting <span class="math notranslate nohighlight">\(\alpha\)</span> vs the number of iterations. <span class="math notranslate nohighlight">\(\alpha\)</span> is a parameter to accelerate the EM algorithm (see the beginning of Section 4). If it is too large, reconstructed images may have artifacts.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x, y = [], []
+
+for result in image_deconvolution.results:
+    x.append(result[&#39;iteration&#39;])
+    y.append(result[&#39;alpha&#39;])
+
+plt.plot(x, y)
+plt.grid()
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;alpha&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;alpha&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_63_1.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_63_1.png" />
+</div>
+</div>
+</section>
+<section id="Background-normalization">
+<h2>Background normalization<a class="headerlink" href="#Background-normalization" title="Link to this heading"></a></h2>
+<p>Plotting the background nomalization factor vs the number of iterations. If the backgroud model is accurate and the image is reconstructed perfectly, this factor should be close to 1. In this case, the background is slightly off from one, which may be because the background events are extracted from different time intervals of the GRB events.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>x, y = [], []
+
+for result in image_deconvolution.results:
+    x.append(result[&#39;iteration&#39;])
+    y.append(result[&#39;background_normalization&#39;][&#39;bkg_model&#39;])
+
+plt.plot(x, y)
+plt.grid()
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;background_normalization&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0, 0.5, &#39;background_normalization&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_65_1.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_65_1.png" />
+</div>
+</div>
+</section>
+<section id="The-reconstructed-images">
+<h2>The reconstructed images<a class="headerlink" href="#The-reconstructed-images" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def plot_reconstructed_image(result, source_position = None): # source_position should be (l,b) in degrees
+    iteration = result[&#39;iteration&#39;]
+    image = result[&#39;model&#39;]
+
+    for energy_index in range(image.axes[&#39;Ei&#39;].nbins):
+        map_healpxmap = HealpixMap(data = image[:,energy_index], unit = image.unit)
+
+        _, ax = map_healpxmap.plot(&#39;mollview&#39;)
+
+        _.colorbar.set_label(str(image.unit))
+
+        if source_position is not None:
+            ax.scatter(source_position[0]*u.deg, source_position[1]*u.deg, transform=ax.get_transform(&#39;world&#39;), color = &#39;red&#39;)
+
+        plt.title(label = f&quot;iteration = {iteration}, energy_index = {energy_index} ({image.axes[&#39;Ei&#39;].bounds[energy_index][0]}-{image.axes[&#39;Ei&#39;].bounds[energy_index][1]})&quot;)
+</pre></div>
+</div>
+</div>
+<p>Plotting the reconstructed images in all of the energy bands at the 20th iteration</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>iteration = 19
+
+plot_reconstructed_image(image_deconvolution.results[iteration], source_position = (51 * u.deg, -17 * u.deg))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_0.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_1.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_2.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_3.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_3.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_4.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_69_4.png" />
+</div>
+</div>
+<p>You can plot the reconstructed images from all of the iterations. Note that the following cell produces lots of figures.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>for result in image_deconvolution.results:
+    plot_reconstructed_image(result, source_position = (51 * u.deg, -17 * u.deg))
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Delta-image">
+<h2>Delta image<a class="headerlink" href="#Delta-image" title="Link to this heading"></a></h2>
+<p>checking the difference between images before/after each iteration</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def plot_delta_image(result, source_position = None): # source_position should be (l,b) in degrees
+    iteration = result[&#39;iteration&#39;]
+    image = result[&#39;processed_delta_model&#39;]
+
+    for energy_index in range(image.axes[&#39;Ei&#39;].nbins):
+        map_healpxmap = HealpixMap(data = image[:,energy_index], unit = image.unit)
+
+        _, ax = map_healpxmap.plot(&#39;mollview&#39;)
+
+        _.colorbar.set_label(str(image.unit))
+
+        if source_position is not None:
+            ax.scatter(source_position[0]*u.deg, source_position[1]*u.deg, transform=ax.get_transform(&#39;world&#39;), color = &#39;red&#39;)
+
+        plt.title(label = f&quot;iteration = {iteration}, energy_index = {energy_index} ({image.axes[&#39;Ei&#39;].bounds[energy_index][0]}-{image.axes[&#39;Ei&#39;].bounds[energy_index][1]})&quot;)
+</pre></div>
+</div>
+</div>
+<p>Plotting the difference between 19th and 20th reconstructed images.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>iteration = 19
+
+plot_delta_image(image_deconvolution.results[iteration], source_position = (51 * u.deg, -17 * u.deg))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_0.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_1.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_2.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_3.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_3.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_4.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_75_4.png" />
+</div>
+</div>
+<p>You can plot the reconstructed images from all of the iterations. Note that the following cell produces lots of figures.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>for result in image_deconvolution.results:
+    plot_delta_image(result, source_position = (51 * u.deg, -17 * u.deg))
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Integrated-flux-over-the-sky">
+<h2>Integrated flux over the sky<a class="headerlink" href="#Integrated-flux-over-the-sky" title="Link to this heading"></a></h2>
+<p>Define the actual GRB spectral model</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[37]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>alpha_inj = -1.
+beta_inj = -3.
+E0_inj = 1000. * u.keV
+K_inj = 5. / u.cm / u.cm / u.s / u.keV
+Emin_inj = 10. * u.keV
+Emax_inj = 5000. * u.keV
+
+spectrum_inj = Band_Eflux(alpha=alpha_inj,
+                          beta=beta_inj,
+                          E0=E0_inj.value,
+                          K=K_inj.value,
+                          a=Emin_inj.value,
+                          b=Emax_inj.value)
+
+spectrum_inj.E0.unit = E0_inj.unit
+spectrum_inj.K.unit = K_inj.unit
+spectrum_inj.a.unit = Emin_inj.unit
+spectrum_inj.b.unit = Emax_inj.unit
+</pre></div>
+</div>
+</div>
+<p>Calculate the integrated photon flux in each energy band</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>integrated_flux_each_band_truth = []
+integrated_flux_truth = 0.0 / u.cm**2 / u.s
+
+for energy_index in range(image_deconvolution.results[0][&#39;model&#39;].axes[&quot;Ei&quot;].nbins):
+    emin, emax = image_deconvolution.results[0][&#39;model&#39;].axes[&quot;Ei&quot;].bounds[energy_index]
+
+    integrated_flux_each_band_truth.append(integrate.quad(spectrum_inj, emin.value, emax.value)[0] / u.cm**2 / u.s)
+
+    print(emin, emax)
+    print(&quot;    truth:&quot;, integrated_flux_each_band_truth[energy_index])
+
+    integrated_flux_truth += integrated_flux_each_band_truth[-1]
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+100.0 keV 200.0 keV
+    truth: 0.7418347986463156 1 / (cm2 s)
+200.0 keV 500.0 keV
+    truth: 0.8192020113325374 1 / (cm2 s)
+500.0 keV 1000.0 keV
+    truth: 0.420663133134687 1 / (cm2 s)
+1000.0 keV 2000.0 keV
+    truth: 0.21068821854253272 1 / (cm2 s)
+2000.0 keV 5000.0 keV
+    truth: 0.07024548561978913 1 / (cm2 s)
+</pre></div></div>
+</div>
+<p>Plotting the integratd flux in each energy band vs the number of interations</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>iteration = []
+integrated_flux = []
+integrated_flux_each_band = [[],[],[],[],[]]
+
+for result in image_deconvolution.results:
+    iteration.append(result[&#39;iteration&#39;])
+    image = result[&#39;model&#39;]
+    pixelarea = 4 * np.pi / image.axes[&#39;lb&#39;].npix * u.sr
+
+    integrated_flux.append(np.sum(image) * pixelarea)
+
+    for energy_band in range(image.axes[&#39;Ei&#39;].nbins):
+        integrated_flux_each_band[energy_band].append(np.sum(image[:,energy_band]) * pixelarea)
+
+plt.plot(iteration, [_.value for _ in integrated_flux], label = &#39;total&#39;, color = &#39;black&#39;)
+plt.plot(iteration, np.full(len(iteration), integrated_flux_truth), color = &#39;black&#39;, linestyle = &quot;--&quot;)
+plt.xlabel(&quot;iteration&quot;)
+plt.ylabel(&quot;integrated flux (ph cm-2 s-1)&quot;)
+plt.yscale(&quot;log&quot;)
+
+colors = [&#39;b&#39;, &#39;g&#39;, &#39;r&#39;, &#39;c&#39;, &#39;m&#39;]
+for energy_band in range(5):
+    plt.plot(iteration, [_.value for _ in integrated_flux_each_band[energy_band]], color = colors[energy_band], label = &quot;energyband = {}&quot;.format(energy_band))
+    plt.plot(iteration, np.full(len(iteration), integrated_flux_each_band_truth[energy_band]), color = colors[energy_band], linestyle = &quot;--&quot;)
+
+plt.legend()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x2bc75f3d0&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_84_1.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_84_1.png" />
+</div>
+</div>
+</section>
+<section id="Spectrum">
+<h2>Spectrum<a class="headerlink" href="#Spectrum" title="Link to this heading"></a></h2>
+<p>Plotting the gamma-ray spectrum at 20th interation. The photon flux at each energy band shown here is calculated as the accumulation of the flux values in all pixel at each energy band.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def get_differential_flux(model_map):
+    pixelarea = 4 * np.pi / model_map.axes[&#39;lb&#39;].npix * u.sr
+
+    differential_flux = np.sum(model_map, axis = 0) * pixelarea / model_map.axes[&#39;Ei&#39;].widths
+
+    return differential_flux
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>iteration = 19
+
+result = image_deconvolution.results[iteration]
+
+model_map = result[&#39;model&#39;]
+
+differential_flux = get_differential_flux(model_map)
+
+energy_band = model_map.axes[&#39;Ei&#39;].centers
+
+err_energy = model_map.axes[&#39;Ei&#39;].bounds.T - model_map.axes[&#39;Ei&#39;].centers
+err_energy[0,:] *= -1
+
+differential_flux_truth = [ integrated_flux / width for integrated_flux, width in zip(integrated_flux_each_band_truth, model_map.axes[&#39;Ei&#39;].widths)]
+
+plt.errorbar(energy_band, differential_flux, xerr=err_energy, fmt=&#39;o&#39;, label = &#39;reconstructed&#39;)
+plt.errorbar(energy_band, [_.value for _ in differential_flux_truth], xerr=err_energy, fmt=&#39;o&#39;, label = &#39;truth&#39;)
+plt.xscale(&quot;log&quot;)
+plt.yscale(&quot;log&quot;)
+
+plt.xlabel(&quot;Energy (keV)&quot;)
+plt.ylabel(r&quot;Photon Flux (s$^{-1}$ cm$^{-2}$ keV$^{-1}$)&quot;)
+plt.title(f&quot;Spectrum, Iteration = {result[&#39;iteration&#39;]}&quot;)
+plt.grid()
+plt.legend()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x2e4534fd0&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_87_1.png" src="../../../_images/tutorials_image_deconvolution_GRB_miniDC2-GRB-ImageDeconvolution_87_1.png" />
+</div>
+</div>
+</section>
+<section id="Find-the-location-with-the-maximum-flux">
+<h2>Find the location with the maximum flux<a class="headerlink" href="#Find-the-location-with-the-maximum-flux" title="Link to this heading"></a></h2>
+<p>As an example, here it calculate the location of the maximum flux at the 20th iteration’s map at the highest energy bin</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>idx_iteration = 19
+idx_energy = 4
+
+argmax = np.argmax(image_deconvolution.results[idx_iteration][&quot;model&quot;].contents[:,idx_energy:idx_energy+1])
+nside = image_deconvolution.results[idx_iteration][&quot;model&quot;].axes[&quot;lb&quot;].nside
+coordsys = image_deconvolution.results[idx_iteration][&quot;model&quot;].axes[&quot;lb&quot;].coordsys
+
+theta, phi = hp.pix2ang(nside, argmax)
+
+l, b = phi * 180 / np.pi, 90 - theta * 180 / np.pi
+
+c = SkyCoord(l, b, unit=&quot;deg&quot;, frame = coordsys)
+
+print(f&quot;The source position is around (l ,b) = ({c.galactic.l.deg} deg., {c.galactic.b.deg} deg.) in galactic&quot;)
+print(f&quot;The source position is around (ra, dec) = ({c.icrs.ra.deg} deg., {c.icrs.dec.deg} deg.) in icrs&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The source position is around (l ,b) = (50.62499999999999 deg., -19.47122063449069 deg.) in galactic
+The source position is around (ra, dec) = (308.30194136772735 deg., 5.913074059175163 deg.) in icrs
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
