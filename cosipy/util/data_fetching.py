@@ -112,9 +112,9 @@ def fetch_wasabi_file(file,
 
                 file_list = f_in.infolist()
 
-                if len(file_list) > 1:
+                if len(file_list) > 1 or ('/' in file_list[0].filename):
                     # Multiple files requires tracking them and checking multiple checksums. Let's keep it simple for now.
-                    raise RuntimeError("Currently, only unzipping file containing a single file is supported")
+                    raise RuntimeError("We currently only support unzipping files containing a single file and no folders.")
 
                 f_in.extractall(output.parent)
         elif zip_suffix == '.gz':
