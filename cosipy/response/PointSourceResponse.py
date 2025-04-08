@@ -7,6 +7,7 @@ from astropy.units import Quantity
 from scipy import integrate
 
 from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
+from astromodels.functions.function import CompositeFunction
 
 
 class PointSourceResponse(Histogram):
@@ -80,6 +81,8 @@ class PointSourceResponse(Histogram):
                 spectrum_unit = u.dimensionless_unscaled
             elif isinstance(spectrum, Gaussian):
                 spectrum_unit = spectrum.F.unit / spectrum.sigma.unit 
+            elif isinstance(spectrum, CompositeFunction):       # Ad-hoc fix to make a double Gaussian composite model to work
+                spectrum_unit = spectrum.F_1.unit / spectrum.sigma_1.unit
             else:
                 try:
                     spectrum_unit = spectrum.K.unit

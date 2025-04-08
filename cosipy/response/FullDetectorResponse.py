@@ -1,6 +1,5 @@
 from .PointSourceResponse import PointSourceResponse
 from .DetectorResponse import DetectorResponse
-from .ListModePSR import ListModePSR
 from astromodels.core.model_parser import ModelParser
 import matplotlib.pyplot as plt
 from astropy.time import Time
@@ -521,7 +520,10 @@ class FullDetectorResponse(HealpixBase):
             pass
 
         # create a .h5 file with the good structure
-        filename = Path(str(filename).replace(".rsp.gz","_nside{0}.area.h5".format(nside)))
+        try:
+            filename = filename.replace(".rsp.gz","_nside{0}.area.h5".format(nside))
+        except:
+            filename = str(filename).replace(".rsp.gz", "_nside{0}.area.h5".format(nside))
         f = h5.File(filename, mode='w')
 
         drm = f.create_group('DRM')

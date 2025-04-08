@@ -44,10 +44,10 @@ class DetectorResponse(Histogram):
 
     def _set_mapping(self):
         self.mapping = {}
-        target_names = ['Ei', 'Em', 'Phi', 'PsiChi', 'SigmaTau', 'Dist']
+        target_names = ['Ei', 'Em', 'Phi', 'PsiChi']
         numlabels = len(self.axes.labels)
 
-        for key, label in zip(target_names[:numlabels], self.axes.labels):
+        for key, label in zip(target_names, self.axes.labels):
             self.mapping[key] = label           # Format: key_target : label
                                                 # Example: {'Ei': 'Ei', 'Em': 'eps', 'Phi': 'Phi', 'PsiChi': 'PsiChi'}
 
@@ -203,7 +203,8 @@ class DetectorResponse(Histogram):
         # Cache the spectral response
         if self._spec is None:
             spec = self.project(['Ei','Em'])
-            self._spec = DetectorResponse(edges=spec.axes,
+            self._spec = DetectorResponse(coord = self.coord,
+                                          edges = spec.axes,
                                           contents = spec.contents,
                                           unit = spec.unit)
 
