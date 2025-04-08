@@ -42,6 +42,22 @@ class DetectorResponse(Histogram):
         self._spec = None
         self._aeff = None
 
+    def drop_empty_axes(self):
+ 
+         axis_names = self.axes.labels
+         axes_projection = []
+ 
+         for name in axis_names:
+             if (name in ['Ei', 'Em', 'eps', 'Eps']) | (self.axes[name].edges.size > 2):
+                 axes_projection.append(name)
+ 
+         spec = self.project(axes_projection)
+ 
+         return DetectorResponse(edges = spec.axes,
+                                 contents = spec.contents,
+                                 unit = spec.unit,
+                                 interpolated_NuLambda = self.interpolated_NuLambda)
+
     def _set_mapping(self):
         self.mapping = {}
         target_names = ['Ei', 'Em', 'Phi', 'PsiChi']
@@ -165,7 +181,7 @@ class DetectorResponse(Histogram):
         piecewise-linear directional responses.
         """
 
-        target = dict(sorted(target.items()))       # Sort dictionary by key (XXX: assuming response matrix also sorts in the same way)
+        # target = dict(sorted(target.items()))       # Sort dictionary by key (XXX: assuming response matrix also sorts in the same way)
         indices, weights = self._get_all_interp_weights(target)
         perm_indices = list(itertools.product(*indices))
         perm_weights = list(itertools.product(*weights))
@@ -202,7 +218,7 @@ class DetectorResponse(Histogram):
 
         # Cache the spectral response
         if self._spec is None:
-            spec = self.project(['Ei','Em'])
+            spec = self.project(['Ei', self.mapping['Em']])
             self._spec = DetectorResponse(coord = self.coord,
                                           edges = spec.axes,
                                           contents = spec.contents,
@@ -310,7 +326,7 @@ class DetectorResponse(Histogram):
         :py:class:`histpy.Axes`        
         """
         
-        return self.axes['Em']
+        return self.axes[self.mapping['Em']]
         
 
         
