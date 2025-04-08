@@ -17,8 +17,7 @@ If you are instead interested in an overview on how to use cosipy, see out `tuto
    spacecraftfile
    threeml
    ts_map
-   image_deconvolution          
-   polarization
-   source_injector
+   image_deconvolution
    util
+   source_injector
 
