@@ -1178,7 +1178,7 @@ class FullDetectorResponse(HealpixBase):
                 old_index = (slice(None),)*axis_id + (old_pix,)
                 new_index = (slice(None),)*axis_id + (new_pix,)
 
-                h_new[new_index] += exposure * u.s * h[old_index] # * norm_corr
+                h_new[new_index] += exposure * h[old_index] # * norm_corr
 
             else:
 
@@ -1194,7 +1194,7 @@ class FullDetectorResponse(HealpixBase):
                         old_index = (slice(None),)*axis_id + (old_pix,) + (slice(None),)*(pol_axis_id-axis_id-1) + (old_pol_bin,)
                         new_index = (slice(None),)*axis_id + (new_pix,) + (slice(None),)*(pol_axis_id-axis_id-1) + (new_pol_bin,)
 
-                    h_new[new_index] += exposure * u.s * h[old_index] # * norm_corr
+                    h_new[new_index] += exposure * h[old_index] # * norm_corr
 
 
     def __str__(self):
