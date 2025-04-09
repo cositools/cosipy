@@ -52,7 +52,7 @@ class FullDetectorResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000, polarization=False):
+    def open(cls, filename,Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000, pa_convention=None):
         """
         Open a detector response file.
 
@@ -76,22 +76,23 @@ class FullDetectorResponse(HealpixBase):
              True if there is only one pixel and not full-sky.
 
          emin,emax : float
-             emin/emax used in the simulation source file.
+             emin/emax used in the simulation source file.pa_convention : str, optional
+             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ')
         """
 
         filename = Path(filename)
 
 
         if filename.suffix == ".h5":
-            return cls._open_h5(filename)
+            return cls._open_h5(filename, pa_convention)
         elif "".join(filename.suffixes[-2:]) == ".rsp.gz":
-            return cls._open_rsp(filename,Spectrumfile,norm ,single_pixel,alpha,emin,emax)
+            return cls._open_rsp(filename,Spectrumfile,norm ,single_pixel,alpha,emin,emax, pa_convention)
         else:
             raise ValueError(
                 "Unsupported file format. Only .h5 and .rsp.gz extensions are supported.")
 
     @classmethod
-    def _open_h5(cls, filename):
+    def _open_h5(cls, filename, pa_convention=None):
         """
          Open a detector response h5 file.
 
@@ -99,6 +100,9 @@ class FullDetectorResponse(HealpixBase):
          ----------
          filename : str, :py:class:`~pathlib.Path`
              Path to HDF5 file
+
+         pa_convention : str, optional
+             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ')
          """
         new = cls(filename)
 
@@ -142,10 +146,14 @@ class FullDetectorResponse(HealpixBase):
                                  base=new.axes['NuLambda'],
                                  coordsys=SpacecraftFrame())
 
+        new.pa_convention = pa_convention
+        if 'Pol' in new._axes.labels and not (pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ'):
+            raise RuntimeError("Polarization angle convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') must be provided")
+
         return new
 
     @classmethod
-    def _open_rsp(cls, filename, Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000):
+    def _open_rsp(cls, filename, Spectrumfile=None,norm="Linear" ,single_pixel = False,alpha=0,emin=90,emax=10000, pa_convention=None):
         """
 
          Open a detector response rsp file.
@@ -171,6 +179,9 @@ class FullDetectorResponse(HealpixBase):
 
          emin,emax : float
              emin/emax used in the simulation source file.
+
+         pa_convention : str, optional
+             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ')
         """
 
 
@@ -422,7 +433,6 @@ class FullDetectorResponse(HealpixBase):
 
 
 
-
         # Weight to get effective area
 
         ewidth = dr.axes['Ei'].widths
@@ -511,8 +521,6 @@ class FullDetectorResponse(HealpixBase):
 
         # end of weight now we create the .h5 structure
 
-        npix = dr_area.axes['NuLambda'].nbins
-
         # remove the .h5 file if it already exist
         try:
             os.remove(filename.replace(".rsp.gz", "_nside{0}.area.h5".format(nside)))
@@ -521,122 +529,8 @@ class FullDetectorResponse(HealpixBase):
 
         # create a .h5 file with the good structure
         filename = Path(str(filename).replace(".rsp.gz","_nside{0}.area.h5".format(nside)))
-        f = h5.File(filename, mode='w')
 
-        drm = f.create_group('DRM')
-
-        # Header
-        drm.attrs['UNIT'] = 'cm2'
-
-        axis_description = {'Ei': "Initial simulated energy",
-                            'NuLambda': "Location of the simulated source in the spacecraft coordinates",
-                            'Pol': "Polarization angle",
-                            'Em': "Measured energy",
-                            'Phi': "Compton angle",
-                            'PsiChi': "Location in the Compton Data Space",
-                            'SigmaTau': "Electron recoil angle",
-                            'Dist': "Distance from first interaction"
-                            }
-
-        #keep the same dimension order of the data
-        axes_to_write = ['NuLambda', 'Ei']
-
-        if has_polarization:
-            axes_to_write += ['Pol']
-
-        axes_to_write += ['Em', 'Phi', 'PsiChi']
-
-        if sparse:
-            drm.attrs['SPARSE'] = True
-
-            # singletos. Save space in dense
-            axes_to_write += ['SigmaTau', 'Dist']
-        else:
-            drm.attrs['SPARSE'] = False
-
-        axes = drm.create_group('AXES', track_order=True)
-
-        for axis in dr.axes[axes_to_write]:
-
-            axis_dataset = axes.create_dataset(axis.label,
-                                    data=axis.edges)
-
-
-            if axis.label in ['NuLambda', 'PsiChi','SigmaTau']:
-
-                # HEALPix
-                axis_dataset.attrs['TYPE'] = 'healpix'
-
-                axis_dataset.attrs['NSIDE'] = nside
-
-                axis_dataset.attrs['SCHEME'] = 'ring'
-
-            else:
-
-                # 1D
-                axis_dataset.attrs['TYPE'] = axis.axis_scale
-
-                if axis.label in ['Ei', 'Em']:
-                    axis_dataset.attrs['UNIT'] = 'keV'
-                    axis_dataset.attrs['TYPE'] = 'log'
-                elif axis.label in ['Phi', 'Pol']:
-                    axis_dataset.attrs['UNIT'] = 'deg'
-                    axis_dataset.attrs['TYPE'] = 'linear'
-                elif axis.label in ['Dist']:
-                    axis_dataset.attrs['UNIT'] = 'cm'
-                    axis_dataset.attrs['TYPE'] = 'linear'
-                else:
-                   raise ValueError("Shouldn't happend")
-
-            axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
-
-        #sparse matrice
-        if sparse :
-
-            progress_bar = tqdm(total=npix, desc="Progress", unit="nbpixel")
-            # Contents. Sparse arrays
-            coords = drm.create_dataset('BIN_NUMBERS',
-                                (npix,),
-                                dtype=h5.vlen_dtype(int),
-                                compression="gzip")
-
-            data = drm.create_dataset('CONTENTS',
-                              (npix,),
-                              dtype=h5.vlen_dtype(float),
-                              compression="gzip")
-
-
-
-
-
-            for b in range(npix):
-
-                #print(f"{b}/{npix}")
-
-                pix_slice = dr_area[{'NuLambda':b}]
-
-
-                coords[b] = pix_slice.coords.flatten()
-                data[b] = pix_slice.data
-                progress_bar.update(1)
-
-            progress_bar.close()
-
-        #non sparse
-        else :
-
-            if has_polarization == True:
-                rsp_axes = [1,0,2,3,4,5]
-
-            else:
-                rsp_axes = [1,0,2,3,4]
-
-            data = drm.create_dataset('CONTENTS',
-		        data=np.transpose(dr_area.contents, axes = rsp_axes),
-                              compression="gzip")
-
-        #close the .h5 file in write mode in order to reopen it in read mode after
-        f.close()
+        cls._write_h5(dr_area, filename)
 
         new = cls(filename)
 
@@ -680,7 +574,138 @@ class FullDetectorResponse(HealpixBase):
                                  base=new.axes['NuLambda'],
                                  coordsys=SpacecraftFrame())
 
+        new.pa_convention = pa_convention
+        if 'Pol' in new._axes.labels and not (pa_convention == 'RelativeX' or pa_convention == 'RelativeY' or pa_convention == 'RelativeZ'):
+            raise RuntimeError("Polarization angle convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') must be provided")
+
         return new
+
+    @staticmethod
+    def _write_h5(dr_area, filename):
+        """
+        Write a Histogram containing the response into a HDF5 file response format
+
+        Parameters
+        ----------
+        dr_area : Histogram,
+             Histogram containing the response matrix in unit of differential area
+
+         filename : str, :py:class:`~pathlib.Path`
+             Path to .h5 file
+        """
+
+        npix = dr_area.axes['NuLambda'].nbins
+        nside = HealpixBase(npix = npix).nside
+        has_polarization = "Pol" in dr_area.axes.labels
+        sparse = dr_area.is_sparse
+
+        f = h5.File(filename, mode='w')
+
+        drm = f.create_group('DRM')
+
+        # Header
+        drm.attrs['UNIT'] = 'cm2'
+
+        axis_description = {'Ei': "Initial simulated energy",
+                            'NuLambda': "Location of the simulated source in the spacecraft coordinates",
+                            'Pol': "Polarization angle",
+                            'Em': "Measured energy",
+                            'Phi': "Compton angle",
+                            'PsiChi': "Location in the Compton Data Space",
+                            'SigmaTau': "Electron recoil angle",
+                            'Dist': "Distance from first interaction"
+                            }
+
+        #keep the same dimension order of the data
+        axes_to_write = ['NuLambda', 'Ei']
+
+        if has_polarization:
+            axes_to_write += ['Pol']
+
+        axes_to_write += ['Em', 'Phi', 'PsiChi']
+
+        if sparse:
+            drm.attrs['SPARSE'] = True
+
+            # singletos. Save space in dense
+            axes_to_write += ['SigmaTau', 'Dist']
+        else:
+            drm.attrs['SPARSE'] = False
+
+        axes = drm.create_group('AXES', track_order=True)
+
+        for axis in dr_area.axes[axes_to_write]:
+
+            axis_dataset = axes.create_dataset(axis.label,
+                                               data=axis.edges)
+
+            if axis.label in ['NuLambda', 'PsiChi', 'SigmaTau']:
+
+                # HEALPix
+                axis_dataset.attrs['TYPE'] = 'healpix'
+
+                axis_dataset.attrs['NSIDE'] = nside
+
+                axis_dataset.attrs['SCHEME'] = 'ring'
+
+            else:
+
+                # 1D
+                axis_dataset.attrs['TYPE'] = axis.axis_scale
+
+                if axis.label in ['Ei', 'Em']:
+                    axis_dataset.attrs['UNIT'] = 'keV'
+                    axis_dataset.attrs['TYPE'] = 'log'
+                elif axis.label in ['Phi', 'Pol']:
+                    axis_dataset.attrs['UNIT'] = 'deg'
+                    axis_dataset.attrs['TYPE'] = 'linear'
+                elif axis.label in ['Dist']:
+                    axis_dataset.attrs['UNIT'] = 'cm'
+                    axis_dataset.attrs['TYPE'] = 'linear'
+                else:
+                    raise ValueError("Shouldn't happend")
+
+            axis_dataset.attrs['DESCRIPTION'] = axis_description[axis.label]
+
+        # sparse matrice
+        if sparse:
+            progress_bar = tqdm(total=npix, desc="Progress", unit="nbpixel")
+            # Contents. Sparse arrays
+            coords = drm.create_dataset('BIN_NUMBERS',
+                                        (npix,),
+                                        dtype=h5.vlen_dtype(int),
+                                        compression="gzip")
+
+            data = drm.create_dataset('CONTENTS',
+                              (npix,),
+                              dtype=h5.vlen_dtype(float),
+                              compression="gzip")
+
+            for b in range(npix):
+
+                #print(f"{b}/{npix}")
+
+                pix_slice = dr_area[{'NuLambda':b}]
+
+                coords[b] = pix_slice.coords.flatten()
+                data[b] = pix_slice.data
+                progress_bar.update(1)
+
+            progress_bar.close()
+
+        # non sparse
+        else:
+            if has_polarization == True:
+                rsp_axes = [1,0,2,3,4,5]
+
+            else:
+                rsp_axes = [1,0,2,3,4]
+
+            data = drm.create_dataset('CONTENTS',
+		                              data=np.transpose(dr_area.contents, axes = rsp_axes),
+                                      compression="gzip")
+        #close the .h5 file in write mode in order to reopen it in read mode after
+        f.close()
 
     @property
     def is_sparse(self):
@@ -901,7 +926,7 @@ class FullDetectorResponse(HealpixBase):
 
                 dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
 
-                self._sum_rot_hist(dr_pix, psr, exposure)
+                self._sum_rot_hist(dr_pix, psr, exposure, coord, self.pa_convention)
 
             # Convert to PSR
             psr = tuple([PointSourceResponse(psr.axes[1:],
@@ -1085,7 +1110,7 @@ class FullDetectorResponse(HealpixBase):
         return extended_source_response
 
     @staticmethod
-    def _sum_rot_hist(h, h_new, exposure, axis = "PsiChi"):
+    def _sum_rot_hist(h, h_new, exposure, coord, pa_convention, axis = "PsiChi"):
         """
         Rotate a histogram with HealpixAxis h into the grid of h_new, and sum
         it up with the weight of exposure.
@@ -1105,6 +1130,32 @@ class FullDetectorResponse(HealpixBase):
         # TODO: Change this to interpolation (pixels + weights)
         old_pixels = old_axis.find_bin(new_axis.pix2skycoord(np.arange(new_axis.nbins)))
 
+        if 'Pol' in h.axes.labels and h_new.axes[axis].coordsys.name != 'spacecraftframe':
+
+            if coord.size > 1:
+                raise ValueError("For polarization, only a single source coordinate is supported")
+
+            from cosipy.polarization.polarization_angle import PolarizationAngle
+            from cosipy.polarization.conventions import IAUPolarizationConvention
+
+            pol_axis_id = h.axes.label_to_index('Pol')
+
+            old_pol_axis = h.axes[pol_axis_id]
+            new_pol_axis = h_new.axes[pol_axis_id]
+
+            old_pol_indices = []
+            for i in range(h_new.axes['Pol'].nbins):
+
+                pa = PolarizationAngle(h_new.axes['Pol'].centers.to_value(u.deg)[i] * u.deg, coord.transform_to('icrs'), convention=IAUPolarizationConvention())
+                pa_old = pa.transform_to(pa_convention, attitude=coord.attitude)
+
+                if pa_old.angle.deg == 180.:
+                    pa_old = PolarizationAngle(0. * u.deg, coord, convention=IAUPolarizationConvention())
+
+                old_pol_indices.append(old_pol_axis.find_bin(pa_old.angle))
+
+            old_pol_indices = np.array(old_pol_indices)
+
         # NOTE: there are some pixels that are duplicated, since the center 2 pixels
         # of the original grid can land within the boundaries of a single pixel
         # of the target grid. The following commented code fixes this, but it's slow, and
@@ -1122,10 +1173,28 @@ class FullDetectorResponse(HealpixBase):
             #h_new[{axis:new_pix}] += exposure * h[{axis: old_pix}] # * norm_corr
             # The following code does the same than the code above, but is faster
 
-            old_index = (slice(None),)*axis_id + (old_pix,)
-            new_index = (slice(None),)*axis_id + (new_pix,)
+            if not 'Pol' in h.axes.labels:
 
-            h_new[new_index] += exposure * h[old_index] # * norm_corr
+                old_index = (slice(None),)*axis_id + (old_pix,)
+                new_index = (slice(None),)*axis_id + (new_pix,)
+
+                h_new[new_index] += exposure * u.s * h[old_index] # * norm_corr
+
+            else:
+
+                for old_pol_bin,new_pol_bin in zip(old_pol_indices,range(new_pol_axis.nbins)):
+
+                    if pol_axis_id < axis_id:
+
+                        old_index = (slice(None),)*pol_axis_id + (old_pol_bin,) + (slice(None),)*(axis_id-pol_axis_id-1) + (old_pix,)
+                        new_index = (slice(None),)*pol_axis_id + (new_pol_bin,) + (slice(None),)*(axis_id-pol_axis_id-1) + (new_pix,)
+
+                    else:
+
+                        old_index = (slice(None),)*axis_id + (old_pix,) + (slice(None),)*(pol_axis_id-axis_id-1) + (old_pol_bin,)
+                        new_index = (slice(None),)*axis_id + (new_pix,) + (slice(None),)*(pol_axis_id-axis_id-1) + (new_pol_bin,)
+
+                    h_new[new_index] += exposure * u.s * h[old_index] # * norm_corr
 
 
     def __str__(self):
