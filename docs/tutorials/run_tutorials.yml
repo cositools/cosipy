@@ -24,7 +24,7 @@ tutorials:
       ancillary_files:
         - test/ancillary_test_file.txt
       wasabi_files:
-        - test_files/test_file.txt
+        - test_files/test_multipart_file.txt
       wasabi_files_unzip:
         test_files/test_file.txt.gz:
           #unzip_output: # Optional, if the unzipped file name is different from just removing the .zip or .gz
