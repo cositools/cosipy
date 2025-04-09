@@ -78,6 +78,11 @@ def main():
     else:
         output_dir = Path(output_dir)
 
+    # Save logs to output dir as well
+    file_handler = logging.FileHandler(output_dir / "run.log", mode='a')
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+
     logger.info(f"Config:\n{config.dump()}")
 
     # Which tutorials to run
