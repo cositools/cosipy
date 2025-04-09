@@ -139,7 +139,7 @@ class FullDetectorResponse(HealpixBase):
                                   scale=axis_type,
                                   label=axis_label)]
 
-        new._axes = Axes(axes)
+        new._axes = Axes(axes, copy_axes=False)
 
         # Init HealpixMap (local coordinates, main axis)
         HealpixBase.__init__(new,
@@ -423,12 +423,13 @@ class FullDetectorResponse(HealpixBase):
         # create histpy histogram
 
 
-        if sparse :
-            dr = Histogram(axes, contents=COO(coords=coords[:, :nbins_sparse], data= data[:nbins_sparse], shape = tuple(axes.nbins)))
-
-        else :
-
-            dr = Histogram(axes, contents=data)
+        if sparse:
+            dr = Histogram(axes, contents=COO(coords=coords[:, :nbins_sparse],
+                                              data= data[:nbins_sparse],
+                                              shape = axes.shape),
+                           copy_contents=False)
+        else:
+            dr = Histogram(axes, contents=data, copy_contents=False)
 
 
 
@@ -456,15 +457,14 @@ class FullDetectorResponse(HealpixBase):
             # From spectrum file
             spec = pd.read_csv(Spectrumfile, sep=" ")
             spec = spec.iloc[:-1]
-            hspec = Histogram([h_spec.axes[1]])
-            hspec[:] = np.interp(hspec.axis.centers,
-                             spec.iloc[:, 0].to_numpy(),
-                             spec.iloc[:, 1].to_numpy(),
-                             left=0,
-                             right=0) * ewidth
-            hspec /= np.sum(hspec)
 
-            nperchannel_norm = hspec[:]
+            hspec = np.interp(h_spec.axes[1].centers,
+                              spec.iloc[:, 0].to_numpy(),
+                              spec.iloc[:, 1].to_numpy(),
+                              left=0,
+                              right=0) * ewidth
+
+            nperchannel_norm = hspec / np.sum(hspec)
 
         elif norm=="powerlaw":
             logger.info("normalisation : powerlaw with index {0} with energy range [{1}-{2}]keV".format(alpha,emin,emax))
@@ -567,7 +567,7 @@ class FullDetectorResponse(HealpixBase):
 
 
 
-        new._axes = Axes(axes)
+        new._axes = Axes(axes, copy_axes=False)
 
         # Init HealpixMap (local coordinates, main axis)
         HealpixBase.__init__(new,
@@ -687,7 +687,7 @@ class FullDetectorResponse(HealpixBase):
 
                 pix_slice = dr_area[{'NuLambda':b}]
 
-                coords[b] = pix_slice.coords.flatten()
+                coords[b] = pix_slice.coords.ravel()
                 data[b] = pix_slice.data
                 progress_bar.update(1)
 
@@ -759,15 +759,18 @@ class FullDetectorResponse(HealpixBase):
             data = np.array(self._file['DRM']['CONTENTS'][pix])
 
             return DetectorResponse(self.axes[1:],
-                                contents=COO(coords=coords,
-                                             data=data,
-                                             shape=tuple(self.axes.nbins[1:])),
-                                unit=self.unit)
+                                    contents=COO(coords=coords,
+                                                 data=data,
+                                                 shape=tuple(self.axes.nbins[1:])),
+                                    unit=self.unit,
+                                    copy_contents=False)
 
         else :
             data = self._file['DRM']['CONTENTS'][pix]
             return DetectorResponse(self.axes[1:],
-                                contents=data, unit=self.unit)
+                                    contents=data,
+                                    unit=self.unit,
+                                    copy_contents=False)
 
     def close(self):
         """
@@ -901,17 +904,14 @@ class FullDetectorResponse(HealpixBase):
             axis = "PsiChi"
 
             coords_axis = Axis(np.arange(coord.size+1), label = 'coords')
-
-            psr = Histogram([coords_axis] + list(deepcopy(self.axes[1:])),
-                            unit = self.unit * scatt_map.unit)
-
-            psr.axes[axis].coordsys = coord.frame
+            axes = Axes([coords_axis] + list(self.axes[1:])) # copies all Axis objects
+            axes["PsiChi"].coordsys = coord.frame # OK because not shared with any other Axes yet
+            
+            psrs = Histogram(axes, unit = self.unit * scatt_map.unit)
 
             for i,(pixels, exposure) in \
                 enumerate(zip(scatt_map.contents.coords.transpose(),
                               scatt_map.contents.data * scatt_map.unit)):
-
-                #gc.collect() # HDF5 cache issues
 
                 att = Attitude.from_axes(x = scatt_map.axes['x'].pix2skycoord(pixels[0]),
                                          y = scatt_map.axes['y'].pix2skycoord(pixels[1]))
@@ -926,14 +926,15 @@ class FullDetectorResponse(HealpixBase):
 
                 dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
 
-                self._sum_rot_hist(dr_pix, psr, exposure, coord, self.pa_convention)
+                self._sum_rot_hist(dr_pix, psrs, exposure, coord, self.pa_convention)
 
-            # Convert to PSR
-            psr = tuple([PointSourceResponse(psr.axes[1:],
-                                             contents = data,
-                                             sparse = psr.is_sparse,
-                                             unit = psr.unit)
-                         for data in psr[:]])
+            # Convert to tuple of PSRs for each bin of coords axis
+            psr = tuple(PointSourceResponse(psrs.axes[1:],
+                                            contents = data,
+                                            sparse = psrs.is_sparse,
+                                            unit = psrs.unit,
+                                            copy_contents = False)
+                        for data in psrs.contents)
 
             if coord.size == 1:
                 return psr[0]
@@ -1119,9 +1120,6 @@ class FullDetectorResponse(HealpixBase):
         """
 
         axis_id = h.axes.label_to_index(axis)
-
-        old_axes = h.axes
-        new_axes = h_new.axes
 
         old_axis = h.axes[axis_id]
         new_axis = h_new.axes[axis_id]

@@ -1,4 +1,4 @@
-from histpy import Histogram, Axes, Axis
+from histpy import Histogram
 import numpy as np
 import astropy.units as u
 import gc
@@ -103,7 +103,7 @@ class ExtendedSourceResponse(Histogram):
             contents = np.tensordot(allsky_image_model.contents, self.contents, axes=([0,1], [0,1]))
             contents *= self.axes[0].pixarea()
 
-            return Histogram(edges=self.axes[2:], contents=contents)
+            return Histogram(edges=self.axes[2:], contents=contents, copy_contents=False)
         
         else:
             raise ValueError(f"The input allskymodel mismatches with the extended source response.")
