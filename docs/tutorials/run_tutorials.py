@@ -160,11 +160,14 @@ def main():
             if 'wasabi_files_unzip' in config['tutorials'][tutorial]:
                 for rel_path,other_args in config['tutorials'][tutorial]['wasabi_files_unzip'].items():
 
-                    if 'output_unzip' in other_args:
+                    rel_path = Path(rel_path)
+
+                    if 'unzip_output' in other_args:
                         # The unzipped file as a different name than just dropping .gz or .zip
-                        local_copy = wasabi_mirror / other_args['output_unzip']
+                        local_copy = wasabi_mirror / rel_path.parent / other_args['unzip_output']
                     else:
-                        local_copy = wasabi_mirror / rel_path
+
+                        local_copy = wasabi_mirror / rel_path.with_suffix('')
 
                     if local_copy.exists():
                         os.symlink(local_copy, wdir / local_copy.name)
