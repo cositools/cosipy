@@ -1,13 +1,9 @@
-import os
-
 import boto3
 from hashlib import md5
 from pathlib import Path
 import zipfile
 import gzip
 import logging
-
-from ipyparallel.client.magics import output_args
 
 logger = logging.getLogger(__name__)
 
