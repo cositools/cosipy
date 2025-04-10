@@ -68,10 +68,6 @@ tutorials:
           checksum: b842a7444e6fc1a5dd567b395c36ae7f
         COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori:
           checksum: 416fcc296fc37a056a069378a2d30cb2
-        COSI-SMEX/DC2/Data/Sources/Crab_DC2_3months_unbinned_data.fits.gz:
-          checksum: dc261c4adf86a44e0349d47c72185a99
-        COSI-SMEX/DC2/Data/Backgrounds/albedo_photons_3months_unbinned_data.fits.gz:
-          checksum: 4c125410d8f127d7e12682f008d5651d
         COSI-SMEX/cosipy_tutorials/ts_maps/Crab_galactic_CDS_binned.hdf5:
           checksum: 40bdc4bcf4dad040dca3bb0e203aad35
         COSI-SMEX/cosipy_tutorials/ts_maps/Albedo_galactic_CDS_binned.hdf5:
