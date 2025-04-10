@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import astropy.units as u
 import numpy as np
-import copy
 from histpy import Histogram
 
 class ModelBase(Histogram, ABC):
@@ -65,7 +64,7 @@ class ModelBase(Histogram, ABC):
         if not isinstance(fill_value, u.quantity.Quantity) and self.unit is not None:
             fill_value *= self.contents.unit
 
-        model_new = copy.deepcopy(self)
+        model_new = self.copy()
         model_new[:] = np.where(mask.contents, model_new.contents, fill_value)
 
         return model_new

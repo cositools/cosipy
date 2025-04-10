@@ -1,5 +1,4 @@
 import os
-import copy
 import numpy as np
 import logging
 logger = logging.getLogger(__name__)
@@ -39,7 +38,7 @@ class RichardsonLucySimple(DeconvolutionAlgorithmBase):
         self.results.clear()
 
         # copy model
-        self.model = copy.deepcopy(self.initial_model)
+        self.model = self.initial_model.copy()
 
         # calculate exposure map
         self.summed_exposure_map = self.calc_summed_exposure_map()
@@ -106,9 +105,9 @@ class RichardsonLucySimple(DeconvolutionAlgorithmBase):
         """
         
         this_result = {"iteration": self.iteration_count, 
-                       "model": copy.deepcopy(self.model), 
-                       "delta_model": copy.deepcopy(self.delta_model),
-                       "background_normalization": copy.deepcopy(self.dict_bkg_norm)}
+                       "model": self.model.copy(), 
+                       "delta_model": self.delta_model.copy(),
+                       "background_normalization": self.dict_bkg_norm.copy()}
 
         # show intermediate results
         logger.info(f'  background_normalization: {this_result["background_normalization"]}')

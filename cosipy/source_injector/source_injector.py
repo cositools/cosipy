@@ -6,7 +6,6 @@ from histpy import Histogram, Axis, Axes
 from cosipy.response import PointSourceResponse, ExtendedSourceResponse
 import sys
 from mhealpy import HealpixMap
-import copy
 
 class SourceInjector():
 
@@ -263,7 +262,7 @@ class SourceInjector():
 
             injected_list = list(self.components.values())
 
-            injected_all = copy.deepcopy(injected_list[0])
+            injected_all = injected_list[0].copy()
 
             # add the rest of the injected sources
             for i in injected_list[1:]:
