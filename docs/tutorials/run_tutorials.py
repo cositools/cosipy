@@ -167,10 +167,6 @@ def main():
                     logger.info(f"Fetching {file} to {output}")
                     fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket, checksum=checksum)
 
-    if wasabi_mirror is not None:
-        for tutorial in tutorials:
-            cache_wasabi_files(tutorial)
-
     # Run the tutorials
     def run_tutorial(tutorial):
         """
@@ -242,11 +238,15 @@ def main():
         # Remove file logger
         logger.removeHandler(file_handler)
 
+    # Loop through each tutorial
     summary = {}
     for tutorial in tutorials:
 
         summary[tutorial] = {}
         summary_entry = summary[tutorial]
+
+        if wasabi_mirror is not None:
+            cache_wasabi_files(tutorial)
 
         start_time = timeit.default_timer()
         try:
@@ -268,6 +268,7 @@ def main():
         else:
             logger.info(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
 
+    # Overall summary log
     logger.info(f"cosipy version: {cosipy.__version__}")
     logger.info(f"Run summary:")
     for tutorial,results in summary.items():
