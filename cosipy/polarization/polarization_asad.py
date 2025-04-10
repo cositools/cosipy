@@ -225,7 +225,7 @@ class PolarizationASAD():
                     counts += expectation.project(['PsiChi'])[j]
             asad.append(counts)
 
-        asad = Histogram(bin_edges, contents=asad)
+        asad = Histogram(bin_edges, contents=asad, copy_contents=False)
 
         return asad
 
@@ -253,7 +253,7 @@ class PolarizationASAD():
 
         counts, edges = np.histogram(azimuthal_angles, bins=bin_edges)
 
-        asad = Histogram(edges, contents=counts)
+        asad = Histogram(edges, contents=counts, copy_contents=False)
         self._bin_edges = asad.axis.edges
         self._bins = asad.axis.centers
 
@@ -306,7 +306,7 @@ class PolarizationASAD():
                     counts += data.binned_data.project(['PsiChi'])[j]
             asad.append(counts)
 
-        asad = Histogram(bin_edges, contents=asad)
+        asad = Histogram(bin_edges, contents=asad, copy_contents=False)
         self._bin_edges = asad.axis.edges
         self._bins = asad.axis.centers
 
@@ -429,10 +429,10 @@ class PolarizationASAD():
         scaled_background_asad = (asads['background'].contents.data * source_duration / background_duration).astype(int)
         source_asad = asads['source & background'].contents.data - scaled_background_asad
 
-        asads['source'] = Histogram(asads['background'].axis.edges, contents=source_asad)
+        asads['source'] = Histogram(asads['background'].axis.edges, contents=source_asad, copy_contents=False)
         asads['unpolarized'] = self.create_unpolarized_asad(self._bin_edges)
         asads['polarized'] = self.create_polarized_asads(self._bin_edges)
-        asads['background (scaled)'] = Histogram(asads['background'].axis.edges, contents=scaled_background_asad)
+        asads['background (scaled)'] = Histogram(asads['background'].axis.edges, contents=scaled_background_asad, copy_contents=False)
 
         return asads, source_duration, background_duration
 
@@ -546,7 +546,7 @@ class PolarizationASAD():
             if not data_asad_uncertainties is None:
                 uncertainties.append(data_asad_uncertainties[i] / np.sum(data_asad.contents.data) / unpolarized_asad.contents.data[i] * np.sum(unpolarized_asad.contents.data))
 
-        asad = Histogram(data_asad.axis.edges, contents=corrected)
+        asad = Histogram(data_asad.axis.edges, contents=corrected, copy_contents=False)
 
         if not data_asad_uncertainties is None:
             return asad, uncertainties
