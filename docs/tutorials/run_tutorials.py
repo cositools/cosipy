@@ -24,8 +24,9 @@ import yaml
 
 from yayc import Configurator
 
-from cosipy.util import fetch_wasabi_file
+from cosipy.util import fetch_wasabi_file, get_md5_checksum
 
+import colorama
 
 def main():
 
@@ -42,6 +43,9 @@ def main():
                    help=("Path to local wasabi mirror. We will try to symlink existing file from there."
                          "Otherwise they will be downloaded. If provided and the needed files do not exists, "
                          "they will be cached here. Overrides path in config."))
+    p.add_argument('--verify-wasabi-mirror', action='store_true', default=False,
+                   help=('Check that all files in the wasabi mirror exist and have the correct checksum,'
+                         'and then exit.'))
     p.add_argument('--tutorial', nargs='*', default = None,
                    help = "Which tutorials to run. All by default.")
     p.add_argument('--log-level', default='info',
@@ -91,35 +95,78 @@ def main():
     if tutorials is None:
         tutorials = list(config['tutorials'].keys())
 
+    # Common convenient functions
+    def get_unzip_output(output, file_args):
+
+        unzip_output = None
+
+        if 'unzip' in file_args and file_args['unzip']:
+            if 'unzip_output' in file_args:
+                unzip_output = output.parent / file_args['unzip_output']
+            else:
+                unzip_output = output.parent / output.with_suffix('')
+
+        return unzip_output
+
+    # Verify
+    if args.verify_wasabi_mirror:
+
+        def verify_wasabi_files(tutorial):
+            """
+            Cache all file for a given tutorial
+            """
+            if 'wasabi_files' in config['tutorials'][tutorial]:
+
+                logger.info(f"Verifying wasabi file in tutorial {tutorial}")
+
+                for file, file_args in config['tutorials'][tutorial]['wasabi_files'].items():
+
+                    checksum = file_args['checksum']
+
+                    local_copy = wasabi_mirror / file
+                    unzip_output = get_unzip_output(local_copy, file_args)
+                    if unzip_output is not None:
+                        local_copy = unzip_output
+
+                    if not local_copy.exists():
+                       print(colorama.Fore.RED + "FAILED   "+colorama.Style.RESET_ALL+f"{file} doesn't exists.")
+                    else:
+                        local_checksum = get_md5_checksum(local_copy)
+
+                        if local_checksum != checksum:
+                            print(colorama.Fore.RED   + "FAILED   "+colorama.Style.RESET_ALL+f"{file} exists but has a different checksum ({local_checksum}).")
+                        else:
+                            print(colorama.Fore.GREEN + "VERIFIED "+colorama.Style.RESET_ALL+f"{file} has the expected checksum")
+
+        for tutorial in tutorials:
+            verify_wasabi_files(tutorial)
+
+        return # Exit after verify
+
     # Cache files
     def cache_wasabi_files(tutorial):
         """
         Cache all file for a given tutorial
         """
         if 'wasabi_files' in config['tutorials'][tutorial]:
-            for file in config['tutorials'][tutorial]['wasabi_files']:
+            for file, file_args in config['tutorials'][tutorial]['wasabi_files'].items():
+
                 output = wasabi_mirror/file
-                logger.info(f"Fetching {file} to {output}")
                 output.parent.mkdir(parents=True, exist_ok=True)
-                metadata = fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket)
-                logger.info(yaml.dump(metadata))
 
-        if 'wasabi_files_unzip' in config['tutorials'][tutorial]:
-            for file,file_args in config['tutorials'][tutorial]['wasabi_files_unzip'].items():
-                output = wasabi_mirror / file
+                checksum = file_args['checksum']
 
-                unzip_output = None
-                if 'unzip_output' in file_args:
-                    unzip_output = output.parent/file_args['unzip_output']
+                unzip_output = get_unzip_output(output, file_args)
 
-                checksum = None
-                if 'checksum' in file_args:
-                    checksum = file_args['checksum']
-
-                logger.info(f"Fetching and unzipping {file}")
-                output.parent.mkdir(parents=True, exist_ok=True)
-                metadata = fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket, unzip = True, unzip_output=unzip_output, checksum=checksum)
-                logger.info(yaml.dump(metadata))
+                if unzip_output is not None:
+                    # Unzip
+                    logger.info(f"Fetching and unzipping {file} to {unzip_output}")
+                    fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket, unzip=True,
+                                      unzip_output=unzip_output, checksum=checksum)
+                else:
+                    # No unzip
+                    logger.info(f"Fetching {file} to {output}")
+                    fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket)
 
     if wasabi_mirror is not None:
         for tutorial in tutorials:
@@ -156,26 +203,15 @@ def main():
         # Link wasabi files from cache is they exists
         if wasabi_mirror is not None:
             if 'wasabi_files' in config['tutorials'][tutorial]:
-                for rel_path in config['tutorials'][tutorial]['wasabi_files']:
-                    local_copy = wasabi_mirror/rel_path
+                for file, file_args in config['tutorials'][tutorial]['wasabi_files'].items():
+
+                    local_copy = wasabi_mirror / file
+                    unzip_output = get_unzip_output(local_copy, file_args)
+                    if unzip_output is not None:
+                        local_copy = unzip_output
 
                     if local_copy.exists():
                         os.symlink(local_copy, wdir/local_copy.name)
-
-            if 'wasabi_files_unzip' in config['tutorials'][tutorial]:
-                for rel_path,other_args in config['tutorials'][tutorial]['wasabi_files_unzip'].items():
-
-                    rel_path = Path(rel_path)
-
-                    if 'unzip_output' in other_args:
-                        # The unzipped file as a different name than just dropping .gz or .zip
-                        local_copy = wasabi_mirror / rel_path.parent / other_args['unzip_output']
-                    else:
-
-                        local_copy = wasabi_mirror / rel_path.with_suffix('')
-
-                    if local_copy.exists():
-                        os.symlink(local_copy, wdir / local_copy.name)
 
         # Run
         if not args.dry:
