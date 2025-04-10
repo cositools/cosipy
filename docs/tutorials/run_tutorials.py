@@ -264,6 +264,11 @@ def main():
         summary_entry['succeeded'] = succeeded
         summary_entry['elapsed_sec'] = elapsed
 
+        if succeeded:
+            print(colorama.Fore.GREEN + "SUCCEEDED " + colorama.Style.RESET_ALL + f"{tutorial} in {elapsed:.1f} s.")
+        else:
+            print(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"{tutorial} in {elapsed:.1f} s.")
+
     logger.info(f"Run summary:\n{yaml.dump(summary)}")
 
 
