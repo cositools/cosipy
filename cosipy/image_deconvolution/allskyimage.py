@@ -53,7 +53,7 @@ class AllSkyImageModel(ModelBase):
 
         energy_axis = Axis(edges = energy_edges, label = label_energy, scale = "log")
 
-        axes = Axes([image_axis, energy_axis])
+        axes = Axes([image_axis, energy_axis], copy_axes=False)
 
         super().__init__(axes, sparse = False, unit = unit)
 

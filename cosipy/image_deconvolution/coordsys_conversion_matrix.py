@@ -16,12 +16,18 @@ class CoordsysConversionMatrix(Histogram):
 
     def __init__(self, edges, contents = None, sumw2 = None,
                  labels=None, axis_scale = None, sparse = None, unit = None,
-                 binning_method = None):
+                 binning_method = None, copy_contents = True):
         
         super().__init__(edges, contents = contents, sumw2 = sumw2,
-                         labels = labels, axis_scale = axis_scale, sparse = sparse, unit = unit)
+                         labels = labels, axis_scale = axis_scale, sparse = sparse, unit = unit,
+                         copy_contents = copy_contents)
 
         self.binning_method = binning_method #'Time' or 'ScAtt'
+
+    def copy(self):
+        new = super().copy()
+        new.binning_method = self.binning_method
+        return new
 
     @classmethod
     def time_binning_ccm(cls, full_detector_response, orientation, time_intervals, nside_model = None, is_nest_model = False):
@@ -54,7 +60,7 @@ class CoordsysConversionMatrix(Histogram):
         axis_model_map = HealpixAxis(nside = nside_model, coordsys = "galactic", label = "lb")
         axis_local_map = full_detector_response.axes["NuLambda"]
 
-        axis_coordsys_conv_matrix = [ axis_time, axis_model_map, axis_local_map ] #Time, lb, NuLambda
+        axis_coordsys_conv_matrix = Axes((axis_time, axis_model_map, axis_local_map), copy_axes=False) #Time, lb, NuLambda
 
         contents = []
 
@@ -86,7 +92,10 @@ class CoordsysConversionMatrix(Histogram):
 
             contents.append(ccm_thispix_sparse)
 
-        coordsys_conv_matrix = cls(axis_coordsys_conv_matrix, contents = sparse.concatenate(contents), unit = u.s, sparse = True)
+        coordsys_conv_matrix = cls(axis_coordsys_conv_matrix,
+                                   contents = sparse.concatenate(contents),
+                                   unit = u.s,
+                                   copy_contents = False)
         
         coordsys_conv_matrix.binning_method = "Time"
 
@@ -130,7 +139,7 @@ class CoordsysConversionMatrix(Histogram):
         axis_model_map = HealpixAxis(nside = nside_model, coordsys = "galactic", scheme = exposure_table.scheme, label = "lb")
         axis_local_map = full_detector_response.axes["NuLambda"]
 
-        axis_coordsys_conv_matrix = [ axis_scatt, axis_model_map, axis_local_map ] #lb, ScAtt, NuLambda
+        axis_coordsys_conv_matrix = Axes((axis_scatt, axis_model_map, axis_local_map), copy_axes=False) #lb, ScAtt, NuLambda
         
         contents = []
 
@@ -187,7 +196,10 @@ class CoordsysConversionMatrix(Histogram):
 
             contents.append(ccm_thispix_sparse)
 
-        coordsys_conv_matrix = cls(axis_coordsys_conv_matrix, contents = sparse.concatenate(contents), unit = u.s, sparse = True)
+        coordsys_conv_matrix = cls(axis_coordsys_conv_matrix,
+                                   contents = sparse.concatenate(contents),
+                                   unit = u.s,
+                                   copy_contents = False)
 
         coordsys_conv_matrix.binning_method = 'ScAtt'
         
@@ -213,6 +225,7 @@ class CoordsysConversionMatrix(Histogram):
 
         new = super().open(filename, name)
 
+        # FIXME: is this necessary? deconvolution does not use it - JDB
         new.set_sumw2(new.contents) # copy so as not to alias
 
         new.binning_method = new.axes.labels[0] # 'Time' or 'ScAtt'
