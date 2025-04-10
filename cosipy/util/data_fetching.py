@@ -82,6 +82,9 @@ def fetch_wasabi_file(file,
     def check_local_checksum(output):
         """
         Same check for regular and unzipped file. Avoid duplicated code
+
+        Returns
+        Skip. Boolean
         """
 
         local_checksum = get_md5_checksum(output)
@@ -91,13 +94,14 @@ def fetch_wasabi_file(file,
                 logger.warning(
                     f"A file named {output} already exists but has a different checksum ({local_checksum}) than specified ({checksum}). Will overwrite.")
                 output.unlink()  # Delete
+                return False
             else:
                 raise RuntimeError(
                     f"A file named {output} already exists but has a different checksum ({local_checksum}) than specified ({checksum}).")
         else:
             logger.warning(
                 f"A file named {output} already exists with the specified checksum ({checksum}). Skipping.")
-            return
+            return True
 
     if unzip:
 
@@ -122,7 +126,8 @@ def fetch_wasabi_file(file,
 
             else:
 
-                check_local_checksum(unzip_output)
+                if check_local_checksum(unzip_output):
+                    return
 
         # Get zipped file
         fetch_wasabi_file(file, output = output, overwrite= overwrite, unzip= False, bucket = bucket, endpoint = endpoint, access_key = access_key, secret_key = secret_key)
@@ -148,7 +153,8 @@ def fetch_wasabi_file(file,
 
         if checksum is not None:
 
-            check_local_checksum(output)
+            if check_local_checksum(output):
+                return
 
         else:
 

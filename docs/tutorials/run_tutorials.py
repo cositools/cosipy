@@ -3,7 +3,7 @@
 import logging
 import traceback
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s',
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -166,7 +166,7 @@ def main():
                 else:
                     # No unzip
                     logger.info(f"Fetching {file} to {output}")
-                    fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket)
+                    fetch_wasabi_file(file, output, overwrite=True, bucket=wasabi_bucket, checksum=checksum)
 
     if wasabi_mirror is not None:
         for tutorial in tutorials:
