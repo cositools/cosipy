@@ -183,6 +183,8 @@ def main():
         file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
         logger.addHandler(file_handler)
 
+        logger.info(f"Running \"{tutorial}\" with cosipy version: {cosipy.__version__}")
+
         # Copy notebook and ancillary files
         notebooks = np.atleast_1d(config['tutorials'][tutorial]['notebook'])
 
