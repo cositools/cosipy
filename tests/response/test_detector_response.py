@@ -62,6 +62,22 @@ def test_spectral_response():
         assert np.allclose(spec[9].to_value('cm2'),
                            [0.00543126, 0.03039386, 0.07430311, 0.05662412, 0.12452137,
                             0.12412425, 0.1377126 , 0.11414493, 0.10317496, 0.03675906])
+
+def test_spectral_readwrite(tmp_path):
+
+    with FullDetectorResponse.open(response_path) as response:
+
+        drm = response[0]
+        spec = drm.get_spectral_response().to_dense()
+        aeff = drm.get_effective_area()
+
+        drm.write(tmp_path / "drmfile", overwrite=True)
+
+        drm2 = drm.open(tmp_path / "drmfile")
+        spec2 = drm.get_spectral_response().to_dense()
+        aeff2 = drm.get_effective_area()
+
+        assert spec == spec2 and aeff == aeff2
         
 def test_get_dispersion_matrix():
 

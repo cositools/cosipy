@@ -59,35 +59,6 @@ class AllSkyImageModel(ModelBase):
         super().__init__(axes, sparse = False, unit = unit)
 
     @classmethod
-    def open(cls, filename, name = 'hist'):
-        """
-        Open a file
-
-        Parameters
-        ----------
-        filename: str
-        
-        Returns
-        -------
-        py:class:`AllSkyImageModel`
-        """
-
-        hist = Histogram.open(filename, name)
-
-        allskyimage = AllSkyImageModel(nside = hist.axes[0].nside, 
-                                    energy_edges = hist.axes[1].edges,
-                                    scheme = hist.axes[0].scheme, 
-                                    coordsys = hist.axes[0].coordsys.name, 
-                                    label_image = hist.axes[0].label, 
-                                    label_energy = hist.axes[1].label,
-                                    unit = hist.unit)
-
-        allskyimage[:] = hist.contents
-
-        del hist
-        return allskyimage
-
-    @classmethod
     def instantiate_from_parameters(cls, parameter):
         """
         Generate an instance of this class

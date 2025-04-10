@@ -213,7 +213,7 @@ class CoordsysConversionMatrix(Histogram):
 
         new = super().open(filename, name)
 
-        new = cls(new.axes, contents = new.contents, sumw2 = new.contents, unit = new.unit) 
+        new.set_sumw2(new.contents) # copy so as not to alias
 
         new.binning_method = new.axes.labels[0] # 'Time' or 'ScAtt'
 
