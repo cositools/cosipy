@@ -265,11 +265,20 @@ def main():
         summary_entry['elapsed_sec'] = elapsed
 
         if succeeded:
-            print(colorama.Fore.GREEN + "SUCCEEDED " + colorama.Style.RESET_ALL + f"{tutorial} in {elapsed:.1f} s.")
+            logger.info(colorama.Fore.GREEN + "SUCCEEDED " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
         else:
-            print(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"{tutorial} in {elapsed:.1f} s.")
+            logger.info(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
 
-    logger.info(f"Run summary:\n{yaml.dump(summary)}")
+    logger.info(f"Run summary:")
+    for tutorial,results in summary.items():
+
+        succeeded = results['succeeded']
+        elapsed = results['elapsed_sec']
+
+        if succeeded:
+            logger.info(colorama.Fore.GREEN + "SUCCEEDED " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
+        else:
+            logger.info(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
 
 
 if __name__ == "__main__":
