@@ -543,8 +543,8 @@ class SpacecraftFile():
         return self.dwell_map
 
     def get_scatt_map(self,
-                       target_coord,
                        nside,
+                       target_coord=None,
                        scheme = 'ring',
                        coordsys = 'galactic',
                        r_earth = 6378.0,
@@ -558,7 +558,7 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        target_coord : astropy.coordinates.SkyCoord
+        target_coord : astropy.coordinates.SkyCoord, optional
             The coordinates of the target object. 
         nside : int
             The nside of the scatt map.
@@ -578,6 +578,10 @@ class SpacecraftFile():
             The spacecraft attitude map.
         """
         
+        # Check if target_coord is needed
+        if earth_occ and target_coord is None:
+            raise ValueError("target_coord is needed when earth_occ = True")
+
         # Get orientations
         timestamps = self.get_time()
         attitudes = self.get_attitude()
@@ -598,19 +602,20 @@ class SpacecraftFile():
         # Get max angle based on altitude:
         max_angle = np.pi - np.arcsin(r_earth/(r_earth + altitude))
         max_angle *= (180/np.pi) # angles in degree
-        
-        # Calculate angle between source direction and Earth zenith
-        # for each time stamp:
-        src_angle = target_coord.separation(earth_zenith)
-        
-        # Get pointings that are occulted by Earth:
-        earth_occ_index = src_angle.value >= max_angle
 
         # Define weights and set to 0 if blocked by Earth:
         weight = self.livetime*u.s
 
-        if earth_occ == True:
-            weight[earth_occ_index[:-1]] = 0        
+        if earth_occ:
+            # Calculate angle between source direction and Earth zenith
+            # for each time stamp:
+            src_angle = target_coord.separation(earth_zenith)
+
+            # Get pointings that are occulted by Earth:
+            earth_occ_index = src_angle.value >= max_angle
+
+            # Mask
+            weight[earth_occ_index[:-1]] = 0
         
         # Fill histogram:
         h_ori.fill(x, y, weight = weight)
