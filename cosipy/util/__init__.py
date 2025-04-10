@@ -1,1 +1,1 @@
-from .data_fetching import fetch_wasabi_file
+from .data_fetching import fetch_wasabi_file, fetch_wasabi_file_header, get_md5_checksum

@@ -32,6 +32,7 @@ setup(name='cosipy',
                           'astropy>5.0',
                           'yayc',
                           'awscli',
+                          'boto3',
                           'scipy<=1.13.0'],
       description = "High-level analysis for the COSI telescope data",
       entry_points={"console_scripts":[
