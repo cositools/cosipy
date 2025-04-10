@@ -20,10 +20,9 @@ from nbconvert import HTMLExporter
 from nbconvert.writers import FilesWriter
 
 import numpy as np
-import yaml
-
 from yayc import Configurator
 
+import cosipy
 from cosipy.util import fetch_wasabi_file, get_md5_checksum
 
 import colorama
@@ -269,6 +268,7 @@ def main():
         else:
             logger.info(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
 
+    logger.info(f"cosipy version: {cosipy.__version__}")
     logger.info(f"Run summary:")
     for tutorial,results in summary.items():
 
