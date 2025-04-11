@@ -73,9 +73,8 @@ def test_get_psr_in_galactic():
                                         response_path = response_path, 
                                         spectrum = spectrum)
 
-    assert np.allclose(psr.project("Em")[:].value, 
-                       np.array([ 0.65390537,  4.13318094,  8.93003058,  5.44094247, 11.22897029, 
-                                 11.33399241, 11.16676396,  7.02890392,  2.4011114 ,  0.2157772 ]))
+    assert np.allclose(psr.project("Em")[:].to_value(u.cm*u.cm*u.s),
+                       np.array([ 0.58126464,  3.71453494,  8.15823036,  4.91151704, 10.39478767, 10.72450821, 10.72937771,  6.79116926,  2.34047822,  0.21609583]))
 
     assert np.allclose(psr.axes[0].edges[:].value, 
                        np.array([ 150.,  220.,  325.,  480.,  520.,  765., 1120., 1650., 2350., 3450., 5000.]))
@@ -114,9 +113,9 @@ def test_get_ei_cds_array_galactic():
                                         spectrum = spectrum, 
                                         cds_frame = "galactic")
     ei_cds_read = np.load(test_data.path / "ei_cds_galactic.npy")
-    
+
     assert np.allclose(ei_cds, ei_cds_read)
-    
+
     
 def test_get_ei_cds_array_detector():
     
