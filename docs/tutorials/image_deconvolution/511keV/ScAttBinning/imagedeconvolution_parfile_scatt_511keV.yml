@@ -38,5 +38,5 @@ deconvolution:
         range: {"albedo": [0.01, 10.0]}
     save_results:
         activate: False
-        directory: "/results"
+        directory: "./results"
         only_final_result: True
