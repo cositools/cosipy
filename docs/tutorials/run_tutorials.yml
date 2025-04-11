@@ -197,8 +197,8 @@ tutorials:
       wasabi_files:
         COSI-SMEX/DC3/Data/Sources/26Al_NE2001_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
           checksum: add408aae70caf59789c82b31020564a
-        COSI-SMEX/DC3/Data/Backgrounds/Ge/AlbedoPhotons_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
-          checksum: 191a451ee597fd2e4b1cf237fc72e6e2
+        COSI-SMEX/DC3/Data/Backgrounds/Ge/PrimaryProtons_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
+          checksum: 3264e6bf520f4c20e06aaaed5d57abf0
 
     polarization_asad:
       notebook: polarization/ASAD_method.ipynb
