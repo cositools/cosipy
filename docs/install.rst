@@ -75,6 +75,21 @@ Example error log::
            variable or by using the ``--hdf5`` command-line option.
 
 
+OSError: Could not find library XSFunctions. Impossible to compile Xspec
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This error can occur while installing astromodels::
+
+    Xspec is detected. Will compile the Xspec extension.
+    [...]
+    Could not find library XSFunctions. Impossible to compile Xspec
+
+
+While astromodels support Xspec functions, these are generally not currently relevant for the use and development of cosipy. The most straightforward workaround is to temporarily hide your Xspec installation so that astromodels does not try to link to it. Before running `pip`, run::
+
+    unset HEADAS ASTRO_XSPEC_VERSION
+
+
 Testing
 -------
 
