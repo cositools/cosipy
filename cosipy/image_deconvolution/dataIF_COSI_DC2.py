@@ -13,6 +13,17 @@ from cosipy.response import FullDetectorResponse
 
 from .image_deconvolution_data_interface_base import ImageDeconvolutionDataInterfaceBase
 
+def tensordot_sparse(A, A_unit, B, axes):
+    """
+    perform a tensordot operation on A and B.  A is sparse
+    and so does not carry a unit; rather it must be passed
+    as a separate argument.  B is a normal Quantity. Return
+    a proper Quantity as the result.
+    """
+    dotprod = np.tensordot(A, B.value, axes=axes)
+    return u.Quantity(dotprod, unit= A_unit * B.unit, copy=False)
+
+
 class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
     """
     A subclass of ImageDeconvolutionDataInterfaceBase for the COSI data challenge 2.
@@ -70,6 +81,13 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
 
         new._coordsys_conv_matrix = coordsys_conv_matrix
 
+        # Enable sparse reshape caching to accelerate tensordot calls.
+        # CoordSysConvMatrix has no overflow tracking, so
+        # .contents is a view of the entire matrix, not a copy.
+        if new._coordsys_conv_matrix is not None and \
+           new._coordsys_conv_matrix.is_sparse:
+            new._coordsys_conv_matrix.contents.enable_caching()
+            
         new.is_miniDC2_format = is_miniDC2_format
 
         if isinstance(rsp, FullDetectorResponse):
@@ -85,13 +103,13 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         new._data_axes = new._event.axes
         
         if new._coordsys_conv_matrix is None:
-            axes = [new._image_response.axes['NuLambda'], new._image_response.axes['Ei']]
+            axes = (new._image_response.axes['NuLambda'].copy(), new._image_response.axes['Ei']) # will mutate axes[0]
             axes[0].label = 'lb' 
             # The gamma-ray direction of pre-computed response in DC2 is in the galactic coordinate, not in the local coordinate.
             # Actually, it is labeled as 'NuLambda'. So I replace it with 'lb'.
-            new._model_axes = Axes(axes)
+            new._model_axes = Axes(axes, copy_axes = False)
         else:
-            new._model_axes = Axes([new._coordsys_conv_matrix.axes['lb'], new._image_response.axes['Ei']])
+            new._model_axes = Axes((new._coordsys_conv_matrix.axes['lb'], new._image_response.axes['Ei']), copy_axes=False)
 
         new._calc_exposure_map()
 
@@ -156,21 +174,28 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
                 raise ValueError
 
         if self._coordsys_conv_matrix is None:
-            axes_cds = Axes([self._image_response.axes["Em"], \
+            axes_cds = Axes((self._image_response.axes["Em"], \
                              self._image_response.axes["Phi"], \
-                             self._image_response.axes["PsiChi"]])
+                             self._image_response.axes["PsiChi"]),
+                            copy_axes=False)
         else:
-            axes_cds = Axes([self._event.axes[0], \
+            axes_cds = Axes((self._event.axes[0], \
                              self._image_response.axes["Em"], \
                              self._image_response.axes["Phi"], \
-                             self._image_response.axes["PsiChi"]])
+                             self._image_response.axes["PsiChi"]),
+                            copy_axes=False)
         
-        self._event = Histogram(axes_cds, unit = self._event.unit, contents = self._event.contents)
-
+        self._event = Histogram(axes_cds,
+                                contents = self._event.contents,
+                                unit = self._event.unit,
+                                copy_contents = False) # overwrite axes of existing Histogram
+                                
         for key in self._bkg_models:
             bkg_model = self._bkg_models[key]
-            self._bkg_models[key] = Histogram(axes_cds, unit = bkg_model.unit, contents = bkg_model.contents)
-            del bkg_model
+            self._bkg_models[key] = Histogram(axes_cds,
+                                              contents = bkg_model.contents,
+                                              unit = bkg_model.unit,
+                                              copy_contents = False) # overwrite axes of existing Histogram
 
         logger.info(f"The axes in the event and background files are redefined. Now they are consistent with those of the response file.")
 
@@ -181,39 +206,45 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         Load a response file on the computer memory.
         """
 
-        axes_image_response = [full_detector_response.axes["NuLambda"], full_detector_response.axes["Ei"],
-                               full_detector_response.axes["Em"], full_detector_response.axes["Phi"], full_detector_response.axes["PsiChi"]]
-
-        self._image_response = Histogram(axes_image_response, unit = full_detector_response.unit)
-
-        nside = full_detector_response.axes["NuLambda"].nside
-        npix = full_detector_response.axes["NuLambda"].npix 
-    
+        axes_image_response = Axes((full_detector_response.axes["NuLambda"],
+                                    full_detector_response.axes["Ei"],
+                                    full_detector_response.axes["Em"],
+                                    full_detector_response.axes["Phi"],
+                                    full_detector_response.axes["PsiChi"]),
+                                   copy_axes=False)
+        
         if is_miniDC2_format:
-            for ipix in tqdm(range(npix)):
-                self._image_response[ipix] = np.sum(full_detector_response[ipix].to_dense(), axis = (4,5)) #Ei, Em, Phi, ChiPsi
+            npix = axes_image_response["NuLambda"].npix
+            slices = [ np.sum(full_detector_response[ipix].to_dense(), axis = (4,5)) for ipix in tqdm(range(npix)) ] #Ei, Em, Phi, ChiPsi
+            contents = np.stack(slices)
         else:
-            contents = full_detector_response._file['DRM']['CONTENTS'][:]
-            self._image_response[:] = contents * full_detector_response.unit
+            contents = full_detector_response._file['DRM']['CONTENTS']
+
+        self._image_response = Histogram(axes_image_response, contents=contents,
+                                         unit = full_detector_response.unit,
+                                         copy_contents = False)
 
     def _calc_exposure_map(self):
         """
-        Calculate exposure_map, which is an intermidiate matrix used in RL algorithm.
+        Calculate exposure_map, which is an intermediate matrix used in RL algorithm.
         """
 
         logger.info("Calculating an exposure map...")
         
         if self._coordsys_conv_matrix is None:
-            self._exposure_map = Histogram(self._model_axes, unit = self._image_response.unit * u.sr)
-            self._exposure_map[:] = np.sum(self._image_response.contents, axis = (2,3,4)) * self.model_axes['lb'].pixarea()
+            exposure_map = np.sum(self._image_response.contents, axis = (2,3,4))
         else:
-            self._exposure_map = Histogram(self._model_axes, unit = self._image_response.unit * self._coordsys_conv_matrix.unit * u.sr)
-            self._exposure_map[:] = np.tensordot(np.sum(self._coordsys_conv_matrix, axis = (0)), 
-                                                 np.sum(self._image_response, axis = (2,3,4)),
-                                                 axes = ([1], [0]) ) * self._image_response.unit * self._coordsys_conv_matrix.unit * self.model_axes['lb'].pixarea()
+            exposure_map = tensordot_sparse(np.sum(self._coordsys_conv_matrix, axis = (0)),
+                                            self._coordsys_conv_matrix.unit,
+                                            np.sum(self._image_response, axis = (2,3,4)),
+                                            axes = (1, 0))
             # [Time/ScAtt, lb, NuLambda] -> [lb, NuLambda]
             # [NuLambda, Ei, Em, Phi, PsiChi] -> [NuLambda, Ei]
             # [lb, NuLambda] x [NuLambda, Ei] -> [lb, Ei]
+
+        exposure_map *= self.model_axes['lb'].pixarea()
+
+        self._exposure_map = Histogram(self._model_axes, contents = exposure_map, copy_contents = False)
 
         logger.info("Finished...")
 
@@ -240,33 +271,34 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         -----
         This method should be implemented in a more general class, for example, extended source response class in the future.
         """
-        # Currenly (2024-01-12) this method can work for both local coordinate CDS and in galactic coordinate CDS.
+        # Currently (2024-01-12) this method can work for both local coordinate CDS and in galactic coordinate CDS.
         # This is just because in DC2 the rotate response for galactic coordinate CDS does not have an axis for time/scatt binning.
-        # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
+        # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointing direction etc.
         # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
-
-        expectation = Histogram(self.data_axes)
         
         if self._coordsys_conv_matrix is None:
-            expectation[:] = np.tensordot( model.contents, self._image_response.contents, axes = ([0,1],[0,1])) * model.axes['lb'].pixarea()
+            expectation = np.tensordot( model.contents, self._image_response.contents, axes = ((0,1),(0,1)))
             # ['lb', 'Ei'] x [NuLambda(lb), Ei, Em, Phi, PsiChi] -> [Em, Phi, PsiChi]
         else:
-            map_rotated = np.tensordot(self._coordsys_conv_matrix.contents, model.contents, axes = ([1], [0])) 
+            map_rotated = tensordot_sparse(self._coordsys_conv_matrix.contents,
+                                           self._coordsys_conv_matrix.unit,
+                                           model.contents,
+                                           axes = (1, 0))
             # ['Time/ScAtt', 'lb', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
-            map_rotated *= self._coordsys_conv_matrix.unit * model.unit
-            map_rotated *= model.axes['lb'].pixarea()
-            # data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.
             # the unit of map_rotated is 1/cm2 ( = s * 1/cm2/s/sr * sr)
-            expectation[:] = np.tensordot( map_rotated, self._image_response.contents, axes = ([1,2], [0,1]))
+
+            expectation = np.tensordot(map_rotated, self._image_response.contents, axes = ((1,2), (0,1)))
             # [Time/ScAtt, NuLambda, Ei] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Em, Phi, PsiChi]
+
+        expectation *= model.axes['lb'].pixarea()
+        expectation += almost_zero
 
         if dict_bkg_norm is not None: 
             for key in self.keys_bkg_models():
-                expectation += self.bkg_model(key) * dict_bkg_norm[key]
-        expectation += almost_zero
-        
-        return expectation
+                expectation += self.bkg_model(key).contents * dict_bkg_norm[key]
 
+        return Histogram(self.data_axes, contents = expectation, copy_contents = False)
+        
     def calc_T_product(self, dataspace_histogram):
         """
         Calculate the product of the input histogram with the transonse matrix of the response function.
@@ -286,23 +318,23 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         """
         # TODO: currently, dataspace_histogram is assumed to be a dense.
 
-        hist_unit = self.exposure_map.unit
-        if dataspace_histogram.unit is not None:
-            hist_unit *= dataspace_histogram.unit
-
-        hist = Histogram(self.model_axes, unit = hist_unit)
-
         if self._coordsys_conv_matrix is None:
-            hist[:] = np.tensordot(dataspace_histogram.contents, self._image_response.contents, axes = ([0,1,2], [2,3,4])) * self.model_axes['lb'].pixarea()
+            tprod = np.tensordot(dataspace_histogram.contents, self._image_response.contents, axes = ((0,1,2), (2,3,4)))
             # [Em, Phi, PsiChi] x [NuLambda (lb), Ei, Em, Phi, PsiChi] -> [NuLambda (lb), Ei]
         else:
-            _ = np.tensordot(dataspace_histogram.contents, self._image_response.contents, axes = ([1,2,3], [2,3,4])) 
+            _ = np.tensordot(dataspace_histogram.contents, self._image_response.contents, axes = ((1,2,3), (2,3,4)))
             # [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, NuLambda, Ei]
 
-            hist[:] = np.tensordot(self._coordsys_conv_matrix.contents, _, axes = ([0,2], [0,1])) \
-                        * _.unit * self._coordsys_conv_matrix.unit * self.model_axes['lb'].pixarea()
+            tprod = tensordot_sparse(self._coordsys_conv_matrix.contents,
+                                     self._coordsys_conv_matrix.unit,
+                                     _,
+                                     axes = ((0,2), (0,1)))
             # [Time/ScAtt, lb, NuLambda] x [Time/ScAtt, NuLambda, Ei] -> [lb, Ei]
-            # note that coordsys_conv_matrix is the sparse, so the unit should be recovered.
+
+        tprod *= self.model_axes['lb'].pixarea()
+
+        return Histogram(self.model_axes, contents = tprod, copy_contents = False)
+
 
         return hist
 
@@ -321,15 +353,11 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
 
         Returns
         -------
-        flaot
+        float
         """
         # TODO: currently, dataspace_histogram is assumed to be a dense.
-
-        if self._coordsys_conv_matrix is None:
-
-            return np.tensordot(dataspace_histogram.contents, self.bkg_model(key).contents, axes = ([0,1,2], [0,1,2]))
-
-        return np.tensordot(dataspace_histogram.contents, self.bkg_model(key).contents, axes = ([0,1,2,3], [0,1,2,3]))
+        return np.dot(dataspace_histogram.contents.ravel(),
+                      self.bkg_model(key).contents.ravel())
 
     def calc_loglikelihood(self, expectation):
         """

@@ -1,6 +1,5 @@
 import numpy as np
 import astropy.units as u
-import functools
 from abc import ABC, abstractmethod
 import logging
 logger = logging.getLogger(__name__)
@@ -210,10 +209,10 @@ class DeconvolutionAlgorithmBase(ABC):
 
         Returns
         -------
-        list of :py:class:`histpy.Histogram`
+        :py:class:`histpy.Histogram`
         """
 
-        return functools.reduce(lambda x, y: x + y, map(lambda data: data.exposure_map, self.dataset))
+        return self._histogram_sum([ data.exposure_map for data in self.dataset ])
 
     def calc_summed_bkg_model(self, key):
         """
@@ -230,8 +229,8 @@ class DeconvolutionAlgorithmBase(ABC):
         """
         
         indexlist = self.dict_dataset_indexlist_for_bkg_models[key]
-        
-        return np.sum([self.dataset[i].summed_bkg_model(key) for i in indexlist])
+
+        return sum([self.dataset[i].summed_bkg_model(key) for i in indexlist])
 
     def calc_summed_T_product(self, dataspace_histogram_list):
         """
@@ -247,8 +246,9 @@ class DeconvolutionAlgorithmBase(ABC):
         :py:class:`histpy.Histogram`
         """
 
-        return functools.reduce(lambda x, y: x + y, map(lambda data, hist: data.calc_T_product(hist), self.dataset, dataspace_histogram_list))
-
+        return self._histogram_sum([data.calc_T_product(hist)
+                                    for data, hist in zip(self.dataset, dataspace_histogram_list)])
+    
     def calc_summed_bkg_model_product(self, key, dataspace_histogram_list):
         """
         For each data in the registered dataset, the product of the corresponding input histogram with the specified background model is computed.
@@ -266,5 +266,21 @@ class DeconvolutionAlgorithmBase(ABC):
         """
 
         indexlist = self.dict_dataset_indexlist_for_bkg_models[key]
-
-        return functools.reduce(lambda x, y: x + y, map(lambda i: self.dataset[i].calc_bkg_model_product(key = key, dataspace_histogram = dataspace_histogram_list[i]), indexlist))
+        
+        return sum(
+            self.dataset[i].calc_bkg_model_product(key = key, dataspace_histogram = dataspace_histogram_list[i])
+            for i in indexlist
+        )
+    
+    @staticmethod
+    def _histogram_sum(hlist):
+        """
+        Sum a list of Histograms.  If only one input, just return it.
+        """
+        if len(hlist) == 1:
+            return hlist[0]
+        else:
+            result = hlist[0].copy()
+            for h in hlist[1:]:
+                result += h
+            return result

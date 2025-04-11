@@ -6,7 +6,6 @@ from histpy import Histogram, Axis, Axes
 from cosipy.response import PointSourceResponse, ExtendedSourceResponse
 import sys
 from mhealpy import HealpixMap
-import copy
 
 class SourceInjector():
 
@@ -68,7 +67,8 @@ class SourceInjector():
 
             # get the expectation for the hypothesis coordinate (a point source)
             pix = coordinate_pix_number
-            psr = PointSourceResponse(axes[1:], f['hist/contents'][pix], unit = f['hist'].attrs['unit'])
+            psr = PointSourceResponse(axes[1:], f['hist/contents'][pix], unit = f['hist'].attrs['unit'],
+                                      copy_contents = False)
 
         return psr
 
@@ -125,7 +125,12 @@ class SourceInjector():
         injected = psr.get_expectation(spectrum)
         # setting the Em and Ei scale to linear to match the simulated data
         # The linear scale of Em is the default for COSI data
-        injected.axes["Em"].axis_scale = "linear"
+        # Because Histograms can share Axis objects, we must copy the
+        # Axis before modifying it and then replace it in the Histogram's
+        # Axes object.
+        em_axis = injected.axes["Em"].copy()
+        em_axis.axis_scale = "linear"
+        injected.axes.set("Em", em_axis, copy=False)
 
         if project_axes is not None:
             injected = injected.project(project_axes)
@@ -257,7 +262,7 @@ class SourceInjector():
 
             injected_list = list(self.components.values())
 
-            injected_all = copy.deepcopy(injected_list[0])
+            injected_all = injected_list[0].copy()
 
             # add the rest of the injected sources
             for i in injected_list[1:]:

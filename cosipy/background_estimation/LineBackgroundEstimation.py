@@ -239,19 +239,20 @@ class LineBackgroundEstimation:
                 new_axes.append(axis)
             else:
                 new_axes.append(Axis(source_energy_range, label = "Em"))
+        new_axes = Axes(new_axes, copy_axes=False)
         
-        bkg_model_histogram = Histogram(new_axes)
+        bkg_model = np.zeros(new_axes.shape)
 
         # fill contents
         for energy_indices in energy_indices_list:
             for energy_index in energy_indices:
                 if new_axes[0].label != "Em":
-                    bkg_model_histogram[:] += self.event_histogram[:,energy_index].todense()
+                    bkg_model += self.event_histogram[:,energy_index].todense()
                 else:
-                    bkg_model_histogram[:] += self.event_histogram[energy_index].todense()
+                    bkg_model += self.event_histogram[energy_index].todense()
 
         # normalization
         corr_factor = source_weight / np.sum(weights)
-        bkg_model_histogram[:] *= corr_factor
+        bkg_model *= corr_factor
 
-        return bkg_model_histogram
+        return Histogram(new_axes, contents=bkg_model, copy_contents=False)

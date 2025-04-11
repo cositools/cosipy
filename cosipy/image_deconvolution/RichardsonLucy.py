@@ -1,5 +1,4 @@
 import os
-import copy
 import numpy as np
 import astropy.units as u
 import astropy.io.fits as fits
@@ -77,14 +76,16 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         self.results.clear()
 
         # copy model
-        self.model = copy.deepcopy(self.initial_model)
+        self.model = self.initial_model.copy()
 
         # calculate exposure map
         self.summed_exposure_map = self.calc_summed_exposure_map()
 
         # mask setting
         if self.mask is None and np.any(self.summed_exposure_map.contents == 0):
-            self.mask = Histogram(self.model.axes, contents = self.summed_exposure_map.contents > 0)
+            self.mask = Histogram(self.model.axes,
+                                  contents = self.summed_exposure_map.contents > 0,
+                                  copy_contents = False)
             self.model = self.model.mask_pixels(self.mask)
             logger.info("There are zero-exposure pixels. A mask to ignore them was set.")
 
@@ -154,10 +155,10 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         - acceleration of RL algirithm: the normalization of delta map is increased as long as the updated image has no non-negative components.
         """
 
-        self.processed_delta_model = copy.deepcopy(self.delta_model)
+        self.processed_delta_model = self.delta_model.copy()
 
         if self.do_response_weighting:
-            self.processed_delta_model[:] *= self.response_weighting_filter
+            self.processed_delta_model *= self.response_weighting_filter
 
         if self.do_smoothing:
             self.processed_delta_model = self.processed_delta_model.smoothing(fwhm = self.smoothing_fwhm)
@@ -167,7 +168,7 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         else:
             self.alpha = 1.0
 
-        self.model = self.model + self.processed_delta_model * self.alpha
+        self.model += self.processed_delta_model * self.alpha
         self.model[:] = np.where(self.model.contents < self.minimum_flux, self.minimum_flux, self.model.contents)
 
         if self.mask is not None:
@@ -194,12 +195,12 @@ class RichardsonLucy(DeconvolutionAlgorithmBase):
         """
         
         this_result = {"iteration": self.iteration_count, 
-                       "model": copy.deepcopy(self.model), 
-                       "delta_model": copy.deepcopy(self.delta_model),
-                       "processed_delta_model": copy.deepcopy(self.processed_delta_model),
-                       "background_normalization": copy.deepcopy(self.dict_bkg_norm),
+                       "model": self.model.copy(), 
+                       "delta_model": self.delta_model,
+                       "processed_delta_model": self.processed_delta_model,
+                       "background_normalization": self.dict_bkg_norm.copy(),
                        "alpha": self.alpha, 
-                       "loglikelihood": copy.deepcopy(self.loglikelihood_list)}
+                       "loglikelihood": self.loglikelihood_list}
 
         # show intermediate results
         logger.info(f'  alpha: {this_result["alpha"]}')
