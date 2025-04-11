@@ -178,8 +178,13 @@ class RichardsonLucy(RichardsonLucySimple):
             log_likelihood_before = np.sum(self.results[-2]["log-likelihood"])
 
             logger.debug(f'Delta log-likelihood: {log_likelihood - log_likelihood_before}')
-            
-            if log_likelihood - log_likelihood_before < self.stopping_criteria_threshold:
+
+            if log_likelihood - log_likelihood_before < 0:
+
+                logger.warning("The likelihood is not increased in this iteration. The image reconstruction may be unstable.")
+                return False 
+
+            elif log_likelihood - log_likelihood_before < self.stopping_criteria_threshold:
                 return True
 
         return False

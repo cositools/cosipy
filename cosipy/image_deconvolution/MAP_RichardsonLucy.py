@@ -276,8 +276,13 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
             log_likelihood_before = np.sum(self.results[-2]["log-likelihood"])
 
             logger.debug(f'Delta log-likelihood: {log_likelihood - log_likelihood_before}')
+
+            if log_likelihood - log_likelihood_before < 0:
+
+                logger.warning("The likelihood was not increased in this iteration. The image reconstruction may be unstable.")
+                return False 
             
-            if log_likelihood - log_likelihood_before < self.stopping_criteria_threshold:
+            elif log_likelihood - log_likelihood_before < self.stopping_criteria_threshold:
                 return True
 
         elif self.stopping_criteria_statistics == "log-posterior":
@@ -287,7 +292,12 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
 
             logger.debug(f'Delta log-posterior: {log_posterior - log_posterior_before}')
 
-            if log_posterior - log_posterior_before < self.stopping_criteria_threshold:
+            if log_posterior - log_posterior_before < 0:
+
+                logger.warning("The posterior was not increased in this iteration. The image reconstruction may be unstable.")
+                return False 
+            
+            elif log_posterior - log_posterior_before < self.stopping_criteria_threshold:
                 return True
 
         return False
