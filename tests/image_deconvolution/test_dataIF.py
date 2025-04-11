@@ -38,7 +38,7 @@ def test_dataIF_COSI_DC2_localCDS_scatt():
 
     expectation = data.calc_expectation(model = model, dict_bkg_norm = {"bkg": 1.0})
 
-    loglikelihood = data.calc_loglikelihood(expectation)
+    log_likelihood = data.calc_log_likelihood(expectation)
 
     data.calc_T_product(expectation)
 
@@ -62,7 +62,7 @@ def test_dataIF_COSI_DC2_galacticCDS():
 
     expectation = data.calc_expectation(model = model, dict_bkg_norm = {"bkg": 1.0})
 
-    loglikelihood = data.calc_loglikelihood(expectation)
+    log_likelihood = data.calc_log_likelihood(expectation)
 
     data.calc_T_product(expectation)
 

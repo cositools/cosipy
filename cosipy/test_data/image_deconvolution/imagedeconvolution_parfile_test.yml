@@ -19,4 +19,5 @@ deconvolution:
   algorithm: "RLsimple"
   parameter:
     iteration_max: 2 
-    background_normalization_optimization: True
+    background_normalization_optimization: 
+      activate: True
