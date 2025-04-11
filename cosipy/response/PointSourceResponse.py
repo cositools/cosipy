@@ -1,13 +1,13 @@
-from histpy import Histogram, Axes, Axis
+from histpy import Histogram#, Axes, Axis
 
 import numpy as np
 import astropy.units as u
-from astropy.units import Quantity
-from scipy import integrate
-
-from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
+from scoords import SpacecraftFrame, Attitude
 
 from .functions import get_integrated_spectral_model
+
+import logging
+logger = logging.getLogger(__name__)
 
 class PointSourceResponse(Histogram):
     """
@@ -43,32 +43,70 @@ class PointSourceResponse(Histogram):
         
         return self.axes['Ei']
        
-    def get_expectation(self, spectrum):
+    def get_expectation(self, spectrum, polarization=None):
         """
-        Convolve the response with a spectral hypothesis to obtain the expected
+        Convolve the response with a spectral (and optionally, polarization) hypothesis to obtain the expected
         excess counts from the source.
 
         Parameters
         ----------
         spectrum : :py:class:`threeML.Model`
             Spectral hypothesis.
-
+        polarization : 'astromodels.core.polarization.LinearPolarization', optional
+            Polarization angle and degree. The angle is assumed to have same convention as point source response.
+        
         Returns
         -------
         :py:class:`histpy.Histogram`
              Histogram with the expected counts on each analysis bin
         """
-        
+
+        if polarization is None:
+
+            if 'Pol' in self.axes.labels:
+
+                raise RuntimeError("Must include polarization in point source response if using polarization response")
+
+            contents = self.contents
+            axes = self.axes[1:]
+
+        else:
+
+            if not 'Pol' in self.axes.labels:
+                
+                raise RuntimeError("Response must have polarization angle axis to include polarization in point source response")
+
+            polarization_angle = polarization.angle.value
+            polarization_level = polarization.degree.value / 100.
+
+            if polarization_angle == 180.:
+                polarization_angle = 0.
+
+            unpolarized_weights = np.full(self.axes['Pol'].nbins, (1. - polarization_level) / self.axes['Pol'].nbins)
+            polarized_weights = np.zeros(self.axes['Pol'].nbins)
+
+            polarization_bin_index = self.axes['Pol'].find_bin(polarization_angle * u.deg)
+            polarized_weights[polarization_bin_index] = polarization_level
+
+            weights = unpolarized_weights + polarized_weights
+
+            contents = np.tensordot(weights, self.contents, axes=([0], [self.axes.label_to_index('Pol')]))
+
+            axes = self.axes['Em', 'Phi', 'PsiChi']
+
         energy_axis = self.photon_energy_axis
 
         flux = get_integrated_spectral_model(spectrum, energy_axis)
         
-        expectation = np.tensordot(self.contents, flux.contents, axes = ([0], [0]))
+        expectation = np.tensordot(contents, flux.contents, axes=([0], [0]))
         
         # Note: np.tensordot loses unit if we use a sparse matrix as it input.
         if self.is_sparse:
             expectation *= self.unit * flux.unit
 
-        hist = Histogram(self.axes[1:], contents = expectation)
-        
+        hist = Histogram(axes, contents=expectation)
+
+        if not hist.unit == u.dimensionless_unscaled:
+            raise RuntimeError("Expectation should be dimensionless, but has units of " + str(hist.unit) + ".")
+
         return hist

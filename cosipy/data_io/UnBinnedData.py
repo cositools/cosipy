@@ -129,7 +129,10 @@ class UnBinnedData(DataIO):
         # Use same value as MEGAlib for direct comparison: 
         if run_test == True:
             c_E0 = 510.999
-
+    
+        # Event tracker:
+        new_event = 0
+        
         logger.info("Preparing to read file...")
 
         # Open .tra.gz file:
@@ -184,11 +187,50 @@ class UnBinnedData(DataIO):
             # Make sure line isn't empty:
             if len(this_line) == 0:
                 continue
+            
+            # New event:
+            if this_line[0] == "SE":
+                
+                # Check if there was a problem with last event:
+                # Note: Currently only checking for two detector hits.
+                if new_event == 1:
+                    logger.info("bad_event: no second hit info")
+                    logger.info("bad event ID: " + str(this_id))
+                    logger.info("bad event number: " + str(N_events))
 
+                    # remove bad photon info:
+                    if len(tt) != 0:
+                        N_events = N_events - 1
+                        et.pop()
+                        erg.pop()
+                        phi.pop()
+                        tt.pop()
+                        # Not all sims include ori info,
+                        # so also need to check before pop:
+                        if len(lonX) != 0:
+                            lonX.pop()
+                            latX.pop()
+                            lonZ.pop()
+                            latZ.pop()
+
+                # reset event tracker:
+                new_event = 1
+
+            # Event type: 
+            if this_line[0] == "ET":
+                # Check that we are looking at CO events
+                if this_line[1] == "CO":
+                    et.append(this_line[1])
+                else: 
+                    raise ValueError(f"Error: Expected CO event, but got '{this_line[1]}'.")
+            
             # Count the number of events:
             if this_line[0] == "ID":
                 N_events += 1
                 
+                # track id:
+                this_id = this_line[1]
+            
             # Option to only parse a subset of events:
             if event_min != None:
                 if N_events < event_min:
@@ -219,10 +261,6 @@ class UnBinnedData(DataIO):
             if this_line[0] == "TI":
                 tt.append(float(this_line[1]))
                 
-            # Event type: 
-            if this_line[0] == "ET":
-                et.append(this_line[1])
- 
             # X axis of detector orientation in Galactic coordinates:
             if this_line[0] == "GX":
                 this_lonX = np.deg2rad(float(this_line[1])) # radians
@@ -255,6 +293,9 @@ class UnBinnedData(DataIO):
                     dg_x.append(dg[0])
                     dg_y.append(dg[1])
                     dg_z.append(dg[2])
+                    
+                    # reset event
+                    new_event = 0
 
         # Close progress bar:
         pbar.close()
@@ -306,6 +347,7 @@ class UnBinnedData(DataIO):
         chi_loc = conv[2].value
 
         # Calculate chi_gal and psi_gal from x,y,z coordinates of events:
+         
         xcoords = SkyCoord(lonX*u.rad, latX*u.rad, frame = 'galactic')
         zcoords = SkyCoord(lonZ*u.rad, latZ*u.rad, frame = 'galactic')
         attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame = 'galactic')
@@ -602,9 +644,9 @@ class UnBinnedData(DataIO):
 
         return this_dict
 
-    def select_data(self, output_name=None, unbinned_data=None):
+    def select_data_time(self, output_name=None, unbinned_data=None):
 
-        """Applies cuts to unbinnned data dictionary. 
+        """Applies time cuts to unbinnned data dictionary. 
         
         Parameters
         ----------
@@ -613,10 +655,6 @@ class UnBinnedData(DataIO):
         output_name : str, optional
             Prefix of output file (default is None, in which case no 
             file is saved).
-        
-        Note
-        ----
-        Only cuts in time are allowed for now. 
         """
         
         logger.info("Making data selections...")
@@ -633,6 +671,45 @@ class UnBinnedData(DataIO):
         for key in self.cosi_dataset:
 
             self.cosi_dataset[key] = self.cosi_dataset[key][time_cut_index]
+
+        # Write unbinned data to file (either fits or hdf5):
+        if output_name != None:
+            logger.info("Saving file...")
+            self.write_unbinned_output(output_name)
+
+        return
+
+    def select_data_energy(self, emin, emax, output_name=None, unbinned_data=None):
+
+        """Applies energy cuts to unbinnned data dictionary. 
+        
+        Parameters
+        ----------
+        emin : float or int
+            Minimum energy in keV.
+        emax : float or int
+            Maximum energy in keV.
+        unbinned_data : str, optional
+            Name of unbinned dictionary file.
+        output_name : str, optional
+            Prefix of output file (default is None, in which case no 
+            file is saved).
+        """
+        
+        logger.info("Making data selections on photon energy...")
+
+        # Option to read in unbinned data file:
+        if unbinned_data:
+            self.cosi_dataset = self.get_dict(unbinned_data)
+
+        # Get energy cut index:
+        energy_array = self.cosi_dataset["Energies"]
+        energy_cut_index = (energy_array >= emin) & (energy_array < emax)
+    
+        # Apply cuts to dictionary:
+        for key in self.cosi_dataset:
+
+            self.cosi_dataset[key] = self.cosi_dataset[key][energy_cut_index]
 
         # Write unbinned data to file (either fits or hdf5):
         if output_name != None:
@@ -678,6 +755,109 @@ class UnBinnedData(DataIO):
 
         # Write unbinned data to file (either fits or hdf5):
         if output_name != None:
+            self.write_unbinned_output(output_name)
+
+        return
+
+    def find_bad_intervals(self, times, values, bad_value=0.0):
+        
+        """Finds intervals where livetime is 0.0.
+
+        Parameters
+        ----------
+        times : array
+            Array of times from ori file.
+        values : array
+            Array of livetimes from ori file.        
+        bad_value : float or int
+            The value that defines a bad time interval. It must match 
+            exactly the value in the ori file, including the 
+            type (float or int). Default is 0.0. 
+
+        Returns
+        -------
+        bad_intervals : list of tuples
+            List of bad time intervals.
+        """
+        
+        bad_intervals = []
+        start = None
+    
+        for i in range(len(times)-1):
+            if values[i] == bad_value:
+                if start is None:
+                    start = times[i]
+            else:
+                if start is not None:
+                    bad_intervals.append((start.value, times[i].value))
+                    start = None
+    
+        if start is not None:
+            bad_intervals.append((start.value, times[-1].value))
+    
+        return bad_intervals
+
+    def filter_good_data(self, times, bad_intervals):
+    
+        """Removes entries that fall within bad intervals.
+
+        Parameters
+        ----------
+        times : array
+            Array of photon event times.
+        bad_intervals : list
+            List of bad intervals defined by livetime = 0.0.
+       
+        Returns
+        -------
+        filtered_index : list
+            List of indices of good events. 
+        """
+        
+        filtered_index = []
+
+        # Get indices for good times.
+        # The inequality below corresponds to left end point in the ori file.
+        for i in range(len(times)-1):
+            if not any(start < times[i] < end for start, end in bad_intervals):
+                filtered_index.append(i)
+
+        return filtered_index
+
+    def cut_SAA_events(self, unbinned_data=None, output_name=None):
+
+        """Cuts events corresponding to SAA passage based on input ori file.
+
+        Parameters
+        ----------
+        unbinned_data : str, optional
+            Name of unbinned dictionary file.
+        output_name : str, optional
+            Prefix of output file (default is None, in which case no 
+            file is saved).
+        """
+
+        # Option to read in unbinned data file:
+        if unbinned_data:
+            self.cosi_dataset = self.get_dict(unbinned_data)
+
+        # Get ori info:
+        ori = SpacecraftFile.parse_from_file(self.ori_file)
+        
+        # Get bad time intervals:
+        bti = self.find_bad_intervals(ori._time, ori.livetime)
+
+        # Get indices for good photons:
+        time_keep_index = self.filter_good_data(self.cosi_dataset['TimeTags'], bti)
+
+        # Apply cuts to dictionary:
+        for key in self.cosi_dataset:
+
+            self.cosi_dataset[key] = self.cosi_dataset[key][time_keep_index]
+
+        # Write unbinned data to file (either fits or hdf5):
+        if output_name != None:
+            logger.info("Saving file...")
             self.write_unbinned_output(output_name)
 
         return
