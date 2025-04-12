@@ -278,7 +278,11 @@ def main():
         if succeeded:
             logger.info(colorama.Fore.GREEN + "SUCCEEDED " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
         else:
-            logger.info(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
+            color = colorama.Fore.RED
+            if "test_must_fail" in tutorial:
+                # Failed succesfully!
+                color = colorama.Fore.GREEN
+            logger.info(color               + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
 
     # Overall summary log
     logger.info(f"cosipy version: {cosipy.__version__}")
@@ -291,7 +295,11 @@ def main():
         if succeeded:
             logger.info(colorama.Fore.GREEN + "SUCCEEDED " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
         else:
-            logger.info(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
+            color = colorama.Fore.RED
+            if "test_must_fail" in tutorial:
+                # Failed succesfully!
+                color = colorama.Fore.GREEN
+            logger.info(color               + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
 
 
 if __name__ == "__main__":
