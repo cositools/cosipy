@@ -226,8 +226,8 @@ def main():
                     for cell in nb.cells:
                         if cell.cell_type == 'code':
                             source = cell.source.strip("\n").lstrip()
-                            if len(source) >= 1 and source[0] == "%":
-                                cell.source = cell.source.replace("%", "#[magic commented out by run_tutorials.py]%")
+                            if len(source) >= 2 and source[:2] == "%%":
+                                cell.source = cell.source.replace("%%", "#[magic commented out by run_tutorials.py]%%")
 
                     logger.info(f"Executing notebook {source_nb_path}...")
                     start_time = timeit.default_timer()
