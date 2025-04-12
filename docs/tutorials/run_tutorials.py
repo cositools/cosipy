@@ -15,7 +15,7 @@ import timeit
 from pathlib import Path
 
 import nbformat
-from nbconvert.preprocessors import ExecutePreprocessor
+from nbconvert.preprocessors import ExecutePreprocessor, RegexRemovePreprocessor
 from nbconvert import HTMLExporter
 from nbconvert.writers import FilesWriter
 
@@ -220,6 +220,14 @@ def main():
 
                 with (open(nb_path) as nb_file):
                     nb = nbformat.read(nb_file, as_version=nbformat.NO_CONVERT)
+
+                    # Remove magic, which can make a failing notebook look
+                    # like it succeeded.
+                    for cell in nb.cells:
+                        if cell.cell_type == 'code':
+                            source = cell.source.strip("\n").lstrip()
+                            if len(source) >= 1 and source[0] == "%":
+                                cell.source = cell.source.replace("%", "#[magic commented out by run_tutorials.py]%")
 
                     logger.info(f"Executing notebook {source_nb_path}...")
                     start_time = timeit.default_timer()
