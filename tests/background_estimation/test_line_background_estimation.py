@@ -28,6 +28,8 @@ def test_line_background_estimation():
     instance.set_mask((0.0, 1000.0) * u.keV, (3000.0, 5000.0) * u.keV)
 
     # run fitting w/ par limint
+    m = instance.fit_energy_spectrum(param_limits = {1: (None, 100)})
+    m = instance.fit_energy_spectrum(param_limits = {1: (-100, None)})
     m = instance.fit_energy_spectrum(param_limits = {1: (-100, 100)})
 
     # run fitting w/ par fixed
