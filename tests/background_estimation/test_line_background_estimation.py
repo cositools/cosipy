@@ -27,7 +27,17 @@ def test_line_background_estimation():
     # set mask
     instance.set_mask((0.0, 1000.0) * u.keV, (3000.0, 5000.0) * u.keV)
 
-    # run fitting
+    # run fitting w/ par limint
+    m = instance.fit_energy_spectrum(param_limits = {1: (-100, 100)})
+
+    # run fitting w/ par fixed
+    m = instance.fit_energy_spectrum(fixed_params = {1: 0})
+
+    # run fitting w/ stepsize
+    m = instance.fit_energy_spectrum(stepsize_params = {1: 0.1})
+
+    # run fitting from scratch
+    instance.set_bkg_energy_spectrum_model(bkg_model, [1.0, -3.0])
     m = instance.fit_energy_spectrum()
 
     # run plotting
