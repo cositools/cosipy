@@ -15,7 +15,7 @@ class ModelBase(Histogram, ABC):
     """
 
     # constructor passes everything up to Histogram.__init__()
-    
+
     @classmethod
     @abstractmethod
     def instantiate_from_parameters(cls, parameter):

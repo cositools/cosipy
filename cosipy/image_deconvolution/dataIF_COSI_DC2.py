@@ -359,7 +359,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         return np.dot(dataspace_histogram.contents.ravel(),
                       self.bkg_model(key).contents.ravel())
 
-    def calc_loglikelihood(self, expectation):
+    def calc_log_likelihood(self, expectation):
         """
         Calculate log-likelihood from given expected counts or model/expectation.
 
@@ -371,8 +371,8 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         Returns
         -------
         float
-            Log-likelood
+            Log-likelihood
         """
-        loglikelood = np.sum( self.event * np.log(expectation) ) - np.sum(expectation)
+        log_likelihood = np.sum( self.event * np.log(expectation) ) - np.sum(expectation)
 
-        return loglikelood
+        return log_likelihood 
