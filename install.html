@@ -1,0 +1,242 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Tutorials" href="tutorials/index.html" />
+    <link rel="prev" title="Welcome to cosipy’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            cosipy
+              <img src="_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#using-pip">Using pip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#from-source-for-developers">From source (for developers)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#error-could-not-find-a-local-hdf5-installation">ERROR:: Could not find a local HDF5 installation.</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oserror-could-not-find-library-xsfunctions-impossible-to-compile-xspec">OSError: Could not find library XSFunctions. Impossible to compile Xspec</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#testing">Testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#compiling-the-docs">Compiling the docs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/install.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<section id="using-pip">
+<h2>Using pip<a class="headerlink" href="#using-pip" title="Link to this heading"></a></h2>
+<p>Optional but recommended step: install a conda environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="o">&lt;</span><span class="n">cosipy_env_name</span><span class="o">&gt;</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.10</span> <span class="n">pip</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="o">&lt;</span><span class="n">cosipy_env_name</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>Note: currently cosipy is not compatible with Python 3.12 due to
+installation issues with dependencies (<a class="reference external" href="https://github.com/threeML/threeML/pull/631">threeML</a> and <a class="reference external" href="https://github.com/threeML/astromodels/issues/204">astromodels</a>)</p>
+<p>Install with pip:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">pep517</span> <span class="n">cosipy</span>
+</pre></div>
+</div>
+<p>Note: <code class="docutils literal notranslate"><span class="pre">--use-pep517</span></code> is a temporary workaround to install <a class="reference external" href="https://github.com/threeML/astromodels/issues/209">astromodels with new setuptools versions</a>.</p>
+<p>Note: The tutorials, examples, and other documentation are not shipped with the PyPi (pip) release —only the embedded docstrings. You can see this information in the <a class="reference external" href="https://github.com/cositools/cosipy">main repository</a>  (“docs” folder).</p>
+</section>
+<section id="from-source-for-developers">
+<h2>From source (for developers)<a class="headerlink" href="#from-source-for-developers" title="Link to this heading"></a></h2>
+<p>Optional but recommended step: install a conda environment:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">create</span> <span class="o">-</span><span class="n">n</span> <span class="o">&lt;</span><span class="n">cosipy_env_name</span><span class="o">&gt;</span> <span class="n">python</span><span class="o">=</span><span class="mf">3.10</span> <span class="n">pip</span>
+<span class="n">conda</span> <span class="n">activate</span> <span class="o">&lt;</span><span class="n">cosipy_env_name</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>Also optional but recommended: before installing cosipy, install the main
+dependencies from the source (similar
+procedure as for cosipy below). These are histpy, mhealpy, scoords, threeml and
+astromodels. The reason is that these libraries might be changing rapidly to
+accommodate new features in cosipy.</p>
+<p>Do the following (preferably inside a conda environment):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">git</span> <span class="n">clone</span> <span class="n">git</span><span class="nd">@github</span><span class="o">.</span><span class="n">com</span><span class="p">:</span><span class="n">cositools</span><span class="o">/</span><span class="n">cosipy</span><span class="o">.</span><span class="n">git</span>
+<span class="n">cd</span> <span class="n">cosipy</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">use</span><span class="o">-</span><span class="n">pep517</span> <span class="o">-</span><span class="n">e</span> <span class="o">.</span>
+</pre></div>
+</div>
+<p>The flag <code class="docutils literal notranslate"><span class="pre">-e</span></code> (<code class="docutils literal notranslate"><span class="pre">--editable</span></code>) allows you to make changes and try them without
+having to run <code class="docutils literal notranslate"><span class="pre">pip</span></code> again.</p>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
+<section id="error-could-not-find-a-local-hdf5-installation">
+<h3>ERROR:: Could not find a local HDF5 installation.<a class="headerlink" href="#error-could-not-find-a-local-hdf5-installation" title="Link to this heading"></a></h3>
+<p>This error is caused by missing h5py wheels for M1 chips.</p>
+<p>See <a class="reference external" href="https://github.com/h5py/h5py/issues/1810">https://github.com/h5py/h5py/issues/1810</a> and <a class="reference external" href="https://github.com/h5py/h5py/issues/1800">https://github.com/h5py/h5py/issues/1800</a></p>
+<p>Currently, the best workaround for M1 users is to install h5py using conda before the cosipy installation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span> <span class="n">h5py</span>
+</pre></div>
+</div>
+<p>Example error log:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>× Getting requirements to build wheel did not run successfully.
+│ exit code: 1
+╰─&gt; [13 lines of output]
+    /var/folders/5p/wnc17p7s0gz1vd3krp7gly60v5n_5p/T/H5close39c45pt5.c:1:10: fatal error: &#39;H5public.h&#39; file not found
+    #include &quot;H5public.h&quot;
+             ^~~~~~~~~~~~
+    1 error generated.
+    cpuinfo failed, assuming no CPU features: &#39;flags&#39;
+    * Using Python 3.10.12 | packaged by conda-forge | (main, Jun 23 2023, 22:41:52) [Clang 15.0.7 ]
+    * Found cython 3.0.10
+    * USE_PKGCONFIG: True
+    * Found conda env: ``/Users/mjmoss/miniforge3``
+    .. ERROR:: Could not find a local HDF5 installation.
+       You may need to explicitly state where your local HDF5 headers and
+       library can be found by setting the ``HDF5_DIR`` environment
+       variable or by using the ``--hdf5`` command-line option.
+</pre></div>
+</div>
+<section id="oserror-could-not-find-library-xsfunctions-impossible-to-compile-xspec">
+<h4>OSError: Could not find library XSFunctions. Impossible to compile Xspec<a class="headerlink" href="#oserror-could-not-find-library-xsfunctions-impossible-to-compile-xspec" title="Link to this heading"></a></h4>
+<p>This error can occur while installing astromodels:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Xspec</span> <span class="ow">is</span> <span class="n">detected</span><span class="o">.</span> <span class="n">Will</span> <span class="nb">compile</span> <span class="n">the</span> <span class="n">Xspec</span> <span class="n">extension</span><span class="o">.</span>
+<span class="p">[</span><span class="o">...</span><span class="p">]</span>
+<span class="n">Could</span> <span class="ow">not</span> <span class="n">find</span> <span class="n">library</span> <span class="n">XSFunctions</span><span class="o">.</span> <span class="n">Impossible</span> <span class="n">to</span> <span class="nb">compile</span> <span class="n">Xspec</span>
+</pre></div>
+</div>
+<p>While astromodels support Xspec functions, these are generally not currently relevant for the use and development of cosipy. The most straightforward workaround is to temporarily hide your Xspec installation so that astromodels does not try to link to it. Before running <cite>pip</cite>, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">unset</span> <span class="n">HEADAS</span> <span class="n">ASTRO_XSPEC_VERSION</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="testing">
+<h2>Testing<a class="headerlink" href="#testing" title="Link to this heading"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Under construction. Unit tests are not ready.</p>
+</div>
+<p>When you make a change, check that it didn’t break something by running:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pytest</span> <span class="o">--</span><span class="n">cov</span><span class="o">=</span><span class="n">cosipy</span> <span class="o">--</span><span class="n">cov</span><span class="o">-</span><span class="n">report</span> <span class="n">term</span> <span class="o">--</span><span class="n">cov</span><span class="o">-</span><span class="n">report</span> <span class="n">html</span><span class="p">:</span><span class="n">tests</span><span class="o">/</span><span class="n">coverage_report</span>
+</pre></div>
+</div>
+<p>Open <code class="docutils literal notranslate"><span class="pre">tests/coverage_report/index.html</span></code> in a browser and check the coverage. This
+is the percentage of lines that were executed during the tests. The goal is to have
+a 100% coverage!</p>
+<p>You can install <code class="docutils literal notranslate"><span class="pre">pytest</span></code> and <code class="docutils literal notranslate"><span class="pre">pytest-cov</span></code> with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">pytest</span> <span class="n">pytest</span><span class="o">-</span><span class="n">cov</span>
+</pre></div>
+</div>
+</section>
+<section id="compiling-the-docs">
+<h2>Compiling the docs<a class="headerlink" href="#compiling-the-docs" title="Link to this heading"></a></h2>
+<p>You need pandoc, sphinx, nbsphinx, sphinx_rtd_theme and mock. Using conda:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="n">pandoc</span><span class="o">=</span><span class="mf">3.1.3</span> <span class="n">nbsphinx</span><span class="o">=</span><span class="mf">0.9.3</span> <span class="n">sphinx_rtd_theme</span><span class="o">=</span><span class="mf">2.0.0</span> <span class="n">mock</span><span class="o">=</span><span class="mf">5.1.0</span>
+</pre></div>
+</div>
+<p>Other versions might work was well.</p>
+<p>Once you have these requirements, run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="n">docs</span>
+<span class="n">make</span> <span class="n">html</span>
+</pre></div>
+</div>
+<p>To read the documentation, open <code class="docutils literal notranslate"><span class="pre">docs/_build/html/index.html</span></code> in a browser.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to cosipy’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tutorials/index.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

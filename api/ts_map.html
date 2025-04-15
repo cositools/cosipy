@@ -1,0 +1,597 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TS Map &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Image deconvolution" href="image_deconvolution.html" />
+    <link rel="prev" title="COSILike (3ML plugin)" href="threeml.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            cosipy
+              <img src="../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="response.html">Detector response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_io.html">Data IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spacecraftfile.html">Spacecraft File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="threeml.html">COSILike (3ML plugin)</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">TS Map</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-cosipy.ts_map">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.ts_map.TSMap"><code class="docutils literal notranslate"><span class="pre">TSMap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.ts_map.FastTSMap"><code class="docutils literal notranslate"><span class="pre">FastTSMap</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.ts_map.FastNormFit"><code class="docutils literal notranslate"><span class="pre">FastNormFit</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="image_deconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="polarization.html">Polarization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="util.html">Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API</a></li>
+      <li class="breadcrumb-item active">TS Map</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/ts_map.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ts-map">
+<h1>TS Map<a class="headerlink" href="#ts-map" title="Link to this heading"></a></h1>
+<section id="module-cosipy.ts_map">
+<span id="classes"></span><h2>Classes<a class="headerlink" href="#module-cosipy.ts_map" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.ts_map.</span></span><span class="sig-name descname"><span class="pre">TSMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap" title="Link to this definition"></a></dt>
+<dd><p>Compute the TS map of using <cite>threeML</cite> package.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.link_model_all_plugins">
+<span class="sig-name descname"><span class="pre">link_model_all_plugins</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sc_orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">piv</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other_plugins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ra</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.link_model_all_plugins"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.link_model_all_plugins" title="Link to this definition"></a></dt>
+<dd><p>Load the model and plugins</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dr</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to full detector response.</p></li>
+<li><p><strong>data</strong> (<em>histpy.Histogram</em>) – Binned data. Note: Eventually this should be a cosipy data class.</p></li>
+<li><p><strong>bkg</strong> (<em>histpy.Histogram</em>) – Binned background model. Note: Eventually this should be a cosipy data class.</p></li>
+<li><p><strong>sc_orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><em>cosipy.spacecraftfile.SpacecraftFile</em></a>) – Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
+the spacecraft for the duration of the data included in the analysis.</p></li>
+<li><p><strong>piv</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – The pivotal energy of the spectrum.</p></li>
+<li><p><strong>index</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – The index of the spectrum.</p></li>
+<li><p><strong>other_plugins</strong> (<em>threeML.plugins</em><em>, </em><em>optional</em>) – The plugins from other instruments.</p></li>
+<li><p><strong>norm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – The norm of the spectrum model (the default is 1).</p></li>
+<li><p><strong>ra</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – The RA of the source model (the default is 0).</p></li>
+<li><p><strong>dec</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – The Dec of the source model (the default is 0).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.instantiate_plugin">
+<span class="sig-name descname"><span class="pre">instantiate_plugin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.instantiate_plugin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.instantiate_plugin" title="Link to this definition"></a></dt>
+<dd><p>Instantiate the likelihood plugin.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.gather_all_plugins">
+<span class="sig-name descname"><span class="pre">gather_all_plugins</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.gather_all_plugins"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.gather_all_plugins" title="Link to this definition"></a></dt>
+<dd><p>Gather all the plugins togather into a DataList.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.create_model">
+<span class="sig-name descname"><span class="pre">create_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.create_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.create_model" title="Link to this definition"></a></dt>
+<dd><p>Create the source model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The source model.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://astromodels.readthedocs.io/en/latest/api/astromodels.core.model.html#astromodels.core.model.Model" title="(in Astromodels vlatest)">astromodels.core.model.Model</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.fix_index">
+<span class="sig-name descname"><span class="pre">fix_index</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.fix_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.fix_index" title="Link to this definition"></a></dt>
+<dd><p>Return the index of the source spectrum.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.ts_fitting">
+<span class="sig-name descname"><span class="pre">ts_fitting</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.ts_fitting"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.ts_fitting" title="Link to this definition"></a></dt>
+<dd><p>Peform the ts fitting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.ts_grid_data">
+<span class="sig-name descname"><span class="pre">ts_grid_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.ts_grid_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.ts_grid_data" title="Link to this definition"></a></dt>
+<dd><p>Perform the ts fitting using the data on the different pixels.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.ts_grid_bkg">
+<span class="sig-name descname"><span class="pre">ts_grid_bkg</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.ts_grid_bkg"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.ts_grid_bkg" title="Link to this definition"></a></dt>
+<dd><p>Perform the ts fitting using the background on the different pixels.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.calculate_ts">
+<span class="sig-name descname"><span class="pre">calculate_ts</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.calculate_ts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.calculate_ts" title="Link to this definition"></a></dt>
+<dd><p>Calculate the TS by the TS of data and background.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.print_best_fit">
+<span class="sig-name descname"><span class="pre">print_best_fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.print_best_fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.print_best_fit" title="Link to this definition"></a></dt>
+<dd><p>Print the best fit location.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.save_ts">
+<span class="sig-name descname"><span class="pre">save_ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_file_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.save_ts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.save_ts" title="Link to this definition"></a></dt>
+<dd><p>Save the TS map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>output_file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The path to save the ts map.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.load_ts">
+<span class="sig-name descname"><span class="pre">load_ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_file_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.load_ts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.load_ts" title="Link to this definition"></a></dt>
+<dd><p>Load a ts map from file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input_file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The path to the saved TS map file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.refit_best_fit">
+<span class="sig-name descname"><span class="pre">refit_best_fit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.refit_best_fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.refit_best_fit" title="Link to this definition"></a></dt>
+<dd><p>Refit the best fit to check norm.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.TSMap.plot_ts_map">
+<span class="sig-name descname"><span class="pre">plot_ts_map</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/TSMap.html#TSMap.plot_ts_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.TSMap.plot_ts_map" title="Link to this definition"></a></dt>
+<dd><p>Plot the TS map.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.ts_map.</span></span><span class="sig-name descname"><span class="pre">FastTSMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cds_frame</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'local'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'RING'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap" title="Link to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.slice_energy_channel">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">slice_energy_channel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">channel_stop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.slice_energy_channel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.slice_energy_channel" title="Link to this definition"></a></dt>
+<dd><p>Slice one or more bins along first axis of the <cite>histogram</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hist</strong> (<em>histpy.Histogram</em>) – The histogram object to be sliced.</p></li>
+<li><p><strong>channel_start</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The start of the slice (inclusive).</p></li>
+<li><p><strong>channel_stop</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The stop of the slice (exclusive).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>sliced_hist</strong> – The sliced histogram.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>histpy.Histogram</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.get_hypothesis_coords">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_hypothesis_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nside</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'RING'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordsys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'galactic'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.get_hypothesis_coords"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.get_hypothesis_coords" title="Link to this definition"></a></dt>
+<dd><p>Get a list of hypothesis coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>nside</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The nside of the map.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The scheme of the map where the hypothesis coordinates are generated (the default is “RING”, which implies the “RING” scheme is used to get the hypothesis coordinates).</p></li>
+<li><p><strong>coordsys</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The coordinate system used in the map where the hypothesis coordinates are generated (the default is “galactic”, which implies the galactic coordinates system is used).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>hypothesis_coords</strong> – The list of the hypothesis coordinates at the center of each pixel.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.get_cds_array">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_cds_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_channel</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.get_cds_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.get_cds_array" title="Link to this definition"></a></dt>
+<dd><p>Get the flattened cds array from input Histogram.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hist</strong> (<em>histpy.Histogram</em>) – The input Histogram.</p></li>
+<li><p><strong>energy_channel</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – The format is <cite>[lower_channel, upper_chanel]</cite>. The lower_channel is inclusive while the upper_channel is exclusive.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>cds_array</strong> – The flattended Compton data space (CDS) array.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.get_psr_in_galactic">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_psr_in_galactic</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hypothesis_coord</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spectrum</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.get_psr_in_galactic"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.get_psr_in_galactic" title="Link to this definition"></a></dt>
+<dd><p>Get the point source response (psr) in galactic. Please be aware that you must use a galactic response!
+To do: to make the weight parameter not hardcoded</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hypothesis_coord</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a>) – The hypothesis coordinate.</p></li>
+<li><p><strong>response_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><em>path.lib.Path</em>) – The path to the response.</p></li>
+<li><p><strong>spectrum</strong> (<em>astromodels.functions</em>) – The spectrum of the source to be placed at the hypothesis coordinate.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>psr</strong> – The point source response of the spectrum at the hypothesis coordinate.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>histpy.Histogram</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.get_ei_cds_array">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_ei_cds_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hypothesis_coord</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spectrum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cds_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.get_ei_cds_array"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.get_ei_cds_array" title="Link to this definition"></a></dt>
+<dd><p>Get the expected counts in CDS in local or galactic frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hypothesis_coord</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a>) – The hypothesis coordinate.</p></li>
+<li><p><strong>energy_channel</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – The format is <cite>[lower_channel, upper_chanel]</cite>. The lower_channel is inclusive while the upper_channel is exclusive.</p></li>
+<li><p><strong>response_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><em>pathlib.Path</em></a>) – The path to the response file.</p></li>
+<li><p><strong>spectrum</strong> (<em>astromodels.functions</em>) – The spectrum of the source.</p></li>
+<li><p><strong>cds_frame</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – “local” or “galactic”, it’s the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame.</p></li>
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><em>cosipy.spacecraftfile.SpacecraftFile</em></a><em>, </em><em>optional</em>) – The orientation of the spacecraft when data are collected (the default is <cite>None</cite>, which implies the orientation file is not needed).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>cds_array</strong> – The flattended Compton data space (CDS) array.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.fast_ts_fit">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">fast_ts_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hypothesis_coord</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_cds_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg_model_cds_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spectrum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cds_frame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts_nside</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts_scheme</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.fast_ts_fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.fast_ts_fit" title="Link to this definition"></a></dt>
+<dd><p>Perform a TS fit on a single location at <cite>hypothesis_coord</cite>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hypothesis_coord</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a>) – The hypothesis coordinate.</p></li>
+<li><p><strong>energy_channel</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – The format is <cite>[lower_channel, upper_chanel]</cite>. The lower_channel is inclusive while the upper_channel is exclusive.</p></li>
+<li><p><strong>data_cds_array</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a>) – The flattened Compton data space (CDS) array of the data.</p></li>
+<li><p><strong>bkg_model_cds_array</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a>) – The flattened Compton data space (CDS) array of the background model.</p></li>
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><em>cosipy.spacecraftfile.SpacecraftFile</em></a>) – The orientation of the spacecraft when data are collected.</p></li>
+<li><p><strong>response_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><em>pathlib.Path</em></a>) – The path to the response file.</p></li>
+<li><p><strong>spectrum</strong> (<em>astromodels.functions</em>) – The spectrum of the source.</p></li>
+<li><p><strong>cds_frame</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – “local” or “galactic”, it’s the Compton data space (CDS) frame of the data, bkg_model and the response. In other words, they should have the same cds frame .</p></li>
+<li><p><strong>ts_nside</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The nside of the ts map.</p></li>
+<li><p><strong>ts_scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The scheme of the Ts map.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The list of the resulting TS fit: [pix number, ts value, norm, norm_err, failed, iterations, time_ei_cds_array, time_fit, time_fast_ts_fit]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.parallel_ts_fit">
+<span class="sig-name descname"><span class="pre">parallel_ts_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hypothesis_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">energy_channel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spectrum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts_scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'RING'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fork'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cpu_cores</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ts_nside</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.parallel_ts_fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.parallel_ts_fit" title="Link to this definition"></a></dt>
+<dd><p>Perform parallel computation on all the hypothesis coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hypothesis_coords</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – A list of the hypothesis coordinates to fit</p></li>
+<li><p><strong>energy_channel</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – the energy channel you want to use: [lower_channel, upper_channel]. lower_channel is inclusive while upper_channel is exclusive.</p></li>
+<li><p><strong>spectrum</strong> (<em>astromodels.functions</em>) – The spectrum of the source.</p></li>
+<li><p><strong>ts_scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The scheme of the TS map (the default is “RING”, which implies a “RING” scheme of the TS map).</p></li>
+<li><p><strong>start_method</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The starting method of the parallel computation (the default is “fork”, which implies using the fork method to start parallel computation).</p></li>
+<li><p><strong>cpu_cores</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – The number of cpu cores you wish to use for the parallel computation (the default is <cite>None</cite>, which implies using all the available number of cores -1 to perform the parallel computation).</p></li>
+<li><p><strong>ts_nside</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – The nside of the ts map. This must be given if the number of hypothesis_coords isn’t equal to the number of pixels of the total ts map, which means that you fit only a portion of the total ts map. (the default is <cite>None</cite>, which means that you fit the full ts map).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>results</strong> – The result of the ts fit over all the hypothesis coordinates.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.plot_ts">
+<span class="sig-name descname"><span class="pre">plot_ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">skycoord</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">containment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ts_map.png'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dpi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.plot_ts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.plot_ts" title="Link to this definition"></a></dt>
+<dd><p>Plot the containment region of the TS map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>skyoord</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a><em>, </em><em>optional</em>) – The true location of the source (the default is <cite>None</cite>, which implies that there are no coordiantes to be printed on the TS map).</p></li>
+<li><p><strong>containment</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – The containment level of the source (the default is <cite>None</cite>, which will plot raw TS values).</p></li>
+<li><p><strong>save_plot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Set <cite>True</cite> to save the plot (the default is <cite>False</cite>, which means it won’t save the plot.</p></li>
+<li><p><strong>save_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><em>pathlib.Path</em></a><em>, </em><em>optional</em>) – The directory to save the plot.</p></li>
+<li><p><strong>save_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The file name of the plot to be save.</p></li>
+<li><p><strong>dpi</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – The dpi for plotting and saving.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.get_chi_critical_value">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_chi_critical_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">containment</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.get_chi_critical_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.get_chi_critical_value" title="Link to this definition"></a></dt>
+<dd><p>Get the critical value of the chi^2 distribution based ob the confidence level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>containment</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – The confidence level of the chi^2 distribution (the default is <cite>0.9</cite>, which implies that the 90% containment region).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The critical value corresponds to the confidence level.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastTSMap.show_memory_info">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">show_memory_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hint</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_ts_fit.html#FastTSMap.show_memory_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastTSMap.show_memory_info" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastNormFit">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.ts_map.</span></span><span class="sig-name descname"><span class="pre">FastNormFit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_iter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">conv_frac_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">zero_ts_tol</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_negative</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_norm_fit.html#FastNormFit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastNormFit" title="Link to this definition"></a></dt>
+<dd><p>Perform a fast poisson maximum likelihood ratio fit of the normalization of a
+source over background.</p>
+<p>The likelihood ratio as a function of the norm is computed as follow</p>
+<div class="math notranslate nohighlight">
+\[TS(N) = 2 \sum_i \left( \frac{\log P(d_i; b_i+N e_i)}{\log P(d_i; b_i)} \right)\]</div>
+<p>where <span class="math notranslate nohighlight">\(P(d; \lambda)\)</span> is the Poisson probability of obtaining <span class="math notranslate nohighlight">\(d\)</span>
+count where <span class="math notranslate nohighlight">\(\lambda\)</span> is expected on average; <span class="math notranslate nohighlight">\(b\)</span> is the estimated
+number of background counts; <span class="math notranslate nohighlight">\(N\)</span> is the normalization; and <span class="math notranslate nohighlight">\(e\)</span>
+is the expected excess -i.e. signal- per normalization unit -i.e. the
+number of excess counts equals <span class="math notranslate nohighlight">\(N\)</span>.</p>
+<p>It can be shown that <span class="math notranslate nohighlight">\(TS(N)\)</span> has analytic derivative of arbitrary
+order and that the Newton’s method is guaranteed to converge if initialized
+at <span class="math notranslate nohighlight">\(N=0\)</span>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The background is not allowed to float. It is assumed the error on the
+estimation of the background is small compared to the fluctuation of the
+background itself (i.e. <span class="math notranslate nohighlight">\(N_{B}/N_{off} \lll 1\)</span>).</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Because of the Poisson probability, <span class="math notranslate nohighlight">\(TS(N)\)</span> is only well-defined
+for <span class="math notranslate nohighlight">\(N \geq 1\)</span>. By default, underfluctuations are set to
+<span class="math notranslate nohighlight">\(TS(N=0) = 0\)</span>. For cases when there is benefit in letting the
+normalization float to negative values, you can use <cite>allow_negative</cite>,
+but in that case the results are only valid in the Gaussian regime.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>max_iter</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Maximum number of iteration</p></li>
+<li><p><strong>conv_frac_tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Convergence stopping condition, expressed as the
+ratio between the size of the last step and the current norm value.</p></li>
+<li><p><strong>zero_ts_tol</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – If zero_ts_tol &lt; TS &lt; 0, then TS is set to 0
+without failed flag status (analytically, TS &lt; 0 should never happen)</p></li>
+<li><p><strong>allow_negative</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Allow the normalization to float toward
+negative values</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastNormFit.ts">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_excess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_norm_fit.html#FastNormFit.ts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastNormFit.ts" title="Link to this definition"></a></dt>
+<dd><p>Get TS for a given normalization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>array</em>) – Observed counts</p></li>
+<li><p><strong>bkg</strong> (<em>array</em>) – Background estimation. Same size as data.
+Every element should be &gt;0</p></li>
+<li><p><strong>unit_excess</strong> (<em>array</em>) – Expected excess per normalization unit.
+Same size as data.</p></li>
+<li><p><strong>norm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><em>array</em>) – Normalization value</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>TS, same shape as norm</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a> or array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastNormFit.dts">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_excess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_norm_fit.html#FastNormFit.dts"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastNormFit.dts" title="Link to this definition"></a></dt>
+<dd><p>Get the derivative of TS with respecto to the normalization,
+at given normalization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>array</em>) – Observed counts</p></li>
+<li><p><strong>bkg</strong> (<em>array</em>) – Background estimation. Same size as data.
+Every element should be &gt;0</p></li>
+<li><p><strong>unit_excess</strong> (<em>array</em>) – Expected excess per normalization unit.
+Same size as data.</p></li>
+<li><p><strong>norm</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><em>array</em>) – Normalization value</p></li>
+<li><p><strong>order</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Derivative order</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>d^n TS / dN^n, same shape as norm</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a> or array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.ts_map.FastNormFit.solve">
+<span class="sig-name descname"><span class="pre">solve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_excess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/ts_map/fast_norm_fit.html#FastNormFit.solve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.ts_map.FastNormFit.solve" title="Link to this definition"></a></dt>
+<dd><p>Get the maximum TS, fitted normalization and normalization error
+(<span class="math notranslate nohighlight">\(\Delta TS = 1\)</span>)</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The normalization error is obtained from approximating the TS
+function as as parabola (i.e. valid in the Gaussian regime). TS
+and norm are indeed valid in the Poisson regime.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>array</em>) – Observed counts</p></li>
+<li><p><strong>bkg</strong> (<em>array</em>) – Background estimation. Same size as data.
+Every element should be &gt;0</p></li>
+<li><p><strong>unit_excess</strong> (<em>array</em>) – Expected excess per normalization unit.
+Same size as data.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>ts, norm, norm error and status (0 = good)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="threeml.html" class="btn btn-neutral float-left" title="COSILike (3ML plugin)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="image_deconvolution.html" class="btn btn-neutral float-right" title="Image deconvolution" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

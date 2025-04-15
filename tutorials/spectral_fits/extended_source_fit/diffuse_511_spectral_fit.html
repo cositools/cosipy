@@ -1,0 +1,3355 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diffuse 511 Spectral Fit in Galactic Coordinates &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Image Deconvolution example for 511 keV with spacecraft attitude binning" href="../../image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.html" />
+    <link rel="prev" title="Spectral fitting example (Crab)" href="../continuum_fit/crab/SpectralFit_Crab.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../DataIO/DataIO_example.html">Data format and handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../response/SpacecraftFile.html">Spacecraft file: attitude and position</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../response/DetectorResponse.html">Detector response and signal expectation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../ts_map/Parallel_TS_map_computation.html">TS Map: localizing a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../continuum_fit/grb/SpectralFit_GRB.html">Fitting the spectrum of a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../continuum_fit/crab/SpectralFit_Crab.html">Fitting the spectrum of the Crab</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Extended source model fitting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Get-the-data">Get the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Create-the-combined-data">Create the combined data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Bin-the-data">Bin the data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Read-in-the-binned-data">Read in the binned data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Define-source">Define source</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Setup-the-COSI-3ML-plugin-and-perform-the-likelihood-fit">Setup the COSI 3ML plugin and perform the likelihood fit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Results">Results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#**********************************************************">**********************************************************</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Example-2:-Perform-Analysis-with-Two-Components">Example 2: Perform Analysis with Two Components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#*****************************************">*****************************************</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Example-3:-Working-With-a-Realistic-Model">Example 3: Working With a Realistic Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3">Read in the binned data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4">Define source</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Instantiate-the-COSI-3ML-plugin-and-perform-the-likelihood-fit">Instantiate the COSI 3ML plugin and perform the likelihood fit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5">Results</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Component.....-Injected...........-Best-Fit">Component….. Injected……….. Best Fit</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source_injector/Point_source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../background_estimation/continuum_estimation/BG_estimation_example.html">Continuum Background Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../background_estimation/line_background/line_background_estimation_example_notebook.html">Line background estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../polarization/ASAD_method.html">Polarization (ASAD method)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Diffuse 511 Spectral Fit in Galactic Coordinates</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/tutorials/spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Diffuse-511-Spectral-Fit-in-Galactic-Coordinates">
+<h1>Diffuse 511 Spectral Fit in Galactic Coordinates<a class="headerlink" href="#Diffuse-511-Spectral-Fit-in-Galactic-Coordinates" title="Link to this heading"></a></h1>
+<p>This notebook fits the spectrum for the 511 keV emission in the Galaxy. It can be used as a general template for fitting diffuse/extended sources in Galactic coordinates. For a general introduction into spectral fitting with cosipy, see the continuum_fit tutorial.</p>
+<p>This notebook uses two 511 keV emission models, first a test model and then a realistic multi-component model.</p>
+<p>All input models are available here: <a class="reference external" href="https://github.com/cositools/cosi-data-challenges/tree/main/cosi_dc/Source_Library/DC2/sources/511">https://github.com/cositools/cosi-data-challenges/tree/main/cosi_dc/Source_Library/DC2/sources/511</a></p>
+<p>The toy 511 model consists of two components: an extended Gaussian source (5 degree extension) and a point source. In the first part of this tutorial, we fit the data with just the single extended Gaussian component, i.e. we ignore the point source component. This is done as a simplification, and as will be seen, it already provides a good fit. In the second part of this tutorial we use a model consisting of both components.</p>
+<p>The realistic input models consist of a bulge component (with an extended Gaussian source and a point source) as well as a disk component with different spectral characteristics. In the third part of this tutorial we use this model.</p>
+<p>For the background we use just the cosmic photons.</p>
+<p>This tutotrial also walks through all the steps needed when performing a spectral fit, starting with the unbinned data, i.e. creating the combined data set, and binning the data.</p>
+<p>For the first two examples, you will need the following files (available on wasabi): <strong>20280301_3_month_with_orbital_info.ori cosmic_photons_3months_unbinned_data.fits.gz 511_Testing_3months.fits.gz SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5 psr_gal_511_DC2.h5</strong></p>
+<p>The binned data products are available on wasabi, so you can also start by loading the binned data directly.</p>
+<p>For the third example, we start with the binned data, and you will need: <strong>combined_binned_data_thin_disk.hdf5</strong></p>
+<p><strong>WARNING:</strong> If you run into memory issues creating the combined dataset or binning the data on your own, start by just loading the binned data directly. See the dataIO example for how to deal with memory issues.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># imports:
+from cosipy import COSILike, test_data, BinnedData
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.response.FullDetectorResponse import FullDetectorResponse
+from cosipy.response import PointSourceResponse
+from cosipy.threeml.custom_functions import Wide_Asymm_Gaussian_on_sphere, SpecFromDat
+from cosipy.util import fetch_wasabi_file
+from scoords import SpacecraftFrame
+from astropy.time import Time
+import astropy.units as u
+from astropy.coordinates import SkyCoord
+from astromodels import *
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
+from threeML import PointSource, Model, JointLikelihood, DataList, update_logging_level
+from astromodels import Parameter
+from astromodels import *
+from mhealpy import HealpixMap, HealpixBase
+import healpy as hp
+import numpy as np
+import matplotlib.pyplot as plt
+from pathlib import Path
+import os
+import time
+import h5py as h5
+from histpy import Axis, Axes
+import sys
+from histpy import Histogram
+</pre></div>
+</div>
+</div>
+<section id="Get-the-data">
+<h2>Get the data<a class="headerlink" href="#Get-the-data" title="Link to this heading"></a></h2>
+<p>The data can be downloaded by running the cells below. Each respective cell also gives the wasabi file path and file size.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># ori file:
+# wasabi path: COSI-SMEX/DC2/Data/Orientation/20280301_3_month.ori
+# File size: 684 MB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># cosmic photons:
+# wasabi path: COSI-SMEX/DC2/Data/Backgrounds/cosmic_photons_3months_unbinned_data.fits.gz
+# File size: 8.5 GB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Backgrounds/cosmic_photons_3months_unbinned_data.fits.gz&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># 511 test model:
+# wasabi path: COSI-SMEX/DC2/Data/Sources/511_Testing_3months_unbinned_data.fits.gz
+# File size: 850.6 MB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Sources/511_Testing_3months_unbinned_data.fits.gz&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># detector response:
+# wasabi path: COSI-SMEX/DC2/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5
+# File size: 350.4 MB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Responses/SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># point source response:
+# wasabi path: COSI-SMEX/DC2/Responses/PointSourceReponse/psr_gal_511_DC2.h5.gz
+# File size: 3.82 GB
+fetch_wasabi_file(&#39;COSI-SMEX/DC2/Responses/PointSourceReponse/psr_gal_511_DC2.h5.gz&#39;)
+os.system(&quot;gzip -d psr_gal_511_DC2.h5.gz&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Binned data products:
+# Note: This is not needed if you plan to bin the data on your own.
+# wasabi path: COSI-SMEX/cosipy_tutorials/extended_source_spectral_fit_galactic_frame
+# File sizes: 689.2 MB, 182.0 MB, 739.8 MB, 697.0 MB, respectively.
+file_list = [&#39;cosmic_photons_binned_data.hdf5&#39;,&#39;gal_511_binned_data.hdf5&#39;,&#39;combined_binned_data.hdf5&#39;,&#39;combined_binned_data_thin_disk.hdf5&#39;]
+
+for each in file_list:
+    fetch_wasabi_file(&#39;COSI-SMEX/cosipy_tutorials/extended_source_spectral_fit_galactic_frame/%s&#39; %each)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Create-the-combined-data">
+<h2>Create the combined data<a class="headerlink" href="#Create-the-combined-data" title="Link to this heading"></a></h2>
+<p>We will combine the 511 source and the cosmic photon background, which will be used as our dataset. This only needs to be done once. You can skip this cell if you already have the combined data file.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Define instance of binned data class:
+instance = BinnedData(&quot;Gal_511.yaml&quot;)
+
+# Combine files:
+input_files = [&quot;cosmic_photons_3months_unbinned_data.fits.gz&quot;,&quot;511_Testing_3months_unbinned_data.fits.gz&quot;]
+instance.combine_unbinned_data(input_files, output_name=&quot;combined_data&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+adding cosmic_photons_3months_unbinned_data.fits.gz...
+
+
+adding 511_Testing_3months_unbinned_data.fits.gz...
+
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+WARNING: VerifyWarning: Keyword name &#39;data file&#39; is greater than 8 characters or contains characters not allowed by the FITS standard; a HIERARCH card will be created. [astropy.io.fits.card]
+</pre></div></div>
+</div>
+</section>
+<section id="Bin-the-data">
+<h2>Bin the data<a class="headerlink" href="#Bin-the-data" title="Link to this heading"></a></h2>
+<p>You only have to do this once, and after you can start by loading the binned data directly. You can skip this cell if you already have the binned data files.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Bin 511:
+gal_511 = BinnedData(&quot;Gal_511.yaml&quot;)
+gal_511.get_binned_data(unbinned_data=&quot;511_Testing_3months_unbinned_data.fits.gz&quot;, output_name=&quot;gal_511_binned_data&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Bin background:
+bg_tot = BinnedData(&quot;Gal_511.yaml&quot;)
+bg_tot.get_binned_data(unbinned_data=&quot;cosmic_photons_3months_unbinned_data.fits.gz&quot;, output_name=&quot;cosmic_photons_binned_data&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Bin combined data:
+data_combined = BinnedData(&quot;Gal_511.yaml&quot;)
+data_combined.get_binned_data(unbinned_data=&quot;combined_data.fits.gz&quot;, output_name=&quot;combined_binned_data&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+</section>
+<section id="Read-in-the-binned-data">
+<h2>Read in the binned data<a class="headerlink" href="#Read-in-the-binned-data" title="Link to this heading"></a></h2>
+<p>Once you have the binned data files, you can start by loading them directly (instead of binning them each time).</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Load 511:
+gal_511 = BinnedData(&quot;Gal_511.yaml&quot;)
+gal_511.load_binned_data_from_hdf5(binned_data=&quot;gal_511_binned_data.hdf5&quot;)
+
+# Load background:
+bg_tot = BinnedData(&quot;Gal_511.yaml&quot;)
+bg_tot.load_binned_data_from_hdf5(binned_data=&quot;cosmic_photons_binned_data.hdf5&quot;)
+
+# Load combined data:
+data_combined = BinnedData(&quot;Gal_511.yaml&quot;)
+data_combined.load_binned_data_from_hdf5(binned_data=&quot;combined_binned_data.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Define-source">
+<h2>Define source<a class="headerlink" href="#Define-source" title="Link to this heading"></a></h2>
+<p>The injected source has both an extended componenent and a point source component, but to start with we will ignore the point source component, and see how well we can describe the data with just the extended component. Define the extended source:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Define spectrum:
+# Note that the units of the Gaussian function below are [F/sigma]=[ph/cm2/s/keV]
+F = 4e-2 / u.cm / u.cm / u.s
+mu = 511*u.keV
+sigma = 0.85*u.keV
+spectrum = Gaussian()
+spectrum.F.value = F.value
+spectrum.F.unit = F.unit
+spectrum.mu.value = mu.value
+spectrum.mu.unit = mu.unit
+spectrum.sigma.value = sigma.value
+spectrum.sigma.unit = sigma.unit
+
+# Set spectral parameters for fitting:
+spectrum.F.free = True
+spectrum.mu.free = False
+spectrum.sigma.free = False
+
+# Define morphology:
+morphology = Gaussian_on_sphere(lon0 = 359.75, lat0 = -1.25, sigma = 5)
+
+# Set morphological parameters for fitting:
+morphology.lon0.free = False
+morphology.lat0.free = False
+morphology.sigma.free = False
+
+# Define source:
+src1 = ExtendedSource(&#39;gaussian&#39;, spectral_shape=spectrum, spatial_shape=morphology)
+
+# Print a summary of the source info:
+src1.display()
+
+# We can also print the source info as follows.
+# This will show you which parameters are free.
+#print(src1.spectrum.main.shape)
+#print(src1.spatial_shape)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<ul>
+
+<li>gaussian (extended source):
+<ul>
+
+<li>shape:
+<ul>
+
+<li>lon0:
+<ul>
+
+<li>value: 359.75</li>
+
+<li>desc: Longitude of the center of the source</li>
+
+<li>min_value: 0.0</li>
+
+<li>max_value: 360.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>lat0:
+<ul>
+
+<li>value: -1.25</li>
+
+<li>desc: Latitude of the center of the source</li>
+
+<li>min_value: -90.0</li>
+
+<li>max_value: 90.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>sigma:
+<ul>
+
+<li>value: 5.0</li>
+
+<li>desc: Standard deviation of the Gaussian distribution</li>
+
+<li>min_value: 0.0</li>
+
+<li>max_value: 20.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+<li>spectrum:
+<ul>
+
+<li>main:
+<ul>
+
+<li>Gaussian:
+<ul>
+
+<li>F:
+<ul>
+
+<li>value: 0.04</li>
+
+<li>desc: Integral between -inf and +inf. Fix this to 1 to obtain a Normal distribution</li>
+
+<li>min_value: None</li>
+
+<li>max_value: None</li>
+
+<li>unit: s-1 cm-2</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>mu:
+<ul>
+
+<li>value: 511.0</li>
+
+<li>desc: Central value</li>
+
+<li>min_value: None</li>
+
+<li>max_value: None</li>
+
+<li>unit: keV</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>sigma:
+<ul>
+
+<li>value: 0.85</li>
+
+<li>desc: standard deviation</li>
+
+<li>min_value: 1e-12</li>
+
+<li>max_value: None</li>
+
+<li>unit: keV</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul></div>
+</div>
+<p>Let’s make some plots to look at the extended source:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Plot spectrum:
+energy = np.linspace(500.,520.,201)*u.keV
+dnde = src1.spectrum.main.Gaussian(energy)
+plt.plot(energy, dnde)
+plt.ylabel(&quot;dN/dE [$\mathrm{ph \ cm^{-2} \ s^{-1} \ keV^{-1}}$]&quot;, fontsize=14)
+plt.xlabel(&quot;Energy [keV]&quot;, fontsize=14)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0.5, 0, &#39;Energy [keV]&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_20_1.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_20_1.png" />
+</div>
+</div>
+<p>An extended source in astromodels corresponds to a skymap, which is normalized so that the sum over the entire sky, multiplied by the pixel area, equals 1. The pixel values in the skymap serve as weights, which we can use to scale the input spectrum, in order to get the model counts for any location on the sky. This is all handled internally within cosipy, but for demonstration purposes, let’s take a look at the skymap:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Define healpix map matching the detector response:
+skymap = HealpixMap(nside = 16, scheme = &quot;ring&quot;, dtype = float, coordsys=&#39;G&#39;)
+coords1 = skymap.pix2skycoord(range(skymap.npix))
+pix_area = skymap.pixarea().value
+
+# Fill skymap with values from extended source:
+skymap[:] = src1.Gaussian_on_sphere(coords1.l.deg, coords1.b.deg)
+
+# Check normalization:
+print(&quot;summed map: &quot; + str(np.sum(skymap)*pix_area))
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+summed map: 0.9974653836229359
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Plot healpix map:
+plot, ax = skymap.plot(ax_kw = {&#39;coord&#39;:&#39;G&#39;})
+ax.grid()
+lon = ax.coords[&#39;glon&#39;]
+lat = ax.coords[&#39;glat&#39;]
+lon.set_axislabel(&#39;Galactic Longitude&#39;,color=&#39;white&#39;,fontsize=5)
+lat.set_axislabel(&#39;Galactic Latitude&#39;,fontsize=5)
+lon.display_minor_ticks(True)
+lat.display_minor_ticks(True)
+lon.set_ticks_visible(True)
+lon.set_ticklabel_visible(True)
+lon.set_ticks(color=&#39;white&#39;,alpha=0.6)
+lat.set_ticks(color=&#39;white&#39;,alpha=0.6)
+lon.set_ticklabel(color=&#39;white&#39;,fontsize=4)
+lat.set_ticklabel(fontsize=4)
+lat.set_ticks_visible(True)
+lat.set_ticklabel_visible(True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_23_0.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_23_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Plot weights directly
+# Note: for extended sources the weights also need to include the pixel area.
+plt.semilogy(skymap[:]*pix_area)
+plt.ylabel(&quot;weight&quot;)
+plt.xlabel(&quot;pixel&quot;)
+plt.ylim(1e-50,1)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(1e-50, 1)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_24_1.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_24_1.png" />
+</div>
+</div>
+</section>
+<section id="Setup-the-COSI-3ML-plugin-and-perform-the-likelihood-fit">
+<h2>Setup the COSI 3ML plugin and perform the likelihood fit<a class="headerlink" href="#Setup-the-COSI-3ML-plugin-and-perform-the-likelihood-fit" title="Link to this heading"></a></h2>
+<p>Load the detector response, ori file, and precomputed point source response in Galactic coordinates:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>response_file = &quot;SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&quot;
+response = FullDetectorResponse.open(response_file)
+ori = SpacecraftFile.parse_from_file(&quot;20280301_3_month_with_orbital_info.ori&quot;)
+psr_file = &quot;psr_gal_511_DC2.h5&quot;
+</pre></div>
+</div>
+</div>
+<p>Setup the COSI 3ML plugin:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+# Set background parameter, which is used to fit the amplitude of the background:
+bkg_par = Parameter(&quot;background_cosi&quot;,                                        # background parameter
+                    1,                                                        # initial value of parameter
+                    min_value=0,                                              # minimum value of parameter
+                    max_value=5,                                              # maximum value of parameter
+                    delta=0.05,                                               # initial step used by fitting engine
+                    desc=&quot;Background parameter for cosi&quot;)
+
+# Instantiate the COSI 3ML plugin
+cosi = COSILike(&quot;cosi&quot;,                                                       # COSI 3ML plugin
+                dr = response_file,                                           # detector response
+                data = data_combined.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;),       # data (source+background)
+                bkg = bg_tot.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;),          # background model
+                sc_orientation = ori,                                          # spacecraft orientation
+                nuisance_param = bkg_par,                                      # background parameter
+                precomputed_psr_file = psr_file)                               # full path to precomputed psr file in galactic coordinates (optional)
+
+# Add sources to model:
+model = Model(src1)  # Model with single source. If we had multiple sources, we would do Model(source1, source2, ...)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+... loading the pre-computed image response ...
+--&gt; done
+CPU times: user 1min 55s, sys: 37.4 s, total: 2min 32s
+Wall time: 2min 49s
+</pre></div></div>
+</div>
+<p>Perform likelihood fit:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+plugins = DataList(cosi) # If we had multiple instruments, we would do e.g. DataList(cosi, lat, hawc, ...)
+
+like = JointLikelihood(model, plugins, verbose = False)
+
+like.fit()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">11:55:08 </span><span style="color: #00ffaf; text-decoration-color: #00ffaf">INFO    </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> set the minimizer to minuit                                             </span><a href="file:///discover/nobackup/ckarwin/Software/COSI/lib/python3.9/site-packages/threeML/classicMLE/joint_likelihood.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">joint_likelihood.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSI/lib/python3.9/site-packages/threeML/classicMLE/joint_likelihood.py#1042" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1042</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.
+
+WARNING RuntimeWarning: invalid value encountered in log
+
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">11:56:43 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> get_number_of_data_points not implemented, values for statistical        </span><a href="file:///discover/nobackup/ckarwin/Software/COSI/lib/python3.9/site-packages/threeML/plugin_prototype.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">plugin_prototype.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSI/lib/python3.9/site-packages/threeML/plugin_prototype.py#128" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">128</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">measurements such as AIC or BIC are unreliable                            </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">                       </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Best fit values:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>result</th>
+      <th>unit</th>
+    </tr>
+    <tr>
+      <th>parameter</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>gaussian.spectrum.main.Gaussian.F</th>
+      <td>(4.6951 +/- 0.0025) x 10^-2</td>
+      <td>1 / (cm2 s)</td>
+    </tr>
+    <tr>
+      <th>background_cosi</th>
+      <td>(9.32 +/- 0.05) x 10^-1</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Correlation matrix:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div><table id="table47342812773728">
+<tr><td>1.00</td><td>-0.40</td></tr>
+<tr><td>-0.40</td><td>1.00</td></tr>
+</table></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of -log(likelihood) at the minimum:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>-log(likelihood)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>cosi</th>
+      <td>-1.527559e+07</td>
+    </tr>
+    <tr>
+      <th>total</th>
+      <td>-1.527559e+07</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of statistical measures:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>statistical measures</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>AIC</th>
+      <td>-3.055119e+07</td>
+    </tr>
+    <tr>
+      <th>BIC</th>
+      <td>-3.055119e+07</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 6min, sys: 3min 20s, total: 9min 21s
+Wall time: 1min 36s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(                                      value  negative_error  positive_error  \
+ gaussian.spectrum.main.Gaussian.F  0.046951       -0.000025        0.000025
+ background_cosi                    0.932137       -0.004667        0.004841
+
+                                       error         unit
+ gaussian.spectrum.main.Gaussian.F  0.000025  1 / (cm2 s)
+ background_cosi                    0.004754               ,
+        -log(likelihood)
+ cosi      -1.527559e+07
+ total     -1.527559e+07)
+</pre></div></div>
+</div>
+</section>
+<section id="Results">
+<h2>Results<a class="headerlink" href="#Results" title="Link to this heading"></a></h2>
+<p>First, let’s just print the results.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>results = like.results
+results.display()
+
+# Print a summary of the optimized model:
+print(results.optimized_model[&quot;gaussian&quot;])
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Best fit values:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>result</th>
+      <th>unit</th>
+    </tr>
+    <tr>
+      <th>parameter</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>gaussian.spectrum.main.Gaussian.F</th>
+      <td>(4.6951 +/- 0.0025) x 10^-2</td>
+      <td>1 / (cm2 s)</td>
+    </tr>
+    <tr>
+      <th>background_cosi</th>
+      <td>(9.32 +/- 0.05) x 10^-1</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Correlation matrix:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div><table id="table47342812817536">
+<tr><td>1.00</td><td>-0.40</td></tr>
+<tr><td>-0.40</td><td>1.00</td></tr>
+</table></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of -log(likelihood) at the minimum:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>-log(likelihood)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>cosi</th>
+      <td>-1.527559e+07</td>
+    </tr>
+    <tr>
+      <th>total</th>
+      <td>-1.527559e+07</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of statistical measures:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>statistical measures</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>AIC</th>
+      <td>-3.055119e+07</td>
+    </tr>
+    <tr>
+      <th>BIC</th>
+      <td>-3.055119e+07</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+  * gaussian (extended source):
+    * shape:
+      * lon0:
+        * value: 359.75
+        * desc: Longitude of the center of the source
+        * min_value: 0.0
+        * max_value: 360.0
+        * unit: deg
+        * is_normalization: false
+      * lat0:
+        * value: -1.25
+        * desc: Latitude of the center of the source
+        * min_value: -90.0
+        * max_value: 90.0
+        * unit: deg
+        * is_normalization: false
+      * sigma:
+        * value: 5.0
+        * desc: Standard deviation of the Gaussian distribution
+        * min_value: 0.0
+        * max_value: 20.0
+        * unit: deg
+        * is_normalization: false
+    * spectrum:
+      * main:
+        * Gaussian:
+          * F:
+            * value: 0.046951164320587706
+            * desc: Integral between -inf and +inf. Fix this to 1 to obtain a Normal distribution
+            * min_value: null
+            * max_value: null
+            * unit: s-1 cm-2
+            * is_normalization: false
+          * mu:
+            * value: 511.0
+            * desc: Central value
+            * min_value: null
+            * max_value: null
+            * unit: keV
+            * is_normalization: false
+          * sigma:
+            * value: 0.85
+            * desc: standard deviation
+            * min_value: 1.0e-12
+            * max_value: null
+            * unit: keV
+            * is_normalization: false
+        * polarization: {}
+
+</pre></div></div>
+</div>
+<p>Now let’s make some plots. Let’s first look at the best-fit spectrum:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Best-fit model:
+energy = np.linspace(500.,520.,201)*u.keV
+flux = results.optimized_model[&quot;gaussian&quot;].spectrum.main.shape(energy)
+
+fig,ax = plt.subplots()
+
+ax.plot(energy, flux, label = &quot;Best fit&quot;)
+
+
+plt.ylabel(&quot;dN/dE [$\mathrm{ph \ cm^{-2} \ s^{-1} \ keV^{-1}}$]&quot;, fontsize=14)
+plt.xlabel(&quot;Energy [keV]&quot;, fontsize=14)
+ax.legend()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x2b0edbebf520&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_34_1.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_34_1.png" />
+</div>
+</div>
+<p>Now let’s compare the predicted counts to the injected counts:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Get expected counts from likelihood scan (i.e. best-fit convolved with response):
+total_expectation = cosi._expected_counts[&#39;gaussian&#39;]
+
+# Plot:
+fig,ax = plt.subplots()
+
+binned_energy_edges = gal_511.binned_data.axes[&#39;Em&#39;].edges.value
+binned_energy = gal_511.binned_data.axes[&#39;Em&#39;].centers.value
+
+ax.stairs(total_expectation.project(&#39;Em&#39;).todense().contents, binned_energy_edges, color=&#39;purple&#39;, label = &quot;Best fit convolved with response&quot;)
+ax.errorbar(binned_energy, total_expectation.project(&#39;Em&#39;).todense().contents, yerr=np.sqrt(total_expectation.project(&#39;Em&#39;).todense().contents), color=&#39;purple&#39;, linewidth=0, elinewidth=1)
+ax.stairs(gal_511.binned_data.project(&#39;Em&#39;).todense().contents, binned_energy_edges, color = &#39;black&#39;, ls = &quot;:&quot;, label = &quot;Injected source counts&quot;)
+ax.errorbar(binned_energy, gal_511.binned_data.project(&#39;Em&#39;).todense().contents, yerr=np.sqrt(gal_511.binned_data.project(&#39;Em&#39;).todense().contents), color=&#39;black&#39;, linewidth=0, elinewidth=1)
+
+ax.set_xlabel(&quot;Energy (keV)&quot;)
+ax.set_ylabel(&quot;Counts&quot;)
+
+ax.legend()
+
+# Note: We are plotting the error, but it&#39;s very small:
+print(&quot;Error: &quot; +str(np.sqrt(total_expectation.project(&#39;Em&#39;).todense().contents)))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Error: [2129.064008]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_36_1.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_36_1.png" />
+</div>
+</div>
+<p>Let’s also compare the projection onto Psichi:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># expected src counts:
+ax,plot = total_expectation.slice[{&#39;Em&#39;:0, &#39;Phi&#39;:5}].project(&#39;PsiChi&#39;).plot(ax_kw = {&#39;coord&#39;:&#39;G&#39;})
+plt.title(&quot;model counts&quot;)
+
+# injected src counts:
+ax,plot = gal_511.binned_data.slice[{&#39;Em&#39;:0, &#39;Phi&#39;:5}].project(&#39;PsiChi&#39;).plot(ax_kw = {&#39;coord&#39;:&#39;G&#39;})
+plt.title(&quot;injected counts&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Text(0.5, 1.0, &#39;injected counts&#39;)
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_38_1.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_38_1.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_38_2.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_38_2.png" />
+</div>
+</div>
+<p>Here is a summary of the results:</p>
+<p>Injected model (extended source): F = 4e-2 ph/cm2/s</p>
+<p>Best-fit: F = (4.6951 +/- 0.0025)e-2 ph/cm2/s</p>
+<p>We see that the best-fit values are very close to the injected values. The small difference is likely due to the fact that the injected model also has a point source component (which we’ve ignored), having the same specrtum, with a normalization of F = 1e-2 ph/cm2/s. In the next example we’ll see if this point source component can be detected.</p>
+</section>
+<section id="**********************************************************">
+<h2>**********************************************************<a class="headerlink" href="#**********************************************************" title="Link to this heading"></a></h2>
+</section>
+<section id="Example-2:-Perform-Analysis-with-Two-Components">
+<h2>Example 2: Perform Analysis with Two Components<a class="headerlink" href="#Example-2:-Perform-Analysis-with-Two-Components" title="Link to this heading"></a></h2>
+<p>Define the point source. We’ll add this to the model, and keep just the normalization free.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Note: Astromodels only takes ra,dec for point source input:
+c = SkyCoord(l=0*u.deg, b=0*u.deg, frame=&#39;galactic&#39;)
+c_icrs = c.transform_to(&#39;icrs&#39;)
+
+# Define spectrum:
+# Note that the units of the Gaussian function below are [F/sigma]=[ph/cm2/s/keV]
+F = 1e-2 / u.cm / u.cm / u.s
+Fmin = 0 / u.cm / u.cm / u.s
+Fmax = 1 / u.cm / u.cm / u.s
+mu = 511*u.keV
+sigma = 0.85*u.keV
+spectrum2 = Gaussian()
+spectrum2.F.value = F.value
+spectrum2.F.unit = F.unit
+spectrum2.F.min_value = Fmin.value
+spectrum2.F.max_value = Fmax.value
+spectrum2.mu.value = mu.value
+spectrum2.mu.unit = mu.unit
+spectrum2.sigma.value = sigma.value
+spectrum2.sigma.unit = sigma.unit
+
+# Set spectral parameters for fitting:
+spectrum2.F.free = True
+spectrum2.mu.free = False
+spectrum2.sigma.free = False
+
+# Define source:
+src2 = PointSource(&#39;point_source&#39;, ra = c_icrs.ra.deg, dec = c_icrs.dec.deg, spectral_shape=spectrum2)
+
+# Print some info about the source just as a sanity check.
+# This will also show you which parameters are free.
+print(src2.spectrum.main.shape)
+
+# We can also get a summary of the source info as follows:
+#src2.display()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+  * description: A Gaussian function
+  * formula: $ K \frac{1}{\sigma \sqrt{2 \pi}}\exp{\frac{(x-\mu)^2}{2~(\sigma)^2}} $
+  * parameters:
+    * F:
+      * value: 0.01
+      * desc: Integral between -inf and +inf. Fix this to 1 to obtain a Normal distribution
+      * min_value: 0.0
+      * max_value: 1.0
+      * unit: s-1 cm-2
+      * is_normalization: false
+      * delta: 0.1
+      * free: true
+    * mu:
+      * value: 511.0
+      * desc: Central value
+      * min_value: null
+      * max_value: null
+      * unit: keV
+      * is_normalization: false
+      * delta: 0.1
+      * free: false
+    * sigma:
+      * value: 0.85
+      * desc: standard deviation
+      * min_value: 1.0e-12
+      * max_value: null
+      * unit: keV
+      * is_normalization: false
+      * delta: 0.1
+      * free: false
+
+</pre></div></div>
+</div>
+<p>Redefine the first source. We’ll keep just the normalization free.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Define spectrum:
+# Note that the units of the Gaussian function below are [F/sigma]=[ph/cm2/s/keV]
+F = 4e-2 / u.cm / u.cm / u.s
+Fmin = 0 / u.cm / u.cm / u.s
+Fmax = 1 / u.cm / u.cm / u.s
+mu = 511*u.keV
+sigma = 0.85*u.keV
+spectrum = Gaussian()
+spectrum.F.value = F.value
+spectrum.F.unit = F.unit
+spectrum.F.min_value = Fmin.value
+spectrum.F.max_value = Fmax.value
+spectrum.mu.value = mu.value
+spectrum.mu.unit = mu.unit
+spectrum.sigma.value = sigma.value
+spectrum.sigma.unit = sigma.unit
+
+# Set spectral parameters for fitting:
+spectrum.F.free = True
+spectrum.mu.free = False
+spectrum.sigma.free = False
+
+# Define morphology:
+morphology = Gaussian_on_sphere(lon0 = 359.75, lat0 = -1.25, sigma = 5)
+
+# Set morphological parameters for fitting:
+morphology.lon0.free = False
+morphology.lat0.free = False
+morphology.sigma.free = False
+
+# Define source:
+src1 = ExtendedSource(&#39;gaussian&#39;, spectral_shape=spectrum, spatial_shape=morphology)
+
+# Print a summary of the source info:
+src1.display()
+
+# We can also print the source info as follows.
+# This will also show you which parameters are free.
+#print(src1.spectrum.main.shape)
+#print(src1.spatial_shape)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<ul>
+
+<li>gaussian (extended source):
+<ul>
+
+<li>shape:
+<ul>
+
+<li>lon0:
+<ul>
+
+<li>value: 359.75</li>
+
+<li>desc: Longitude of the center of the source</li>
+
+<li>min_value: 0.0</li>
+
+<li>max_value: 360.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>lat0:
+<ul>
+
+<li>value: -1.25</li>
+
+<li>desc: Latitude of the center of the source</li>
+
+<li>min_value: -90.0</li>
+
+<li>max_value: 90.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>sigma:
+<ul>
+
+<li>value: 5.0</li>
+
+<li>desc: Standard deviation of the Gaussian distribution</li>
+
+<li>min_value: 0.0</li>
+
+<li>max_value: 20.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+<li>spectrum:
+<ul>
+
+<li>main:
+<ul>
+
+<li>Gaussian:
+<ul>
+
+<li>F:
+<ul>
+
+<li>value: 0.04</li>
+
+<li>desc: Integral between -inf and +inf. Fix this to 1 to obtain a Normal distribution</li>
+
+<li>min_value: 0.0</li>
+
+<li>max_value: 1.0</li>
+
+<li>unit: s-1 cm-2</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>mu:
+<ul>
+
+<li>value: 511.0</li>
+
+<li>desc: Central value</li>
+
+<li>min_value: None</li>
+
+<li>max_value: None</li>
+
+<li>unit: keV</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>sigma:
+<ul>
+
+<li>value: 0.85</li>
+
+<li>desc: standard deviation</li>
+
+<li>min_value: 1e-12</li>
+
+<li>max_value: None</li>
+
+<li>unit: keV</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul></div>
+</div>
+<p>Setup the COSI 3ML plugin using two sources in the model:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+# Set background parameter, which is used to fit the amplitude of the background:
+bkg_par = Parameter(&quot;background_cosi&quot;,                                        # background parameter
+                    1,                                                        # initial value of parameter
+                    min_value=0,                                              # minimum value of parameter
+                    max_value=5,                                              # maximum value of parameter
+                    delta=0.05,                                               # initial step used by fitting engine
+                    desc=&quot;Background parameter for cosi&quot;)
+
+# Instantiate the COSI 3ML plugin
+cosi = COSILike(&quot;cosi&quot;,                                                       # COSI 3ML plugin
+                dr = response_file,                                           # detector response
+                data = data_combined.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;),       # data (source+background)
+                bkg = bg_tot.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;),          # background model
+                sc_orientation = ori,                                          # spacecraft orientation
+                nuisance_param = bkg_par,                                      # background parameter
+                precomputed_psr_file = psr_file)                               # full path to precomputed psr file in galactic coordinates (optional)
+
+# Add sources to model:
+model = Model(src1, src2)  # Model with two sources.
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+... loading the pre-computed image response ...
+--&gt; done
+CPU times: user 2min 10s, sys: 41.5 s, total: 2min 52s
+Wall time: 3min 10s
+</pre></div></div>
+</div>
+<p>Display the model:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>model.display()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+Model summary:<br><br><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>N</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Point sources</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Extended sources</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Particle sources</th>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div><br><br>Free parameters (2):<br><br><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>value</th>
+      <th>min_value</th>
+      <th>max_value</th>
+      <th>unit</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>gaussian.spectrum.main.Gaussian.F</th>
+      <td>0.04</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>s-1 cm-2</td>
+    </tr>
+    <tr>
+      <th>point_source.spectrum.main.Gaussian.F</th>
+      <td>0.01</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>s-1 cm-2</td>
+    </tr>
+  </tbody>
+</table>
+</div><br><br>Fixed parameters (9):<br>(abridged. Use complete=True to see all fixed parameters)<br><br><br>Properties (0):<br><br>(none)<br><br><br>Linked parameters (0):<br><br>(none)<br><br>Independent variables:<br><br>(none)<br><br>Linked functions (0):<br><br>(none)<br></div>
+</div>
+<p>Before we perform the fit, let’s first change the 3ML console logging level, in order to mimimize the amount of console output.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># This is a simple workaround for now to prevent a lot of output.
+from threeML import update_logging_level
+update_logging_level(&quot;CRITICAL&quot;)
+</pre></div>
+</div>
+</div>
+<p>Perform the likelihood fit:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+plugins = DataList(cosi) # If we had multiple instruments, we would do e.g. DataList(cosi, lat, hawc, ...)
+
+like = JointLikelihood(model, plugins, verbose = True)
+
+like.fit()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Best fit values:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>result</th>
+      <th>unit</th>
+    </tr>
+    <tr>
+      <th>parameter</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>gaussian.spectrum.main.Gaussian.F</th>
+      <td>(4.6951 +/- 0.0025) x 10^-2</td>
+      <td>1 / (cm2 s)</td>
+    </tr>
+    <tr>
+      <th>point_source.spectrum.main.Gaussian.F</th>
+      <td>(0.0 +/- 1.3) x 10^-9</td>
+      <td>1 / (cm2 s)</td>
+    </tr>
+    <tr>
+      <th>background_cosi</th>
+      <td>(9.32 +/- 0.05) x 10^-1</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Correlation matrix:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div><table id="table47342840954016">
+<tr><td>1.00</td><td>-0.01</td><td>-0.40</td></tr>
+<tr><td>-0.01</td><td>1.00</td><td>-0.03</td></tr>
+<tr><td>-0.40</td><td>-0.03</td><td>1.00</td></tr>
+</table></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of -log(likelihood) at the minimum:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>-log(likelihood)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>cosi</th>
+      <td>-1.527559e+07</td>
+    </tr>
+    <tr>
+      <th>total</th>
+      <td>-1.527559e+07</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of statistical measures:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>statistical measures</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>AIC</th>
+      <td>-3.055119e+07</td>
+    </tr>
+    <tr>
+      <th>BIC</th>
+      <td>-3.055119e+07</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 7min 24s, sys: 3min 55s, total: 11min 20s
+Wall time: 1min 46s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(                                              value  negative_error  \
+ gaussian.spectrum.main.Gaussian.F      4.695126e-02   -2.403110e-05
+ point_source.spectrum.main.Gaussian.F  5.975791e-13    2.623492e-10
+ background_cosi                        9.320815e-01   -4.914467e-03
+
+                                        positive_error         error  \
+ gaussian.spectrum.main.Gaussian.F        2.433950e-05  2.418530e-05
+ point_source.spectrum.main.Gaussian.F    1.929678e-09  1.096013e-09
+ background_cosi                          4.582905e-03  4.748686e-03
+
+                                               unit
+ gaussian.spectrum.main.Gaussian.F      1 / (cm2 s)
+ point_source.spectrum.main.Gaussian.F  1 / (cm2 s)
+ background_cosi                                     ,
+        -log(likelihood)
+ cosi      -1.527559e+07
+ total     -1.527559e+07)
+</pre></div></div>
+</div>
+<p>We see that the normalization of the point source has gone to zero, and we essentially get the same results as the first fit. This is not entirely surprising, considering that the two components have a high degree of degeneracy, and the point source is subdominant.</p>
+<p>Note (CK): The injected model may not be exactly the same as the astromodel, because MEGAlib uses a cutoff of the Gaussian spectral distribution at 3 sigma.</p>
+</section>
+<section id="*****************************************">
+<h2>*****************************************<a class="headerlink" href="#*****************************************" title="Link to this heading"></a></h2>
+</section>
+<section id="Example-3:-Working-With-a-Realistic-Model">
+<h2>Example 3: Working With a Realistic Model<a class="headerlink" href="#Example-3:-Working-With-a-Realistic-Model" title="Link to this heading"></a></h2>
+</section>
+<section id="id3">
+<h2>Read in the binned data<a class="headerlink" href="#id3" title="Link to this heading"></a></h2>
+<p>We will start with the binned data, since we already learned how to bin data:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># background:
+bg_tot = BinnedData(&quot;Gal_511.yaml&quot;)
+bg_tot.load_binned_data_from_hdf5(binned_data=&quot;cosmic_photons_binned_data.hdf5&quot;)
+
+# combined data:
+data_combined_thin_disk = BinnedData(&quot;Gal_511.yaml&quot;)
+data_combined_thin_disk.load_binned_data_from_hdf5(binned_data=&quot;combined_binned_data_thin_disk.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="id4">
+<h2>Define source<a class="headerlink" href="#id4" title="Link to this heading"></a></h2>
+<p>This defines a multi-component source with a disk and gaussian component. The disk and bulge components have different spectral characteristics. Spatially, the bulge component is the sum of three different spatial models, with majority of the flux “narrow bulge” with</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Spectral Definitions...
+
+models = [&quot;centralPoint&quot;,&quot;narrowBulge&quot;,&quot;broadBulge&quot;,&quot;disk&quot;]
+
+# several lists of parameters for, in order, CentralPoint, NarrowBulge, BroadBulge, and Disk sources
+mu         = [511.,511.,511., 511.]*u.keV
+sigma      = [0.85,0.85,0.85, 1.27]*u.keV
+F          = [0.00012, 0.00028, 0.00073, 1.7e-3]/u.cm/u.cm/u.s
+K          = [0.00046, 0.0011, 0.0027, 4.5e-3]/u.cm/u.cm/u.s/u.keV
+
+SpecLine   = [Gaussian(),Gaussian(),Gaussian(),Gaussian()]
+SpecOPs    = [SpecFromDat(dat=&quot;OPsSpectrum.dat&quot;),SpecFromDat(dat=&quot;OPsSpectrum.dat&quot;),SpecFromDat(dat=&quot;OPsSpectrum.dat&quot;),SpecFromDat(dat=&quot;OPsSpectrum.dat&quot;)]
+
+# Set units and fitting parameters; different definition for each spectral model with different norms
+for i in range(4):
+    SpecLine[i].F.unit = F[i].unit
+    SpecLine[i].F.value = F[i].value
+    SpecLine[i].F.min_value =0
+    SpecLine[i].F.max_value=1
+    SpecLine[i].mu.value = mu[i].value
+    SpecLine[i].mu.unit = mu[i].unit
+    SpecLine[i].sigma.unit = sigma[i].unit
+    SpecLine[i].sigma.value = sigma[i].value
+
+    SpecOPs[i].K.value = K[i].value
+    SpecOPs[i].K.unit = K[i].unit
+
+    SpecLine[i].sigma.free = False
+    SpecLine[i].mu.free = False
+    SpecLine[i].F.free = False#True
+    SpecOPs[i].K.free = False # not fitting the amplitude of the OPs component for now, since we are only using the 511 response!
+
+SpecLine[-1].F.free = True# actually do fit the flux of the disk component
+
+# Generate Composite Spectra
+SpecCentralPoint= SpecLine[0] + SpecOPs[0]
+SpecNarrowBulge = SpecLine[1] + SpecOPs[1]
+SpecBroadBulge  = SpecLine[2] + SpecOPs[2]
+SpecDisk        = SpecLine[3] + SpecOPs[3]
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Define Spatial Model Components
+MapNarrowBulge = Gaussian_on_sphere(lon0=359.75,lat0=-1.25, sigma = 2.5)
+MapBroadBulge = Gaussian_on_sphere(lon0 = 0, lat0 = 0, sigma = 8.7)
+MapDisk = Wide_Asymm_Gaussian_on_sphere(lon0 = 0, lat0 = 0, a=90, e = 0.99944429,theta=0)
+
+# Fix fitting parameters (same for all models)
+for map in [MapNarrowBulge,MapBroadBulge]:
+    map.lon0.free=False
+    map.lat0.free=False
+    map.sigma.free=False
+
+MapDisk.lon0.free=False
+MapDisk.lat0.free=False
+MapDisk.a.free=False
+MapDisk.e.free=True#False
+MapDisk.theta.free=False
+</pre></div>
+</div>
+</div>
+<p>For the Wide_Asymm_Gaussian_on_sphere model, note that e is the eccentricity of the Gaussian ellipse, defined such that the scale height b of the disk is given by <span class="math notranslate nohighlight">\(b = a \sqrt{(1-e^2)}\)</span></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Define Spatio-spectral models
+
+# Bulge
+c = SkyCoord(l=0*u.deg, b=0*u.deg, frame=&#39;galactic&#39;)
+c_icrs = c.transform_to(&#39;icrs&#39;)
+ModelCentralPoint = PointSource(&#39;centralPoint&#39;, ra = c_icrs.ra.deg, dec = c_icrs.dec.deg, spectral_shape=SpecCentralPoint)
+ModelNarrowBulge = ExtendedSource(&#39;narrowBulge&#39;,spectral_shape=SpecNarrowBulge,spatial_shape=MapNarrowBulge)
+ModelBroadBulge = ExtendedSource(&#39;broadBulge&#39;,spectral_shape=SpecBroadBulge,spatial_shape=MapBroadBulge)
+
+# Disk
+ModelDisk = ExtendedSource(&#39;disk&#39;,spectral_shape=SpecDisk,spatial_shape=MapDisk)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ModelDisk
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<ul>
+
+<li>disk (extended source):
+<ul>
+
+<li>shape:
+<ul>
+
+<li>lon0:
+<ul>
+
+<li>value: 0.0</li>
+
+<li>desc: Longitude of the center of the source</li>
+
+<li>min_value: 0.0</li>
+
+<li>max_value: 360.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>lat0:
+<ul>
+
+<li>value: 0.0</li>
+
+<li>desc: Latitude of the center of the source</li>
+
+<li>min_value: -90.0</li>
+
+<li>max_value: 90.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>a:
+<ul>
+
+<li>value: 90.0</li>
+
+<li>desc: Standard deviation of the Gaussian distribution (major axis)</li>
+
+<li>min_value: 0.0</li>
+
+<li>max_value: 90.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>e:
+<ul>
+
+<li>value: 0.99944429</li>
+
+<li>desc: Excentricity of Gaussian ellipse, e^2 = 1 - (b/a)^2, where b is the standard deviation of the Gaussian distribution (minor axis)</li>
+
+<li>min_value: 0.0</li>
+
+<li>max_value: 1.0</li>
+
+<li>unit: </li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>theta:
+<ul>
+
+<li>value: 0.0</li>
+
+<li>desc: inclination of major axis to a line of constant latitude</li>
+
+<li>min_value: -90.0</li>
+
+<li>max_value: 90.0</li>
+
+<li>unit: deg</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+<li>spectrum:
+<ul>
+
+<li>main:
+<ul>
+
+<li>composite:
+<ul>
+
+<li>F_1:
+<ul>
+
+<li>value: 0.0017</li>
+
+<li>desc: Integral between -inf and +inf. Fix this to 1 to obtain a Normal distribution</li>
+
+<li>min_value: 0.0</li>
+
+<li>max_value: 1.0</li>
+
+<li>unit: s-1 cm-2</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>mu_1:
+<ul>
+
+<li>value: 511.0</li>
+
+<li>desc: Central value</li>
+
+<li>min_value: None</li>
+
+<li>max_value: None</li>
+
+<li>unit: keV</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>sigma_1:
+<ul>
+
+<li>value: 1.27</li>
+
+<li>desc: standard deviation</li>
+
+<li>min_value: 1e-12</li>
+
+<li>max_value: None</li>
+
+<li>unit: keV</li>
+
+<li>is_normalization: False</li>
+
+</ul>
+
+</li>
+
+<li>K_2:
+<ul>
+
+<li>value: 0.004499999999999998</li>
+
+<li>desc: Normalization</li>
+
+<li>min_value: 1e-30</li>
+
+<li>max_value: 1000.0</li>
+
+<li>unit: keV-1 s-1 cm-2</li>
+
+<li>is_normalization: True</li>
+
+</ul>
+
+</li>
+
+<li>dat_2: OPsSpectrum.dat</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul>
+
+</li>
+
+</ul></div>
+</div>
+<p>Make some plots to look at these new extended sources:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Plot spectra at 511 keV
+energy = np.linspace(500.,520.,10001)*u.keV
+fig, axs = plt.subplots()
+for label,m in zip(models,
+                   [ModelCentralPoint,ModelNarrowBulge,ModelBroadBulge,ModelDisk]):
+    dnde = m.spectrum.main.composite(energy)
+    axs.plot(energy, dnde,label=label)
+
+axs.legend()
+axs.set_ylabel(&quot;dN/dE [$\mathrm{ph \ cm^{-2} \ s^{-1} \ keV^{-1}}$]&quot;, fontsize=14)
+axs.set_xlabel(&quot;Energy [keV]&quot;, fontsize=14);
+plt.ylim(0,);
+#axs[0].set_yscale(&quot;log&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_64_0.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_64_0.png" />
+</div>
+</div>
+<p>The orthopositronium spectral component appears as the low-energy tail of the 511 keV line.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Define healpix map matching the detector response:
+nside_model = 2**4
+scheme=&#39;ring&#39;
+is_nested = (scheme == &#39;nested&#39;)
+coordsys=&#39;G&#39;
+
+mBroadBulge = HealpixMap(nside = nside_model, scheme = scheme, dtype = float,coordsys=coordsys)
+mNarrowBulge = HealpixMap(nside = nside_model, scheme = scheme, dtype = float,coordsys=coordsys)
+mPointBulge = HealpixMap(nside = nside_model, scheme = scheme, dtype = float,coordsys=coordsys)
+mDisk = HealpixMap(nside = nside_model, scheme=scheme, dtype = float,coordsys=coordsys)
+
+coords = mDisk.pix2skycoord(range(mDisk.npix)) # common among all the galactic maps...
+
+pix_area = mBroadBulge.pixarea().value # common among all the galactic maps with the same pixelization
+
+# Fill skymap with values from extended source:
+mNarrowBulge[:] = ModelNarrowBulge.spatial_shape(coords.l.deg, coords.b.deg)
+mBroadBulge[:] = ModelBroadBulge.spatial_shape(coords.l.deg, coords.b.deg)
+mBulge = mBroadBulge + mNarrowBulge
+mDisk[:] = ModelDisk.spatial_shape(coords.l.deg, coords.b.deg)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>List_of_Maps = [mDisk,mNarrowBulge,mBroadBulge]
+List_of_Names = [&quot;Disk&quot;,&quot;Narrow Bulge&quot;,&quot;Broad Bulge&quot;, ]
+
+for n, m in zip(List_of_Names,List_of_Maps):
+    plot,ax = m.plot(ax_kw={&quot;coord&quot;:&quot;G&quot;})
+    ax.grid();
+    lon = ax.coords[&#39;glon&#39;]
+    lat = ax.coords[&#39;glat&#39;]
+    lon.set_axislabel(&#39;Galactic Longitude&#39;,color=&#39;white&#39;,fontsize=5)
+    lat.set_axislabel(&#39;Galactic Latitude&#39;,fontsize=5)
+    lon.display_minor_ticks(True)
+    lat.display_minor_ticks(True)
+    lon.set_ticks_visible(True)
+    lon.set_ticklabel_visible(True)
+    lon.set_ticks(color=&#39;white&#39;,alpha=0.6)
+    lat.set_ticks(color=&#39;white&#39;,alpha=0.6)
+    lon.set_ticklabel(color=&#39;white&#39;,fontsize=4)
+    lat.set_ticklabel(fontsize=4)
+    lat.set_ticks_visible(True)
+    lat.set_ticklabel_visible(True)
+    ax.set_title(n)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_67_0.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_67_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_67_1.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_67_1.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_67_2.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_67_2.png" />
+</div>
+</div>
+</section>
+<section id="Instantiate-the-COSI-3ML-plugin-and-perform-the-likelihood-fit">
+<h2>Instantiate the COSI 3ML plugin and perform the likelihood fit<a class="headerlink" href="#Instantiate-the-COSI-3ML-plugin-and-perform-the-likelihood-fit" title="Link to this heading"></a></h2>
+<p>The following two cells should be run only if not already run in previous examples…</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># if not previously loaded in example 1, load the response, ori, and psr:
+response_file = &quot;SMEXv12.511keV.HEALPixO4.binnedimaging.imagingresponse.nonsparse_nside16.area.h5&quot;
+response = FullDetectorResponse.open(response_file)
+ori = SpacecraftFile.parse_from_file(&quot;20280301_3_month_with_orbital_info.ori&quot;)
+psr_file = &quot;psr_gal_511_DC2.h5&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Set background parameter, which is used to fit the amplitude of the background:
+bkg_par = Parameter(&quot;background_cosi&quot;,                                        # background parameter
+                    1,                                                        # initial value of parameter
+                    min_value=0,                                              # minimum value of parameter
+                    max_value=5,                                              # maximum value of parameter
+                    delta=0.05,                                               # initial step used by fitting engine
+                    desc=&quot;Background parameter for cosi&quot;)
+</pre></div>
+</div>
+</div>
+<p>We should re-run the following cell every time we set up a new fit:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+# Instantiate the COSI 3ML plugin, using combined data for the thin disk
+cosi = COSILike(&quot;cosi&quot;,                                                       # COSI 3ML plugin
+                dr = response_file,                                           # detector response
+                data = data_combined_thin_disk.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;),# data (source+background)
+                bkg = bg_tot.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;),       # background model
+                sc_orientation = ori,                                          # spacecraft orientation
+                nuisance_param = bkg_par,                                      # background parameter
+                precomputed_psr_file = psr_file)                               # full path to precomputed psr file in galactic coordinates (optional)
+plugins = DataList(cosi)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+... loading the pre-computed image response ...
+--&gt; done
+CPU times: user 1min 56s, sys: 37 s, total: 2min 33s
+Wall time: 2min 51s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># add sources to thin disk and thick disk models
+totalModel =  Model(ModelDisk, ModelBroadBulge,ModelNarrowBulge,ModelCentralPoint)
+totalModel.display(complete=True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+Model summary:<br><br><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>N</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>Point sources</th>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>Extended sources</th>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>Particle sources</th>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div><br><br>Free parameters (2):<br><br><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>value</th>
+      <th>min_value</th>
+      <th>max_value</th>
+      <th>unit</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>disk.Wide_Asymm_Gaussian_on_sphere.e</th>
+      <td>0.999444</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>disk.spectrum.main.composite.F_1</th>
+      <td>0.0017</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>s-1 cm-2</td>
+    </tr>
+  </tbody>
+</table>
+</div><br><br>Fixed parameters (27):<br><br><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>value</th>
+      <th>min_value</th>
+      <th>max_value</th>
+      <th>unit</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>disk.Wide_Asymm_Gaussian_on_sphere.lon0</th>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>360.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>disk.Wide_Asymm_Gaussian_on_sphere.lat0</th>
+      <td>0.0</td>
+      <td>-90.0</td>
+      <td>90.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>disk.Wide_Asymm_Gaussian_on_sphere.a</th>
+      <td>90.0</td>
+      <td>0.0</td>
+      <td>90.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>disk.Wide_Asymm_Gaussian_on_sphere.theta</th>
+      <td>0.0</td>
+      <td>-90.0</td>
+      <td>90.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>disk.spectrum.main.composite.mu_1</th>
+      <td>511.0</td>
+      <td>None</td>
+      <td>None</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>disk.spectrum.main.composite.sigma_1</th>
+      <td>1.27</td>
+      <td>0.0</td>
+      <td>None</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>disk.spectrum.main.composite.K_2</th>
+      <td>0.0045</td>
+      <td>0.0</td>
+      <td>1000.0</td>
+      <td>keV-1 s-1 cm-2</td>
+    </tr>
+    <tr>
+      <th>broadBulge.Gaussian_on_sphere.lon0</th>
+      <td>0.0</td>
+      <td>0.0</td>
+      <td>360.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>broadBulge.Gaussian_on_sphere.lat0</th>
+      <td>0.0</td>
+      <td>-90.0</td>
+      <td>90.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>broadBulge.Gaussian_on_sphere.sigma</th>
+      <td>8.7</td>
+      <td>0.0</td>
+      <td>20.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>broadBulge.spectrum.main.composite.F_1</th>
+      <td>0.00073</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>s-1 cm-2</td>
+    </tr>
+    <tr>
+      <th>broadBulge.spectrum.main.composite.mu_1</th>
+      <td>511.0</td>
+      <td>None</td>
+      <td>None</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>broadBulge.spectrum.main.composite.sigma_1</th>
+      <td>0.85</td>
+      <td>0.0</td>
+      <td>None</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>broadBulge.spectrum.main.composite.K_2</th>
+      <td>0.0027</td>
+      <td>0.0</td>
+      <td>1000.0</td>
+      <td>keV-1 s-1 cm-2</td>
+    </tr>
+    <tr>
+      <th>narrowBulge.Gaussian_on_sphere.lon0</th>
+      <td>359.75</td>
+      <td>0.0</td>
+      <td>360.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>narrowBulge.Gaussian_on_sphere.lat0</th>
+      <td>-1.25</td>
+      <td>-90.0</td>
+      <td>90.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>narrowBulge.Gaussian_on_sphere.sigma</th>
+      <td>2.5</td>
+      <td>0.0</td>
+      <td>20.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>narrowBulge.spectrum.main.composite.F_1</th>
+      <td>0.00028</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>s-1 cm-2</td>
+    </tr>
+    <tr>
+      <th>narrowBulge.spectrum.main.composite.mu_1</th>
+      <td>511.0</td>
+      <td>None</td>
+      <td>None</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>narrowBulge.spectrum.main.composite.sigma_1</th>
+      <td>0.85</td>
+      <td>0.0</td>
+      <td>None</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>narrowBulge.spectrum.main.composite.K_2</th>
+      <td>0.0011</td>
+      <td>0.0</td>
+      <td>1000.0</td>
+      <td>keV-1 s-1 cm-2</td>
+    </tr>
+    <tr>
+      <th>centralPoint.position.ra</th>
+      <td>266.404988</td>
+      <td>0.0</td>
+      <td>360.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>centralPoint.position.dec</th>
+      <td>-28.936178</td>
+      <td>-90.0</td>
+      <td>90.0</td>
+      <td>deg</td>
+    </tr>
+    <tr>
+      <th>centralPoint.spectrum.main.composite.F_1</th>
+      <td>0.00012</td>
+      <td>0.0</td>
+      <td>1.0</td>
+      <td>s-1 cm-2</td>
+    </tr>
+    <tr>
+      <th>centralPoint.spectrum.main.composite.mu_1</th>
+      <td>511.0</td>
+      <td>None</td>
+      <td>None</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>centralPoint.spectrum.main.composite.sigma_1</th>
+      <td>0.85</td>
+      <td>0.0</td>
+      <td>None</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>centralPoint.spectrum.main.composite.K_2</th>
+      <td>0.00046</td>
+      <td>0.0</td>
+      <td>1000.0</td>
+      <td>keV-1 s-1 cm-2</td>
+    </tr>
+  </tbody>
+</table>
+</div><br><br>Properties (4):<br><br><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>value</th>
+      <th>allowed values</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>disk.spectrum.main.composite.dat_2</th>
+      <td>OPsSpectrum.dat</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>broadBulge.spectrum.main.composite.dat_2</th>
+      <td>OPsSpectrum.dat</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>narrowBulge.spectrum.main.composite.dat_2</th>
+      <td>OPsSpectrum.dat</td>
+      <td>None</td>
+    </tr>
+    <tr>
+      <th>centralPoint.spectrum.main.composite.dat_2</th>
+      <td>OPsSpectrum.dat</td>
+      <td>None</td>
+    </tr>
+  </tbody>
+</table>
+</div><br><br>Linked parameters (0):<br><br>(none)<br><br>Independent variables:<br><br>(none)<br><br>Linked functions (0):<br><br>(none)<br></div>
+</div>
+<p>Before we perform the fit, let’s first change the 3ML console logging level, in order to mimimize the amount of console output.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># This is a simple workaround for now to prevent a lot of output.
+from threeML import update_logging_level
+update_logging_level(&quot;CRITICAL&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+# likelihood of data + model
+like = JointLikelihood(totalModel, plugins, verbose = True)
+like.fit()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Best fit values:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>result</th>
+      <th>unit</th>
+    </tr>
+    <tr>
+      <th>parameter</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>disk.Wide_Asymm_Gaussian_on_sphere.e</th>
+      <td>(9.9985 +/- 0.0005) x 10^-1</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>disk.spectrum.main.composite.F_1</th>
+      <td>(1.643 +/- 0.011) x 10^-3</td>
+      <td>1 / (cm2 s)</td>
+    </tr>
+    <tr>
+      <th>background_cosi</th>
+      <td>(9.906 +/- 0.032) x 10^-1</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Correlation matrix:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div><table id="table47181262344640">
+<tr><td>1.00</td><td>-0.33</td><td>0.09</td></tr>
+<tr><td>-0.33</td><td>1.00</td><td>-0.60</td></tr>
+<tr><td>0.09</td><td>-0.60</td><td>1.00</td></tr>
+</table></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of -log(likelihood) at the minimum:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>-log(likelihood)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>cosi</th>
+      <td>-166772.754018</td>
+    </tr>
+    <tr>
+      <th>total</th>
+      <td>-166772.754018</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of statistical measures:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>statistical measures</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>AIC</th>
+      <td>-333547.508036</td>
+    </tr>
+    <tr>
+      <th>BIC</th>
+      <td>-333545.508036</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 30min 29s, sys: 15min 41s, total: 46min 11s
+Wall time: 8min 12s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(                                         value  negative_error  \
+ disk.Wide_Asymm_Gaussian_on_sphere.e  0.999853       -0.000045
+ disk.spectrum.main.composite.F_1      0.001643       -0.000011
+ background_cosi                       0.990610       -0.003091
+
+                                       positive_error     error         unit
+ disk.Wide_Asymm_Gaussian_on_sphere.e        0.000045  0.000045
+ disk.spectrum.main.composite.F_1            0.000011  0.000011  1 / (cm2 s)
+ background_cosi                             0.003209  0.003150               ,
+        -log(likelihood)
+ cosi     -166772.754018
+ total    -166772.754018)
+</pre></div></div>
+</div>
+</section>
+<section id="id5">
+<h2>Results<a class="headerlink" href="#id5" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># thin disk model to data
+results = like.results
+results.display()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Best fit values:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>result</th>
+      <th>unit</th>
+    </tr>
+    <tr>
+      <th>parameter</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>disk.Wide_Asymm_Gaussian_on_sphere.e</th>
+      <td>(9.9985 +/- 0.0005) x 10^-1</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>disk.spectrum.main.composite.F_1</th>
+      <td>(1.643 +/- 0.011) x 10^-3</td>
+      <td>1 / (cm2 s)</td>
+    </tr>
+    <tr>
+      <th>background_cosi</th>
+      <td>(9.906 +/- 0.032) x 10^-1</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Correlation matrix:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div><table id="table47181262256256">
+<tr><td>1.00</td><td>-0.33</td><td>0.09</td></tr>
+<tr><td>-0.33</td><td>1.00</td><td>-0.60</td></tr>
+<tr><td>0.09</td><td>-0.60</td><td>1.00</td></tr>
+</table></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of -log(likelihood) at the minimum:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>-log(likelihood)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>cosi</th>
+      <td>-166772.754018</td>
+    </tr>
+    <tr>
+      <th>total</th>
+      <td>-166772.754018</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of statistical measures:</span>
+
+</pre></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>statistical measures</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>AIC</th>
+      <td>-333547.508036</td>
+    </tr>
+    <tr>
+      <th>BIC</th>
+      <td>-333545.508036</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Best-fit model:
+energy = np.linspace(500.,520.,201)*u.keV
+fluxes = {}
+
+for model in models:
+    fluxes[model] = results.optimized_model[model].spectrum.main.shape(energy)
+
+fig,ax = plt.subplots()
+for model in models:
+    ax.plot(energy, fluxes[model], label = f&quot;Best fit, {model}&quot;,ls=&#39;-&#39;)
+ax.set_ylabel(&quot;dN/dE [$\mathrm{ph \ cm^{-2} \ s^{-1} \ keV^{-1}}$]&quot;, fontsize=14)
+ax.set_xlabel(&quot;Energy [keV]&quot;, fontsize=14)
+ax.set_title(&quot;Best fit to model&quot;)
+ax.legend()
+ax.set_ylim(0,);
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_79_0.png" src="../../../_images/tutorials_spectral_fits_extended_source_fit_diffuse_511_spectral_fit_79_0.png" />
+</div>
+</div>
+<p>In summary, we fitted the flux and eccentricity of the disk only, with the all parameters of the bulge component fixed. Considering <span class="math notranslate nohighlight">\(b = a \sqrt{(1-e^2)}\)</span>, we recovered the following fitted parameters:</p>
+<section id="Component.....-Injected...........-Best-Fit">
+<h3>Component….. Injected……….. Best Fit<a class="headerlink" href="#Component.....-Injected...........-Best-Fit" title="Link to this heading"></a></h3>
+<div class="line-block">
+<div class="line">b…………………. 3<span class="math notranslate nohighlight">\(^{\circ}\)</span>………………… 1.6<span class="math notranslate nohighlight">\(^{+0.2\circ}_{- 0.3}\)</span></div>
+<div class="line">Disk…………….. 1.7e-3/cm<span class="math notranslate nohighlight">\(^2\)</span>/s…. (1.64 <span class="math notranslate nohighlight">\(\pm\)</span> 0.01)e-3 /cm<span class="math notranslate nohighlight">\(^2\)</span>/s</div>
+<div class="line">Background …..1……………………0.991 <span class="math notranslate nohighlight">\(\pm\)</span> 0.003</div>
+</div>
+<p>You can play around with the fitting to find the best parameters for fitting the scale height of the disk, changing the initial values for the fit and which parameters are allowed to vary.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../continuum_fit/crab/SpectralFit_Crab.html" class="btn btn-neutral float-left" title="Spectral fitting example (Crab)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.html" class="btn btn-neutral float-right" title="Image Deconvolution example for 511 keV with spacecraft attitude binning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

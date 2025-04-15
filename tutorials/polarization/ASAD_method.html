@@ -1,0 +1,632 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Polarization example - azimuthal scattering angle distribution (ASAD) method &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Other examples" href="../other_examples.html" />
+    <link rel="prev" title="Line Background Estimation Using Adjacent Energy Bins" href="../background_estimation/line_background/line_background_estimation_example_notebook.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../DataIO/DataIO_example.html">Data format and handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../response/SpacecraftFile.html">Spacecraft file: attitude and position</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../response/DetectorResponse.html">Detector response and signal expectation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ts_map/Parallel_TS_map_computation.html">TS Map: localizing a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spectral_fits/continuum_fit/grb/SpectralFit_GRB.html">Fitting the spectrum of a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spectral_fits/continuum_fit/crab/SpectralFit_Crab.html">Fitting the spectrum of the Crab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spectral_fits/extended_source_fit/diffuse_511_spectral_fit.html">Extended source model fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../source_injector/Point_source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../background_estimation/continuum_estimation/BG_estimation_example.html">Continuum Background Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../background_estimation/line_background/line_background_estimation_example_notebook.html">Line background estimation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Polarization (ASAD method)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Download-and-read-in-data">Download and read in data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Polarization-fit-in-ICRS-frame">Polarization fit in ICRS frame</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Polarization-fit-in-spacecraft-coordinates">Polarization fit in spacecraft coordinates</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Polarization example - azimuthal scattering angle distribution (ASAD) method</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tutorials/polarization/ASAD_method.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Polarization-example---azimuthal-scattering-angle-distribution-(ASAD)-method">
+<h1>Polarization example - azimuthal scattering angle distribution (ASAD) method<a class="headerlink" href="#Polarization-example---azimuthal-scattering-angle-distribution-(ASAD)-method" title="Link to this heading"></a></h1>
+<p>This notebook fits the polarization fraction and angle of a Data Challenge 3 GRB (GRB 080802386) simulated using MEGAlib and combined with albedo photon background. It’s assumed that the start time, duration, localization, and spectrum of the GRB are already known. The GRB was simulated with 80% polarization at an angle of 90 degrees in the IAU convention, and was 20 degrees off-axis. A detailed description of the ASAD method, which is the approach used here to fit the polarization, is available
+on the <a class="reference external" href="https://github.com/cositools/cosi-data-challenges/tree/main/polarization">Data Challenge repository</a>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from cosipy import UnBinnedData
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.polarization.conventions import MEGAlibRelativeX, MEGAlibRelativeY, MEGAlibRelativeZ, IAUPolarizationConvention
+from cosipy.polarization.polarization_asad import PolarizationASAD
+from cosipy.threeml.custom_functions import Band_Eflux
+from astropy.time import Time
+import numpy as np
+from astropy.coordinates import Angle, SkyCoord
+from astropy import units as u
+from scoords import SpacecraftFrame
+from cosipy.util import fetch_wasabi_file
+</pre></div>
+</div>
+</div>
+<section id="Download-and-read-in-data">
+<h2>Download and read in data<a class="headerlink" href="#Download-and-read-in-data" title="Link to this heading"></a></h2>
+<p>This will download the files needed to run this notebook. If you have already downloaded these files, you can skip this.</p>
+<p>Download the unbinned data (660.58 KB)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fetch_wasabi_file(&#39;COSI-SMEX/cosipy_tutorials/polarization_fit/grb_background.fits.gz&#39;)
+</pre></div>
+</div>
+</div>
+<p>Download the polarization response (1.35 GB). This needs to be unzipped before running the rest of the notebook</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fetch_wasabi_file(&#39;COSI-SMEX/DC3/Data/Responses/ResponseContinuum.o3.pol.e200_10000.b4.p12.relx.s10396905069491.m420.filtered.nonsparse.binnedpolarization.11D_nside8.area.good_chunks.h5.zip&#39;)
+</pre></div>
+</div>
+</div>
+<p>Download the orientation file (1.10 GB)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fetch_wasabi_file(&#39;COSI-SMEX/DC3/Data/Orientation/DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.ori&#39;)
+</pre></div>
+</div>
+</div>
+<p>Read in the unbinned data, which is a GRB placed within albedo photon background. A time cut is done for the duration of the GRB to produce the GRB+background data to fit. The time intervals before and after the GRB are used to produce a background model. An energy cut is applied to both the data and background model to match the energy range of the detector response. Binned data can also be used for the ASAD method for both the data and background model.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>grb_background = UnBinnedData(&#39;/path/to/yaml/file&#39;) # e.g. grb.yaml
+grb_background.select_data_time(unbinned_data=&#39;/path/to/data/file&#39;, output_name=&#39;/path/to/time/selected/data/file&#39;) # e.g. grb_background.fits.gz &amp; grb_background_source_interval
+grb_background.select_data_energy(200., 10000., output_name=&#39;/path/to/time/energy/selected/data/file&#39;, unbinned_data=&#39;/path/to/time/selected/data/file&#39;) # e.g. grb_background_source_interval_energy_cut &amp; grb_background_source_interval.fits.gz
+data = grb_background.get_dict_from_fits(&#39;/path/to/time/energy/selected/data/file&#39;) # e.g. grb_background_source_interval_energy_cut.fits.gz
+
+background_before = UnBinnedData(&#39;/path/to/yaml/file&#39;) # e.g. background_before.yaml
+background_before.select_data_time(unbinned_data=&#39;/path/to/data/file&#39;, output_name=&#39;/path/to/time/selected/background/file&#39;) # e.g. grb_background.fits.gz &amp; background_before
+background_before.select_data_energy(200., 10000., output_name=&#39;/path/to/time/energy/selected/background/file&#39;, unbinned_data=&#39;/path/to/time/selected/background/file&#39;) # e.g. background_before_energy_cut &amp; background_before.fits.gz
+background_1 = background_before.get_dict_from_fits(&#39;/path/to/time/energy/selected/background/file&#39;) # e.g. background_before_energy_cut.fits.gz
+
+background_after = UnBinnedData(&#39;/path/to/yaml/file&#39;) # e.g. background_after.yaml
+background_after.select_data_time(unbinned_data=&#39;/path/to/data/file&#39;, output_name=&#39;/path/to/time/selected/background/file&#39;) # e.g. grb_background.fits.gz &amp; background_after
+background_after.select_data_energy(200., 10000., output_name=&#39;/path/to/time/energy/selected/background/file&#39;, unbinned_data=&#39;/path/to/time/selected/background/file&#39;) # e.g. background_after_energy_cut &amp; background_after.fits.gz
+background_2 = background_after.get_dict_from_fits(&#39;/path/to/time/energy/selected/background/file&#39;) # e.g. background_after_energy_cut.fits.gz
+
+background = [background_1, background_2]
+</pre></div>
+</div>
+</div>
+<p>Define the path to the detector response and read in the orientation file. The orientation is cut down to the time interval of the source.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>response_file = &#39;/path/to/response/file&#39; # e.g. ResponseContinuum.o3.pol.e200_10000.b4.p12.relx.s10396905069491.m420.filtered.nonsparse.binnedpolarization.11D_nside8.area.good_chunks.h5
+
+sc_orientation = SpacecraftFile.parse_from_file(&#39;/path/to/ori/file&#39;) # e.g. DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.ori
+sc_orientation = sc_orientation.source_interval(Time(1835493492.2, format = &#39;unix&#39;), Time(1835493492.8, format = &#39;unix&#39;))
+</pre></div>
+</div>
+</div>
+<p>Define the GRB position and spectrum.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>source_direction = SkyCoord(l=23.53, b=-53.44, frame=&#39;galactic&#39;, unit=u.deg)
+
+a = 100. * u.keV
+b = 10000. * u.keV
+alpha = -0.7368949
+beta = -2.095031
+ebreak = 622.389 * u.keV
+K = 300. / u.cm / u.cm / u.s
+
+spectrum = Band_Eflux(a = a.value,
+                      b = b.value,
+                      alpha = alpha,
+                      beta = beta,
+                      E0 = ebreak.value,
+                      K = K.value)
+
+spectrum.a.unit = a.unit
+spectrum.b.unit = b.unit
+spectrum.E0.unit = ebreak.unit
+spectrum.K.unit = K.unit
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Polarization-fit-in-ICRS-frame">
+<h2>Polarization fit in ICRS frame<a class="headerlink" href="#Polarization-fit-in-ICRS-frame" title="Link to this heading"></a></h2>
+<p>Define the azimuthal scattering angle bin edges, and create the polarization object. A number of steps are done when this object is created:</p>
+<ul class="simple">
+<li><p>Creates ASADs for the GRB+background data and background model, and subtracts the background ASAD from the GRB+background ASAD to produce an ASAD for the GRB only</p></li>
+<li><p>Convolves the GRB position and spectrum with the response to produce an unpolarized ASAD and 100% polarized ASADs for each polarization angle bin</p></li>
+<li><p>Corrects for instrumental effects by dividing the GRB only and 100% polarized ASADs by the unpolarized ASAD</p></li>
+<li><p>Fits a sinusoid to the 100% polarized ASADs to determine the <span class="math notranslate nohighlight">\(\mu_{100}\)</span>, or the modulation of a 100% polarized source. This is used later on to convert the amplitude of the sinusoid fit to the GRB ASAD to a polarization fraction</p></li>
+</ul>
+<p>The ASADs are automatically calculated in the IAU convention.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>asad_bin_edges = Angle(np.linspace(-np.pi, np.pi, 17), unit=u.rad)
+
+grb_polarization = PolarizationASAD(source_direction, spectrum, asad_bin_edges, data, background, sc_orientation, response_file, response_convention=&#39;RelativeX&#39;, show_plots=True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_0.png" src="../../_images/tutorials_polarization_ASAD_method_19_0.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_1.png" src="../../_images/tutorials_polarization_ASAD_method_19_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_2.png" src="../../_images/tutorials_polarization_ASAD_method_19_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_3.png" src="../../_images/tutorials_polarization_ASAD_method_19_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_4.png" src="../../_images/tutorials_polarization_ASAD_method_19_4.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_5.png" src="../../_images/tutorials_polarization_ASAD_method_19_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_6.png" src="../../_images/tutorials_polarization_ASAD_method_19_6.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_7.png" src="../../_images/tutorials_polarization_ASAD_method_19_7.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_8.png" src="../../_images/tutorials_polarization_ASAD_method_19_8.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_9.png" src="../../_images/tutorials_polarization_ASAD_method_19_9.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_10.png" src="../../_images/tutorials_polarization_ASAD_method_19_10.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_11.png" src="../../_images/tutorials_polarization_ASAD_method_19_11.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_12.png" src="../../_images/tutorials_polarization_ASAD_method_19_12.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_13.png" src="../../_images/tutorials_polarization_ASAD_method_19_13.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_14.png" src="../../_images/tutorials_polarization_ASAD_method_19_14.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_15.png" src="../../_images/tutorials_polarization_ASAD_method_19_15.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_19_16.png" src="../../_images/tutorials_polarization_ASAD_method_19_16.png" />
+</div>
+</div>
+<p>Perform the fit in the ICRS frame. A sinusoid is fit to the GRB ASAD, and the amplitude and phase are used to determine the polarization fraction and angle, respectively. Because the polarization angles are distributed uniformly within the polarization angle bins of the response, and the bins are coarse, the <span class="math notranslate nohighlight">\(\mu_{100}\)</span> is underestimated, causing the fitted polarization fraction of the source to be overestimated.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>polarization_icrs_fit = grb_polarization.fit(show_plots=True)
+
+print(&#39;Best fit polarization fraction:&#39;, round(polarization_icrs_fit[&#39;fraction&#39;], 3), &#39;+/-&#39;, round(polarization_icrs_fit[&#39;fraction uncertainty&#39;], 3))
+print(&#39;Minimum detectable polarization:&#39;, round(grb_polarization._mdp, 3))
+print(&#39;Best fit polarization angle (IAU convention):&#39;, round(polarization_icrs_fit[&#39;angle&#39;].angle.degree, 3), &#39;+/-&#39;, round(polarization_icrs_fit[&#39;angle uncertainty&#39;].degree, 3))
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_21_0.png" src="../../_images/tutorials_polarization_ASAD_method_21_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Best fit polarization fraction: 0.953 +/- 0.073
+Minimum detectable polarization: 0.164
+Best fit polarization angle (IAU convention): 87.668 +/- 1.987
+</pre></div></div>
+</div>
+</section>
+<section id="Polarization-fit-in-spacecraft-coordinates">
+<h2>Polarization fit in spacecraft coordinates<a class="headerlink" href="#Polarization-fit-in-spacecraft-coordinates" title="Link to this heading"></a></h2>
+<p>For short duration sources, such as this short GRB, the spacecraft does not move much, allowing the fit to also be done in spacecraft coordinates. This cell determines the spacecraft attitude at the beginning of the GRB and transform the source position to the spacecraft frame. Then, the polarization object is generated with the convention for the fit specified as the same convention used to generate the detector response, which is RelativeZ in this case. The ASADs are now generated in the
+spacecraft frame, instead of the ICRS frame as they were above.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>attitude = sc_orientation.get_attitude()[0]
+source_direction_local = source_direction.transform_to(SpacecraftFrame(attitude=attitude))
+
+grb_polarization_local = PolarizationASAD(source_direction_local, spectrum, asad_bin_edges, data, background, sc_orientation, response_file, response_convention=&#39;RelativeX&#39;, show_plots=True, fit_convention=MEGAlibRelativeX(attitude=attitude))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+The response must have the same polarization convention as the provided polarization angle, or the result will be incorrect!
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_1.png" src="../../_images/tutorials_polarization_ASAD_method_24_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_2.png" src="../../_images/tutorials_polarization_ASAD_method_24_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_3.png" src="../../_images/tutorials_polarization_ASAD_method_24_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_4.png" src="../../_images/tutorials_polarization_ASAD_method_24_4.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_5.png" src="../../_images/tutorials_polarization_ASAD_method_24_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_6.png" src="../../_images/tutorials_polarization_ASAD_method_24_6.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_7.png" src="../../_images/tutorials_polarization_ASAD_method_24_7.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_8.png" src="../../_images/tutorials_polarization_ASAD_method_24_8.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_9.png" src="../../_images/tutorials_polarization_ASAD_method_24_9.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_10.png" src="../../_images/tutorials_polarization_ASAD_method_24_10.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_11.png" src="../../_images/tutorials_polarization_ASAD_method_24_11.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_12.png" src="../../_images/tutorials_polarization_ASAD_method_24_12.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_13.png" src="../../_images/tutorials_polarization_ASAD_method_24_13.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_14.png" src="../../_images/tutorials_polarization_ASAD_method_24_14.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_15.png" src="../../_images/tutorials_polarization_ASAD_method_24_15.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_16.png" src="../../_images/tutorials_polarization_ASAD_method_24_16.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_24_17.png" src="../../_images/tutorials_polarization_ASAD_method_24_17.png" />
+</div>
+</div>
+<p>Perform the fit in spacecraft coordinates.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>polarization_local_fit = grb_polarization_local.fit(show_plots=True)
+
+print(&#39;Best fit polarization fraction:&#39;, round(polarization_local_fit[&#39;fraction&#39;], 3), &#39;+/-&#39;, round(polarization_local_fit[&#39;fraction uncertainty&#39;], 3))
+print(&#39;Minimum detectable polarization:&#39;, round(grb_polarization_local._mdp, 3))
+print(&#39;Best fit polarization angle (IAU convention):&#39;, round(polarization_local_fit[&#39;angle&#39;].angle.degree, 3), &#39;+/-&#39;, round(polarization_local_fit[&#39;angle uncertainty&#39;].degree, 3))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_polarization_ASAD_method_26_0.png" src="../../_images/tutorials_polarization_ASAD_method_26_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Best fit polarization fraction: 0.91 +/- 0.07
+Minimum detectable polarization: 0.181
+Best fit polarization angle (IAU convention): 87.222 +/- 2.107
+</pre></div></div>
+</div>
+<p>The fitted polarization angle is always output in the IAU convention, but can easily be transformed to other conventions.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>print(&#39;RelativeX:&#39;, round(polarization_local_fit[&#39;angle&#39;].transform_to(MEGAlibRelativeX(attitude=attitude)).angle.degree, 3), &#39;degrees&#39;)
+print(&#39;RelativeY:&#39;, round(polarization_local_fit[&#39;angle&#39;].transform_to(MEGAlibRelativeY(attitude=attitude)).angle.degree, 3), &#39;degrees&#39;)
+print(&#39;RelativeZ:&#39;, round(polarization_local_fit[&#39;angle&#39;].transform_to(MEGAlibRelativeZ(attitude=attitude)).angle.degree, 3), &#39;degrees&#39;)
+print(&#39;IAU:&#39;, round(polarization_local_fit[&#39;angle&#39;].transform_to(IAUPolarizationConvention()).angle.degree, 3), &#39;degrees&#39;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+RelativeX: 77.219 degrees
+RelativeY: 167.218 degrees
+RelativeZ: 77.211 degrees
+IAU: 87.222 degrees
+</pre></div></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../background_estimation/line_background/line_background_estimation_example_notebook.html" class="btn btn-neutral float-left" title="Line Background Estimation Using Adjacent Energy Bins" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../other_examples.html" class="btn btn-neutral float-right" title="Other examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,486 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.threeml.COSILike &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.threeml.COSILike</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.threeml.COSILike</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">threeML</span><span class="w"> </span><span class="kn">import</span> <span class="n">PluginPrototype</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threeML.minimizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">minimization</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threeML.config.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">threeML_config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threeML.exceptions.custom_exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">FitFailed</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astromodels</span><span class="w"> </span><span class="kn">import</span> <span class="n">Parameter</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.response.FullDetectorResponse</span><span class="w"> </span><span class="kn">import</span> <span class="n">FullDetectorResponse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.response.ExtendedSourceResponse</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExtendedSourceResponse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.image_deconvolution</span><span class="w"> </span><span class="kn">import</span> <span class="n">AllSkyImageModel</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">scoords</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpacecraftFrame</span><span class="p">,</span> <span class="n">Attitude</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">mhealpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">HealpixMap</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.response</span><span class="w"> </span><span class="kn">import</span> <span class="n">PointSourceResponse</span><span class="p">,</span> <span class="n">DetectorResponse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Histogram</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">h5</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Axis</span><span class="p">,</span> <span class="n">Axes</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.coordinates</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">coords</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">COO</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.special</span><span class="w"> </span><span class="kn">import</span> <span class="n">factorial</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">collections</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+
+<div class="viewcode-block" id="COSILike">
+<a class="viewcode-back" href="../../../api/threeml.html#cosipy.threeml.COSILike">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">COSILike</span><span class="p">(</span><span class="n">PluginPrototype</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    COSI 3ML plugin.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : str</span>
+<span class="sd">        Plugin name e.g. &quot;cosi&quot;. Needs to have a distinct name with respect to other plugins in the same analysis</span>
+<span class="sd">    dr : str</span>
+<span class="sd">        Path to full detector response</span>
+<span class="sd">    data : histpy.Histogram</span>
+<span class="sd">        Binned data. Note: Eventually this should be a cosipy data class</span>
+<span class="sd">    bkg : histpy.Histogram</span>
+<span class="sd">        Binned background model. Note: Eventually this should be a cosipy data class</span>
+<span class="sd">    sc_orientation : cosipy.spacecraftfile.SpacecraftFile</span>
+<span class="sd">        Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe</span>
+<span class="sd">        the spacecraft for the duration of the data included in the analysis</span>
+<span class="sd">    nuisance_param : astromodels.core.parameter.Parameter, optional</span>
+<span class="sd">        Background parameter</span>
+<span class="sd">    coordsys : str, optional</span>
+<span class="sd">        Coordinate system (&#39;galactic&#39; or &#39;spacecraftframe&#39;) to perform fit in, which should match coordinate system of data </span>
+<span class="sd">        and background. This only needs to be specified if the binned data and background do not have a coordinate system </span>
+<span class="sd">        attached to them</span>
+<span class="sd">    precomputed_psr_file : str, optional</span>
+<span class="sd">        Full path to precomputed point source response in Galactic coordinates</span>
+<span class="sd">    earth_occ : bool, optional</span>
+<span class="sd">        Option to include Earth occultation in fit (default is True).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dr</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">sc_orientation</span><span class="p">,</span> 
+                 <span class="n">nuisance_param</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">coordsys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">precomputed_psr_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">earth_occ</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        
+        <span class="c1"># create the hash for the nuisance parameters. We have none for now.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nuisance_parameters</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+
+        <span class="c1"># call the prototype constructor. Boilerplate.</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">COSILike</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nuisance_parameters</span><span class="p">)</span>
+
+        <span class="c1"># User inputs needed to compute the likelihood</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rsp_path</span> <span class="o">=</span> <span class="n">dr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dr</span> <span class="o">=</span> <span class="n">FullDetectorResponse</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">dr</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bkg</span> <span class="o">=</span> <span class="n">bkg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sc_orientation</span> <span class="o">=</span> <span class="n">sc_orientation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">earth_occ</span> <span class="o">=</span> <span class="n">earth_occ</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;PsiChi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coordsys</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">bkg</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;PsiChi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coordsys</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Data is binned in &quot;</span> <span class="o">+</span> <span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;PsiChi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coordsys</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; and background is binned in &quot;</span> 
+                                   <span class="o">+</span> <span class="n">bkg</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;PsiChi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coordsys</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;. They should be binned in the same coordinate system.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;PsiChi&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">coordsys</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">coordsys</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There is no coordinate system attached to the binned data. One must be provided by &quot;</span> 
+                                   <span class="sa">f</span><span class="s2">&quot;specifiying coordsys=&#39;galactic&#39; or &#39;spacecraftframe&#39;&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys</span> <span class="o">=</span> <span class="n">coordsys</span>
+            
+        <span class="c1"># Place-holder for cached data.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_source</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_psr</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_expected_counts</span> <span class="o">=</span> <span class="kc">None</span> 
+
+        <span class="c1"># Set to fit nuisance parameter if given by user</span>
+        <span class="k">if</span> <span class="n">nuisance_param</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_inner_minimization</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nuisance_param</span><span class="p">,</span> <span class="n">Parameter</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_inner_minimization</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_par</span> <span class="o">=</span> <span class="n">nuisance_param</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_nuisance_parameters</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_bkg_par</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_par</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_nuisance_parameters</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_bkg_par</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">free</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fit_nuisance_params</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Nuisance parameter must be astromodels.core.parameter.Parameter object&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Option to use precomputed point source response.</span>
+        <span class="c1"># Note: this still needs to be implemented in a </span>
+        <span class="c1"># consistent way for point srcs and extended srcs. </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">precomputed_psr_file</span> <span class="o">=</span> <span class="n">precomputed_psr_file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">precomputed_psr_file</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... loading the pre-computed image response ...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">image_response</span> <span class="o">=</span> <span class="n">ExtendedSourceResponse</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">precomputed_psr_file</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;--&gt; done&quot;</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="COSILike.set_model">
+<a class="viewcode-back" href="../../../api/threeml.html#cosipy.threeml.COSILike.set_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the model to be used in the joint minimization.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : astromodels.core.model.Model</span>
+<span class="sd">            Any model supported by astromodels</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Temporary fix to only print log-likelihood warning once max per fit</span>
+        <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;_assign_model_to_data&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_printed_warning</span> <span class="o">=</span> <span class="kc">False</span>
+    
+        <span class="c1"># Get point sources and extended sources from model: </span>
+        <span class="n">point_sources</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">point_sources</span>
+        <span class="n">extended_sources</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">extended_sources</span>
+        
+        <span class="c1"># Source counter for models with multiple sources:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">src_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="c1"># Get expectation for extended sources:</span>
+        
+        <span class="c1"># Save expected counts for each source,</span>
+        <span class="c1"># in order to enable easy plotting after likelihood scan:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expected_counts</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_expected_counts</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span><span class="n">source</span> <span class="ow">in</span> <span class="n">extended_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="c1"># Set spectrum:</span>
+            <span class="c1"># Note: the spectral parameters are updated internally by 3ML</span>
+            <span class="c1"># during the likelihood scan. </span>
+
+            <span class="c1"># Get expectation using precomputed psr in Galactic coordinates:</span>
+            <span class="n">total_expectation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">image_response</span><span class="o">.</span><span class="n">get_expectation_from_astromodel</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+
+            <span class="c1"># Save expected counts for source:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_expected_counts</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">total_expectation</span><span class="p">)</span>
+
+            <span class="c1"># Need to check if self._signal type is dense (i.e. &#39;Quantity&#39;) or sparse (i.e. &#39;COO&#39;).</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">total_expectation</span><span class="o">.</span><span class="n">contents</span><span class="p">)</span> <span class="o">==</span> <span class="n">u</span><span class="o">.</span><span class="n">quantity</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+                <span class="n">total_expectation</span> <span class="o">=</span> <span class="n">total_expectation</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">value</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">total_expectation</span><span class="o">.</span><span class="n">contents</span><span class="p">)</span> <span class="o">==</span> <span class="n">COO</span><span class="p">:</span>
+                <span class="n">total_expectation</span> <span class="o">=</span> <span class="n">total_expectation</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span> 
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Expectation is an unknown object&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Add source to signal and update source counter:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_counter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">=</span> <span class="n">total_expectation</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_counter</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">+=</span> <span class="n">total_expectation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">src_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Initialization</span>
+        <span class="c1"># probably it is better that this part be outside of COSILike (HY).</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">point_sources</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psr</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">point_sources</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_psr</span><span class="p">):</span>
+
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;... Calculating point source responses ...&quot;</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_psr</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_source_location</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># Should the poition information be in the point source response? (HY)</span>
+
+                <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">point_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">coord</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">sky_coord</span>
+                
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_source_location</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span> <span class="c1"># to avoid same memory issue</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys</span> <span class="o">==</span> <span class="s1">&#39;spacecraftframe&#39;</span><span class="p">:</span>
+                        <span class="n">dwell_time_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_dwell_time_map</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_psr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dr</span><span class="o">.</span><span class="n">get_point_source_response</span><span class="p">(</span><span class="n">exposure_map</span><span class="o">=</span><span class="n">dwell_time_map</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys</span> <span class="o">==</span> <span class="s1">&#39;galactic&#39;</span><span class="p">:</span>
+                        <span class="n">scatt_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_scatt_map</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_psr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dr</span><span class="o">.</span><span class="n">get_point_source_response</span><span class="p">(</span><span class="n">coord</span><span class="o">=</span><span class="n">coord</span><span class="p">,</span> <span class="n">scatt_map</span><span class="o">=</span><span class="n">scatt_map</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Unknown coordinate system&quot;</span><span class="p">)</span>
+
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--&gt; done (source name : </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--&gt; all done&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># check if the source location is updated or not</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">point_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="k">if</span> <span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">sky_coord</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_location</span><span class="p">[</span><span class="n">name</span><span class="p">]:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;... Re-calculating the point source response of </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> ...&quot;</span><span class="p">)</span>
+                <span class="n">coord</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">sky_coord</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">_source_location</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span> <span class="c1"># to avoid same memory issue</span>
+                
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys</span> <span class="o">==</span> <span class="s1">&#39;spacecraftframe&#39;</span><span class="p">:</span>
+                    <span class="n">dwell_time_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_dwell_time_map</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_psr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dr</span><span class="o">.</span><span class="n">get_point_source_response</span><span class="p">(</span><span class="n">exposure_map</span><span class="o">=</span><span class="n">dwell_time_map</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys</span> <span class="o">==</span> <span class="s1">&#39;galactic&#39;</span><span class="p">:</span>
+                    <span class="n">scatt_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_scatt_map</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_psr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dr</span><span class="o">.</span><span class="n">get_point_source_response</span><span class="p">(</span><span class="n">coord</span><span class="o">=</span><span class="n">coord</span><span class="p">,</span> <span class="n">scatt_map</span><span class="o">=</span><span class="n">scatt_map</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Unknown coordinate system&quot;</span><span class="p">)</span>
+
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--&gt; done (source name : </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Get expectation for point sources:</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span><span class="n">source</span> <span class="ow">in</span> <span class="n">point_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+
+            <span class="c1"># Convolve with spectrum</span>
+            <span class="c1"># See also the Detector Response and Source Injector tutorials</span>
+            <span class="n">spectrum</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">spectrum</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">shape</span>
+
+            <span class="n">total_expectation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_psr</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">get_expectation</span><span class="p">(</span><span class="n">spectrum</span><span class="p">)</span>
+            
+            <span class="c1"># Save expected counts for source:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_expected_counts</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">total_expectation</span><span class="p">)</span>
+         
+            <span class="c1"># Need to check if self._signal type is dense (i.e. &#39;Quantity&#39;) or sparse (i.e. &#39;COO&#39;).</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">total_expectation</span><span class="o">.</span><span class="n">contents</span><span class="p">)</span> <span class="o">==</span> <span class="n">u</span><span class="o">.</span><span class="n">quantity</span><span class="o">.</span><span class="n">Quantity</span><span class="p">:</span>
+                <span class="n">total_expectation</span> <span class="o">=</span> <span class="n">total_expectation</span><span class="o">.</span><span class="n">project</span><span class="p">([</span><span class="s1">&#39;Em&#39;</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">,</span> <span class="s1">&#39;PsiChi&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">value</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">total_expectation</span><span class="o">.</span><span class="n">contents</span><span class="p">)</span> <span class="o">==</span> <span class="n">COO</span><span class="p">:</span>
+                <span class="n">total_expectation</span> <span class="o">=</span> <span class="n">total_expectation</span><span class="o">.</span><span class="n">project</span><span class="p">([</span><span class="s1">&#39;Em&#39;</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">,</span> <span class="s1">&#39;PsiChi&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span> 
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Expectation is an unknown object&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Add source to signal and update source counter:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_counter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">=</span> <span class="n">total_expectation</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_counter</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">+=</span> <span class="n">total_expectation</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">src_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># Cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">model</span></div>
+
+
+<div class="viewcode-block" id="COSILike.get_log_like">
+<a class="viewcode-back" href="../../../api/threeml.html#cosipy.threeml.COSILike.get_log_like">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_log_like</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the log-likelihood.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        ----------</span>
+<span class="sd">        log_like : float</span>
+<span class="sd">            Value of the log-likelihood</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Recompute the expectation if any parameter in the model changed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;You need to set the model first&quot;</span><span class="p">)</span>
+       
+        <span class="c1"># Set model:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
+        
+        <span class="c1"># Compute expectation including free background parameter:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fit_nuisance_params</span><span class="p">:</span> 
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bkg</span><span class="o">.</span><span class="n">contents</span><span class="p">)</span> <span class="o">==</span> <span class="n">COO</span><span class="p">:</span>
+                <span class="n">expectation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nuisance_parameters</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_bkg_par</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">expectation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nuisance_parameters</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_bkg_par</span><span class="o">.</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg</span><span class="o">.</span><span class="n">contents</span>
+        
+        <span class="c1"># Compute expectation without background parameter:</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bkg</span><span class="o">.</span><span class="n">contents</span><span class="p">)</span> <span class="o">==</span> <span class="n">COO</span><span class="p">:</span>
+                <span class="n">expectation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">todense</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">expectation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_signal</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg</span><span class="o">.</span><span class="n">contents</span>
+
+        <span class="n">expectation</span> <span class="o">+=</span> <span class="mf">1e-12</span> <span class="c1"># to avoid -infinite log-likelihood (occurs when expected counts = 0 but data != 0)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_printed_warning</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_printed_warning</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># This 1e-12 should be defined as a parameter in the near future (HY)</span>
+        
+        <span class="c1"># Convert data into an arrary:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="o">.</span><span class="n">contents</span>
+        
+        <span class="c1"># Compute the log-likelihood:</span>
+        <span class="n">log_like</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">data</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">expectation</span><span class="p">)</span> <span class="o">-</span> <span class="n">expectation</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">log_like</span></div>
+
+    
+<div class="viewcode-block" id="COSILike.inner_fit">
+<a class="viewcode-back" href="../../../api/threeml.html#cosipy.threeml.COSILike.inner_fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inner_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Required for 3ML fit.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_log_like</span><span class="p">()</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_dwell_time_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the dwell time map of the source in the inertial (spacecraft) frame.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coord : astropy.coordinates.SkyCoord</span>
+<span class="sd">            Coordinates of the target source</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dwell_time_map : mhealpy.containers.healpix_map.HealpixMap</span>
+<span class="sd">            Dwell time map</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sc_orientation</span><span class="o">.</span><span class="n">get_target_in_sc_frame</span><span class="p">(</span><span class="n">target_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="n">target_coord</span> <span class="o">=</span> <span class="n">coord</span><span class="p">)</span>
+        <span class="n">dwell_time_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sc_orientation</span><span class="o">.</span><span class="n">get_dwell_map</span><span class="p">(</span><span class="n">response</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rsp_path</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">dwell_time_map</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_scatt_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coord</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the spacecraft attitude map of the source in the inertial (spacecraft) frame.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coord : astropy.coordinates.SkyCoord</span>
+<span class="sd">            The coordinates of the target object.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        scatt_map : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">scatt_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sc_orientation</span><span class="o">.</span><span class="n">get_scatt_map</span><span class="p">(</span><span class="n">coord</span><span class="p">,</span> <span class="n">nside</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dr</span><span class="o">.</span><span class="n">nside</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> \
+                <span class="n">coordsys</span> <span class="o">=</span> <span class="s1">&#39;galactic&#39;</span><span class="p">,</span> <span class="n">earth_occ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">earth_occ</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">scatt_map</span>
+    
+<div class="viewcode-block" id="COSILike.set_inner_minimization">
+<a class="viewcode-back" href="../../../api/threeml.html#cosipy.threeml.COSILike.set_inner_minimization">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_inner_minimization</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Turn on the minimization of the internal COSI (nuisance) parameters.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        flag : bool</span>
+<span class="sd">            Turns on and off the minimization  of the internal parameters</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fit_nuisance_params</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nuisance_parameters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_nuisance_parameters</span><span class="p">[</span><span class="n">parameter</span><span class="p">]</span><span class="o">.</span><span class="n">free</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fit_nuisance_params</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

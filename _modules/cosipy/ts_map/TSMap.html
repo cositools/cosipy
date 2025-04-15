@@ -1,0 +1,485 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.ts_map.TSMap &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.ts_map.TSMap</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.ts_map.TSMap</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.threeml.COSILike</span><span class="w"> </span><span class="kn">import</span> <span class="n">COSILike</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">threeML</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataList</span><span class="p">,</span> <span class="n">Powerlaw</span><span class="p">,</span> <span class="n">PointSource</span><span class="p">,</span> <span class="n">Model</span><span class="p">,</span> <span class="n">JointLikelihood</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Histogram</span><span class="p">,</span> <span class="n">Axis</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">stats</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.io.fits</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">fits</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TSMap">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TSMap</span><span class="p">:</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the TS map of using `threeML` package.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">pass</span>
+    
+<div class="viewcode-block" id="TSMap.link_model_all_plugins">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.link_model_all_plugins">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">link_model_all_plugins</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dr</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">sc_orientation</span><span class="p">,</span> <span class="n">piv</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">other_plugins</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">ra</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">dec</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load the model and plugins</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dr : str</span>
+<span class="sd">            Path to full detector response.</span>
+<span class="sd">        data : histpy.Histogram</span>
+<span class="sd">            Binned data. Note: Eventually this should be a cosipy data class.</span>
+<span class="sd">        bkg : histpy.Histogram</span>
+<span class="sd">            Binned background model. Note: Eventually this should be a cosipy data class.</span>
+<span class="sd">        sc_orientation : cosipy.spacecraftfile.SpacecraftFile</span>
+<span class="sd">            Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe</span>
+<span class="sd">            the spacecraft for the duration of the data included in the analysis.</span>
+<span class="sd">        piv : float</span>
+<span class="sd">            The pivotal energy of the spectrum.</span>
+<span class="sd">        index : float</span>
+<span class="sd">            The index of the spectrum.</span>
+<span class="sd">        other_plugins : threeML.plugins, optional</span>
+<span class="sd">            The plugins from other instruments.</span>
+<span class="sd">        norm : int, optional</span>
+<span class="sd">            The norm of the spectrum model (the default is 1).</span>
+<span class="sd">        ra : float, optional</span>
+<span class="sd">            The RA of the source model (the default is 0).</span>
+<span class="sd">        dec : float, optional</span>
+<span class="sd">            The Dec of the source model (the default is 0).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># necessary inputs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dr</span>             <span class="o">=</span> <span class="n">dr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span>           <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bkg</span>            <span class="o">=</span> <span class="n">bkg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sc_orientation</span> <span class="o">=</span> <span class="n">sc_orientation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">piv</span>            <span class="o">=</span> <span class="n">piv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span>          <span class="o">=</span> <span class="n">index</span>
+        
+        <span class="c1"># optional inputs (have default value)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">other_plugins</span>  <span class="o">=</span> <span class="n">other_plugins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">norm</span>           <span class="o">=</span> <span class="n">norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ra</span>             <span class="o">=</span> <span class="n">ra</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dec</span>            <span class="o">=</span> <span class="n">dec</span>
+        
+        <span class="c1"># instantiate plugin by dr, data, bkg and sc_orientation</span>
+        <span class="c1"># only COSI plugin for now</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">instantiate_plugin</span><span class="p">()</span>
+        
+        <span class="c1"># gather all plugins </span>
+        <span class="c1"># only COSI plugin for now</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gather_all_plugins</span><span class="p">()</span>
+        
+        <span class="c1"># create model by Powerlaw and PointSource </span>
+        <span class="c1"># Powerlaw needs norm (free parameter), piv and index (free parameter)</span>
+        <span class="c1"># PointSource needs ra and dec</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">create_model</span><span class="p">()</span>
+        
+        <span class="c1"># fix index in further 3ML fitting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fix_index</span><span class="p">()</span>
+        
+        <span class="c1"># put model and all plugins together</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">like</span> <span class="o">=</span> <span class="n">JointLikelihood</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_plugins</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="TSMap.instantiate_plugin">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.instantiate_plugin">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">instantiate_plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Instantiate the likelihood plugin.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">other_plugins</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cosi_plugin</span> <span class="o">=</span> <span class="n">COSILike</span><span class="p">(</span><span class="s2">&quot;cosi&quot;</span><span class="p">,</span>
+                                        <span class="n">dr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dr</span><span class="p">,</span>
+                                        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> 
+                                        <span class="n">bkg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bkg</span><span class="p">,</span> 
+                                        <span class="n">sc_orientation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">sc_orientation</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Only COSI plugin for now&quot;</span><span class="p">)</span></div>
+
+            
+<div class="viewcode-block" id="TSMap.gather_all_plugins">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.gather_all_plugins">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">gather_all_plugins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gather all the plugins togather into a DataList.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">other_plugins</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">all_plugins</span> <span class="o">=</span> <span class="n">DataList</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_plugin</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Only COSI plugin for now&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="TSMap.create_model">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.create_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create the source model.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        astromodels.core.model.Model</span>
+<span class="sd">            The source model.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span> <span class="o">=</span> <span class="n">Powerlaw</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span><span class="o">.</span><span class="n">K</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span> <span class="c1"># 1/keV/cm2/s</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span><span class="o">.</span><span class="n">piv</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">piv</span> <span class="c1"># keV</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">PointSource</span><span class="p">(</span><span class="s2">&quot;source&quot;</span><span class="p">,</span> <span class="c1"># The name of the source is arbitrary, but needs to be unique</span>
+                                  <span class="n">ra</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ra</span><span class="p">,</span> 
+                                  <span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span>
+                                  <span class="n">spectral_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="TSMap.fix_index">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.fix_index">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">fix_index</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the index of the source spectrum.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">spectrum</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">Powerlaw</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">fix</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+    
+<div class="viewcode-block" id="TSMap.ts_fitting">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.ts_fitting">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ts_fitting</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Peform the ts fitting.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># collect ts_grid_data, ts_grid_bkg and calculate_ts because sometime we may want to skip fiiting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_grid_data</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_grid_bkg</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate_ts</span><span class="p">()</span></div>
+
+        
+    <span class="c1"># iterate ra and dec to find the best fit of data (time consuming)</span>
+<div class="viewcode-block" id="TSMap.ts_grid_data">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.ts_grid_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ts_grid_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform the ts fitting using the data on the different pixels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># using rad due to mollweide projection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ra_range</span>  <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>  <span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>  <span class="p">)</span> <span class="c1"># rad</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dec_range</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">)</span> <span class="c1"># rad</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_like</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">Axis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">ra_range</span> <span class="p">,</span> <span class="mi">50</span><span class="p">),</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;ra&quot;</span> <span class="p">),</span> 
+             <span class="n">Axis</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">dec_range</span><span class="p">,</span> <span class="mi">25</span><span class="p">),</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;dec&quot;</span><span class="p">),]</span>
+        <span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_like</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_like</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
+        
+                <span class="c1"># progress</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\r</span><span class="s2">ra = </span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">log_like</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="si">}</span><span class="s2">   &quot;</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dec = </span><span class="si">{</span><span class="n">j</span><span class="si">:</span><span class="s2">2d</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">log_like</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="si">}</span><span class="s2">   &quot;</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        
+                <span class="c1"># changing the position parameters</span>
+                <span class="c1"># converting rad to deg due to ra and dec in 3ML PointSource</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_like</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">ra</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_like</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c1"># deg</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">ra</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_like</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c1"># deg</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_like</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c1"># deg</span>
+                
+                <span class="c1"># maximum likelihood</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">like</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                
+                <span class="c1"># converting the min (- log likelihood) from 3ML to the max log likelihood for TS </span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log_like</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">like</span><span class="o">.</span><span class="n">_current_minimum</span> </div>
+
+        
+    <span class="c1"># iterate ra and dec to find the best fit of bkg</span>
+    <span class="c1"># only see it as constant for now</span>
+    <span class="c1"># set the normalization to 0, that is, background-only null-hypothesis</span>
+<div class="viewcode-block" id="TSMap.ts_grid_bkg">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.ts_grid_bkg">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ts_grid_bkg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform the ts fitting using the background on the different pixels.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># spectrum.K.value need to be 1e-10 otherwise you will have a migrad error</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span><span class="o">.</span><span class="n">K</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="mf">1e-10</span>
+        
+        <span class="c1"># maximum likelihood</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">like</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">quiet</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># converting the min (- log likelihood) from 3ML to the max log likelihood for TS </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_like0</span> <span class="o">=</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">like</span><span class="o">.</span><span class="n">_current_minimum</span> </div>
+
+        
+    <span class="c1"># calculate TS by ts_grid_data and ts_grid_bkg</span>
+<div class="viewcode-block" id="TSMap.calculate_ts">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.calculate_ts">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the TS by the TS of data and background.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_like</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_like0</span><span class="p">)</span>
+
+        <span class="c1"># getting the maximum</span>
+        <span class="c1"># note that, in our case, since log_like0 is a constant, max(TS) = 2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">argmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">]</span></div>
+
+        
+<div class="viewcode-block" id="TSMap.print_best_fit">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.print_best_fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">print_best_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Print the best fit location.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># report the best fit position</span>
+        <span class="c1"># converting rad to deg due to ra and dec in 3ML PointSource</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">best_ra</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c1"># deg</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">best_ra</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c1"># deg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">best_dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c1"># deg</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best fit position: RA = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">best_ra</span><span class="si">}</span><span class="s2"> deg, Dec = </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">best_dec</span><span class="si">}</span><span class="s2"> deg&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># convert to significance based on Wilk&#39;s theorem</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected significance: </span><span class="si">{</span><span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">isf</span><span class="p">(</span><span class="n">stats</span><span class="o">.</span><span class="n">chi2</span><span class="o">.</span><span class="n">sf</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ts_max</span><span class="p">,</span><span class="w"> </span><span class="n">df</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">))</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> sigma&quot;</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="TSMap.save_ts">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.save_ts">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_file_name</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Save the TS map.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_file_name : str</span>
+<span class="sd">            The path to save the ts map.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># save TS to .h5 file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">output_file_name</span><span class="p">,</span> <span class="n">overwrite</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="TSMap.load_ts">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.load_ts">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_ts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_file_name</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load a ts map from file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_file_name : str</span>
+<span class="sd">            The path to the saved TS map file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># load .h5 file to TS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts</span> <span class="o">=</span> <span class="n">Histogram</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_file_name</span><span class="p">)</span>
+        
+        <span class="c1"># getting the maximum</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">argmax</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unravel_index</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ts_max</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">]</span></div>
+
+    
+    <span class="c1"># refit the best fit to check norm</span>
+<div class="viewcode-block" id="TSMap.refit_best_fit">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.refit_best_fit">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">refit_best_fit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Refit the best fit to check norm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># reset self.spectrum.K.value to self.norm (big initial value)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spectrum</span><span class="o">.</span><span class="n">K</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span>
+        
+        <span class="c1"># converting rad to deg due to RA and Dec in 3ML PointSource</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">ra</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c1"># deg</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">ra</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c1"># deg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">*</span> <span class="p">(</span><span class="mi">180</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="c1"># deg</span>
+    
+        <span class="c1"># maximum likelihood</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">like</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+    
+        <span class="c1"># display the best fit result </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">like</span><span class="o">.</span><span class="n">results</span><span class="o">.</span><span class="n">display</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TSMap.plot_ts_map">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.TSMap.plot_ts_map">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">plot_ts_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the TS map.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">subplot_kw</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;projection&#39;</span><span class="p">:</span> <span class="s1">&#39;mollweide&#39;</span><span class="p">},</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">120</span><span class="p">)</span>
+        
+        <span class="n">_</span><span class="p">,</span><span class="n">plot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">vmin</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">colorbar</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">0</span><span class="p">]]],[</span><span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">argmax</span><span class="p">[</span><span class="mi">1</span><span class="p">]]],</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Max TS&quot;</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        
+        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">([</span><span class="mi">20</span><span class="o">/</span><span class="mi">180</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">],[</span><span class="mi">40</span><span class="o">/</span><span class="mi">180</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">],</span> <span class="n">marker</span> <span class="o">=</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Injected&quot;</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        
+        <span class="c1"># here we also use Wilk&#39;s theorem to find the DeltaTS that corresponse to a 90% containment confidence</span>
+        <span class="n">ts_thresh</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts_max</span> <span class="o">-</span> <span class="n">stats</span><span class="o">.</span><span class="n">chi2</span><span class="o">.</span><span class="n">isf</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="mf">.9</span><span class="p">,</span> <span class="n">df</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">contours</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">contour</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;ra&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">,</span> 
+                              <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;dec&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">centers</span><span class="p">,</span> 
+                              <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">transpose</span><span class="p">(),</span> 
+                              <span class="p">[</span><span class="n">ts_thresh</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">contours</span><span class="o">.</span><span class="n">collections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;90</span><span class="si">% c</span><span class="s2">ont.&quot;</span><span class="p">)</span>
+        
+        <span class="n">cbar</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">plot</span><span class="p">)</span>
+        <span class="n">cbar</span><span class="o">.</span><span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;TS&quot;</span><span class="p">)</span>
+        
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;R.A.&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">);</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Dec.&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">);</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">tick_params</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="s1">&#39;White&#39;</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span></div>
+</div>
+
+        
+    
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

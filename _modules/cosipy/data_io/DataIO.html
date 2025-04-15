@@ -1,0 +1,150 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.data_io.DataIO &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.data_io.DataIO</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.data_io.DataIO</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Imports:</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cosipy.data_io</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">yayc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configurator</span>
+
+<div class="viewcode-block" id="DataIO">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.DataIO">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataIO</span><span class="p">:</span>
+
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handles main inputs and outputs.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_yaml</span><span class="p">,</span> <span class="n">pw</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_yaml : yaml file</span>
+<span class="sd">            Input yaml file containing all needed inputs for analysis.</span>
+<span class="sd">    </span>
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The main inputs must currently be passed with the yaml file.</span>
+<span class="sd">        The parameter configurator will be updated in the near future,</span>
+<span class="sd">        to allow for much more flexibility. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Data I/O:</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">Configurator</span><span class="p">()</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_yaml</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_file</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;data_file&#39;</span><span class="p">]</span> <span class="c1"># Full path to input data file.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ori_file</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;ori_file&#39;</span><span class="p">]</span> <span class="c1"># Full path to ori file. </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unbinned_output</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;unbinned_output&#39;</span><span class="p">]</span> <span class="c1"># fits or hdf5</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_bins</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;time_bins&#39;</span><span class="p">]</span> <span class="c1"># Time bin size in seconds. Takes int, float, or list of bin edges.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">energy_bins</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;energy_bins&#39;</span><span class="p">]</span> <span class="c1"># Needs to match response. Takes list. </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phi_pix_size</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;phi_pix_size&#39;</span><span class="p">]</span> <span class="c1"># Binning of Compton scattering angle [deg]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nside</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;nside&#39;</span><span class="p">]</span> <span class="c1"># Healpix binning of psi chi local</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">scheme</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;scheme&#39;</span><span class="p">]</span> <span class="c1"># Healpix binning of psi chi local</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tmin</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;tmin&#39;</span><span class="p">]</span> <span class="c1"># Min time in seconds. </span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tmax</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="s1">&#39;tmax&#39;</span><span class="p">]</span> <span class="c1"># Max time in seconds. </span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

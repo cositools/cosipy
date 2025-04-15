@@ -1,0 +1,1019 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.data_io.UnBinnedData &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.data_io.UnBinnedData</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.data_io.UnBinnedData</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Imports:</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.table</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.io</span><span class="w"> </span><span class="kn">import</span> <span class="n">fits</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">interpolate</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cosipy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.data_io</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataIO</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.spacecraftfile</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpacecraftFile</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gzip</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.coordinates</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">astro_co</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">astropy.coordinates</span><span class="w"> </span><span class="kn">import</span> <span class="n">SkyCoord</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scoords</span><span class="w"> </span><span class="kn">import</span> <span class="n">Attitude</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scoords</span><span class="w"> </span><span class="kn">import</span> <span class="n">SpacecraftFrame</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="UnBinnedData">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">UnBinnedData</span><span class="p">(</span><span class="n">DataIO</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handles unbinned data.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="UnBinnedData.read_tra">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.read_tra">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_tra</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">run_test</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">use_ori</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">event_min</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">event_max</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reads MEGAlib .tra (or .tra.gz) file and creates cosi datset.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_name : str, optional</span>
+<span class="sd">            Prefix of output file (default is None, in which case no </span>
+<span class="sd">            output is written). </span>
+<span class="sd">        run_test : bool, optional </span>
+<span class="sd">            This is for unit testing only! Keep False unless </span>
+<span class="sd">            comparing to MEGAlib calculations. </span>
+<span class="sd">        use_ori : bool, optional</span>
+<span class="sd">            Option to get pointing information from the orientation </span>
+<span class="sd">            file, based on event time-stamps (default is False, in </span>
+<span class="sd">            which case the pointing information comes from the event </span>
+<span class="sd">            file itself). Note: this is an option for now, but will </span>
+<span class="sd">            later be the default. </span>
+<span class="sd">        event_min : int, optional</span>
+<span class="sd">            Minimum event number to process (inclusive). All events </span>
+<span class="sd">            below this will be skipped.        </span>
+<span class="sd">        event_max : int, optional</span>
+<span class="sd">            Maximum event number to process (non-inclusive). All </span>
+<span class="sd">            events at and above this will be skipped. </span>
+<span class="sd">            </span>
+<span class="sd">            Note: event_min and event_max correspond to the total </span>
+<span class="sd">            number of events in the file, which is not necessarily the </span>
+<span class="sd">            same as the event ID number. The purpose of this is to </span>
+<span class="sd">            allow the data to be read in chunks, in order to overcome </span>
+<span class="sd">            memory limitations, depending on the user&#39;s system.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        cosi_dataset, dict</span>
+<span class="sd">            The returned dictionary contains the COSI dataset, which</span>
+<span class="sd">            has the form:</span>
+<span class="sd">            cosi_dataset = {&#39;Energies&#39;:erg,\</span>
+<span class="sd">                        &#39;TimeTags&#39;:tt,\</span>
+<span class="sd">                        &#39;Xpointings&#39;:np.array([lonX,latX]).T,\</span>
+<span class="sd">                        &#39;Ypointings&#39;:np.array([lonY,latY]).T,\</span>
+<span class="sd">                        &#39;Zpointings&#39;:np.array([lonZ,latZ]).T,\</span>
+<span class="sd">                        &#39;Phi&#39;:phi,\</span>
+<span class="sd">                        &#39;Chi local&#39;:chi_loc,\</span>
+<span class="sd">                        &#39;Psi local&#39;:psi_loc,\</span>
+<span class="sd">                        &#39;Distance&#39;:dist,\</span>
+<span class="sd">                        &#39;Chi galactic&#39;:chi_gal,\</span>
+<span class="sd">                        &#39;Psi galactic&#39;:psi_gal}\</span>
+<span class="sd">            Arrays contain unbinned photon data. </span>
+<span class="sd">        </span>
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The current code is only able to handle data with Compton </span>
+<span class="sd">        events. It will need to be modified to handle single-site </span>
+<span class="sd">        and pair events. </span>
+
+<span class="sd">        This method sets the instance attribute, cosi_dataset, </span>
+<span class="sd">        but it does not explicitly return this.  </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+   
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="c1"># Initialise empty lists:</span>
+            
+        <span class="c1"># Total photon energy</span>
+        <span class="n">erg</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Time tag in UNIX time</span>
+        <span class="n">tt</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Event Type (CE or PE)</span>
+        <span class="n">et</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Galactic latitude of X direction of spacecraft</span>
+        <span class="n">latX</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Galactic lontitude of X direction of spacecraft</span>
+        <span class="n">lonX</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Galactic latitude of Z direction of spacecraft</span>
+        <span class="n">latZ</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Galactic longitude of Z direction of spacecraft</span>
+        <span class="n">lonZ</span> <span class="o">=</span> <span class="p">[]</span> 
+        <span class="c1"># Compton scattering angle</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Measured data space angle chi (azimuth direction; 0..360 deg)</span>
+        <span class="n">chi_loc</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Measured data space angle psi (polar direction; 0..180 deg)</span>
+        <span class="n">psi_loc</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Measured gal angle chi (lon direction)</span>
+        <span class="n">chi_gal</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Measured gal angle psi (lat direction)</span>
+        <span class="n">psi_gal</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Components of dg (position vector from 1st interaion to 2nd)</span>
+        <span class="n">dg_x</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dg_y</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">dg_z</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Define electron rest energy, which is used in calculation</span>
+        <span class="c1"># of Compton scattering angle.</span>
+        <span class="n">c_E0</span> <span class="o">=</span> <span class="mf">510.9989500015</span> <span class="c1"># keV</span>
+
+        <span class="c1"># This is for unit testing purposes only.</span>
+        <span class="c1"># Use same value as MEGAlib for direct comparison: </span>
+        <span class="k">if</span> <span class="n">run_test</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">c_E0</span> <span class="o">=</span> <span class="mf">510.999</span>
+    
+        <span class="c1"># Event tracker:</span>
+        <span class="n">new_event</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Preparing to read file...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Open .tra.gz file:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.gz&quot;</span><span class="p">):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="p">,</span><span class="s2">&quot;rt&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Need to get number of lines for progress bar.</span>
+            <span class="c1"># First try fast method for unix-based systems:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">proc</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="s1">&#39;gunzip -c </span><span class="si">%s</span><span class="s1"> | wc -l&#39;</span> <span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="p">,</span> \
+                        <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+                <span class="n">num_lines</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">proc</span><span class="o">.</span><span class="n">communicate</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c1"># If fast method fails, use long method, which should work in all cases.</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initial attempt failed.&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using long method...&quot;</span><span class="p">)</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="p">,</span><span class="s2">&quot;rt&quot;</span><span class="p">)</span>
+                <span class="n">num_lines</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">g</span><span class="p">)</span>
+                <span class="n">g</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+        <span class="c1"># Open .tra file:</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.tra&quot;</span><span class="p">):</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">proc</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span><span class="s1">&#39;wc -l &lt; </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span><span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="p">,</span> \
+                        <span class="n">shell</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">stdout</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">)</span>
+                <span class="n">num_lines</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">proc</span><span class="o">.</span><span class="n">communicate</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+                
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initial attempt failed.&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using long method...&quot;</span><span class="p">)</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_file</span><span class="p">,</span><span class="s2">&quot;rt&quot;</span><span class="p">)</span>
+                <span class="n">num_lines</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">g</span><span class="p">)</span>
+                <span class="n">g</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;ERROR: Input data file must have &#39;.tra&#39; or &#39;.gz&#39; extenstion.&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">()</span>
+        
+        
+        <span class="c1"># Read tra file line by line:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Reading file...&quot;</span><span class="p">)</span>
+        <span class="n">N_events</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># number of events</span>
+        <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="n">num_lines</span><span class="p">)</span> <span class="c1"># start progress bar</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+         
+            <span class="n">this_line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="c1"># update progress bar</span>
+
+            <span class="c1"># Make sure line isn&#39;t empty:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">this_line</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="c1"># New event:</span>
+            <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;SE&quot;</span><span class="p">:</span>
+                
+                <span class="c1"># Check if there was a problem with last event:</span>
+                <span class="c1"># Note: Currently only checking for two detector hits.</span>
+                <span class="k">if</span> <span class="n">new_event</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;bad_event: no second hit info&quot;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;bad event ID: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">this_id</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;bad event number: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">N_events</span><span class="p">))</span>
+
+                    <span class="c1"># remove bad photon info:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">N_events</span> <span class="o">=</span> <span class="n">N_events</span> <span class="o">-</span> <span class="mi">1</span>
+                        <span class="n">et</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                        <span class="n">erg</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                        <span class="n">phi</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                        <span class="n">tt</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                        <span class="c1"># Not all sims include ori info,</span>
+                        <span class="c1"># so also need to check before pop:</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">lonX</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">lonX</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                            <span class="n">latX</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                            <span class="n">lonZ</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                            <span class="n">latZ</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+                <span class="c1"># reset event tracker:</span>
+                <span class="n">new_event</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="c1"># Event type: </span>
+            <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ET&quot;</span><span class="p">:</span>
+                <span class="c1"># Check that we are looking at CO events</span>
+                <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;CO&quot;</span><span class="p">:</span>
+                    <span class="n">et</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span> 
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: Expected CO event, but got &#39;</span><span class="si">{</span><span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Count the number of events:</span>
+            <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;ID&quot;</span><span class="p">:</span>
+                <span class="n">N_events</span> <span class="o">+=</span> <span class="mi">1</span>
+                
+                <span class="c1"># track id:</span>
+                <span class="n">this_id</span> <span class="o">=</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            
+            <span class="c1"># Option to only parse a subset of events:</span>
+            <span class="k">if</span> <span class="n">event_min</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">N_events</span> <span class="o">&lt;</span> <span class="n">event_min</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">event_max</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">N_events</span> <span class="o">&gt;=</span> <span class="n">event_max</span><span class="p">:</span>
+                    <span class="n">pbar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopping here: only reading a subset of events&quot;</span><span class="p">)</span>
+                    <span class="k">break</span>
+
+            <span class="c1"># Total photon energy and Compton angle: </span>
+            <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;CE&quot;</span><span class="p">:</span>
+
+                <span class="c1"># Compute the total photon energy:</span>
+                <span class="n">m_Eg</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="c1"># Energy of scattered gamma ray in keV</span>
+                <span class="n">m_Ee</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span> <span class="c1"># Energy of recoil electron in keV</span>
+                <span class="n">this_erg</span> <span class="o">=</span> <span class="n">m_Eg</span> <span class="o">+</span> <span class="n">m_Ee</span>
+                <span class="n">erg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_erg</span><span class="p">)</span> 
+             
+                <span class="c1"># Compute the Compton scatter angle due to the standard equation,</span>
+                <span class="c1"># i.e. neglect the movement of the electron,</span>
+                <span class="c1"># which would lead to a Doppler-broadening.</span>
+                <span class="n">this_value</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">c_E0</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">m_Eg</span> <span class="o">-</span> <span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="n">m_Ee</span> <span class="o">+</span> <span class="n">m_Eg</span><span class="p">))</span>
+                <span class="n">this_phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arccos</span><span class="p">(</span><span class="n">this_value</span><span class="p">)</span> <span class="c1"># radians</span>
+                <span class="n">phi</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_phi</span><span class="p">)</span>
+                
+            <span class="c1"># Time tag in Unix time (seconds):</span>
+            <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;TI&quot;</span><span class="p">:</span>
+                <span class="n">tt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                
+            <span class="c1"># X axis of detector orientation in Galactic coordinates:</span>
+            <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GX&quot;</span><span class="p">:</span>
+                <span class="n">this_lonX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="c1"># radians</span>
+                <span class="n">this_latX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span> <span class="c1"># radians</span>
+                <span class="n">lonX</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_lonX</span><span class="p">)</span>
+                <span class="n">latX</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_latX</span><span class="p">)</span>
+            
+            <span class="c1"># Z axis of detector orientation in Galactic coordinates:</span>
+            <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;GZ&quot;</span><span class="p">:</span>
+                <span class="n">this_lonZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span> <span class="c1"># radians</span>
+                <span class="n">this_latZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span> <span class="c1"># radians</span>
+                <span class="n">lonZ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_lonZ</span><span class="p">)</span>
+                <span class="n">latZ</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">this_latZ</span><span class="p">)</span>
+            
+            <span class="c1"># Interaction position information: </span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;CH&quot;</span><span class="p">):</span>
+                
+                <span class="c1"># First interaction:</span>
+                <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span><span class="p">:</span>
+                    <span class="n">v1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>\
+                            <span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span><span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">4</span><span class="p">])))</span>
+                
+                <span class="c1"># Second interaction:</span>
+                <span class="k">if</span> <span class="n">this_line</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;1&quot;</span><span class="p">:</span>
+                    <span class="n">v2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">((</span><span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span>
+                        <span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">this_line</span><span class="p">[</span><span class="mi">4</span><span class="p">])))</span>
+                
+                    <span class="c1"># Compute position vector between first two interactions:</span>
+                    <span class="n">dg</span> <span class="o">=</span> <span class="n">v1</span> <span class="o">-</span> <span class="n">v2</span>
+                    <span class="n">dg_x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dg</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">dg_y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dg</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">dg_z</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dg</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    
+                    <span class="c1"># reset event</span>
+                    <span class="n">new_event</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Close progress bar:</span>
+        <span class="n">pbar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Making COSI data set...&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;total events to procecss: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">erg</span><span class="p">)))</span>
+
+        <span class="c1"># Clear unused memory:</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+        <span class="c1"># Initialize arrays:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initializing arrays...&quot;</span><span class="p">)</span>
+        <span class="n">erg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">erg</span><span class="p">)</span>
+        <span class="n">phi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">phi</span><span class="p">)</span>
+        <span class="n">tt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span>
+        <span class="n">et</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">et</span><span class="p">)</span>
+        <span class="n">lonX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lonX</span><span class="p">)</span>
+        <span class="n">latX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">latX</span><span class="p">)</span>
+        <span class="n">lonZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">lonZ</span><span class="p">)</span>
+        <span class="n">latZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">latZ</span><span class="p">)</span>
+        <span class="n">dg_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dg_x</span><span class="p">)</span>
+        <span class="n">dg_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dg_y</span><span class="p">)</span>
+        <span class="n">dg_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">dg_z</span><span class="p">)</span>
+ 
+        <span class="c1"># Check if the input data has pointing information, </span>
+        <span class="c1"># if not, set dummy values:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">use_ori</span> <span class="o">==</span> <span class="kc">False</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lonZ</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">):</span>
+             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;WARNING: No pointing information in input data and no ori file.&quot;</span><span class="p">)</span>
+             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Setting pointing to arbitrary location (Galactic center).&quot;</span><span class="p">)</span>
+             <span class="n">lonX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">tt</span><span class="p">))</span>
+             <span class="n">latX</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">tt</span><span class="p">))</span>
+             <span class="n">lonZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">tt</span><span class="p">))</span>
+             <span class="n">latZ</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">tt</span><span class="p">))</span>
+
+        <span class="c1"># Option to get X and Z pointing information from orientation file:</span>
+        <span class="k">if</span> <span class="n">use_ori</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">instrument_pointing</span><span class="p">()</span>
+            <span class="n">lonX</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xl_interp</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span>
+            <span class="n">latX</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xb_interp</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span>
+            <span class="n">lonZ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">zl_interp</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span>
+            <span class="n">latZ</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">zb_interp</span><span class="p">(</span><span class="n">tt</span><span class="p">)</span>
+
+        <span class="c1"># Convert dg vector from 3D cartesian coordinates </span>
+        <span class="c1"># to spherical polar coordinates, and then extract distance </span>
+        <span class="c1"># b/n first two interactions (in cm), psi (rad), and chi (rad).</span>
+        <span class="c1"># Note: the resulting angles are latitude/longitude (or elevation/azimuthal).</span>
+        <span class="n">conv</span> <span class="o">=</span> <span class="n">astro_co</span><span class="o">.</span><span class="n">cartesian_to_spherical</span><span class="p">(</span><span class="n">dg_x</span><span class="p">,</span> <span class="n">dg_y</span><span class="p">,</span> <span class="n">dg_z</span><span class="p">)</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="n">conv</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> 
+        <span class="n">psi_loc</span> <span class="o">=</span> <span class="n">conv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> 
+        <span class="n">chi_loc</span> <span class="o">=</span> <span class="n">conv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+
+        <span class="c1"># Calculate chi_gal and psi_gal from x,y,z coordinates of events:</span>
+         
+        <span class="n">xcoords</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">lonX</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">latX</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="s1">&#39;galactic&#39;</span><span class="p">)</span>
+        <span class="n">zcoords</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">lonZ</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">latZ</span><span class="o">*</span><span class="n">u</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="s1">&#39;galactic&#39;</span><span class="p">)</span>
+        <span class="n">attitude</span> <span class="o">=</span> <span class="n">Attitude</span><span class="o">.</span><span class="n">from_axes</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">xcoords</span><span class="p">,</span> <span class="n">z</span><span class="o">=</span><span class="n">zcoords</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="s1">&#39;galactic&#39;</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">SkyCoord</span><span class="p">(</span><span class="n">dg_x</span><span class="p">,</span> <span class="n">dg_y</span><span class="p">,</span> <span class="n">dg_z</span><span class="p">,</span> \
+            <span class="n">representation_type</span><span class="o">=</span><span class="s1">&#39;cartesian&#39;</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="n">SpacecraftFrame</span><span class="p">(</span><span class="n">attitude</span> <span class="o">=</span> <span class="n">attitude</span><span class="p">))</span>   
+        <span class="n">c_rotated</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">transform_to</span><span class="p">(</span><span class="s1">&#39;galactic&#39;</span><span class="p">)</span>
+        <span class="n">chi_gal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">c_rotated</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+        <span class="n">psi_gal</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">c_rotated</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span>
+
+        <span class="c1"># Change longitudes from 0..360 deg to -180..180 deg</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">lonX</span><span class="p">[</span><span class="n">lonX</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+            <span class="n">lonZ</span><span class="p">[</span><span class="n">lonZ</span> <span class="o">&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Warning: No pointing info to rotate.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Construct Y direction from X and Z direction</span>
+        <span class="n">lonlatY</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">construct_scy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">lonX</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">latX</span><span class="p">),</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">lonZ</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">latZ</span><span class="p">))</span>
+        <span class="n">lonY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">lonlatY</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">latY</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">lonlatY</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    
+        <span class="c1"># Rotate psi_loc to colatitude, measured from positive z direction.</span>
+        <span class="c1"># This is requred for mhealpy input.</span>
+        <span class="n">psi_loc</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">psi_loc</span> 
+        
+        <span class="c1"># Define test values for psi and chi local;</span>
+        <span class="c1"># this is only for comparing to MEGAlib:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi_loc_test</span> <span class="o">=</span> <span class="n">psi_loc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi_loc_test</span> <span class="o">=</span> <span class="n">chi_loc</span>
+
+        <span class="c1"># Do the same for psi and chi galactic.</span>
+        <span class="c1"># First need to convert to radians:</span>
+        <span class="n">chi_gal_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">c_rotated</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+        <span class="n">psi_gal_rad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">c_rotated</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">rad</span><span class="p">)</span>
+        
+        <span class="c1"># Rotate psi_gal_rad to colatitude, measured from positive </span>
+        <span class="c1"># z direction:</span>
+        <span class="n">psi_gal_rad</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">psi_gal_rad</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">psi_gal_test</span> <span class="o">=</span> <span class="n">psi_gal_rad</span>
+        
+        <span class="c1"># Rotate chi_gal_test by pi, defined with respect to </span>
+        <span class="c1"># the negative x-axis:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">chi_gal_test</span> <span class="o">=</span> <span class="n">chi_gal_rad</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
+        
+        <span class="c1"># Make observation dictionary</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Making dictionary...&quot;</span><span class="p">)</span>
+        <span class="n">cosi_dataset</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Energies&#39;</span><span class="p">:</span><span class="n">erg</span><span class="p">,</span>
+                        <span class="s1">&#39;TimeTags&#39;</span><span class="p">:</span><span class="n">tt</span><span class="p">,</span>
+                        <span class="s1">&#39;Xpointings (glon,glat)&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lonX</span><span class="p">,</span><span class="n">latX</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                        <span class="s1">&#39;Ypointings (glon,glat)&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lonY</span><span class="p">,</span><span class="n">latY</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                        <span class="s1">&#39;Zpointings (glon,glat)&#39;</span><span class="p">:</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">lonZ</span><span class="p">,</span><span class="n">latZ</span><span class="p">])</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+                        <span class="s1">&#39;Phi&#39;</span><span class="p">:</span><span class="n">phi</span><span class="p">,</span>
+                        <span class="s1">&#39;Chi local&#39;</span><span class="p">:</span><span class="n">chi_loc</span><span class="p">,</span>
+                        <span class="s1">&#39;Psi local&#39;</span><span class="p">:</span><span class="n">psi_loc</span><span class="p">,</span>
+                        <span class="s1">&#39;Distance&#39;</span><span class="p">:</span><span class="n">dist</span><span class="p">,</span>
+                        <span class="s1">&#39;Chi galactic&#39;</span><span class="p">:</span><span class="n">chi_gal</span><span class="p">,</span>
+                        <span class="s1">&#39;Psi galactic&#39;</span><span class="p">:</span><span class="n">psi_gal</span><span class="p">}</span> 
+        <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span> <span class="o">=</span> <span class="n">cosi_dataset</span>
+
+        <span class="c1"># Option to write unbinned data to file (either fits or hdf5):</span>
+        <span class="k">if</span> <span class="n">output_name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving file...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_unbinned_output</span><span class="p">(</span><span class="n">output_name</span><span class="p">)</span> 
+        
+        <span class="c1"># Get processing time:</span>
+        <span class="n">end_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">processing_time</span> <span class="o">=</span> <span class="n">end_time</span> <span class="o">-</span> <span class="n">start_time</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;total processing time [s]: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">processing_time</span><span class="p">))</span>
+        
+        <span class="k">return</span> </div>
+
+
+<div class="viewcode-block" id="UnBinnedData.instrument_pointing">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.instrument_pointing">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">instrument_pointing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get pointing information from ori file.</span>
+<span class="sd">        </span>
+<span class="sd">        Initializes interpolated functions for lonx, latx, lonz, latz </span>
+<span class="sd">        in radians.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        xl_interp : scipy:interpolate:interp1d</span>
+<span class="sd">        xb_interp : scipy:interpolate:interp1d</span>
+<span class="sd">        zl_interp : scipy:interpolate:interp1d</span>
+<span class="sd">        zb_interp : scipy:interpolate:interp1d</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">            This method sets the instance attributes, </span>
+<span class="sd">            but it does not explicitly return them.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Get ori info:</span>
+        <span class="n">ori</span> <span class="o">=</span> <span class="n">SpacecraftFile</span><span class="o">.</span><span class="n">parse_from_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ori_file</span><span class="p">)</span>
+        <span class="n">time_tags</span> <span class="o">=</span> <span class="n">ori</span><span class="o">.</span><span class="n">_load_time</span>
+        <span class="n">x_pointings</span> <span class="o">=</span> <span class="n">ori</span><span class="o">.</span><span class="n">x_pointings</span>
+        <span class="n">z_pointings</span> <span class="o">=</span> <span class="n">ori</span><span class="o">.</span><span class="n">z_pointings</span>
+
+        <span class="c1"># Interpolate:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xl_interp</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">time_tags</span><span class="p">,</span> <span class="n">x_pointings</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xb_interp</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">time_tags</span><span class="p">,</span> <span class="n">x_pointings</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zl_interp</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">time_tags</span><span class="p">,</span> <span class="n">z_pointings</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zb_interp</span> <span class="o">=</span> <span class="n">interpolate</span><span class="o">.</span><span class="n">interp1d</span><span class="p">(</span><span class="n">time_tags</span><span class="p">,</span> <span class="n">z_pointings</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">rad</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">)</span>
+        
+        <span class="k">return</span> </div>
+
+
+<div class="viewcode-block" id="UnBinnedData.construct_scy">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.construct_scy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">construct_scy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scx_l</span><span class="p">,</span> <span class="n">scx_b</span><span class="p">,</span> <span class="n">scz_l</span><span class="p">,</span> <span class="n">scz_b</span><span class="p">):</span>
+<span class="w">    </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Construct y-coordinate of instrument pointing given x and z directions.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        scx_l : float</span>
+<span class="sd">            Longitude of x direction in degrees.</span>
+<span class="sd">        scx_b : float</span>
+<span class="sd">            Latitude of x direction in degrees.</span>
+<span class="sd">        scz_l : float</span>
+<span class="sd">            Longitude of z direction in degrees.</span>
+<span class="sd">        scz_b : float</span>
+<span class="sd">            Latitude of z direction in degrees.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ra : float</span>
+<span class="sd">            Right ascension (in degrees) for y-coordinate of instrument pointing.</span>
+<span class="sd">        dec : float</span>
+<span class="sd">            Declination (in degrees) for y-coordinate of instrument pointing.</span>
+
+<span class="sd">        Note</span>
+<span class="sd">        ----</span>
+<span class="sd">            Here, z is the optical axis.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">polar2cart</span><span class="p">(</span><span class="n">scx_l</span><span class="p">,</span> <span class="n">scx_b</span><span class="p">)</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">polar2cart</span><span class="p">(</span><span class="n">scz_l</span><span class="p">,</span> <span class="n">scz_b</span><span class="p">)</span>
+    
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cart2polar</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">z</span><span class="p">,</span><span class="n">x</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.polar2cart">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.polar2cart">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">polar2cart</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">):</span>
+<span class="w">    </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Coordinate transformation of ra/dec (lon/lat) [phi/theta] </span>
+<span class="sd">        polar/spherical coordinates into cartesian coordinates.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        ra : float</span>
+<span class="sd">            Right ascension in degrees. </span>
+<span class="sd">        dec: float</span>
+<span class="sd">            Declination in degrees. </span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        array</span>
+<span class="sd">            x, y, and z cartesian coordinates in radians.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">ra</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">dec</span><span class="p">))</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">ra</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">dec</span><span class="p">))</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">deg2rad</span><span class="p">(</span><span class="n">dec</span><span class="p">))</span>
+    
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.cart2polar">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.cart2polar">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cart2polar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vector</span><span class="p">):</span>
+<span class="w">    </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Coordinate transformation of cartesian x/y/z values into </span>
+<span class="sd">        spherical (deg).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        vector : vec</span>
+<span class="sd">            Vector of x/y/z values.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ra : float</span>
+<span class="sd">            Right ascension in degrees.</span>
+<span class="sd">        dec : float</span>
+<span class="sd">            Declination in degrees. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">ra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctan2</span><span class="p">(</span><span class="n">vector</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span><span class="n">vector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> 
+        <span class="n">dec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">(</span><span class="n">vector</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+    
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">ra</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">rad2deg</span><span class="p">(</span><span class="n">dec</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.write_unbinned_output">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.write_unbinned_output">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">write_unbinned_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_name</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Writes unbinned data file to either fits or hdf5.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        output_name : str </span>
+<span class="sd">            Name of output file. Only include prefix (not file type). </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Data units:</span>
+        <span class="n">units</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;keV&#39;</span><span class="p">,</span><span class="s1">&#39;s&#39;</span><span class="p">,</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;rad&#39;</span><span class="p">,</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span><span class="s1">&#39;rad&#39;</span><span class="p">,</span><span class="s1">&#39;cm&#39;</span><span class="p">,</span><span class="s1">&#39;deg&#39;</span><span class="p">,</span><span class="s1">&#39;deg&#39;</span><span class="p">]</span>
+            
+        <span class="c1"># For fits output: </span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unbinned_output</span> <span class="o">==</span> <span class="s1">&#39;fits&#39;</span><span class="p">:</span>
+            <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>\
+                    <span class="n">names</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> \
+                    <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> \
+                    <span class="n">meta</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;version&#39;</span><span class="p">:</span><span class="n">cosipy</span><span class="o">.</span><span class="n">__version__</span><span class="p">})</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">.fits&quot;</span> <span class="o">%</span><span class="n">output_name</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s1">&#39;gzip -f </span><span class="si">%s</span><span class="s1">.fits&#39;</span> <span class="o">%</span><span class="n">output_name</span><span class="p">)</span>
+
+        <span class="c1"># For hdf5 output:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unbinned_output</span> <span class="o">==</span> <span class="s1">&#39;hdf5&#39;</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.hdf5&#39;</span> <span class="o">%</span><span class="n">output_name</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">hf</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="n">dset</span> <span class="o">=</span> <span class="n">hf</span><span class="o">.</span><span class="n">create_dataset</span><span class="p">(</span><span class="n">each</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">each</span><span class="p">],</span> <span class="n">compression</span><span class="o">=</span><span class="s1">&#39;gzip&#39;</span><span class="p">)</span>        
+    
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.get_dict_from_fits">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.get_dict_from_fits">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_dict_from_fits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_fits</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructs dictionary from input fits file.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_fits : str</span>
+<span class="sd">            Name of input fits file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary constructed from input fits file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Initialize dictionary:</span>
+        <span class="n">this_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c1"># Fill dictionary from input fits file:</span>
+        <span class="n">hdu</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">input_fits</span><span class="p">,</span><span class="n">memmap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">hdu</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">columns</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">hdu</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)):</span>
+            
+            <span class="n">this_key</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">this_dict</span><span class="p">[</span><span class="n">this_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">this_key</span><span class="p">]</span>
+            
+            <span class="c1"># Clear unused memory:</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">this_dict</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.get_dict_from_hdf5">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.get_dict_from_hdf5">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_dict_from_hdf5</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_hdf5</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructs dictionary from input hdf5 file</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_hdf5 : str</span>
+<span class="sd">            Name of input hdf5 file. </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary constructed from input hdf5 file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Initialize dictionary:</span>
+        <span class="n">this_dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Fill dictionary from input h5fy file:</span>
+        <span class="n">hf</span> <span class="o">=</span> <span class="n">h5py</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">input_hdf5</span><span class="p">,</span><span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">hf</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">this_dict</span><span class="p">[</span><span class="n">each</span><span class="p">]</span> <span class="o">=</span> <span class="n">hf</span><span class="p">[</span><span class="n">each</span><span class="p">][:]</span>
+
+        <span class="k">return</span> <span class="n">this_dict</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.get_dict">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.get_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_file</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Constructs dictionary from input file.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_file : str</span>
+<span class="sd">            Name of input file. </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        dict</span>
+<span class="sd">            Dictionary constructed from input file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unbinned_output</span> <span class="o">==</span> <span class="s1">&#39;fits&#39;</span><span class="p">:</span>
+            <span class="n">this_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dict_from_fits</span><span class="p">(</span><span class="n">input_file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">unbinned_output</span> <span class="o">==</span> <span class="s1">&#39;hdf5&#39;</span><span class="p">:</span>
+            <span class="n">this_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dict_from_hdf5</span><span class="p">(</span><span class="n">input_file</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">this_dict</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.select_data_time">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.select_data_time">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">select_data_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unbinned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies time cuts to unbinnned data dictionary. </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        unbinned_data : str, optional</span>
+<span class="sd">            Name of unbinned dictionary file.</span>
+<span class="sd">        output_name : str, optional</span>
+<span class="sd">            Prefix of output file (default is None, in which case no </span>
+<span class="sd">            file is saved).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Making data selections...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Option to read in unbinned data file:</span>
+        <span class="k">if</span> <span class="n">unbinned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dict</span><span class="p">(</span><span class="n">unbinned_data</span><span class="p">)</span>
+
+        <span class="c1"># Get time cut index:</span>
+        <span class="n">time_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s2">&quot;TimeTags&quot;</span><span class="p">]</span>
+        <span class="n">time_cut_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">time_array</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tmin</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">time_array</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">tmax</span><span class="p">)</span>
+    
+        <span class="c1"># Apply cuts to dictionary:</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">time_cut_index</span><span class="p">]</span>
+
+        <span class="c1"># Write unbinned data to file (either fits or hdf5):</span>
+        <span class="k">if</span> <span class="n">output_name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving file...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_unbinned_output</span><span class="p">(</span><span class="n">output_name</span><span class="p">)</span>
+
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.select_data_energy">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.select_data_energy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">select_data_energy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emin</span><span class="p">,</span> <span class="n">emax</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unbinned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies energy cuts to unbinnned data dictionary. </span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        emin : float or int</span>
+<span class="sd">            Minimum energy in keV.</span>
+<span class="sd">        emax : float or int</span>
+<span class="sd">            Maximum energy in keV.</span>
+<span class="sd">        unbinned_data : str, optional</span>
+<span class="sd">            Name of unbinned dictionary file.</span>
+<span class="sd">        output_name : str, optional</span>
+<span class="sd">            Prefix of output file (default is None, in which case no </span>
+<span class="sd">            file is saved).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Making data selections on photon energy...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Option to read in unbinned data file:</span>
+        <span class="k">if</span> <span class="n">unbinned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dict</span><span class="p">(</span><span class="n">unbinned_data</span><span class="p">)</span>
+
+        <span class="c1"># Get energy cut index:</span>
+        <span class="n">energy_array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s2">&quot;Energies&quot;</span><span class="p">]</span>
+        <span class="n">energy_cut_index</span> <span class="o">=</span> <span class="p">(</span><span class="n">energy_array</span> <span class="o">&gt;=</span> <span class="n">emin</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">energy_array</span> <span class="o">&lt;</span> <span class="n">emax</span><span class="p">)</span>
+    
+        <span class="c1"># Apply cuts to dictionary:</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">energy_cut_index</span><span class="p">]</span>
+
+        <span class="c1"># Write unbinned data to file (either fits or hdf5):</span>
+        <span class="k">if</span> <span class="n">output_name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving file...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_unbinned_output</span><span class="p">(</span><span class="n">output_name</span><span class="p">)</span>
+
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.combine_unbinned_data">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.combine_unbinned_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">combine_unbinned_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_files</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Combines input unbinned data files.</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        input_files : list</span>
+<span class="sd">            List of file names to combine.</span>
+<span class="sd">        output_name : str, optional</span>
+<span class="sd">            Prefix of output file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">each</span> <span class="ow">in</span> <span class="n">input_files</span><span class="p">:</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;adding </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">each</span><span class="p">)</span>
+    
+            <span class="c1"># Read dict from hdf5 or fits:</span>
+            <span class="n">this_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dict</span><span class="p">(</span><span class="n">each</span><span class="p">)</span>
+
+            <span class="c1"># Combine dictionaries:</span>
+            <span class="k">if</span> <span class="n">counter</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">this_dict</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">this_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">counter</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">this_dict</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">key</span><span class="p">],</span><span class="n">this_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+                    
+            <span class="n">counter</span> <span class="o">=+</span> <span class="mi">1</span>
+            
+            <span class="c1"># Clear unused memory:</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+        <span class="c1"># Write unbinned data to file (either fits or hdf5):</span>
+        <span class="k">if</span> <span class="n">output_name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_unbinned_output</span><span class="p">(</span><span class="n">output_name</span><span class="p">)</span>
+
+        <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.find_bad_intervals">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.find_bad_intervals">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_bad_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">bad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Finds intervals where livetime is 0.0.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        times : array</span>
+<span class="sd">            Array of times from ori file.</span>
+<span class="sd">        values : array</span>
+<span class="sd">            Array of livetimes from ori file.        </span>
+<span class="sd">        bad_value : float or int</span>
+<span class="sd">            The value that defines a bad time interval. It must match </span>
+<span class="sd">            exactly the value in the ori file, including the </span>
+<span class="sd">            type (float or int). Default is 0.0. </span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bad_intervals : list of tuples</span>
+<span class="sd">            List of bad time intervals.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">bad_intervals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
+    
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">bad_value</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">start</span> <span class="o">=</span> <span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">bad_intervals</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+                    <span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
+    
+        <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bad_intervals</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">times</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">))</span>
+    
+        <span class="k">return</span> <span class="n">bad_intervals</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.filter_good_data">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.filter_good_data">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">filter_good_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">bad_intervals</span><span class="p">):</span>
+<span class="w">    </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Removes entries that fall within bad intervals.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        times : array</span>
+<span class="sd">            Array of photon event times.</span>
+<span class="sd">        bad_intervals : list</span>
+<span class="sd">            List of bad intervals defined by livetime = 0.0.</span>
+<span class="sd">       </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        filtered_index : list</span>
+<span class="sd">            List of indices of good events. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">filtered_index</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Get indices for good times.</span>
+        <span class="c1"># The inequality below corresponds to left end point in the ori file.</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">start</span> <span class="o">&lt;</span> <span class="n">times</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">end</span> <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="ow">in</span> <span class="n">bad_intervals</span><span class="p">):</span>
+                <span class="n">filtered_index</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">filtered_index</span></div>
+
+
+<div class="viewcode-block" id="UnBinnedData.cut_SAA_events">
+<a class="viewcode-back" href="../../../api/data_io.html#cosipy.data_io.UnBinnedData.cut_SAA_events">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cut_SAA_events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unbinned_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cuts events corresponding to SAA passage based on input ori file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        unbinned_data : str, optional</span>
+<span class="sd">            Name of unbinned dictionary file.</span>
+<span class="sd">        output_name : str, optional</span>
+<span class="sd">            Prefix of output file (default is None, in which case no </span>
+<span class="sd">            file is saved).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Option to read in unbinned data file:</span>
+        <span class="k">if</span> <span class="n">unbinned_data</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_dict</span><span class="p">(</span><span class="n">unbinned_data</span><span class="p">)</span>
+
+        <span class="c1"># Get ori info:</span>
+        <span class="n">ori</span> <span class="o">=</span> <span class="n">SpacecraftFile</span><span class="o">.</span><span class="n">parse_from_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ori_file</span><span class="p">)</span>
+        
+        <span class="c1"># Get bad time intervals:</span>
+        <span class="n">bti</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_bad_intervals</span><span class="p">(</span><span class="n">ori</span><span class="o">.</span><span class="n">_time</span><span class="p">,</span> <span class="n">ori</span><span class="o">.</span><span class="n">livetime</span><span class="p">)</span>
+
+        <span class="c1"># Get indices for good photons:</span>
+        <span class="n">time_keep_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_good_data</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="s1">&#39;TimeTags&#39;</span><span class="p">],</span> <span class="n">bti</span><span class="p">)</span>
+
+        <span class="c1"># Apply cuts to dictionary:</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">:</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cosi_dataset</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">time_keep_index</span><span class="p">]</span>
+
+        <span class="c1"># Write unbinned data to file (either fits or hdf5):</span>
+        <span class="k">if</span> <span class="n">output_name</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving file...&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_unbinned_output</span><span class="p">(</span><span class="n">output_name</span><span class="p">)</span>
+
+        <span class="k">return</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

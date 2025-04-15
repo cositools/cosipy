@@ -1,0 +1,476 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.image_deconvolution.dataIF_COSI_DC2 &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.image_deconvolution.dataIF_COSI_DC2</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.image_deconvolution.dataIF_COSI_DC2</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.autonotebook</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Histogram</span><span class="p">,</span> <span class="n">Axes</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.response</span><span class="w"> </span><span class="kn">import</span> <span class="n">FullDetectorResponse</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.image_deconvolution_data_interface_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ImageDeconvolutionDataInterfaceBase</span>
+
+<div class="viewcode-block" id="DataIF_COSI_DC2">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DataIF_COSI_DC2">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DataIF_COSI_DC2</span><span class="p">(</span><span class="n">ImageDeconvolutionDataInterfaceBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A subclass of ImageDeconvolutionDataInterfaceBase for the COSI data challenge 2.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+
+        <span class="n">ImageDeconvolutionDataInterfaceBase</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># histpy.Histogram (dense)</span>
+
+        <span class="c1"># None if using Galactic CDS, mandotary if using local CDS</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span> <span class="o">=</span> <span class="kc">None</span> 
+
+        <span class="c1"># optional</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_miniDC2_format</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1">#should be removed in the future</span>
+
+<div class="viewcode-block" id="DataIF_COSI_DC2.load">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DataIF_COSI_DC2.load">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">event_binned_data</span><span class="p">,</span> <span class="n">dict_bkg_binned_data</span><span class="p">,</span> <span class="n">rsp</span><span class="p">,</span> <span class="n">coordsys_conv_matrix</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_miniDC2_format</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load data</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        name : str</span>
+<span class="sd">            The name of data</span>
+<span class="sd">        event_binned_data : :py:class:`histpy.Histogram`</span>
+<span class="sd">            Event histogram</span>
+<span class="sd">        dict_bkg_binned_data : dict</span>
+<span class="sd">            Background models as {background_model_name: :py:class:`histpy.Histogram`}</span>
+<span class="sd">        rsp : :py:class:`histpy.Histogram` or :py:class:`cosipy.response.FullDetectorResponse`</span>
+<span class="sd">            Response</span>
+<span class="sd">        coordsys_conv_matrix : :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix`, default False</span>
+<span class="sd">            Coordsys conversion matrix </span>
+<span class="sd">        is_miniDC2_format : bool, default False</span>
+<span class="sd">            Whether the file format is for mini-DC2. It will be removed in the future.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`cosipy.image_deconvolution.DataIF_COSI_DC2`</span>
+<span class="sd">            An instance of DataIF_COSI_DC2 containing the input data set</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">new</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="n">new</span><span class="o">.</span><span class="n">_event</span> <span class="o">=</span> <span class="n">event_binned_data</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+
+        <span class="n">new</span><span class="o">.</span><span class="n">_bkg_models</span> <span class="o">=</span> <span class="n">dict_bkg_binned_data</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">new</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">new</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">is_sparse</span><span class="p">:</span>
+                <span class="n">new</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">new</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">to_dense</span><span class="p">()</span>
+
+            <span class="n">new</span><span class="o">.</span><span class="n">_summed_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">new</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+
+        <span class="n">new</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span> <span class="o">=</span> <span class="n">coordsys_conv_matrix</span>
+
+        <span class="n">new</span><span class="o">.</span><span class="n">is_miniDC2_format</span> <span class="o">=</span> <span class="n">is_miniDC2_format</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rsp</span><span class="p">,</span> <span class="n">FullDetectorResponse</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading the response matrix onto your computer memory...&#39;</span><span class="p">)</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">_load_full_detector_response_on_memory</span><span class="p">(</span><span class="n">rsp</span><span class="p">,</span> <span class="n">is_miniDC2_format</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finished&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rsp</span><span class="p">,</span> <span class="n">Histogram</span><span class="p">):</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">_image_response</span> <span class="o">=</span> <span class="n">rsp</span>
+        
+        <span class="c1"># We modify the axes in event, bkg_models, response. This is only for DC2.</span>
+        <span class="n">new</span><span class="o">.</span><span class="n">_modify_axes</span><span class="p">()</span>
+        
+        <span class="n">new</span><span class="o">.</span><span class="n">_data_axes</span> <span class="o">=</span> <span class="n">new</span><span class="o">.</span><span class="n">_event</span><span class="o">.</span><span class="n">axes</span>
+        
+        <span class="k">if</span> <span class="n">new</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">new</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;NuLambda&#39;</span><span class="p">],</span> <span class="n">new</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Ei&#39;</span><span class="p">]]</span>
+            <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="s1">&#39;lb&#39;</span> 
+            <span class="c1"># The gamma-ray direction of pre-computed response in DC2 is in the galactic coordinate, not in the local coordinate.</span>
+            <span class="c1"># Actually, it is labeled as &#39;NuLambda&#39;. So I replace it with &#39;lb&#39;.</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">_model_axes</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new</span><span class="o">.</span><span class="n">_model_axes</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">([</span><span class="n">new</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;lb&#39;</span><span class="p">],</span> <span class="n">new</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Ei&#39;</span><span class="p">]])</span>
+
+        <span class="n">new</span><span class="o">.</span><span class="n">_calc_exposure_map</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">new</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_modify_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Modify the axes of data. This method will be removed in the future.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Note that _modify_axes() in DataIF_COSI_DC2 was implemented for a temporary use. It will be removed in the future.&quot;</span><span class="p">,</span> <span class="ne">DeprecationWarning</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">axis_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Em&#39;</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">,</span> <span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="o">.</span><span class="n">binning_method</span> <span class="o">==</span> <span class="s1">&#39;Time&#39;</span><span class="p">:</span>
+            <span class="n">axis_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Time&#39;</span><span class="p">,</span> <span class="s1">&#39;Em&#39;</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">,</span> <span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="o">.</span><span class="n">binning_method</span> <span class="o">==</span> <span class="s1">&#39;ScAtt&#39;</span><span class="p">:</span>
+            <span class="n">axis_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ScAtt&#39;</span><span class="p">,</span> <span class="s1">&#39;Em&#39;</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">,</span> <span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">axis_name</span><span class="p">:</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;... checking the axis </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> of the event and background files...&quot;</span><span class="p">)</span>
+            
+            <span class="n">event_edges</span><span class="p">,</span> <span class="n">event_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_event</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_event</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span>
+
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">:</span>
+
+                <span class="n">bkg_edges</span><span class="p">,</span> <span class="n">bkg_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span>
+
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">event_edges</span> <span class="o">==</span> <span class="n">bkg_edges</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    --&gt; pass (edges)&quot;</span><span class="p">)</span> 
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: the edges of the axis </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> are not consistent between the event and the background model </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">!&quot;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;         event      : </span><span class="si">{</span><span class="n">event_edges</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;         background : </span><span class="si">{</span><span class="n">bkg_edges</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span>
+
+        <span class="c1"># check the axes of the event/response files. </span>
+        <span class="c1"># Note that currently (2023-08-29) no unit is stored in the binned data. So only the edges are compared. This should be modified in the future.</span>
+
+        <span class="n">axis_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Em&#39;</span><span class="p">,</span> <span class="s1">&#39;Phi&#39;</span><span class="p">,</span> <span class="s1">&#39;PsiChi&#39;</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">axis_name</span><span class="p">:</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;...checking the axis </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> of the event and response files...&quot;</span><span class="p">)</span>
+
+            <span class="n">event_edges</span><span class="p">,</span> <span class="n">event_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_event</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_event</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span>
+            <span class="n">response_edges</span><span class="p">,</span> <span class="n">response_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">unit</span>
+            
+<span class="c1">#            if type(response_edges) == u.quantity.Quantity and self.is_miniDC2_format == True:</span>
+            <span class="k">if</span> <span class="n">event_unit</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">response_unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_miniDC2_format</span> <span class="o">==</span> <span class="kc">True</span><span class="p">:</span> <span class="c1"># this is only for the old data in the miniDC2 challenge. I will remove them in the near future (or in the final dataIF).</span>
+                <span class="n">response_edges</span> <span class="o">=</span> <span class="n">response_edges</span><span class="o">.</span><span class="n">value</span>
+
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">event_edges</span> <span class="o">==</span> <span class="n">response_edges</span><span class="p">):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    --&gt; pass (edges)&quot;</span><span class="p">)</span> 
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: the edges of the axis </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> are not consistent between the event and background!&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;        event      : </span><span class="si">{</span><span class="n">event_edges</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;        response : </span><span class="si">{</span><span class="n">response_edges</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">axes_cds</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;Em&quot;</span><span class="p">],</span> \
+                             <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;Phi&quot;</span><span class="p">],</span> \
+                             <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;PsiChi&quot;</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">axes_cds</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_event</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> \
+                             <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;Em&quot;</span><span class="p">],</span> \
+                             <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;Phi&quot;</span><span class="p">],</span> \
+                             <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;PsiChi&quot;</span><span class="p">]])</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_event</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="n">axes_cds</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_event</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_event</span><span class="o">.</span><span class="n">contents</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">:</span>
+            <span class="n">bkg_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="n">axes_cds</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">bkg_model</span><span class="o">.</span><span class="n">unit</span><span class="p">,</span> <span class="n">contents</span> <span class="o">=</span> <span class="n">bkg_model</span><span class="o">.</span><span class="n">contents</span><span class="p">)</span>
+            <span class="k">del</span> <span class="n">bkg_model</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The axes in the event and background files are redefined. Now they are consistent with those of the response file.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_full_detector_response_on_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">full_detector_response</span><span class="p">,</span> <span class="n">is_miniDC2_format</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load a response file on the computer memory.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">axes_image_response</span> <span class="o">=</span> <span class="p">[</span><span class="n">full_detector_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;NuLambda&quot;</span><span class="p">],</span> <span class="n">full_detector_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;Ei&quot;</span><span class="p">],</span>
+                               <span class="n">full_detector_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;Em&quot;</span><span class="p">],</span> <span class="n">full_detector_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;Phi&quot;</span><span class="p">],</span> <span class="n">full_detector_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;PsiChi&quot;</span><span class="p">]]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="n">axes_image_response</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">full_detector_response</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="n">nside</span> <span class="o">=</span> <span class="n">full_detector_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;NuLambda&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">nside</span>
+        <span class="n">npix</span> <span class="o">=</span> <span class="n">full_detector_response</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;NuLambda&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">npix</span> 
+    
+        <span class="k">if</span> <span class="n">is_miniDC2_format</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ipix</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">npix</span><span class="p">)):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="p">[</span><span class="n">ipix</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">full_detector_response</span><span class="p">[</span><span class="n">ipix</span><span class="p">]</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(),</span> <span class="n">axis</span> <span class="o">=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">))</span> <span class="c1">#Ei, Em, Phi, ChiPsi</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">contents</span> <span class="o">=</span> <span class="n">full_detector_response</span><span class="o">.</span><span class="n">_file</span><span class="p">[</span><span class="s1">&#39;DRM&#39;</span><span class="p">][</span><span class="s1">&#39;CONTENTS&#39;</span><span class="p">][:]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">contents</span> <span class="o">*</span> <span class="n">full_detector_response</span><span class="o">.</span><span class="n">unit</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calc_exposure_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate exposure_map, which is an intermidiate matrix used in RL algorithm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Calculating an exposure map...&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_exposure_map</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_axes</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">unit</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">sr</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_exposure_map</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_axes</span><span class="p">[</span><span class="s1">&#39;lb&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pixarea</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_exposure_map</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_axes</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">unit</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="o">.</span><span class="n">unit</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">sr</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_exposure_map</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">)),</span> 
+                                                 <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="p">,</span> <span class="n">axis</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">)),</span>
+                                                 <span class="n">axes</span> <span class="o">=</span> <span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">unit</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="o">.</span><span class="n">unit</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_axes</span><span class="p">[</span><span class="s1">&#39;lb&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pixarea</span><span class="p">()</span>
+            <span class="c1"># [Time/ScAtt, lb, NuLambda] -&gt; [lb, NuLambda]</span>
+            <span class="c1"># [NuLambda, Ei, Em, Phi, PsiChi] -&gt; [NuLambda, Ei]</span>
+            <span class="c1"># [lb, NuLambda] x [NuLambda, Ei] -&gt; [lb, Ei]</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Finished...&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DataIF_COSI_DC2.calc_expectation">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DataIF_COSI_DC2.calc_expectation">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_expectation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">dict_bkg_norm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">almost_zero</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate expected counts from a given model.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : :py:class:`cosipy.image_deconvolution.AllSkyImageModel`</span>
+<span class="sd">            Model map</span>
+<span class="sd">        dict_bkg_norm : dict, default None</span>
+<span class="sd">            background normalization for each background model, e.g, {&#39;albedo&#39;: 0.95, &#39;activation&#39;: 1.05}</span>
+<span class="sd">        almost_zero : float, default 1e-12</span>
+<span class="sd">            In order to avoid zero components in extended count histogram, a tiny offset is introduced.</span>
+<span class="sd">            It should be small enough not to effect statistics.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`histpy.Histogram`</span>
+<span class="sd">            Expected count histogram</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        This method should be implemented in a more general class, for example, extended source response class in the future.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Currenly (2024-01-12) this method can work for both local coordinate CDS and in galactic coordinate CDS.</span>
+        <span class="c1"># This is just because in DC2 the rotate response for galactic coordinate CDS does not have an axis for time/scatt binning.</span>
+        <span class="c1"># However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.</span>
+        <span class="c1"># Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.</span>
+
+        <span class="n">expectation</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_axes</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">expectation</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span> <span class="n">model</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">],[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]))</span> <span class="o">*</span> <span class="n">model</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;lb&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pixarea</span><span class="p">()</span>
+            <span class="c1"># [&#39;lb&#39;, &#39;Ei&#39;] x [NuLambda(lb), Ei, Em, Phi, PsiChi] -&gt; [Em, Phi, PsiChi]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">map_rotated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]))</span> 
+            <span class="c1"># [&#39;Time/ScAtt&#39;, &#39;lb&#39;, &#39;NuLambda&#39;] x [&#39;lb&#39;, &#39;Ei&#39;] -&gt; [Time/ScAtt, NuLambda, Ei]</span>
+            <span class="n">map_rotated</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="o">.</span><span class="n">unit</span> <span class="o">*</span> <span class="n">model</span><span class="o">.</span><span class="n">unit</span>
+            <span class="n">map_rotated</span> <span class="o">*=</span> <span class="n">model</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;lb&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pixarea</span><span class="p">()</span>
+            <span class="c1"># data.coordsys_conv_matrix.contents is sparse, so the unit should be restored.</span>
+            <span class="c1"># the unit of map_rotated is 1/cm2 ( = s * 1/cm2/s/sr * sr)</span>
+            <span class="n">expectation</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span> <span class="n">map_rotated</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="c1"># [Time/ScAtt, NuLambda, Ei] x [NuLambda, Ei, Em, Phi, PsiChi] -&gt; [Time/ScAtt, Em, Phi, PsiChi]</span>
+
+        <span class="k">if</span> <span class="n">dict_bkg_norm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span> 
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys_bkg_models</span><span class="p">():</span>
+                <span class="n">expectation</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bkg_model</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="o">*</span> <span class="n">dict_bkg_norm</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">expectation</span> <span class="o">+=</span> <span class="n">almost_zero</span>
+        
+        <span class="k">return</span> <span class="n">expectation</span></div>
+
+
+<div class="viewcode-block" id="DataIF_COSI_DC2.calc_T_product">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DataIF_COSI_DC2.calc_T_product">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_T_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataspace_histogram</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the product of the input histogram with the transonse matrix of the response function.</span>
+<span class="sd">        Let R_{ij}, H_{i} be the response matrix and dataspace_histogram, respectively.</span>
+<span class="sd">        Note that i is the index for the data space, and j is for the model space.</span>
+<span class="sd">        In this method, \sum_{j} H{i} R_{ij}, namely, R^{T} H is calculated.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataspace_histogram: :py:class:`histpy.Histogram`</span>
+<span class="sd">            Its axes must be the same as self.data_axes</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`histpy.Histogram`</span>
+<span class="sd">            The product with self.model_axes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: currently, dataspace_histogram is assumed to be a dense.</span>
+
+        <span class="n">hist_unit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exposure_map</span><span class="o">.</span><span class="n">unit</span>
+        <span class="k">if</span> <span class="n">dataspace_histogram</span><span class="o">.</span><span class="n">unit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hist_unit</span> <span class="o">*=</span> <span class="n">dataspace_histogram</span><span class="o">.</span><span class="n">unit</span>
+
+        <span class="n">hist</span> <span class="o">=</span> <span class="n">Histogram</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_axes</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">hist_unit</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hist</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">dataspace_histogram</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]))</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_axes</span><span class="p">[</span><span class="s1">&#39;lb&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pixarea</span><span class="p">()</span>
+            <span class="c1"># [Em, Phi, PsiChi] x [NuLambda (lb), Ei, Em, Phi, PsiChi] -&gt; [NuLambda (lb), Ei]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">dataspace_histogram</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_image_response</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]))</span> 
+            <span class="c1"># [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -&gt; [Time/ScAtt, NuLambda, Ei]</span>
+
+            <span class="n">hist</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]))</span> \
+                        <span class="o">*</span> <span class="n">_</span><span class="o">.</span><span class="n">unit</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span><span class="o">.</span><span class="n">unit</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_axes</span><span class="p">[</span><span class="s1">&#39;lb&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">pixarea</span><span class="p">()</span>
+            <span class="c1"># [Time/ScAtt, lb, NuLambda] x [Time/ScAtt, NuLambda, Ei] -&gt; [lb, Ei]</span>
+            <span class="c1"># note that coordsys_conv_matrix is the sparse, so the unit should be recovered.</span>
+
+        <span class="k">return</span> <span class="n">hist</span></div>
+
+
+<div class="viewcode-block" id="DataIF_COSI_DC2.calc_bkg_model_product">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DataIF_COSI_DC2.calc_bkg_model_product">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_bkg_model_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">dataspace_histogram</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the product of the input histogram with the background model.</span>
+<span class="sd">        Let B_{i}, H_{i} be the background model and dataspace_histogram, respectively.</span>
+<span class="sd">        In this method, \sum_{i} B_{i} H_{i} is calculated.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key: str</span>
+<span class="sd">            Background model name</span>
+<span class="sd">        dataspace_histogram: :py:class:`histpy.Histogram`</span>
+<span class="sd">            its axes must be the same as self.data_axes</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        flaot</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO: currently, dataspace_histogram is assumed to be a dense.</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_coordsys_conv_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+
+            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">dataspace_histogram</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bkg_model</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]))</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">dataspace_histogram</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bkg_model</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="DataIF_COSI_DC2.calc_loglikelihood">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.DataIF_COSI_DC2.calc_loglikelihood">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_loglikelihood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expectation</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate log-likelihood from given expected counts or model/expectation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expectation : :py:class:`histpy.Histogram`</span>
+<span class="sd">            Expected count histogram.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">            Log-likelood</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">loglikelood</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">event</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">expectation</span><span class="p">)</span> <span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">expectation</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">loglikelood</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

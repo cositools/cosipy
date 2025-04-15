@@ -1,0 +1,1251 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spectral fitting example (GRB) &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="Spectral fitting example (Crab)" href="../crab/SpectralFit_Crab.html" />
+    <link rel="prev" title="Parallel TS Map computation" href="../../../ts_map/Parallel_TS_map_computation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../DataIO/DataIO_example.html">Data format and handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../response/SpacecraftFile.html">Spacecraft file: attitude and position</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../response/DetectorResponse.html">Detector response and signal expectation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../ts_map/Parallel_TS_map_computation.html">TS Map: localizing a GRB</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Fitting the spectrum of a GRB</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Download-and-read-in-binned-data">Download and read in binned data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Perform-spectral-fit">Perform spectral fit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Error-propagation-and-plotting">Error propagation and plotting</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../crab/SpectralFit_Crab.html">Fitting the spectrum of the Crab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../extended_source_fit/diffuse_511_spectral_fit.html">Extended source model fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../source_injector/Point_source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../background_estimation/continuum_estimation/BG_estimation_example.html">Continuum Background Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../background_estimation/line_background/line_background_estimation_example_notebook.html">Line background estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../polarization/ASAD_method.html">Polarization (ASAD method)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Spectral fitting example (GRB)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/tutorials/spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Spectral-fitting-example-(GRB)">
+<h1>Spectral fitting example (GRB)<a class="headerlink" href="#Spectral-fitting-example-(GRB)" title="Link to this heading"></a></h1>
+<p><strong>To run this, you need the following files, which can be downloaded using the first few cells of this notebook:</strong></p>
+<ul class="simple">
+<li><p>orientation file (20280301_3_month_with_orbital_info.ori)</p></li>
+<li><p>binned data (grb_bkg_binned_data.hdf5, grb_binned_data.hdf5, &amp; bkg_binned_data_1s_local.hdf5)</p></li>
+<li><p>detector response (SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip)</p></li>
+</ul>
+<p><strong>The binned data are simulations of GRB090206620 and albedo photon background produced using the COSI SMEX mass model. The detector response needs to be unzipped before running the notebook.</strong></p>
+<p>This notebook fits the spectrum of a GRB simulated using MEGAlib and combined with background.</p>
+<p><a class="reference external" href="https://threeml.readthedocs.io/">3ML</a> is a high-level interface that allows multiple datasets from different instruments to be used coherently to fit the parameters of source model. A source model typically consists of a list of sources with parametrized spectral shapes, sky locations and, for extended sources, shape. Polarization is also possible. A “coherent” analysis, in this context, means that the source model parameters are fitted using all available datasets simultanously, rather than
+performing individual fits and finding a well-suited common model a posteriori.</p>
+<p>In order for a dataset to be included in 3ML, each instrument needs to provide a “plugin”. Each plugin is responsible for reading the data, convolving the source model (provided by 3ML) with the instrument response, and returning a likelihood. In our case, we’ll compute a binned Poisson likelihood:</p>
+<div class="math notranslate nohighlight">
+\[\log \mathcal{L}(\mathbf{x}) = \sum_i \log \frac{\lambda_i(\mathbf{x})^{d_i} \exp (-\lambda_i)}{d_i!}\]</div>
+<p>where <span class="math notranslate nohighlight">\(d_i\)</span> are the counts on each bin and <span class="math notranslate nohighlight">\(\lambda_i\)</span> are the expected counts given a source model with parameters <span class="math notranslate nohighlight">\(\mathbf{x}\)</span>.</p>
+<p>In this example, we will fit a single point source with a known location. We’ll assume the background is known and fixed up to a scaling factor. Finally, we will fit a Band function:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}f(x) = K \begin{cases} \left(\frac{x}{E_{piv}}\right)^{\alpha} \exp \left(-\frac{(2+\alpha)
+       * x}{x_{p}}\right) &amp; x \leq (\alpha-\beta) \frac{x_{p}}{(\alpha+2)} \\ \left(\frac{x}{E_{piv}}\right)^{\beta}
+       * \exp (\beta-\alpha)\left[\frac{(\alpha-\beta) x_{p}}{E_{piv}(2+\alpha)}\right]^{\alpha-\beta}
+       * &amp;x&gt;(\alpha-\beta) \frac{x_{p}}{(\alpha+2)} \end{cases}\end{split}\]</div>
+<p>where <span class="math notranslate nohighlight">\(K\)</span> (normalization), <span class="math notranslate nohighlight">\(\alpha\)</span> &amp; <span class="math notranslate nohighlight">\(\beta\)</span> (spectral indeces), and <span class="math notranslate nohighlight">\(x_p\)</span> (peak energy) are the free parameters, while <span class="math notranslate nohighlight">\(E_{piv}\)</span> is the pivot energy which is fixed (and arbitrary).</p>
+<p>Considering these assumptions:</p>
+<div class="math notranslate nohighlight">
+\[\lambda_i(\mathbf{x}) = B*b_i + s_i(\mathbf{x})\]</div>
+<p>where <span class="math notranslate nohighlight">\(B*b_i\)</span> are the estimated counts due to background in each bin of the Compton data space with <span class="math notranslate nohighlight">\(B\)</span> the amplitude and <span class="math notranslate nohighlight">\(b_i\)</span> the shape of the background, and <span class="math notranslate nohighlight">\(s_i\)</span> are the corresponding expected counts from the source, the goal is then to find the values of <span class="math notranslate nohighlight">\(\mathbf{x} = [K, \alpha, \beta, x_p]\)</span> and <span class="math notranslate nohighlight">\(B\)</span> that maximize <span class="math notranslate nohighlight">\(\mathcal{L}\)</span>. These are the best estimations of the parameters.</p>
+<p>The final module needs to also fit the time-dependent background, handle multiple point-like and extended sources, as well as all the spectral models supported by 3ML. Eventually, it will also fit the polarization angle. However, this simple example already contains all the necessary pieces to do a fit.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from cosipy import COSILike, BinnedData
+from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.response.FullDetectorResponse import FullDetectorResponse
+from cosipy.util import fetch_wasabi_file
+
+from scoords import SpacecraftFrame
+
+from astropy.time import Time
+import astropy.units as u
+from astropy.coordinates import SkyCoord
+from astropy.stats import poisson_conf_interval
+
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+from threeML import Band, PointSource, Model, JointLikelihood, DataList
+from cosipy import Band_Eflux
+from astromodels import Parameter
+
+from pathlib import Path
+
+import os
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">08:46:50 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The naima package is not available. Models that depend on it will not be         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#48" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">48</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                         </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The GSL library or the pygsl wrapper cannot be loaded. Models that depend on it  </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/functions.py#69" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">69</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">will not be available.                                                            </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">08:46:53 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The ebltable package is not available. Models that depend on it will not be     </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">absorption.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/astromodels/functions/functions_1D/absorption.py#33" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">33</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                        </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">                </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">08:46:54 </span><span style="color: #00ffaf; text-decoration-color: #00ffaf">INFO    </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Starting 3ML!                                                                     </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#39" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">39</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> WARNINGs here are </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">NOT</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> errors                                                      </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#40" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">40</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> but are inform you about optional packages that can be installed                  </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#41" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">41</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold"> to disable these messages, turn off start_warning in your config file</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">            </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> no display variable set. using backend for graphics without display (agg)         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#50" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">50</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">08:46:55 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> ROOT minimizer not available                                                </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py#1345" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1345</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Multinest minimizer not available                                           </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py#1357" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1357</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> PyGMO is not available                                                      </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/minimizer/minimization.py#1369" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1369</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">08:46:56 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The cthreeML package is not installed. You will not be able to use plugins which  </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#94" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">94</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">require the C/C++ interface (currently HAWC)                                       </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">              </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin FermiLATLike.py. Do you have the relative instrument     </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin HAWCLike.py. Do you have the relative instrument         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">08:47:00 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> No fermitools installed                                              </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">lat_transient_builder.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">08:47:00 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable OMP_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable MKL_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable NUMEXPR_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal     </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<section id="Download-and-read-in-binned-data">
+<h2>Download and read in binned data<a class="headerlink" href="#Download-and-read-in-binned-data" title="Link to this heading"></a></h2>
+<p>Define the path to the directory containing the data, detector response, orientation file, and yaml files if they have already been downloaded, or the directory to download the files into</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>data_path = Path(&quot;/path/to/files&quot;)
+</pre></div>
+</div>
+</div>
+<p>Download the orientation file (684.38 MB)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fetch_wasabi_file(&#39;COSI-SMEX/DC2/Data/Orientation/20280301_3_month_with_orbital_info.ori&#39;, output=str(data_path / &#39;20280301_3_month_with_orbital_info.ori&#39;))
+</pre></div>
+</div>
+</div>
+<p>Download the binned GRB+background data (75.73 KB)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fetch_wasabi_file(&#39;COSI-SMEX/cosipy_tutorials/grb_spectral_fit_local_frame/grb_bkg_binned_data.hdf5&#39;, output=str(data_path / &#39;grb_bkg_binned_data.hdf5&#39;))
+</pre></div>
+</div>
+</div>
+<p>Download the binned GRB data (76.90 KB)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fetch_wasabi_file(&#39;COSI-SMEX/cosipy_tutorials/grb_spectral_fit_local_frame/grb_binned_data.hdf5&#39;, output=str(data_path / &#39;grb_binned_data.hdf5&#39;))
+</pre></div>
+</div>
+</div>
+<p>Download the binned background data (255.97 MB)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fetch_wasabi_file(&#39;COSI-SMEX/cosipy_tutorials/grb_spectral_fit_local_frame/bkg_binned_data_1s_local.hdf5&#39;, output=str(data_path / &#39;bkg_binned_data_1s_local.hdf5&#39;))
+</pre></div>
+</div>
+</div>
+<p>Download the response file (839.62 MB). This needs to be unzipped before running the rest of the notebook</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fetch_wasabi_file(&#39;COSI-SMEX/DC2/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip&#39;, output=str(data_path / &#39;SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5.zip&#39;))
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+</pre></div></div>
+</div>
+<p>Read in the spacecraft orientation file &amp; select the beginning and end times of the GRB</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ori = SpacecraftFile.parse_from_file(data_path / &quot;20280301_3_month_with_orbital_info.ori&quot;)
+tmin = Time(1842597410.0,format = &#39;unix&#39;)
+tmax = Time(1842597450.0,format = &#39;unix&#39;)
+sc_orientation = ori.source_interval(tmin, tmax)
+</pre></div>
+</div>
+</div>
+<p>Create BinnedData objects for the GRB only, GRB+background, and background only. The GRB only simulation is not used for the spectral fit, but can be used to compare the fitted spectrum to the source simulation</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>grb = BinnedData(data_path / &quot;grb.yaml&quot;)
+grb_bkg = BinnedData(data_path / &quot;grb.yaml&quot;)
+bkg = BinnedData(data_path / &quot;background.yaml&quot;)
+</pre></div>
+</div>
+</div>
+<p>Load binned .hdf5 files</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>grb.load_binned_data_from_hdf5(binned_data=data_path / &quot;grb_binned_data.hdf5&quot;)
+grb_bkg.load_binned_data_from_hdf5(binned_data=data_path / &quot;grb_bkg_binned_data.hdf5&quot;)
+bkg.load_binned_data_from_hdf5(binned_data=data_path / &quot;bkg_binned_data_1s_local.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+<p>Define the path to the detector response</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>dr = str(data_path / &quot;SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.nonsparse_nside8.area.good_chunks_unzip.h5&quot;) # path to detector response
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Perform-spectral-fit">
+<h2>Perform spectral fit<a class="headerlink" href="#Perform-spectral-fit" title="Link to this heading"></a></h2>
+<p>Define time window of binned background simulation to use for background model</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_tmin = 1842597310.0
+bkg_tmax = 1842597550.0
+bkg_min = np.where(bkg.binned_data.axes[&#39;Time&#39;].edges.value == bkg_tmin)[0][0]
+bkg_max = np.where(bkg.binned_data.axes[&#39;Time&#39;].edges.value == bkg_tmax)[0][0]
+</pre></div>
+</div>
+</div>
+<p>Set background parameter, which is used to fit the amplitude of the background, and instantiate the COSI 3ML plugin</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_par = Parameter(&quot;background_cosi&quot;,                                                                          # background parameter
+                    0.1,                                                                                        # initial value of parameter
+                    min_value=0,                                                                                # minimum value of parameter
+                    max_value=5,                                                                                # maximum value of parameter
+                    delta=1e-3,                                                                                 # initial step used by fitting engine
+                    desc=&quot;Background parameter for cosi&quot;)
+
+cosi = COSILike(&quot;cosi&quot;,                                                                                         # COSI 3ML plugin
+                dr = dr,                                                                                        # detector response
+                data = grb_bkg.binned_data.project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;),                                      # data (source+background)
+                bkg = bkg.binned_data.slice[{&#39;Time&#39;:slice(bkg_min,bkg_max)}].project(&#39;Em&#39;, &#39;Phi&#39;, &#39;PsiChi&#39;),    # background model
+                sc_orientation = sc_orientation,                                                                # spacecraft orientation
+                nuisance_param = bkg_par)                                                                       # background parameter
+</pre></div>
+</div>
+</div>
+<p>Define a point source at the known location with a Band function spectrum and add it to the model</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>l = 93.
+b = -53.
+
+alpha = -1                                       # Setting parameters to something reasonable helps the fitting to converge\n&quot;,
+beta = -3
+xp = 450. * u.keV
+piv = 500. * u.keV
+K = 1 / u.cm / u.cm / u.s / u.keV
+
+spectrum = Band()
+
+spectrum.beta.min_value = -15.0
+
+spectrum.alpha.value = alpha
+spectrum.beta.value = beta
+spectrum.xp.value = xp.value
+spectrum.K.value = K.value
+spectrum.piv.value = piv.value
+
+spectrum.xp.unit = xp.unit
+spectrum.K.unit = K.unit
+spectrum.piv.unit = piv.unit
+
+source = PointSource(&quot;source&quot;,                     # Name of source (arbitrary, but needs to be unique)
+                     l = l,                        # Longitude (deg)
+                     b = b,                        # Latitude (deg)
+                     spectral_shape = spectrum)    # Spectral model
+
+# Optional: free the position parameters
+#source.position.l.free = True
+#source.position.b.free = True
+
+model = Model(source)                              # Model with single source. If we had multiple sources, we would do Model(source1, source2, ...)
+
+# Optional: if you want to call get_log_like manually, then you also need to set the model manually
+# 3ML does this internally during the fit though
+cosi.set_model(model)
+</pre></div>
+</div>
+</div>
+<p>Gather all plugins and combine with the model in a JointLikelihood object, then perform maximum likelihood fit</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>plugins = DataList(cosi) # If we had multiple instruments, we would do e.g. DataList(cosi, lat, hawc, ...)
+
+like = JointLikelihood(model, plugins, verbose = False)
+
+like.fit()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">08:49:04 </span><span style="color: #00ffaf; text-decoration-color: #00ffaf">INFO    </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> set the minimizer to minuit                                             </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/classicMLE/joint_likelihood.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">joint_likelihood.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/classicMLE/joint_likelihood.py#1045" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1045</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">08:49:30 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> get_number_of_data_points not implemented, values for statistical        </span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/plugin_prototype.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">plugin_prototype.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///discover/nobackup/ckarwin/Software/COSIPY/lib/python3.10/site-packages/threeML/plugin_prototype.py#130" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">130</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">measurements such as AIC or BIC are unreliable                            </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">                       </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Best fit values:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>result</th>
+      <th>unit</th>
+    </tr>
+    <tr>
+      <th>parameter</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>source.spectrum.main.Band.K</th>
+      <td>(3.10 -0.20 +0.21) x 10^-2</td>
+      <td>1 / (keV s cm2)</td>
+    </tr>
+    <tr>
+      <th>source.spectrum.main.Band.alpha</th>
+      <td>(-2.8 +/- 0.5) x 10^-1</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>source.spectrum.main.Band.xp</th>
+      <td>(4.75 +/- 0.05) x 10^2</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>source.spectrum.main.Band.beta</th>
+      <td>-6.8 +/- 1.2</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>background_cosi</th>
+      <td>(1.65 +/- 0.13) x 10^-1</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Correlation matrix:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div><table id="table47975352332640">
+<tr><td>1.00</td><td>0.97</td><td>-0.37</td><td>0.20</td><td>-0.00</td></tr>
+<tr><td>0.97</td><td>1.00</td><td>-0.16</td><td>0.17</td><td>-0.00</td></tr>
+<tr><td>-0.37</td><td>-0.16</td><td>1.00</td><td>-0.17</td><td>-0.02</td></tr>
+<tr><td>0.20</td><td>0.17</td><td>-0.17</td><td>1.00</td><td>0.00</td></tr>
+<tr><td>-0.00</td><td>-0.00</td><td>-0.02</td><td>0.00</td><td>1.00</td></tr>
+</table></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of -log(likelihood) at the minimum:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>-log(likelihood)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>cosi</th>
+      <td>42920.049338</td>
+    </tr>
+    <tr>
+      <th>total</th>
+      <td>42920.049338</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of statistical measures:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>statistical measures</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>AIC</th>
+      <td>85838.098676</td>
+    </tr>
+    <tr>
+      <th>BIC</th>
+      <td>85840.098676</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(                                      value  negative_error  positive_error  \
+ source.spectrum.main.Band.K        0.030997       -0.002034        0.002123
+ source.spectrum.main.Band.alpha   -0.276547       -0.052063        0.049971
+ source.spectrum.main.Band.xp     474.654036       -4.933778        4.828668
+ source.spectrum.main.Band.beta    -6.755004       -1.205494        1.231109
+ background_cosi                    0.164940       -0.012464        0.012279
+
+                                     error             unit
+ source.spectrum.main.Band.K      0.002079  1 / (keV s cm2)
+ source.spectrum.main.Band.alpha  0.051017
+ source.spectrum.main.Band.xp     4.881223              keV
+ source.spectrum.main.Band.beta   1.218301
+ background_cosi                  0.012371                   ,
+        -log(likelihood)
+ cosi       42920.049338
+ total      42920.049338)
+</pre></div></div>
+</div>
+</section>
+<section id="Error-propagation-and-plotting">
+<h2>Error propagation and plotting<a class="headerlink" href="#Error-propagation-and-plotting" title="Link to this heading"></a></h2>
+<p>Define Band function spectrum injected into MEGAlib</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>alpha_inj = -0.360
+beta_inj = -11.921
+E0_inj = 288.016 * u.keV
+xp_inj = E0_inj * (alpha_inj + 2)
+piv_inj = 1. * u.keV
+K_inj = 0.283 / u.cm / u.cm / u.s / u.keV
+
+spectrum_inj = Band()
+
+spectrum_inj.beta.min_value = -15.0
+
+spectrum_inj.alpha.value = alpha_inj
+spectrum_inj.beta.value = beta_inj
+spectrum_inj.xp.value = xp_inj.value
+spectrum_inj.K.value = K_inj.value
+spectrum_inj.piv.value = piv_inj.value
+
+spectrum_inj.xp.unit = xp_inj.unit
+spectrum_inj.K.unit = K_inj.unit
+spectrum_inj.piv.unit = piv_inj.unit
+</pre></div>
+</div>
+</div>
+<p>The summary of the results above tell you the optimal values of the parameters, as well as the errors. Propogate the errors to the “evaluate_at” method of the spectrum</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>results = like.results
+
+print(results.display())
+
+parameters = {par.name:results.get_variates(par.path)
+              for par in results.optimized_model[&quot;source&quot;].parameters.values()
+              if par.free}
+
+results_err = results.propagate(results.optimized_model[&quot;source&quot;].spectrum.main.shape.evaluate_at, **parameters)
+
+print(results.optimized_model[&quot;source&quot;])
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Best fit values:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>result</th>
+      <th>unit</th>
+    </tr>
+    <tr>
+      <th>parameter</th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>source.spectrum.main.Band.K</th>
+      <td>(3.10 -0.20 +0.21) x 10^-2</td>
+      <td>1 / (keV s cm2)</td>
+    </tr>
+    <tr>
+      <th>source.spectrum.main.Band.alpha</th>
+      <td>(-2.8 +/- 0.5) x 10^-1</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>source.spectrum.main.Band.xp</th>
+      <td>(4.75 +/- 0.05) x 10^2</td>
+      <td>keV</td>
+    </tr>
+    <tr>
+      <th>source.spectrum.main.Band.beta</th>
+      <td>-6.8 +/- 1.2</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>background_cosi</th>
+      <td>(1.65 +/- 0.13) x 10^-1</td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Correlation matrix:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div><table id="table47975317042368">
+<tr><td>1.00</td><td>0.97</td><td>-0.37</td><td>0.20</td><td>-0.00</td></tr>
+<tr><td>0.97</td><td>1.00</td><td>-0.16</td><td>0.17</td><td>-0.00</td></tr>
+<tr><td>-0.37</td><td>-0.16</td><td>1.00</td><td>-0.17</td><td>-0.02</td></tr>
+<tr><td>0.20</td><td>0.17</td><td>-0.17</td><td>1.00</td><td>0.00</td></tr>
+<tr><td>-0.00</td><td>-0.00</td><td>-0.02</td><td>0.00</td><td>1.00</td></tr>
+</table></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of -log(likelihood) at the minimum:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>-log(likelihood)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>cosi</th>
+      <td>42920.049338</td>
+    </tr>
+    <tr>
+      <th>total</th>
+      <td>42920.049338</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace">
+<span style="color: #00ffaf; text-decoration-color: #00ffaf; font-weight: bold; text-decoration: underline">Values of statistical measures:</span>
+
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>statistical measures</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>AIC</th>
+      <td>85838.098676</td>
+    </tr>
+    <tr>
+      <th>BIC</th>
+      <td>85840.098676</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+None
+  * source (point source):
+    * position:
+      * l:
+        * value: 93.0
+        * desc: Galactic longitude
+        * min_value: 0.0
+        * max_value: 360.0
+        * unit: deg
+        * is_normalization: false
+      * b:
+        * value: -53.0
+        * desc: Galactic latitude
+        * min_value: -90.0
+        * max_value: 90.0
+        * unit: deg
+        * is_normalization: false
+      * equinox: J2000
+    * spectrum:
+      * main:
+        * Band:
+          * K:
+            * value: 0.03099749659547262
+            * desc: Differential flux at the pivot energy
+            * min_value: 1.0e-50
+            * max_value: null
+            * unit: keV-1 s-1 cm-2
+            * is_normalization: true
+          * alpha:
+            * value: -0.2765469834147527
+            * desc: low-energy photon index
+            * min_value: -1.5
+            * max_value: 3.0
+            * unit: &#39;&#39;
+            * is_normalization: false
+          * xp:
+            * value: 474.6540362662719
+            * desc: peak in the x * x * N (nuFnu if x is a energy)
+            * min_value: 10.0
+            * max_value: null
+            * unit: keV
+            * is_normalization: false
+          * beta:
+            * value: -6.755004044507031
+            * desc: high-energy photon index
+            * min_value: -15.0
+            * max_value: -1.6
+            * unit: &#39;&#39;
+            * is_normalization: false
+          * piv:
+            * value: 500.0
+            * desc: pivot energy
+            * min_value: null
+            * max_value: null
+            * unit: keV
+            * is_normalization: false
+        * polarization: {}
+
+</pre></div></div>
+</div>
+<p>Evaluate the flux and errors at a range of energies for the fitted and injected spectra, and the simulated source flux</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>energy = np.geomspace(100*u.keV,10*u.MeV).to_value(u.keV)
+
+flux_lo = np.zeros_like(energy)
+flux_median = np.zeros_like(energy)
+flux_hi = np.zeros_like(energy)
+flux_inj = np.zeros_like(energy)
+
+for i, e in enumerate(energy):
+    flux = results_err(e)
+    flux_median[i] = flux.median
+    flux_lo[i], flux_hi[i] = flux.equal_tail_interval(cl=0.68)
+    flux_inj[i] = spectrum_inj.evaluate_at(e)
+
+binned_energy_edges = grb.binned_data.axes[&#39;Em&#39;].edges.value
+binned_energy = np.array([])
+bin_sizes = np.array([])
+
+for i in range(len(binned_energy_edges)-1):
+    binned_energy = np.append(binned_energy, (binned_energy_edges[i+1] + binned_energy_edges[i]) / 2)
+    bin_sizes = np.append(bin_sizes, binned_energy_edges[i+1] - binned_energy_edges[i])
+
+expectation = cosi._expected_counts[&#39;source&#39;]
+</pre></div>
+</div>
+</div>
+<p>Plot the fitted and injected spectra</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig,ax = plt.subplots()
+
+ax.plot(energy, energy*energy*flux_median, label = &quot;Best fit&quot;)
+ax.fill_between(energy, energy*energy*flux_lo, energy*energy*flux_hi, alpha = .5, label = &quot;Best fit (errors)&quot;)
+ax.plot(energy, energy*energy*flux_inj, color = &#39;black&#39;, ls = &quot;:&quot;, label = &quot;Injected&quot;)
+
+ax.set_xscale(&quot;log&quot;)
+ax.set_yscale(&quot;log&quot;)
+
+ax.set_xlabel(&quot;Energy (keV)&quot;)
+ax.set_ylabel(r&quot;$E^2 \frac{dN}{dE}$ (keV cm$^{-2}$ s$^{-1}$)&quot;)
+
+ax.legend()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x2ba21fa42d40&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_spectral_fits_continuum_fit_grb_SpectralFit_GRB_42_1.png" src="../../../../_images/tutorials_spectral_fits_continuum_fit_grb_SpectralFit_GRB_42_1.png" />
+</div>
+</div>
+<p>Plot the fitted spectrum convolved with the response, as well as the simulated source counts</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fit_poisson_error = np.zeros((2,len(expectation.project(&#39;Em&#39;).todense().contents)))
+fit_gaussian_error = np.zeros(len(expectation.project(&#39;Em&#39;).todense().contents))
+inj_poisson_error = np.zeros((2,len(grb.binned_data.project(&#39;Em&#39;).todense().contents)))
+inj_gaussian_error = np.zeros(len(grb.binned_data.project(&#39;Em&#39;).todense().contents))
+
+for i, counts in enumerate(expectation.project(&#39;Em&#39;).todense().contents):
+    if counts &gt; 5:
+        fit_gaussian_error[i] = np.sqrt(counts)
+    else:
+        poisson_error = poisson_conf_interval(counts, interval=&quot;frequentist-confidence&quot;, sigma=1)
+        fit_poisson_error[0][i] = poisson_error[0]
+        fit_poisson_error[1][i] = poisson_error[1]
+
+for i, counts in enumerate(grb.binned_data.project(&#39;Em&#39;).todense().contents):
+    if counts &gt; 5:
+        inj_gaussian_error[i] = np.sqrt(counts)
+    else:
+        poisson_error = poisson_conf_interval(counts, interval=&quot;frequentist-confidence&quot;, sigma=1)
+        inj_poisson_error[0][i] = poisson_error[0]
+        inj_poisson_error[1][i] = poisson_error[1]
+
+fig,ax = plt.subplots()
+
+ax.stairs(expectation.project(&#39;Em&#39;).todense().contents, binned_energy_edges, color=&#39;purple&#39;, label = &quot;Best fit convolved with response&quot;)
+ax.errorbar(binned_energy, expectation.project(&#39;Em&#39;).todense().contents, yerr=fit_poisson_error, color=&#39;purple&#39;, linewidth=0, elinewidth=1)
+ax.errorbar(binned_energy, expectation.project(&#39;Em&#39;).todense().contents, yerr=fit_gaussian_error, color=&#39;purple&#39;, linewidth=0, elinewidth=1)
+ax.stairs(grb.binned_data.project(&#39;Em&#39;).todense().contents, binned_energy_edges, color = &#39;black&#39;, ls = &quot;:&quot;, label = &quot;Source counts&quot;)
+ax.errorbar(binned_energy, grb.binned_data.project(&#39;Em&#39;).todense().contents, yerr=inj_poisson_error, color=&#39;black&#39;, linewidth=0, elinewidth=1)
+ax.errorbar(binned_energy, grb.binned_data.project(&#39;Em&#39;).todense().contents, yerr=inj_gaussian_error, color=&#39;black&#39;, linewidth=0, elinewidth=1)
+
+ax.set_xscale(&quot;log&quot;)
+ax.set_yscale(&quot;log&quot;)
+
+ax.set_xlabel(&quot;Energy (keV)&quot;)
+ax.set_ylabel(&quot;Counts&quot;)
+
+ax.legend()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x2ba222185e40&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_spectral_fits_continuum_fit_grb_SpectralFit_GRB_44_1.png" src="../../../../_images/tutorials_spectral_fits_continuum_fit_grb_SpectralFit_GRB_44_1.png" />
+</div>
+</div>
+<p>Plot the fitted spectrum convolved with the response plus the fitted background, as well as the simulated source+background counts</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fit_bkg_poisson_error = np.zeros((2,len(expectation.project(&#39;Em&#39;).todense().contents+(bkg_par.value * bkg.binned_data.slice[{&#39;Time&#39;:slice(bkg_min,bkg_max)}].project(&#39;Em&#39;).todense().contents))))
+fit_bkg_gaussian_error = np.zeros(len(expectation.project(&#39;Em&#39;).todense().contents+(bkg_par.value * bkg.binned_data.slice[{&#39;Time&#39;:slice(bkg_min,bkg_max)}].project(&#39;Em&#39;).todense().contents)))
+inj_bkg_poisson_error = np.zeros((2,len(grb_bkg.binned_data.project(&#39;Em&#39;).todense().contents)))
+inj_bkg_gaussian_error = np.zeros(len(grb_bkg.binned_data.project(&#39;Em&#39;).todense().contents))
+
+for i, counts in enumerate(expectation.project(&#39;Em&#39;).todense().contents+(bkg_par.value * bkg.binned_data.slice[{&#39;Time&#39;:slice(bkg_min,bkg_max)}].project(&#39;Em&#39;).todense().contents)):
+    if counts &gt; 5:
+        fit_bkg_gaussian_error[i] = np.sqrt(counts)
+    else:
+        poisson_error = poisson_conf_interval(counts, interval=&quot;frequentist-confidence&quot;, sigma=1)
+        fit_bkg_poisson_error[0][i] = poisson_error[0]
+        fit_bkg_poisson_error[1][i] = poisson_error[1]
+
+for i, counts in enumerate(grb_bkg.binned_data.project(&#39;Em&#39;).todense().contents):
+    if counts &gt; 5:
+        inj_bkg_gaussian_error[i] = np.sqrt(counts)
+    else:
+        poisson_error = poisson_conf_interval(counts, interval=&quot;frequentist-confidence&quot;, sigma=1)
+        inj_bkg_poisson_error[0][i] = poisson_error[0]
+        inj_bkg_poisson_error[1][i] = poisson_error[1]
+
+fig,ax = plt.subplots()
+
+ax.stairs(expectation.project(&#39;Em&#39;).todense().contents+(bkg_par.value * bkg.binned_data.slice[{&#39;Time&#39;:slice(bkg_min,bkg_max)}].project(&#39;Em&#39;).todense().contents), binned_energy_edges, color=&#39;purple&#39;, label = &quot;Best fit convolved with response plus background&quot;)
+ax.errorbar(binned_energy, expectation.project(&#39;Em&#39;).todense().contents+(bkg_par.value * bkg.binned_data.slice[{&#39;Time&#39;:slice(bkg_min,bkg_max)}].project(&#39;Em&#39;).todense().contents), yerr=fit_bkg_poisson_error, color=&#39;purple&#39;, linewidth=0, elinewidth=1)
+ax.errorbar(binned_energy, expectation.project(&#39;Em&#39;).todense().contents+(bkg_par.value * bkg.binned_data.slice[{&#39;Time&#39;:slice(bkg_min,bkg_max)}].project(&#39;Em&#39;).todense().contents), yerr=fit_bkg_gaussian_error, color=&#39;purple&#39;, linewidth=0, elinewidth=1)
+ax.stairs(grb_bkg.binned_data.project(&#39;Em&#39;).todense().contents, binned_energy_edges, color = &#39;black&#39;, ls = &quot;:&quot;, label = &quot;Total counts&quot;)
+ax.errorbar(binned_energy, grb_bkg.binned_data.project(&#39;Em&#39;).todense().contents, yerr=inj_bkg_poisson_error, color=&#39;black&#39;, linewidth=0, elinewidth=1)
+ax.errorbar(binned_energy, grb_bkg.binned_data.project(&#39;Em&#39;).todense().contents, yerr=inj_bkg_gaussian_error, color=&#39;black&#39;, linewidth=0, elinewidth=1)
+
+ax.set_xscale(&quot;log&quot;)
+ax.set_yscale(&quot;log&quot;)
+
+ax.set_xlabel(&quot;Energy (keV)&quot;)
+ax.set_ylabel(&quot;Counts&quot;)
+
+ax.legend()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x2ba221d57460&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../../_images/tutorials_spectral_fits_continuum_fit_grb_SpectralFit_GRB_46_1.png" src="../../../../_images/tutorials_spectral_fits_continuum_fit_grb_SpectralFit_GRB_46_1.png" />
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../../ts_map/Parallel_TS_map_computation.html" class="btn btn-neutral float-left" title="Parallel TS Map computation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../crab/SpectralFit_Crab.html" class="btn btn-neutral float-right" title="Spectral fitting example (Crab)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

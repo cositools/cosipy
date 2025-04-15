@@ -1,0 +1,2007 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Line Background Estimation Using Adjacent Energy Bins &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Polarization example - azimuthal scattering angle distribution (ASAD) method" href="../../polarization/ASAD_method.html" />
+    <link rel="prev" title="Continuum Background Estimation" href="../continuum_estimation/BG_estimation_example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../DataIO/DataIO_example.html">Data format and handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../response/SpacecraftFile.html">Spacecraft file: attitude and position</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../response/DetectorResponse.html">Detector response and signal expectation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../ts_map/Parallel_TS_map_computation.html">TS Map: localizing a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../spectral_fits/continuum_fit/grb/SpectralFit_GRB.html">Fitting the spectrum of a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../spectral_fits/continuum_fit/crab/SpectralFit_Crab.html">Fitting the spectrum of the Crab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../spectral_fits/extended_source_fit/diffuse_511_spectral_fit.html">Extended source model fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source_injector/Point_source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../continuum_estimation/BG_estimation_example.html">Continuum Background Estimation</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Line background estimation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#0.-Create-dataset-for-the-line-background-estimation">0. Create dataset for the line background estimation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#1.-Instantiate-the-LineBackgroundEstimation">1. Instantiate the LineBackgroundEstimation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#2.-Set-background-model-and-fit-it">2. Set background model and fit it</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Define-a-background-spectrum-model-for-fitting-data">Define a background spectrum model for fitting data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Mask-a-region-around-Al-26">Mask a region around Al-26</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Mask-more">Mask more</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#3.-Generate-Background-Histogram">3. Generate Background Histogram</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#4.-Compare-the-background-model-with-the-actual-background-data">4. Compare the background model with the actual background data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Normalization">Normalization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Phi-distritbuion">Phi distritbuion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#PsiChi-distritbuion">PsiChi distritbuion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Rebinning">Rebinning</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../polarization/ASAD_method.html">Polarization (ASAD method)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">Line Background Estimation Using Adjacent Energy Bins</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../_sources/tutorials/background_estimation/line_background/line_background_estimation_example_notebook.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Line-Background-Estimation-Using-Adjacent-Energy-Bins">
+<h1>Line Background Estimation Using Adjacent Energy Bins<a class="headerlink" href="#Line-Background-Estimation-Using-Adjacent-Energy-Bins" title="Link to this heading"></a></h1>
+<p>H.Yoneda, S. Mittal</p>
+<p>This is a tutorial notebook on background estimation for gamma-ray lines. The basic idea is as follows:</p>
+<ul class="simple">
+<li><p>Extracting the event distribution in the Compton data space from adjacent energy bins of the energy of interest.</p></li>
+<li><p>Making a binned histogram using the extracted events.</p></li>
+<li><p>Estimate the total number of expected background counts in the line energy bin by fitting the adjacent energy bin data, and modify the normalization of the binned histogram accordingly.</p></li>
+</ul>
+<p>Here, we make a background model for Al-26. These processes will be performed in the <code class="docutils literal notranslate"><span class="pre">LineBackgroundEstimation</span></code> class, and you can see how it works as follows.</p>
+<p>This class is very preliminary, and there are several areas for improvement. Future ideas include:</p>
+<ul class="simple">
+<li><p>We may add more options in the minuit fitting, e.g., limiting the parameter region, fixing some parameters.</p></li>
+<li><p>We may apply smoothing to the background histogram, which may help to mitigate Poisson fluctuation in the model.</p></li>
+</ul>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import logging
+import sys
+logger = logging.getLogger(&#39;cosipy&#39;)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from histpy import Histogram, Axis, Axes
+import astropy.units as u
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+from scipy import integrate
+from iminuit import Minuit
+from cosipy import BinnedData, LineBackgroundEstimation
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%matplotlib inline
+%config InlineBackend.figure_format=&#39;retina&#39;
+</pre></div>
+</div>
+</div>
+<section id="0.-Create-dataset-for-the-line-background-estimation">
+<h2>0. Create dataset for the line background estimation<a class="headerlink" href="#0.-Create-dataset-for-the-line-background-estimation" title="Link to this heading"></a></h2>
+<p>We need an event histogram binned finely along the energy axis.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>#need to change them
+path_to_Al  = &quot;path/to/data&quot;
+path_to_bkg = &quot;path/to/data&quot;
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>#yaml files containing binning information
+spectrum_bkg = BinnedData(&quot;inputs_bkg_estimation.yaml&quot;)
+spectrum_Al = BinnedData(&quot;inputs_bkg_estimation.yaml&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+#path to unbinned fits file for source and background to create binned dataset
+spectrum_Al.get_binned_data(unbinned_data=path_to_Al, make_binning_plots=True,
+            output_name=&#39;Al_binned&#39;, show_plots=True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_1.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_2.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_3.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_4.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_4.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_5.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+plotting psichi in Galactic coordinates...
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_7.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_7_7.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 6.48 s, sys: 1.73 s, total: 8.21 s
+Wall time: 4.5 s
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+#path to unbinned fits file for source and background to create binned dataset
+spectrum_bkg.get_binned_data(unbinned_data=path_to_bkg, make_binning_plots=True,
+            output_name=&#39;bkg_binned&#39;, show_plots=True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_1.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_2.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_3.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_4.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_4.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_5.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+plotting psichi in Galactic coordinates...
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_7.png" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_8_7.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 10min 9s, sys: 46.7 s, total: 10min 56s
+Wall time: 11min 53s
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>#combine source and background binned data
+spectrum_total = spectrum_Al.binned_data + spectrum_bkg.binned_data
+spectrum_total.write(&#39;combined_al_bkg_nside_16.hdf5&#39;)
+</pre></div>
+</div>
+</div>
+<p>This <code class="docutils literal notranslate"><span class="pre">spectrum_total</span></code> can be considered as the actual event histogram in COSI observations.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># load data
+spectrum_bkg = Histogram.open(&quot;bkg_binned.hdf5&quot;)
+spectrum_Al = Histogram.open(&quot;Al_binned.hdf5&quot;)
+spectrum_total = Histogram.open(&quot;combined_al_bkg_nside_16.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="1.-Instantiate-the-LineBackgroundEstimation">
+<h2>1. Instantiate the LineBackgroundEstimation<a class="headerlink" href="#1.-Instantiate-the-LineBackgroundEstimation" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>instance = LineBackgroundEstimation(spectrum_total)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="2.-Set-background-model-and-fit-it">
+<h2>2. Set background model and fit it<a class="headerlink" href="#2.-Set-background-model-and-fit-it" title="Link to this heading"></a></h2>
+</section>
+<section id="Define-a-background-spectrum-model-for-fitting-data">
+<h2>Define a background spectrum model for fitting data<a class="headerlink" href="#Define-a-background-spectrum-model-for-fitting-data" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def powerlaw(x, a, b, pivot):
+    return a * (x/pivot)**b
+
+def gaussian(x, a, mu, sigma):
+    return a / (sigma) / np.sqrt(2 * np.pi) * np.exp( -(x-mu)**2 / (2*sigma**2))
+
+def bkg_model(x, a, b, a1, mu1, a2, mu2, a3, mu3, a4, mu4, sigma):
+    pivot = 1800.0
+    return powerlaw(x,a,b, pivot) + \
+            gaussian(x , a1, mu1, sigma) + \
+            gaussian(x , a2, mu2, sigma) + \
+            gaussian(x , a3, mu3, sigma) + \
+            gaussian(x , a4, mu4, sigma)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>instance.set_bkg_energy_spectrum_model(bkg_model, [18000.0, -1.0, 40000.0, 1612, 50000.0, 1635, 10000.0, 1765, 30000.0, 1780, 1.0])
+instance.plot_energy_spectrum()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(&lt;Axes: xlabel=&#39;Em [keV]&#39;&gt;, &lt;ErrorbarContainer object of 3 artists&gt;)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_17_1.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_17_1.png" style="width: 589px; height: 440px;" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+m = instance.fit_energy_spectrum()
+m
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+CPU times: user 12.9 s, sys: 92.6 ms, total: 13 s
+Wall time: 13.1 s
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<table>
+    <tr>
+        <th colspan="2" style="text-align:center" title="Minimizer"> Migrad </th>
+    </tr>
+    <tr>
+        <td style="text-align:left" title="Minimum value of function"> FCN = -9.903e+07 </td>
+        <td style="text-align:center" title="Total number of function and (optional) gradient evaluations"> Nfcn = 1293 </td>
+    </tr>
+    <tr>
+        <td style="text-align:left" title="Estimated distance to minimum and goal"> EDM = 0.000122 (Goal: 0.0001) </td>
+        <td style="text-align:center" title="Total run time of algorithms">  </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Valid Minimum </td>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Below EDM threshold (goal x 10) </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> No parameters at limit </td>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Below call limit </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Hesse ok </td>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Covariance accurate </td>
+    </tr>
+</table><table>
+    <tr>
+        <td></td>
+        <th title="Variable name"> Name </th>
+        <th title="Value of parameter"> Value </th>
+        <th title="Hesse error"> Hesse Error </th>
+        <th title="Minos lower error"> Minos Error- </th>
+        <th title="Minos upper error"> Minos Error+ </th>
+        <th title="Lower limit of the parameter"> Limit- </th>
+        <th title="Upper limit of the parameter"> Limit+ </th>
+        <th title="Is the parameter fixed in the fit"> Fixed </th>
+    </tr>
+    <tr>
+        <th> 0 </th>
+        <td> x0 </td>
+        <td> 17.385e3 </td>
+        <td> 0.007e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 1 </th>
+        <td> x1 </td>
+        <td> -1.702 </td>
+        <td> 0.004 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 2 </th>
+        <td> x2 </td>
+        <td> 21.7e3 </td>
+        <td> 0.5e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 3 </th>
+        <td> x3 </td>
+        <td> 1.61183e3 </td>
+        <td> 0.00007e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 4 </th>
+        <td> x4 </td>
+        <td> 71.7e3 </td>
+        <td> 0.6e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 5 </th>
+        <td> x5 </td>
+        <td> 1.633314e3 </td>
+        <td> 0.000034e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 6 </th>
+        <td> x6 </td>
+        <td> 24.8e3 </td>
+        <td> 0.5e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 7 </th>
+        <td> x7 </td>
+        <td> 1.76410e3 </td>
+        <td> 0.00009e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 8 </th>
+        <td> x8 </td>
+        <td> 67.2e3 </td>
+        <td> 0.5e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 9 </th>
+        <td> x9 </td>
+        <td> 1.778490e3 </td>
+        <td> 0.000025e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 10 </th>
+        <td> x10 </td>
+        <td> 2.136 </td>
+        <td> 0.027 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+</table><table>
+    <tr>
+        <td></td>
+        <th> x0 </th>
+        <th> x1 </th>
+        <th> x2 </th>
+        <th> x3 </th>
+        <th> x4 </th>
+        <th> x5 </th>
+        <th> x6 </th>
+        <th> x7 </th>
+        <th> x8 </th>
+        <th> x9 </th>
+        <th> x10 </th>
+    </tr>
+    <tr>
+        <th> x0 </th>
+        <td> 45.1 </td>
+        <td style="background-color:rgb(250,187,187);color:black"> 11.407e-3 <strong>(0.422)</strong> </td>
+        <td style="background-color:rgb(237,237,250);color:black"> -340 <strong>(-0.101)</strong> </td>
+        <td style="background-color:rgb(249,249,250);color:black"> -0.004 <strong>(-0.009)</strong> </td>
+        <td style="background-color:rgb(230,230,250);color:black"> -640 <strong>(-0.152)</strong> </td>
+        <td style="background-color:rgb(244,244,250);color:black"> -0.0103 <strong>(-0.046)</strong> </td>
+        <td style="background-color:rgb(229,229,250);color:black"> -520 <strong>(-0.165)</strong> </td>
+        <td style="background-color:rgb(248,248,250);color:black"> -0.009 <strong>(-0.015)</strong> </td>
+        <td style="background-color:rgb(228,228,250);color:black"> -600 <strong>(-0.169)</strong> </td>
+        <td style="background-color:rgb(244,244,250);color:black"> -8.5e-3 <strong>(-0.050)</strong> </td>
+        <td style="background-color:rgb(229,229,250);color:black"> -28.8e-3 <strong>(-0.158)</strong> </td>
+    </tr>
+    <tr>
+        <th> x1 </th>
+        <td style="background-color:rgb(250,187,187);color:black"> 11.407e-3 <strong>(0.422)</strong> </td>
+        <td> 1.62e-05 </td>
+        <td style="background-color:rgb(250,231,231);color:black"> 260.031e-3 <strong>(0.128)</strong> </td>
+        <td style="background-color:rgb(248,248,250);color:black"> -0.005e-3 <strong>(-0.018)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 256.797e-3 <strong>(0.102)</strong> </td>
+        <td style="background-color:rgb(250,250,250);color:black"> 0 <strong>(0.003)</strong> </td>
+        <td style="background-color:rgb(247,247,250);color:black"> -36.617e-3 <strong>(-0.019)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 0.009e-3 <strong>(0.026)</strong> </td>
+        <td style="background-color:rgb(247,247,250);color:black"> -52.712e-3 <strong>(-0.025)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 0.003e-3 <strong>(0.031)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 0.007e-3 <strong>(0.060)</strong> </td>
+    </tr>
+    <tr>
+        <th> x2 </th>
+        <td style="background-color:rgb(237,237,250);color:black"> -340 <strong>(-0.101)</strong> </td>
+        <td style="background-color:rgb(250,231,231);color:black"> 260.031e-3 <strong>(0.128)</strong> </td>
+        <td> 2.54e+05 </td>
+        <td style="background-color:rgb(230,230,250);color:black"> -5.590 <strong>(-0.156)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 0.03e6 <strong>(0.098)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 0.7165 <strong>(0.042)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 0.01e6 <strong>(0.044)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 1.714 <strong>(0.039)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 0.01e6 <strong>(0.049)</strong> </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 713.3e-3 <strong>(0.056)</strong> </td>
+        <td style="background-color:rgb(250,230,230);color:black"> 1.8033 <strong>(0.132)</strong> </td>
+    </tr>
+    <tr>
+        <th> x3 </th>
+        <td style="background-color:rgb(249,249,250);color:black"> -0.004 <strong>(-0.009)</strong> </td>
+        <td style="background-color:rgb(248,248,250);color:black"> -0.005e-3 <strong>(-0.018)</strong> </td>
+        <td style="background-color:rgb(230,230,250);color:black"> -5.590 <strong>(-0.156)</strong> </td>
+        <td> 0.00508 </td>
+        <td style="background-color:rgb(250,239,239);color:black"> 3.384 <strong>(0.076)</strong> </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 0.0001 <strong>(0.054)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 0.915 <strong>(0.027)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 0.000 <strong>(0.049)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 1.405 <strong>(0.037)</strong> </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 0.1e-3 <strong>(0.064)</strong> </td>
+        <td style="background-color:rgb(250,228,228);color:black"> 0.3e-3 <strong>(0.144)</strong> </td>
+    </tr>
+    <tr>
+        <th> x4 </th>
+        <td style="background-color:rgb(230,230,250);color:black"> -640 <strong>(-0.152)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 256.797e-3 <strong>(0.102)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 0.03e6 <strong>(0.098)</strong> </td>
+        <td style="background-color:rgb(250,239,239);color:black"> 3.384 <strong>(0.076)</strong> </td>
+        <td> 3.91e+05 </td>
+        <td style="background-color:rgb(250,236,236);color:black"> 1.9929 <strong>(0.095)</strong> </td>
+        <td style="background-color:rgb(250,231,231);color:black"> 0.04e6 <strong>(0.130)</strong> </td>
+        <td style="background-color:rgb(250,222,222);color:black"> 10.077 <strong>(0.184)</strong> </td>
+        <td style="background-color:rgb(250,225,225);color:black"> 0.05e6 <strong>(0.164)</strong> </td>
+        <td style="background-color:rgb(250,213,213);color:black"> 3.9090 <strong>(0.246)</strong> </td>
+        <td style="background-color:rgb(250,166,166);color:black"> 9.5317 <strong>(0.561)</strong> </td>
+    </tr>
+    <tr>
+        <th> x5 </th>
+        <td style="background-color:rgb(244,244,250);color:black"> -0.0103 <strong>(-0.046)</strong> </td>
+        <td style="background-color:rgb(250,250,250);color:black"> 0 <strong>(0.003)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 0.7165 <strong>(0.042)</strong> </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 0.0001 <strong>(0.054)</strong> </td>
+        <td style="background-color:rgb(250,236,236);color:black"> 1.9929 <strong>(0.095)</strong> </td>
+        <td> 0.00113 </td>
+        <td style="background-color:rgb(250,239,239);color:black"> 1.1696 <strong>(0.074)</strong> </td>
+        <td style="background-color:rgb(250,232,232);color:black"> 0.0004 <strong>(0.123)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 1.7470 <strong>(0.098)</strong> </td>
+        <td style="background-color:rgb(250,226,226);color:black"> 0.1e-3 <strong>(0.161)</strong> </td>
+        <td style="background-color:rgb(250,195,195);color:black"> 0.3e-3 <strong>(0.364)</strong> </td>
+    </tr>
+    <tr>
+        <th> x6 </th>
+        <td style="background-color:rgb(229,229,250);color:black"> -520 <strong>(-0.165)</strong> </td>
+        <td style="background-color:rgb(247,247,250);color:black"> -36.617e-3 <strong>(-0.019)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 0.01e6 <strong>(0.044)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 0.915 <strong>(0.027)</strong> </td>
+        <td style="background-color:rgb(250,231,231);color:black"> 0.04e6 <strong>(0.130)</strong> </td>
+        <td style="background-color:rgb(250,239,239);color:black"> 1.1696 <strong>(0.074)</strong> </td>
+        <td> 2.2e+05 </td>
+        <td style="background-color:rgb(226,226,250);color:black"> -7.432 <strong>(-0.182)</strong> </td>
+        <td style="background-color:rgb(250,239,239);color:black"> 0.02e6 <strong>(0.075)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 1.0703 <strong>(0.090)</strong> </td>
+        <td style="background-color:rgb(250,218,218);color:black"> 2.6815 <strong>(0.211)</strong> </td>
+    </tr>
+    <tr>
+        <th> x7 </th>
+        <td style="background-color:rgb(248,248,250);color:black"> -0.009 <strong>(-0.015)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 0.009e-3 <strong>(0.026)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 1.714 <strong>(0.039)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 0.000 <strong>(0.049)</strong> </td>
+        <td style="background-color:rgb(250,222,222);color:black"> 10.077 <strong>(0.184)</strong> </td>
+        <td style="background-color:rgb(250,232,232);color:black"> 0.0004 <strong>(0.123)</strong> </td>
+        <td style="background-color:rgb(226,226,250);color:black"> -7.432 <strong>(-0.182)</strong> </td>
+        <td> 0.00763 </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 3.914 <strong>(0.085)</strong> </td>
+        <td style="background-color:rgb(250,227,227);color:black"> 0.3e-3 <strong>(0.156)</strong> </td>
+        <td style="background-color:rgb(250,200,200);color:black"> 0.8e-3 <strong>(0.336)</strong> </td>
+    </tr>
+    <tr>
+        <th> x8 </th>
+        <td style="background-color:rgb(228,228,250);color:black"> -600 <strong>(-0.169)</strong> </td>
+        <td style="background-color:rgb(247,247,250);color:black"> -52.712e-3 <strong>(-0.025)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 0.01e6 <strong>(0.049)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 1.405 <strong>(0.037)</strong> </td>
+        <td style="background-color:rgb(250,225,225);color:black"> 0.05e6 <strong>(0.164)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 1.7470 <strong>(0.098)</strong> </td>
+        <td style="background-color:rgb(250,239,239);color:black"> 0.02e6 <strong>(0.075)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 3.914 <strong>(0.085)</strong> </td>
+        <td> 2.79e+05 </td>
+        <td style="background-color:rgb(250,249,249);color:black"> 117.0e-3 <strong>(0.009)</strong> </td>
+        <td style="background-color:rgb(250,209,209);color:black"> 3.9541 <strong>(0.276)</strong> </td>
+    </tr>
+    <tr>
+        <th> x9 </th>
+        <td style="background-color:rgb(244,244,250);color:black"> -8.5e-3 <strong>(-0.050)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 0.003e-3 <strong>(0.031)</strong> </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 713.3e-3 <strong>(0.056)</strong> </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 0.1e-3 <strong>(0.064)</strong> </td>
+        <td style="background-color:rgb(250,213,213);color:black"> 3.9090 <strong>(0.246)</strong> </td>
+        <td style="background-color:rgb(250,226,226);color:black"> 0.1e-3 <strong>(0.161)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 1.0703 <strong>(0.090)</strong> </td>
+        <td style="background-color:rgb(250,227,227);color:black"> 0.3e-3 <strong>(0.156)</strong> </td>
+        <td style="background-color:rgb(250,249,249);color:black"> 117.0e-3 <strong>(0.009)</strong> </td>
+        <td> 0.000647 </td>
+        <td style="background-color:rgb(250,184,184);color:black"> 0.3e-3 <strong>(0.441)</strong> </td>
+    </tr>
+    <tr>
+        <th> x10 </th>
+        <td style="background-color:rgb(229,229,250);color:black"> -28.8e-3 <strong>(-0.158)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 0.007e-3 <strong>(0.060)</strong> </td>
+        <td style="background-color:rgb(250,230,230);color:black"> 1.8033 <strong>(0.132)</strong> </td>
+        <td style="background-color:rgb(250,228,228);color:black"> 0.3e-3 <strong>(0.144)</strong> </td>
+        <td style="background-color:rgb(250,166,166);color:black"> 9.5317 <strong>(0.561)</strong> </td>
+        <td style="background-color:rgb(250,195,195);color:black"> 0.3e-3 <strong>(0.364)</strong> </td>
+        <td style="background-color:rgb(250,218,218);color:black"> 2.6815 <strong>(0.211)</strong> </td>
+        <td style="background-color:rgb(250,200,200);color:black"> 0.8e-3 <strong>(0.336)</strong> </td>
+        <td style="background-color:rgb(250,209,209);color:black"> 3.9541 <strong>(0.276)</strong> </td>
+        <td style="background-color:rgb(250,184,184);color:black"> 0.3e-3 <strong>(0.441)</strong> </td>
+        <td> 0.000739 </td>
+    </tr>
+</table></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ax, _ = instance.plot_energy_spectrum()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_19_0.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_19_0.png" style="width: 589px; height: 440px;" />
+</div>
+</div>
+</section>
+<section id="Mask-a-region-around-Al-26">
+<h2>Mask a region around Al-26<a class="headerlink" href="#Mask-a-region-around-Al-26" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>instance.set_mask((1790.0, 1825.0) * u.keV)
+instance.mask
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False,  True,  True,  True,  True,  True,  True,
+        True,  True, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>m = instance.fit_energy_spectrum()
+m
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<table>
+    <tr>
+        <th colspan="2" style="text-align:center" title="Minimizer"> Migrad </th>
+    </tr>
+    <tr>
+        <td style="text-align:left" title="Minimum value of function"> FCN = -9.049e+07 </td>
+        <td style="text-align:center" title="Total number of function and (optional) gradient evaluations"> Nfcn = 933 </td>
+    </tr>
+    <tr>
+        <td style="text-align:left" title="Estimated distance to minimum and goal"> EDM = 0.00035 (Goal: 0.0001) </td>
+        <td style="text-align:center" title="Total run time of algorithms">  </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Valid Minimum </td>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Below EDM threshold (goal x 10) </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> No parameters at limit </td>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Below call limit </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Hesse ok </td>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Covariance accurate </td>
+    </tr>
+</table><table>
+    <tr>
+        <td></td>
+        <th title="Variable name"> Name </th>
+        <th title="Value of parameter"> Value </th>
+        <th title="Hesse error"> Hesse Error </th>
+        <th title="Minos lower error"> Minos Error- </th>
+        <th title="Minos upper error"> Minos Error+ </th>
+        <th title="Lower limit of the parameter"> Limit- </th>
+        <th title="Upper limit of the parameter"> Limit+ </th>
+        <th title="Is the parameter fixed in the fit"> Fixed </th>
+    </tr>
+    <tr>
+        <th> 0 </th>
+        <td> x0 </td>
+        <td> 17.041e3 </td>
+        <td> 0.007e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 1 </th>
+        <td> x1 </td>
+        <td> -1.797 </td>
+        <td> 0.004 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 2 </th>
+        <td> x2 </td>
+        <td> 24.3e3 </td>
+        <td> 0.5e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 3 </th>
+        <td> x3 </td>
+        <td> 1.61187e3 </td>
+        <td> 0.00007e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 4 </th>
+        <td> x4 </td>
+        <td> 76.4e3 </td>
+        <td> 0.6e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 5 </th>
+        <td> x5 </td>
+        <td> 1.633376e3 </td>
+        <td> 0.000030e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 6 </th>
+        <td> x6 </td>
+        <td> 28.9e3 </td>
+        <td> 0.5e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 7 </th>
+        <td> x7 </td>
+        <td> 1.76417e3 </td>
+        <td> 0.00008e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 8 </th>
+        <td> x8 </td>
+        <td> 72.0e3 </td>
+        <td> 0.5e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 9 </th>
+        <td> x9 </td>
+        <td> 1.778556e3 </td>
+        <td> 0.000027e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 10 </th>
+        <td> x10 </td>
+        <td> 2.347 </td>
+        <td> 0.024 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+</table><table>
+    <tr>
+        <td></td>
+        <th> x0 </th>
+        <th> x1 </th>
+        <th> x2 </th>
+        <th> x3 </th>
+        <th> x4 </th>
+        <th> x5 </th>
+        <th> x6 </th>
+        <th> x7 </th>
+        <th> x8 </th>
+        <th> x9 </th>
+        <th> x10 </th>
+    </tr>
+    <tr>
+        <th> x0 </th>
+        <td> 50.2 </td>
+        <td style="background-color:rgb(250,182,182);color:black"> 13.120e-3 <strong>(0.450)</strong> </td>
+        <td style="background-color:rgb(235,235,250);color:black"> -410 <strong>(-0.114)</strong> </td>
+        <td style="background-color:rgb(249,249,250);color:black"> -0.006 <strong>(-0.011)</strong> </td>
+        <td style="background-color:rgb(229,229,250);color:black"> -710 <strong>(-0.163)</strong> </td>
+        <td style="background-color:rgb(246,246,250);color:black"> -6.9e-3 <strong>(-0.032)</strong> </td>
+        <td style="background-color:rgb(226,226,250);color:black"> -630 <strong>(-0.185)</strong> </td>
+        <td style="background-color:rgb(247,247,250);color:black"> -0.012 <strong>(-0.021)</strong> </td>
+        <td style="background-color:rgb(225,225,250);color:black"> -740 <strong>(-0.191)</strong> </td>
+        <td style="background-color:rgb(243,243,250);color:black"> -10.4e-3 <strong>(-0.055)</strong> </td>
+        <td style="background-color:rgb(226,226,250);color:black"> -31.4e-3 <strong>(-0.182)</strong> </td>
+    </tr>
+    <tr>
+        <th> x1 </th>
+        <td style="background-color:rgb(250,182,182);color:black"> 13.120e-3 <strong>(0.450)</strong> </td>
+        <td> 1.69e-05 </td>
+        <td style="background-color:rgb(250,232,232);color:black"> 255.291e-3 <strong>(0.121)</strong> </td>
+        <td style="background-color:rgb(248,248,250);color:black"> -0.005e-3 <strong>(-0.018)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 223.419e-3 <strong>(0.088)</strong> </td>
+        <td style="background-color:rgb(249,249,250);color:black"> -0.001e-3 <strong>(-0.005)</strong> </td>
+        <td style="background-color:rgb(246,246,250);color:black"> -59.125e-3 <strong>(-0.030)</strong> </td>
+        <td style="background-color:rgb(250,248,248);color:black"> 0.005e-3 <strong>(0.016)</strong> </td>
+        <td style="background-color:rgb(245,245,250);color:black"> -79.896e-3 <strong>(-0.036)</strong> </td>
+        <td style="background-color:rgb(250,247,247);color:black"> 0.002e-3 <strong>(0.018)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 0.004e-3 <strong>(0.038)</strong> </td>
+    </tr>
+    <tr>
+        <th> x2 </th>
+        <td style="background-color:rgb(235,235,250);color:black"> -410 <strong>(-0.114)</strong> </td>
+        <td style="background-color:rgb(250,232,232);color:black"> 255.291e-3 <strong>(0.121)</strong> </td>
+        <td> 2.64e+05 </td>
+        <td style="background-color:rgb(235,235,250);color:black"> -4.513 <strong>(-0.119)</strong> </td>
+        <td style="background-color:rgb(250,234,234);color:black"> 0.03e6 <strong>(0.109)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 486.9e-3 <strong>(0.032)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 0.01e6 <strong>(0.060)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 1.787 <strong>(0.042)</strong> </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 0.02e6 <strong>(0.068)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 837.5e-3 <strong>(0.061)</strong> </td>
+        <td style="background-color:rgb(250,226,226);color:black"> 2.0392 <strong>(0.163)</strong> </td>
+    </tr>
+    <tr>
+        <th> x3 </th>
+        <td style="background-color:rgb(249,249,250);color:black"> -0.006 <strong>(-0.011)</strong> </td>
+        <td style="background-color:rgb(248,248,250);color:black"> -0.005e-3 <strong>(-0.018)</strong> </td>
+        <td style="background-color:rgb(235,235,250);color:black"> -4.513 <strong>(-0.119)</strong> </td>
+        <td> 0.00544 </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 2.659 <strong>(0.058)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 0.1e-3 <strong>(0.028)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 1.056 <strong>(0.030)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 0.000 <strong>(0.036)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 1.563 <strong>(0.039)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 0.1e-3 <strong>(0.049)</strong> </td>
+        <td style="background-color:rgb(250,231,231);color:black"> 0.2e-3 <strong>(0.124)</strong> </td>
+    </tr>
+    <tr>
+        <th> x4 </th>
+        <td style="background-color:rgb(229,229,250);color:black"> -710 <strong>(-0.163)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 223.419e-3 <strong>(0.088)</strong> </td>
+        <td style="background-color:rgb(250,234,234);color:black"> 0.03e6 <strong>(0.109)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 2.659 <strong>(0.058)</strong> </td>
+        <td> 3.83e+05 </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 727.7e-3 <strong>(0.039)</strong> </td>
+        <td style="background-color:rgb(250,228,228);color:black"> 0.04e6 <strong>(0.145)</strong> </td>
+        <td style="background-color:rgb(250,229,229);color:black"> 7.219 <strong>(0.139)</strong> </td>
+        <td style="background-color:rgb(250,223,223);color:black"> 0.06e6 <strong>(0.178)</strong> </td>
+        <td style="background-color:rgb(250,221,221);color:black"> 3.2111 <strong>(0.196)</strong> </td>
+        <td style="background-color:rgb(250,174,174);color:black"> 7.6133 <strong>(0.505)</strong> </td>
+    </tr>
+    <tr>
+        <th> x5 </th>
+        <td style="background-color:rgb(246,246,250);color:black"> -6.9e-3 <strong>(-0.032)</strong> </td>
+        <td style="background-color:rgb(249,249,250);color:black"> -0.001e-3 <strong>(-0.005)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 486.9e-3 <strong>(0.032)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 0.1e-3 <strong>(0.028)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 727.7e-3 <strong>(0.039)</strong> </td>
+        <td> 0.000905 </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 799.9e-3 <strong>(0.055)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 0.2e-3 <strong>(0.062)</strong> </td>
+        <td style="background-color:rgb(250,239,239);color:black"> 1.1569 <strong>(0.070)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 0.1e-3 <strong>(0.085)</strong> </td>
+        <td style="background-color:rgb(250,217,217);color:black"> 0.2e-3 <strong>(0.218)</strong> </td>
+    </tr>
+    <tr>
+        <th> x6 </th>
+        <td style="background-color:rgb(226,226,250);color:black"> -630 <strong>(-0.185)</strong> </td>
+        <td style="background-color:rgb(246,246,250);color:black"> -59.125e-3 <strong>(-0.030)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 0.01e6 <strong>(0.060)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 1.056 <strong>(0.030)</strong> </td>
+        <td style="background-color:rgb(250,228,228);color:black"> 0.04e6 <strong>(0.145)</strong> </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 799.9e-3 <strong>(0.055)</strong> </td>
+        <td> 2.33e+05 </td>
+        <td style="background-color:rgb(236,236,250);color:black"> -4.481 <strong>(-0.111)</strong> </td>
+        <td style="background-color:rgb(250,234,234);color:black"> 0.03e6 <strong>(0.105)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 1.2824 <strong>(0.100)</strong> </td>
+        <td style="background-color:rgb(250,211,211);color:black"> 3.0630 <strong>(0.261)</strong> </td>
+    </tr>
+    <tr>
+        <th> x7 </th>
+        <td style="background-color:rgb(247,247,250);color:black"> -0.012 <strong>(-0.021)</strong> </td>
+        <td style="background-color:rgb(250,248,248);color:black"> 0.005e-3 <strong>(0.016)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 1.787 <strong>(0.042)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 0.000 <strong>(0.036)</strong> </td>
+        <td style="background-color:rgb(250,229,229);color:black"> 7.219 <strong>(0.139)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 0.2e-3 <strong>(0.062)</strong> </td>
+        <td style="background-color:rgb(236,236,250);color:black"> -4.481 <strong>(-0.111)</strong> </td>
+        <td> 0.007 </td>
+        <td style="background-color:rgb(250,238,238);color:black"> 3.761 <strong>(0.082)</strong> </td>
+        <td style="background-color:rgb(250,231,231);color:black"> 0.3e-3 <strong>(0.129)</strong> </td>
+        <td style="background-color:rgb(250,208,208);color:black"> 0.6e-3 <strong>(0.283)</strong> </td>
+    </tr>
+    <tr>
+        <th> x8 </th>
+        <td style="background-color:rgb(225,225,250);color:black"> -740 <strong>(-0.191)</strong> </td>
+        <td style="background-color:rgb(245,245,250);color:black"> -79.896e-3 <strong>(-0.036)</strong> </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 0.02e6 <strong>(0.068)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 1.563 <strong>(0.039)</strong> </td>
+        <td style="background-color:rgb(250,223,223);color:black"> 0.06e6 <strong>(0.178)</strong> </td>
+        <td style="background-color:rgb(250,239,239);color:black"> 1.1569 <strong>(0.070)</strong> </td>
+        <td style="background-color:rgb(250,234,234);color:black"> 0.03e6 <strong>(0.105)</strong> </td>
+        <td style="background-color:rgb(250,238,238);color:black"> 3.761 <strong>(0.082)</strong> </td>
+        <td> 2.98e+05 </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 626.6e-3 <strong>(0.043)</strong> </td>
+        <td style="background-color:rgb(250,201,201);color:black"> 4.3838 <strong>(0.330)</strong> </td>
+    </tr>
+    <tr>
+        <th> x9 </th>
+        <td style="background-color:rgb(243,243,250);color:black"> -10.4e-3 <strong>(-0.055)</strong> </td>
+        <td style="background-color:rgb(250,247,247);color:black"> 0.002e-3 <strong>(0.018)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 837.5e-3 <strong>(0.061)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 0.1e-3 <strong>(0.049)</strong> </td>
+        <td style="background-color:rgb(250,221,221);color:black"> 3.2111 <strong>(0.196)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 0.1e-3 <strong>(0.085)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 1.2824 <strong>(0.100)</strong> </td>
+        <td style="background-color:rgb(250,231,231);color:black"> 0.3e-3 <strong>(0.129)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 626.6e-3 <strong>(0.043)</strong> </td>
+        <td> 0.000704 </td>
+        <td style="background-color:rgb(250,191,191);color:black"> 0.3e-3 <strong>(0.390)</strong> </td>
+    </tr>
+    <tr>
+        <th> x10 </th>
+        <td style="background-color:rgb(226,226,250);color:black"> -31.4e-3 <strong>(-0.182)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 0.004e-3 <strong>(0.038)</strong> </td>
+        <td style="background-color:rgb(250,226,226);color:black"> 2.0392 <strong>(0.163)</strong> </td>
+        <td style="background-color:rgb(250,231,231);color:black"> 0.2e-3 <strong>(0.124)</strong> </td>
+        <td style="background-color:rgb(250,174,174);color:black"> 7.6133 <strong>(0.505)</strong> </td>
+        <td style="background-color:rgb(250,217,217);color:black"> 0.2e-3 <strong>(0.218)</strong> </td>
+        <td style="background-color:rgb(250,211,211);color:black"> 3.0630 <strong>(0.261)</strong> </td>
+        <td style="background-color:rgb(250,208,208);color:black"> 0.6e-3 <strong>(0.283)</strong> </td>
+        <td style="background-color:rgb(250,201,201);color:black"> 4.3838 <strong>(0.330)</strong> </td>
+        <td style="background-color:rgb(250,191,191);color:black"> 0.3e-3 <strong>(0.390)</strong> </td>
+        <td> 0.000594 </td>
+    </tr>
+</table></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ax, _ = instance.plot_energy_spectrum()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_23_0.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_23_0.png" style="width: 589px; height: 440px;" />
+</div>
+</div>
+</section>
+<section id="Mask-more">
+<h2>Mask more<a class="headerlink" href="#Mask-more" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>instance.set_mask((1790.0, 1825.0) * u.keV, (1500.0, 1600.0) * u.keV, (1950.0, 2000.0) * u.keV)
+instance.mask
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+array([ True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True,
+        True,  True, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False,  True,  True,  True,  True,  True,  True,
+        True,  True, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False, False,  True,
+        True,  True,  True,  True,  True,  True,  True,  True,  True])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>m = instance.fit_energy_spectrum()
+m
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<table>
+    <tr>
+        <th colspan="2" style="text-align:center" title="Minimizer"> Migrad </th>
+    </tr>
+    <tr>
+        <td style="text-align:left" title="Minimum value of function"> FCN = -5.934e+07 </td>
+        <td style="text-align:center" title="Total number of function and (optional) gradient evaluations"> Nfcn = 932 </td>
+    </tr>
+    <tr>
+        <td style="text-align:left" title="Estimated distance to minimum and goal"> EDM = 0.000404 (Goal: 0.0001) </td>
+        <td style="text-align:center" title="Total run time of algorithms">  </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Valid Minimum </td>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Below EDM threshold (goal x 10) </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> No parameters at limit </td>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Below call limit </td>
+    </tr>
+    <tr>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Hesse ok </td>
+        <td style="text-align:center;background-color:#92CCA6;color:black"> Covariance accurate </td>
+    </tr>
+</table><table>
+    <tr>
+        <td></td>
+        <th title="Variable name"> Name </th>
+        <th title="Value of parameter"> Value </th>
+        <th title="Hesse error"> Hesse Error </th>
+        <th title="Minos lower error"> Minos Error- </th>
+        <th title="Minos upper error"> Minos Error+ </th>
+        <th title="Lower limit of the parameter"> Limit- </th>
+        <th title="Upper limit of the parameter"> Limit+ </th>
+        <th title="Is the parameter fixed in the fit"> Fixed </th>
+    </tr>
+    <tr>
+        <th> 0 </th>
+        <td> x0 </td>
+        <td> 17.119e3 </td>
+        <td> 0.008e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 1 </th>
+        <td> x1 </td>
+        <td> -1.816 </td>
+        <td> 0.008 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 2 </th>
+        <td> x2 </td>
+        <td> 22.6e3 </td>
+        <td> 0.5e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 3 </th>
+        <td> x3 </td>
+        <td> 1.61187e3 </td>
+        <td> 0.00007e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 4 </th>
+        <td> x4 </td>
+        <td> 74.1e3 </td>
+        <td> 0.7e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 5 </th>
+        <td> x5 </td>
+        <td> 1.633360e3 </td>
+        <td> 0.000031e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 6 </th>
+        <td> x6 </td>
+        <td> 27.6e3 </td>
+        <td> 0.5e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 7 </th>
+        <td> x7 </td>
+        <td> 1.76412e3 </td>
+        <td> 0.00008e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 8 </th>
+        <td> x8 </td>
+        <td> 70.5e3 </td>
+        <td> 0.5e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 9 </th>
+        <td> x9 </td>
+        <td> 1.778526e3 </td>
+        <td> 0.000026e3 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+    <tr>
+        <th> 10 </th>
+        <td> x10 </td>
+        <td> 2.262 </td>
+        <td> 0.027 </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+        <td>  </td>
+    </tr>
+</table><table>
+    <tr>
+        <td></td>
+        <th> x0 </th>
+        <th> x1 </th>
+        <th> x2 </th>
+        <th> x3 </th>
+        <th> x4 </th>
+        <th> x5 </th>
+        <th> x6 </th>
+        <th> x7 </th>
+        <th> x8 </th>
+        <th> x9 </th>
+        <th> x10 </th>
+    </tr>
+    <tr>
+        <th> x0 </th>
+        <td> 71.6 </td>
+        <td style="background-color:rgb(250,216,216);color:black"> 15.55e-3 <strong>(0.230)</strong> </td>
+        <td style="background-color:rgb(232,232,250);color:black"> -650 <strong>(-0.141)</strong> </td>
+        <td style="background-color:rgb(249,249,250);color:black"> -0.007 <strong>(-0.011)</strong> </td>
+        <td style="background-color:rgb(224,224,250);color:black"> -1.12e3 <strong>(-0.200)</strong> </td>
+        <td style="background-color:rgb(244,244,250);color:black"> -12.5e-3 <strong>(-0.047)</strong> </td>
+        <td style="background-color:rgb(221,221,250);color:black"> -900 <strong>(-0.220)</strong> </td>
+        <td style="background-color:rgb(246,246,250);color:black"> -0.022 <strong>(-0.031)</strong> </td>
+        <td style="background-color:rgb(221,221,250);color:black"> -1.05e3 <strong>(-0.226)</strong> </td>
+        <td style="background-color:rgb(241,241,250);color:black"> -16.1e-3 <strong>(-0.073)</strong> </td>
+        <td style="background-color:rgb(222,222,250);color:black"> -49.1e-3 <strong>(-0.217)</strong> </td>
+    </tr>
+    <tr>
+        <th> x1 </th>
+        <td style="background-color:rgb(250,216,216);color:black"> 15.55e-3 <strong>(0.230)</strong> </td>
+        <td> 6.39e-05 </td>
+        <td style="background-color:rgb(250,199,199);color:black"> 1.46470 <strong>(0.337)</strong> </td>
+        <td style="background-color:rgb(245,245,250);color:black"> -0.02e-3 <strong>(-0.035)</strong> </td>
+        <td style="background-color:rgb(250,204,204);color:black"> 1.62313 <strong>(0.306)</strong> </td>
+        <td style="background-color:rgb(250,247,247);color:black"> 0 <strong>(0.020)</strong> </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 267.55e-3 <strong>(0.069)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 0.04e-3 <strong>(0.062)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 266.40e-3 <strong>(0.061)</strong> </td>
+        <td style="background-color:rgb(250,236,236);color:black"> 0.02e-3 <strong>(0.092)</strong> </td>
+        <td style="background-color:rgb(250,217,217);color:black"> 0.05e-3 <strong>(0.221)</strong> </td>
+    </tr>
+    <tr>
+        <th> x2 </th>
+        <td style="background-color:rgb(232,232,250);color:black"> -650 <strong>(-0.141)</strong> </td>
+        <td style="background-color:rgb(250,199,199);color:black"> 1.46470 <strong>(0.337)</strong> </td>
+        <td> 2.95e+05 </td>
+        <td style="background-color:rgb(232,232,250);color:black"> -5.593 <strong>(-0.138)</strong> </td>
+        <td style="background-color:rgb(250,218,218);color:black"> 0.08e6 <strong>(0.212)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 761e-3 <strong>(0.045)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 0.03e6 <strong>(0.098)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 2.909 <strong>(0.063)</strong> </td>
+        <td style="background-color:rgb(250,234,234);color:black"> 0.03e6 <strong>(0.104)</strong> </td>
+        <td style="background-color:rgb(250,236,236);color:black"> 1.3286 <strong>(0.093)</strong> </td>
+        <td style="background-color:rgb(250,216,216);color:black"> 3.3261 <strong>(0.229)</strong> </td>
+    </tr>
+    <tr>
+        <th> x3 </th>
+        <td style="background-color:rgb(249,249,250);color:black"> -0.007 <strong>(-0.011)</strong> </td>
+        <td style="background-color:rgb(245,245,250);color:black"> -0.02e-3 <strong>(-0.035)</strong> </td>
+        <td style="background-color:rgb(232,232,250);color:black"> -5.593 <strong>(-0.138)</strong> </td>
+        <td> 0.00557 </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 2.547 <strong>(0.052)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 0.1e-3 <strong>(0.035)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 0.944 <strong>(0.026)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 0.000 <strong>(0.041)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 1.468 <strong>(0.036)</strong> </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 0.1e-3 <strong>(0.052)</strong> </td>
+        <td style="background-color:rgb(250,232,232);color:black"> 0.2e-3 <strong>(0.118)</strong> </td>
+    </tr>
+    <tr>
+        <th> x4 </th>
+        <td style="background-color:rgb(224,224,250);color:black"> -1.12e3 <strong>(-0.200)</strong> </td>
+        <td style="background-color:rgb(250,204,204);color:black"> 1.62313 <strong>(0.306)</strong> </td>
+        <td style="background-color:rgb(250,218,218);color:black"> 0.08e6 <strong>(0.212)</strong> </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 2.547 <strong>(0.052)</strong> </td>
+        <td> 4.39e+05 </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 1.3646 <strong>(0.066)</strong> </td>
+        <td style="background-color:rgb(250,222,222);color:black"> 0.06e6 <strong>(0.184)</strong> </td>
+        <td style="background-color:rgb(250,223,223);color:black"> 10.071 <strong>(0.180)</strong> </td>
+        <td style="background-color:rgb(250,218,218);color:black"> 0.08e6 <strong>(0.216)</strong> </td>
+        <td style="background-color:rgb(250,214,214);color:black"> 4.2213 <strong>(0.243)</strong> </td>
+        <td style="background-color:rgb(250,164,164);color:black"> 10.1576 <strong>(0.574)</strong> </td>
+    </tr>
+    <tr>
+        <th> x5 </th>
+        <td style="background-color:rgb(244,244,250);color:black"> -12.5e-3 <strong>(-0.047)</strong> </td>
+        <td style="background-color:rgb(250,247,247);color:black"> 0 <strong>(0.020)</strong> </td>
+        <td style="background-color:rgb(250,243,243);color:black"> 761e-3 <strong>(0.045)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 0.1e-3 <strong>(0.035)</strong> </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 1.3646 <strong>(0.066)</strong> </td>
+        <td> 0.000979 </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 1.0465 <strong>(0.069)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 0.2e-3 <strong>(0.088)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 1.5065 <strong>(0.088)</strong> </td>
+        <td style="background-color:rgb(250,233,233);color:black"> 0.1e-3 <strong>(0.115)</strong> </td>
+        <td style="background-color:rgb(250,210,210);color:black"> 0.2e-3 <strong>(0.265)</strong> </td>
+    </tr>
+    <tr>
+        <th> x6 </th>
+        <td style="background-color:rgb(221,221,250);color:black"> -900 <strong>(-0.220)</strong> </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 267.55e-3 <strong>(0.069)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 0.03e6 <strong>(0.098)</strong> </td>
+        <td style="background-color:rgb(250,246,246);color:black"> 0.944 <strong>(0.026)</strong> </td>
+        <td style="background-color:rgb(250,222,222);color:black"> 0.06e6 <strong>(0.184)</strong> </td>
+        <td style="background-color:rgb(250,240,240);color:black"> 1.0465 <strong>(0.069)</strong> </td>
+        <td> 2.35e+05 </td>
+        <td style="background-color:rgb(234,234,250);color:black"> -4.936 <strong>(-0.120)</strong> </td>
+        <td style="background-color:rgb(250,232,232);color:black"> 0.03e6 <strong>(0.122)</strong> </td>
+        <td style="background-color:rgb(250,233,233);color:black"> 1.4595 <strong>(0.115)</strong> </td>
+        <td style="background-color:rgb(250,209,209);color:black"> 3.5779 <strong>(0.277)</strong> </td>
+    </tr>
+    <tr>
+        <th> x7 </th>
+        <td style="background-color:rgb(246,246,250);color:black"> -0.022 <strong>(-0.031)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 0.04e-3 <strong>(0.062)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 2.909 <strong>(0.063)</strong> </td>
+        <td style="background-color:rgb(250,244,244);color:black"> 0.000 <strong>(0.041)</strong> </td>
+        <td style="background-color:rgb(250,223,223);color:black"> 10.071 <strong>(0.180)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 0.2e-3 <strong>(0.088)</strong> </td>
+        <td style="background-color:rgb(234,234,250);color:black"> -4.936 <strong>(-0.120)</strong> </td>
+        <td> 0.00716 </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 4.655 <strong>(0.100)</strong> </td>
+        <td style="background-color:rgb(250,227,227);color:black"> 0.3e-3 <strong>(0.154)</strong> </td>
+        <td style="background-color:rgb(250,201,201);color:black"> 0.7e-3 <strong>(0.327)</strong> </td>
+    </tr>
+    <tr>
+        <th> x8 </th>
+        <td style="background-color:rgb(221,221,250);color:black"> -1.05e3 <strong>(-0.226)</strong> </td>
+        <td style="background-color:rgb(250,241,241);color:black"> 266.40e-3 <strong>(0.061)</strong> </td>
+        <td style="background-color:rgb(250,234,234);color:black"> 0.03e6 <strong>(0.104)</strong> </td>
+        <td style="background-color:rgb(250,245,245);color:black"> 1.468 <strong>(0.036)</strong> </td>
+        <td style="background-color:rgb(250,218,218);color:black"> 0.08e6 <strong>(0.216)</strong> </td>
+        <td style="background-color:rgb(250,237,237);color:black"> 1.5065 <strong>(0.088)</strong> </td>
+        <td style="background-color:rgb(250,232,232);color:black"> 0.03e6 <strong>(0.122)</strong> </td>
+        <td style="background-color:rgb(250,235,235);color:black"> 4.655 <strong>(0.100)</strong> </td>
+        <td> 3e+05 </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 757.8e-3 <strong>(0.053)</strong> </td>
+        <td style="background-color:rgb(250,199,199);color:black"> 5.0118 <strong>(0.343)</strong> </td>
+    </tr>
+    <tr>
+        <th> x9 </th>
+        <td style="background-color:rgb(241,241,250);color:black"> -16.1e-3 <strong>(-0.073)</strong> </td>
+        <td style="background-color:rgb(250,236,236);color:black"> 0.02e-3 <strong>(0.092)</strong> </td>
+        <td style="background-color:rgb(250,236,236);color:black"> 1.3286 <strong>(0.093)</strong> </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 0.1e-3 <strong>(0.052)</strong> </td>
+        <td style="background-color:rgb(250,214,214);color:black"> 4.2213 <strong>(0.243)</strong> </td>
+        <td style="background-color:rgb(250,233,233);color:black"> 0.1e-3 <strong>(0.115)</strong> </td>
+        <td style="background-color:rgb(250,233,233);color:black"> 1.4595 <strong>(0.115)</strong> </td>
+        <td style="background-color:rgb(250,227,227);color:black"> 0.3e-3 <strong>(0.154)</strong> </td>
+        <td style="background-color:rgb(250,242,242);color:black"> 757.8e-3 <strong>(0.053)</strong> </td>
+        <td> 0.000686 </td>
+        <td style="background-color:rgb(250,185,185);color:black"> 0.3e-3 <strong>(0.430)</strong> </td>
+    </tr>
+    <tr>
+        <th> x10 </th>
+        <td style="background-color:rgb(222,222,250);color:black"> -49.1e-3 <strong>(-0.217)</strong> </td>
+        <td style="background-color:rgb(250,217,217);color:black"> 0.05e-3 <strong>(0.221)</strong> </td>
+        <td style="background-color:rgb(250,216,216);color:black"> 3.3261 <strong>(0.229)</strong> </td>
+        <td style="background-color:rgb(250,232,232);color:black"> 0.2e-3 <strong>(0.118)</strong> </td>
+        <td style="background-color:rgb(250,164,164);color:black"> 10.1576 <strong>(0.574)</strong> </td>
+        <td style="background-color:rgb(250,210,210);color:black"> 0.2e-3 <strong>(0.265)</strong> </td>
+        <td style="background-color:rgb(250,209,209);color:black"> 3.5779 <strong>(0.277)</strong> </td>
+        <td style="background-color:rgb(250,201,201);color:black"> 0.7e-3 <strong>(0.327)</strong> </td>
+        <td style="background-color:rgb(250,199,199);color:black"> 5.0118 <strong>(0.343)</strong> </td>
+        <td style="background-color:rgb(250,185,185);color:black"> 0.3e-3 <strong>(0.430)</strong> </td>
+        <td> 0.000713 </td>
+    </tr>
+</table></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ax, _ = instance.plot_energy_spectrum()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_27_0.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_27_0.png" style="width: 589px; height: 440px;" />
+</div>
+</div>
+</section>
+<section id="3.-Generate-Background-Histogram">
+<h2>3. Generate Background Histogram<a class="headerlink" href="#3.-Generate-Background-Histogram" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[38]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>source_range = (1805, 1812)  * u.keV #counts estimation in Al26 line
+
+background_region_1 = (1650, 1750) * u.keV #background counts estimation before the line
+background_region_2 = (1850, 1950) * u.keV #background counts estimation before the line
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[39]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_model_histogram = instance.generate_bkg_model_histogram(source_range, [background_region_1, background_region_2])
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+The energy range [1650. 1750.] is modified to [1651.51515152, 1747.47474747]
+The energy range [1850. 1950.] is modified to [1853.53535354, 1949.49494949]
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>ax, _ = instance.plot_energy_spectrum()
+
+ax.axvspan(source_range[0].value, source_range[1].value, color=&#39;red&#39;, alpha=0.2, label = &#39;source range&#39;)
+
+ax.axvspan(background_region_1[0].value, background_region_1[1].value, color=&#39;blue&#39;, alpha=0.2, label = &#39;bkg extracted region 1&#39;)
+ax.axvspan(background_region_2[0].value, background_region_2[1].value, color=&#39;green&#39;, alpha=0.2, label = &#39;bkg extracted region 1&#39;)
+
+ax.legend()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[40]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&lt;matplotlib.legend.Legend at 0x3c1cbee90&gt;
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_31_1.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_31_1.png" style="width: 589px; height: 440px;" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[41]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_model_histogram.write(&#39;bkg_model_al26_line.hdf5&#39;, overwrite=True)
+</pre></div>
+</div>
+</div>
+</section>
+<section id="4.-Compare-the-background-model-with-the-actual-background-data">
+<h2>4. Compare the background model with the actual background data<a class="headerlink" href="#4.-Compare-the-background-model-with-the-actual-background-data" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>%%time
+
+bkg_histogram_in_Al26line = BinnedData(&quot;inputs_check_results.yaml&quot;)
+bkg_histogram_in_Al26line.get_binned_data(unbinned_data=path_to_bkg, make_binning_plots=False,
+                                          output_name=&#39;bkg_data_al26_line_for_comparison&#39;, show_plots=False)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+CPU times: user 9min 42s, sys: 43.6 s, total: 10min 26s
+Wall time: 11min 21s
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[42]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_histogram_in_Al26line = Histogram.open(&quot;bkg_data_al26_line_for_comparison.hdf5&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[43]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_model_histogram = bkg_model_histogram.todense()
+bkg_histogram_in_Al26line = bkg_histogram_in_Al26line.todense()
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[44]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_model_histogram.clear_underflow_and_overflow()
+bkg_histogram_in_Al26line.clear_underflow_and_overflow()
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Normalization">
+<h2>Normalization<a class="headerlink" href="#Normalization" title="Link to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[45]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>count_model = np.sum(bkg_model_histogram[:])
+count_obs = np.sum(bkg_histogram_in_Al26line[:])
+
+print(&quot;model:&quot;, count_model)
+print(&quot;data:&quot;, count_obs)
+print(&quot;difference:&quot;, (count_obs/count_model - 1)*1e2, &quot;%&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+model: 115660.74857012795
+data: 121530.0
+difference: 5.074540414472062 %
+</pre></div></div>
+</div>
+</section>
+<section id="Phi-distritbuion">
+<h2>Phi distritbuion<a class="headerlink" href="#Phi-distritbuion" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[46]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_model_phi = bkg_model_histogram.project(&quot;Phi&quot;).todense()
+bkg_obs_phi = bkg_histogram_in_Al26line.project(&quot;Phi&quot;).todense()
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8), sharex=True, gridspec_kw={&#39;height_ratios&#39;: [3, 1, 1]})
+
+ax3.set_xlabel(r&#39;$\phi$ (deg.)&#39;)
+
+ax1.bar(bkg_model_phi.axis.centers, bkg_model_phi.contents, width = 3, alpha=0.5, label=&#39;Model&#39;)
+#ax1.bar(bkg_obs_phi.axis.centers,   bkg_obs_phi.contents,   width = 3, alpha=0.5, label=&#39;Data&#39;, capsize=3, yerr = np.sqrt(bkg_obs_phi.contents))
+ax1.errorbar(bkg_obs_phi.axis.centers, bkg_obs_phi.contents, color = &#39;black&#39;, label=&#39;Data&#39;, fmt=&#39;.&#39;, capsize=3, yerr = np.sqrt(bkg_obs_phi.contents))
+ax1.set_ylabel(&#39;Counts&#39;)
+ax1.legend(fontsize = 10)
+ax1.grid()
+ax1.set_yscale(&#39;log&#39;)
+
+# ratio
+diff = bkg_obs_phi.contents / bkg_model_phi.contents - 1
+diff_err = np.sqrt(bkg_obs_phi.contents) / bkg_model_phi.contents
+ax2.errorbar(bkg_model_phi.axis.centers, diff, yerr=diff_err, fmt=&#39;.&#39;, capsize=3, color = &#39;black&#39;)
+ax2.axhline(y = 0, color = &#39;grey&#39;, linestyle = &#39;--&#39;)
+ax2.grid()
+ax2.set_ylabel(&#39;(Data / Model) - 1&#39;)
+ax2.set_ylim(-1, 1)
+
+# chi
+xi = (bkg_obs_phi.contents - bkg_model_phi.contents) / np.sqrt(bkg_obs_phi.contents)
+ax3.plot(bkg_model_phi.axis.centers, xi, &#39;.&#39;, color = &#39;black&#39;)
+ax3.axhspan(-5, 5, color = &#39;grey&#39;, alpha = 0.25, label = r&quot;$\pm 5 \sigma$&quot;)
+ax3.set_ylabel(r&quot;$\chi$&quot;)
+ax3.grid()
+ax3.legend(fontsize = 10)
+ax3.set_ylim(-20, 20)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[47]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(-20.0, 20.0)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_42_1.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_42_1.png" style="width: 864px; height: 688px;" />
+</div>
+</div>
+</section>
+<section id="PsiChi-distritbuion">
+<h2>PsiChi distritbuion<a class="headerlink" href="#PsiChi-distritbuion" title="Link to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[48]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>bkg_model_psichi = bkg_model_histogram.project(&quot;PsiChi&quot;)
+bkg_obs_psichi = bkg_histogram_in_Al26line.project(&quot;PsiChi&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8), sharex=True, gridspec_kw={&#39;height_ratios&#39;: [3, 1, 1]})
+
+ax3.set_xlabel(r&#39;$\psi \xi$ (HEALPix index)&#39;)
+
+ax1.bar(bkg_model_psichi.axis.centers, bkg_model_psichi.contents, width = 1, alpha=0.5, label=&#39;Model&#39;)
+#ax1.bar(bkg_obs_psichi.axis.centers,   bkg_obs_psichi.contents,   width = 3, alpha=0.5, label=&#39;Data&#39;)#, capsize=3, yerr = np.sqrt(bkg_obs_psichi.contents))
+ax1.errorbar(bkg_obs_psichi.axis.centers, bkg_obs_psichi.contents, color = &#39;black&#39;, alpha=0.1, label=&#39;Data&#39;, fmt=&#39;.&#39;, capsize=3, yerr = np.sqrt(bkg_obs_psichi.contents))
+ax1.set_ylabel(&#39;Counts&#39;)
+ax1.legend(fontsize = 10)
+ax1.grid()
+#ax1.set_yscale(&#39;log&#39;)
+
+# ratio
+diff = bkg_obs_psichi.contents / bkg_model_psichi.contents - 1
+diff_err = np.sqrt(bkg_obs_psichi.contents) / bkg_model_psichi.contents
+ax2.errorbar(bkg_model_psichi.axis.centers, diff, yerr=diff_err, fmt=&#39;.&#39;, capsize=3, color = &#39;black&#39;)
+ax2.axhline(y = 0, color = &#39;grey&#39;, linestyle = &#39;--&#39;)
+ax2.grid()
+ax2.set_ylabel(&#39;(Data / Model) - 1&#39;)
+ax2.set_ylim(-1, 1)
+
+# chi
+xi = (bkg_obs_psichi.contents - bkg_model_psichi.contents) / np.sqrt(bkg_obs_psichi.contents)
+ax3.plot(bkg_model_psichi.axis.centers, xi, &#39;.&#39;, color = &#39;black&#39;)
+ax3.axhspan(-5, 5, color = &#39;grey&#39;, alpha = 0.25, label = r&quot;$\pm 5 \sigma$&quot;)
+ax3.set_ylabel(r&quot;$\chi$&quot;)
+ax3.grid()
+ax3.legend(fontsize = 10)
+ax3.set_ylim(-10, 10)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[49]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(-10.0, 10.0)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_45_1.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_45_1.png" style="width: 864px; height: 688px;" />
+</div>
+</div>
+<section id="Rebinning">
+<h3>Rebinning<a class="headerlink" href="#Rebinning" title="Link to this heading"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[50]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>import healpy as hp
+</pre></div>
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[51]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>nside_out = 4
+
+bkg_model_psichi_rebinned = hp.ud_grade(bkg_model_psichi[:], nside_out, power = -2)
+bkg_obs_psichi_rebinned   = hp.ud_grade(bkg_obs_psichi[:],   nside_out, power = -2)
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[52]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8), sharex=True, gridspec_kw={&#39;height_ratios&#39;: [3, 1, 1]})
+
+ax3.set_xlabel(r&#39;$\psi \xi$ (HEALPix index)&#39;)
+
+ax1.bar(np.arange(hp.nside2npix(nside_out)), bkg_model_psichi_rebinned, width = 1, alpha=0.5, label=&#39;Model&#39;)
+#ax1.bar(np.arange(hp.nside2npix(nside_out)), bkg_obs_psichi_rebinned,   width = 3, alpha=0.5, label=&#39;Data&#39;, capsize=3, yerr = np.sqrt(bkg_obs_psichi_rebinned))
+ax1.errorbar(np.arange(hp.nside2npix(nside_out)), bkg_obs_psichi_rebinned, color = &#39;black&#39;, alpha=1, label=&#39;Data&#39;, fmt=&#39;.&#39;, capsize=3, yerr = np.sqrt(bkg_obs_psichi_rebinned))
+ax1.set_ylabel(&#39;Counts&#39;)
+ax1.legend(fontsize = 10)
+ax1.grid()
+#ax1.set_yscale(&#39;log&#39;)
+
+# ratio
+diff = bkg_obs_psichi_rebinned / bkg_model_psichi_rebinned - 1
+diff_err = np.sqrt(bkg_model_psichi_rebinned) / bkg_obs_psichi_rebinned
+ax2.errorbar(np.arange(hp.nside2npix(nside_out)), diff, yerr=diff_err, fmt=&#39;.&#39;, capsize=3, color = &#39;black&#39;)
+ax2.axhline(y = 0, color = &#39;grey&#39;, linestyle = &#39;--&#39;)
+ax2.grid()
+ax2.set_ylabel(&#39;(Data / Model) - 1&#39;)
+ax2.set_ylim(-0.3, 0.3)
+
+# chi
+xi = (bkg_obs_psichi_rebinned - bkg_model_psichi_rebinned) / np.sqrt(bkg_obs_psichi_rebinned)
+ax3.plot(np.arange(hp.nside2npix(nside_out)), xi, &#39;.&#39;, color = &#39;black&#39;)
+ax3.axhspan(-5, 5, color = &#39;grey&#39;, alpha = 0.25, label = r&quot;$\pm 5 \sigma$&quot;)
+ax3.set_ylabel(r&quot;$\chi$&quot;)
+ax3.grid()
+ax3.legend(fontsize = 10)
+ax3.set_ylim(-10, 10)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[52]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(-10.0, 10.0)
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_49_1.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_49_1.png" style="width: 881px; height: 688px;" />
+</div>
+</div>
+<p>As an future idea, applying the smoothing to the background model would be useful to mitigate the Poisson fluctutation in the backgroud model. Note that the smoothing also loses high-frequency information, so there should be optimized in some ways.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[53]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>sliced_bkg_map = bkg_model_histogram[0,0,25]
+
+hp.mollview(sliced_bkg_map)
+
+sliced_smoothed_bkg_map = hp.smoothing(sliced_bkg_map, fwhm = (20.0 * u.deg).to(&#39;rad&#39;).value)
+
+hp.mollview(sliced_smoothed_bkg_map)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_51_0.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_51_0.png" style="width: 836px; height: 520px;" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_51_1.png" class="no-scaled-link" src="../../../_images/tutorials_background_estimation_line_background_line_background_estimation_example_notebook_51_1.png" style="width: 836px; height: 520px;" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../continuum_estimation/BG_estimation_example.html" class="btn btn-neutral float-left" title="Continuum Background Estimation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../polarization/ASAD_method.html" class="btn btn-neutral float-right" title="Polarization example - azimuthal scattering angle distribution (ASAD) method" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

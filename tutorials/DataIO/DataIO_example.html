@@ -1,0 +1,1142 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DataIO Examples &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/nbsphinx-code-cells.css?v=2aa19091" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Spacecraft file: attitude and position" href="../response/SpacecraftFile.html" />
+    <link rel="prev" title="Tutorials" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Tutorials</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Data format and handling</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Data-formats-overview">Data formats overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Example-1:-Standard-binned-analysis">Example 1: Standard binned analysis</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Get-the-unbinned-COSI-dataset">Get the unbinned COSI dataset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Bin-the-data">Bin the data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Let's-take-a-look-at-the-raw-spectrum-and-lightcurve:">Let’s take a look at the raw spectrum and lightcurve:</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Example-2:-Some-available-options-for-the-standard-binned-anlaysis">Example 2: Some available options for the standard binned anlaysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Example-3:-Combining-multiple-data-files">Example 3: Combining multiple data files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Combining-unbinned-data">Combining unbinned data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Combining-binned-data">Combining binned data</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Example-4:-Making-data-selections">Example 4: Making data selections</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#Make-time-cut">Make time cut</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Bin-the-selected-data">Bin the selected data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Compare-to-the-full-data-set">Compare to the full data set</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#Example-5:-Dealing-with-memory-issues">Example 5: Dealing with memory issues</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../response/SpacecraftFile.html">Spacecraft file: attitude and position</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../response/DetectorResponse.html">Detector response and signal expectation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../ts_map/Parallel_TS_map_computation.html">TS Map: localizing a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spectral_fits/continuum_fit/grb/SpectralFit_GRB.html">Fitting the spectrum of a GRB</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spectral_fits/continuum_fit/crab/SpectralFit_Crab.html">Fitting the spectrum of the Crab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../spectral_fits/extended_source_fit/diffuse_511_spectral_fit.html">Extended source model fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../source_injector/Point_source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../background_estimation/continuum_estimation/BG_estimation_example.html">Continuum Background Estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../background_estimation/line_background/line_background_estimation_example_notebook.html">Line background estimation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../polarization/ASAD_method.html">Polarization (ASAD method)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Tutorials</a></li>
+      <li class="breadcrumb-item active">DataIO Examples</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/tutorials/DataIO/DataIO_example.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="DataIO-Examples">
+<h1>DataIO Examples<a class="headerlink" href="#DataIO-Examples" title="Link to this heading"></a></h1>
+<p>For these examples we will use 2 hrs of simulated Crab data with the Compton sphere mass model. This is an idealized mass model with a full-sky instantanious field of view, used only for development. The file can be downloaded using the cosipy utility function below.</p>
+<p>wasabi path: ComptonSphere/mini-DC2/GalacticScan.inc1.id1.crab2hr.extracted.tra.gz File size: 322 MB</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from cosipy.util import fetch_wasabi_file
+fetch_wasabi_file(&#39;ComptonSphere/mini-DC2/GalacticScan.inc1.id1.crab2hr.extracted.tra.gz&#39;)
+</pre></div>
+</div>
+</div>
+<section id="Data-formats-overview">
+<h2>Data formats overview<a class="headerlink" href="#Data-formats-overview" title="Link to this heading"></a></h2>
+<p>The COSI high-level analysis data is composed of a stream of time-tagged events. Each event has an associated timestamp (<span class="math notranslate nohighlight">\(t\)</span>), measured energy (<span class="math notranslate nohighlight">\(E_m\)</span>), and the three parameters of the Compton Data Space (CDS): scattering polar angle (<span class="math notranslate nohighlight">\(\phi\)</span>), and the longitude and latitude angles defining the direction of the first scattered gamma ray (<span class="math notranslate nohighlight">\(\psi\)</span> and <span class="math notranslate nohighlight">\(\chi\)</span>). See these references for an explanation of the CDS:
+<a class="reference external" href="https://github.com/cositools/cosi-data-challenge-2/tree/main/cosipy-intro#the-compton-data-space">1</a>,<a class="reference external" href="https://arxiv.org/abs/2308.11436">2</a>, <a class="reference external" href="https://arxiv.org/abs/2102.13158">3</a>.</p>
+<p>There are three formats that contain time-tagged events:</p>
+<ul class="simple">
+<li><p>tra files. These have the extension “.tra”. They are text files generated by MEGAlib that contain track information. You can read about the format in MEGALib’s <a class="reference external" href="https://github.com/zoglauer/megalib/blob/main/doc/Mimrec.pdf">Mimrec documentation</a>. Most users won’t need to use these files.</p></li>
+<li><p>FITS files. These have the extension “.fits”. They are essentially tra files that have been converted into the <a class="reference external" href="https://fits.gsfc.nasa.gov/">FITS</a> format. This is the typical starting point for a cosipy analysis.</p></li>
+<li><p>Unbinned HDF5 files. These have the extension “.h5” or “.hdf5”. This is another option for converting the tra files into a binary format, in this case (<a class="reference external" href="https://www.hdfgroup.org/solutions/hdf5/">HDF5</a>). Some examples use an HDF5 format instead of FITS, since it can be more computationally efficient.</p></li>
+</ul>
+<p>Currently, all the analyses in cosipy use binned data. These are also HDF5 binary files and have the extension “.h5” or “.hdf5”. They contain a 4-dimensional sparse histogram corresponding to the variables <span class="math notranslate nohighlight">\(t\)</span>, <span class="math notranslate nohighlight">\(E_m\)</span>, <span class="math notranslate nohighlight">\(\phi\)</span> and <span class="math notranslate nohighlight">\(\psi\phi\)</span>. The binned direction of the scattered gamma ray (<span class="math notranslate nohighlight">\(\phi\)</span> and <span class="math notranslate nohighlight">\(\psi\phi\)</span>) is encoded as a pixel in a <a class="reference external" href="https://healpix.sourceforge.io/">HEALpix</a> map.</p>
+<div class="alert alert-block alert-info"><p>Note: The data formats are likely to change and consolidate in future versions. In addition, we are contemplating adding more information to each event that cannot be captured by the Compton Data Space –e.g. the scattering angle and direction of the second interaction, for those events with more than 2 hits.</p>
+</div></section>
+<section id="Example-1:-Standard-binned-analysis">
+<h2>Example 1: Standard binned analysis<a class="headerlink" href="#Example-1:-Standard-binned-analysis" title="Link to this heading"></a></h2>
+<p>Import the BinnedData class from cosipy:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>from cosipy import BinnedData
+%matplotlib inline
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">10:44:43 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The naima package is not available. Models that depend on it will not be         </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/functions/functions_1D/functions.py#48" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">48</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                         </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The GSL library or the pygsl wrapper cannot be loaded. Models that depend on it  </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/functions/functions_1D/functions.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">functions.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/functions/functions_1D/functions.py#69" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">69</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">will not be available.                                                            </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">10:44:45 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The ebltable package is not available. Models that depend on it will not be     </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/functions/functions_1D/absorption.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">absorption.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/functions/functions_1D/absorption.py#36" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">36</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">available                                                                        </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">                </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of F to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> We have set the min_value of K to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1e-99</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> because there was a postive transform   </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">parameter.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/astromodels/core/parameter.py#704" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">704</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">10:44:45 </span><span style="color: #00ffaf; text-decoration-color: #00ffaf">INFO    </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Starting 3ML!                                                                     </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#35" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">35</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> WARNINGs here are </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold">NOT</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> errors                                                      </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#36" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">36</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> but are inform you about optional packages that can be installed                  </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#37" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">37</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> </span><span style="color: #800000; text-decoration-color: #800000; font-weight: bold"> to disable these messages, turn off start_warning in your config file</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">            </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#40" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">40</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> no display variable set. using backend for graphics without display (agg)         </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#46" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">46</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+/zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/pkg_resources/__init__.py:123: PkgResourcesDeprecationWarning: dev is an invalid version and will not be supported in a future release
+  warnings.warn(
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">10:44:50 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> ROOT minimizer not available                                                </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/minimizer/minimization.py#1345" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1345</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Multinest minimizer not available                                           </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/minimizer/minimization.py#1357" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1357</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">10:44:52 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> PyGMO is not available                                                      </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/minimizer/minimization.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">minimization.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/minimizer/minimization.py#1369" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">1369</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">10:44:53 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> The cthreeML package is not installed. You will not be able to use plugins which  </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#94" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">94</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">require the C/C++ interface (currently HAWC)                                       </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">              </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">10:44:54 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin HAWCLike.py. Do you have the relative instrument         </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Could not import plugin FermiLATLike.py. Do you have the relative instrument     </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#144" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">144</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">software installed and configured?                                                </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">10:44:56 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> No fermitools installed                                              </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">lat_transient_builder.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/utils/data_builders/fermi/lat_transient_builder.py#44" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">44</span></a>
+</pre></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">10:44:56 </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable MKL_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal         </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<pre style="white-space:pre;overflow-x:auto;line-height:normal;font-family:Menlo,'DejaVu Sans Mono',consolas,'Courier New',monospace"><span style="color: #00ff00; text-decoration-color: #00ff00">         </span><span style="color: #af5fd7; text-decoration-color: #af5fd7">WARNING </span> <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> Env. variable NUMEXPR_NUM_THREADS is not set. Please set it to </span><span style="color: #c0c0c0; text-decoration-color: #c0c0c0; font-weight: bold">1</span><span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold"> for optimal     </span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">__init__.py</span></a><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">:</span><a href="file:///zfs/astrohe/Software/COSIMain_u2/lib/python3.9/site-packages/threeML/__init__.py#387" target="_blank"><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">387</span></a>
+<span style="color: #00ff00; text-decoration-color: #00ff00">         </span>         <span style="color: #c6c6c6; text-decoration-color: #c6c6c6; font-weight: bold">performances in 3ML                                                               </span><span style="color: #7f7f7f; text-decoration-color: #7f7f7f">               </span>
+</pre></div>
+</div>
+<section id="Get-the-unbinned-COSI-dataset">
+<h3>Get the unbinned COSI dataset<a class="headerlink" href="#Get-the-unbinned-COSI-dataset" title="Link to this heading"></a></h3>
+<p>Define an instance of the BinnedData object. Input parameters are passed from inputs.yaml. Note: We are still working on refining the handling of input/output parameters. This will be updated in future releases of cosipy.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis = BinnedData(&quot;inputs.yaml&quot;)
+</pre></div>
+</div>
+</div>
+<p>A typical DataIO configuration yaml files looks like this:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">data_file</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/path/to/crab/tra/file&quot;</span><span class="w"> </span><span class="c1"># Full path to unbinned tra data file. Only needed when converting a tra file to fits or HDF5.</span>
+<span class="nt">ori_file</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/path/to/ori/file&quot;</span><span class="w"> </span><span class="c1"># Full path to spacecraft orientation file. See next tutorial. Only needed when converting a tra file to fits or HDF5.</span>
+<span class="nt">unbinned_output</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;hdf5&#39;</span><span class="w"> </span><span class="c1"># Format of converted unbinned file &#39;fits&#39; or &#39;hdf5&#39;. Only needed when converting a tra file to fits or HDF5.</span>
+<span class="nt">time_bins</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span><span class="w"> </span><span class="c1"># time bin size in seconds. Takes int, float, or list of bin edges.</span>
+<span class="nt">energy_bins</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">100.</span><span class="p p-Indicator">,</span><span class="w">  </span><span class="nv">200.</span><span class="p p-Indicator">,</span><span class="w">  </span><span class="nv">500.</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">1000.</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">2000.</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">5000.</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="c1"># Energy  bin edges [keV]. Needs to match response binning.</span>
+<span class="nt">phi_pix_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6</span><span class="w"> </span><span class="c1"># binning of Compton scattering angle [deg].</span>
+<span class="nt">nside</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span><span class="w"> </span><span class="c1"># HEALPix binning of psi chi local. Needs to match response binning.</span>
+<span class="nt">scheme</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;ring&#39;</span><span class="w"> </span><span class="c1"># HEALPix binning scheme of psi chi</span>
+<span class="nt">tmin</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1835478000.0</span><span class="w"> </span><span class="c1"># Min time cut in GPS seconds.</span>
+<span class="nt">tmax</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1835485200.0</span><span class="w"> </span><span class="c1"># Max time cut in GPS seconds.</span>
+</pre></div>
+</div>
+<p>The starting point for the high-level data analysis is the so-called Level 1c data, which is a photon list consisting of Compton event parameters, e.g. energies of the scattered gamma ray and recoil electron, interaction positions within the detector, and time-tags. The photon list comes from the event identification and reconstruction, and it is stored in a tra file. From this information we can determine the total measured energy of the incidenct photon, the Compton scattering angle, the
+scattering direction, the distance between interactions, and the pointing of the instrument when the photon was detected, which is the main information needed for the high-level analysis. As a very first step, we read the data from the tra file and construct the COSI dataset. The data format for this is a dictionary containing the relevant information for all photons (i.e. an unbinned photon list). The dictionary can be stored as either a fits file or an hdf5 file.</p>
+<p><strong>Note:</strong> Most users will not need to worry about this step, as the COSI data will already be provided in fits file format. However, this function can also be used for converting simulated data from MEGAlib to the proper cosipy format.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis.read_tra(output_name=&quot;unbinned_data&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Preparing to read file...
+Reading file...
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+100%|██████████| 53383576/53383576.0 [03:35&lt;00:00, 247474.98it/s]
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Making COSI data set...
+total events to procecss: 3324977
+Initializing arrays...
+Making dictionary...
+Saving file...
+total processing time [s]: 720.1664335727692
+</pre></div></div>
+</div>
+</section>
+<section id="Bin-the-data">
+<h3>Bin the data<a class="headerlink" href="#Bin-the-data" title="Link to this heading"></a></h3>
+<p>The data is binned with four axes: time, measured energy, compton scattering angle (Phi), and scattering direction (PsiChi). The binning should match that of the response used for the analysis. Here we will bin the data in Galactic coordinates, which is the default. The data can also be binned in local coordinates by specifying the keyword psichi_binning=”local”.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis.get_binned_data()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+</section>
+<section id="Let's-take-a-look-at-the-raw-spectrum-and-lightcurve:">
+<h3>Let’s take a look at the raw spectrum and lightcurve:<a class="headerlink" href="#Let's-take-a-look-at-the-raw-spectrum-and-lightcurve:" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis.get_raw_spectrum()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+getting raw spectrum...
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_16_1.png" src="../../_images/tutorials_DataIO_DataIO_example_16_1.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># LC in plot below is normalized to initial time.
+analysis.get_raw_lightcurve()
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+getting raw lightcurve...
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_17_1.png" src="../../_images/tutorials_DataIO_DataIO_example_17_1.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Example-2:-Some-available-options-for-the-standard-binned-anlaysis">
+<h2>Example 2: Some available options for the standard binned anlaysis<a class="headerlink" href="#Example-2:-Some-available-options-for-the-standard-binned-anlaysis" title="Link to this heading"></a></h2>
+<p>In the previous step we saved the unbinned data to an hdf5 file with the read_tra method. Here we will load the unbinnned data from file instead of running read_tra again. We will also save the binned data to file, and make binning plots.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis = BinnedData(&quot;inputs.yaml&quot;)
+analysis.get_binned_data(unbinned_data=&quot;unbinned_data.hdf5&quot;, output_name=&quot;binned_data&quot;, make_binning_plots=True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_19_1.png" src="../../_images/tutorials_DataIO_DataIO_example_19_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_19_2.png" src="../../_images/tutorials_DataIO_DataIO_example_19_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_19_3.png" src="../../_images/tutorials_DataIO_DataIO_example_19_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_19_4.png" src="../../_images/tutorials_DataIO_DataIO_example_19_4.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_19_5.png" src="../../_images/tutorials_DataIO_DataIO_example_19_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+plotting psichi in Galactic coordinates...
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_19_7.png" src="../../_images/tutorials_DataIO_DataIO_example_19_7.png" />
+</div>
+</div>
+<p>The two healpix maps above show the projection onto the PsiChi dimension, where the upper map is in the local coordinate system, and the lower map is in the Galactic coordinate system.</p>
+<p>In the last step we saved the binned data to an hdf5 file. We can load this directly to access the binned data histogram object.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis = BinnedData(&quot;inputs.yaml&quot;)
+analysis.load_binned_data_from_hdf5(&quot;binned_data.hdf5&quot;)
+
+# For example, we can project onto the time axis:
+analysis.binned_data.axes[&quot;Time&quot;].centers
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+$[1.835478 \times 10^{9},~1.8354781 \times 10^{9},~1.8354782 \times 10^{9},~\dots,~1.835485 \times 10^{9},~1.8354851 \times 10^{9},~1.8354852 \times 10^{9}] \; \mathrm{s}$</div></div>
+</div>
+<p>Next we will load the binnned data from file to make the raw spectrum and lightcurve. We will also save the outputs, which are written to both a pdf and dat file.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis.get_raw_spectrum(binned_data=&quot;binned_data.hdf5&quot;, output_name=&quot;crab_spec&quot;)
+analysis.get_raw_lightcurve(binned_data=&quot;binned_data.hdf5&quot;, output_name=&quot;crab_lc&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+getting raw spectrum...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_23_1.png" src="../../_images/tutorials_DataIO_DataIO_example_23_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+getting raw lightcurve...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_23_3.png" src="../../_images/tutorials_DataIO_DataIO_example_23_3.png" />
+</div>
+</div>
+</section>
+<section id="Example-3:-Combining-multiple-data-files">
+<h2>Example 3: Combining multiple data files<a class="headerlink" href="#Example-3:-Combining-multiple-data-files" title="Link to this heading"></a></h2>
+<section id="Combining-unbinned-data">
+<h3>Combining unbinned data<a class="headerlink" href="#Combining-unbinned-data" title="Link to this heading"></a></h3>
+<p>One way to combine data files is to first combine the unbinned data, and then bin the combined data. As a proof of concept, we’ll combine the crab dataset 3 times, and as a sanity check we can then compare to 3x the actual data.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis = BinnedData(&quot;inputs.yaml&quot;)
+analysis.combine_unbinned_data([&quot;unbinned_data.hdf5&quot;,&quot;unbinned_data.hdf5&quot;,&quot;unbinned_data.hdf5&quot;], output_name=&quot;combined_unbinned_data&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+
+adding unbinned_data.hdf5...
+
+
+adding unbinned_data.hdf5...
+
+
+adding unbinned_data.hdf5...
+
+</pre></div></div>
+</div>
+<p>Bin the combined data file:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis.get_binned_data(unbinned_data=&quot;combined_unbinned_data.hdf5&quot;, output_name=&quot;combined_binned_data&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<p>Get raw spectrum and light curve:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis.get_raw_spectrum(binned_data=&quot;combined_binned_data.hdf5&quot;, output_name=&quot;crab_spec_3x&quot;)
+analysis.get_raw_lightcurve(binned_data=&quot;combined_binned_data.hdf5&quot;, output_name=&quot;crab_lc_3x&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+getting raw spectrum...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_29_1.png" src="../../_images/tutorials_DataIO_DataIO_example_29_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+getting raw lightcurve...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_29_3.png" src="../../_images/tutorials_DataIO_DataIO_example_29_3.png" />
+</div>
+</div>
+<p>Compare the combined data set to 3x the actual data. This step requires output files from earlier.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># LCs:
+# The plot below is normalized to the initial time.
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# LCs:
+df = pd.read_csv(&quot;crab_lc.dat&quot;, delim_whitespace=True)
+plt.semilogy(df[&quot;Time[UTC]&quot;] - df[&quot;Time[UTC]&quot;][0], df[&quot;Rate[ct/s]&quot;],label=&quot;Crab&quot;)
+plt.semilogy(df[&quot;Time[UTC]&quot;] - df[&quot;Time[UTC]&quot;][0], 3*df[&quot;Rate[ct/s]&quot;],label=&quot;3xCrab&quot;)
+
+df = pd.read_csv(&quot;crab_lc_3x.dat&quot;, delim_whitespace=True)
+plt.semilogy(df[&quot;Time[UTC]&quot;] - df[&quot;Time[UTC]&quot;][0], df[&quot;Rate[ct/s]&quot;],ls=&quot;--&quot;,label=&quot;Combined&quot;)
+
+plt.legend()
+plt.xlabel(&quot;Time [s]&quot;)
+plt.ylabel(&quot;ct/s&quot;)
+plt.savefig(&quot;combined_lc_comparison.pdf&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_31_0.png" src="../../_images/tutorials_DataIO_DataIO_example_31_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Spectrum
+df = pd.read_csv(&quot;crab_spec.dat&quot;, delim_whitespace=True)
+plt.loglog(df[&quot;Energy[keV]&quot;],df[&quot;Rate[ct/keV]&quot;],label=&quot;Crab&quot;)
+plt.loglog(df[&quot;Energy[keV]&quot;],3*df[&quot;Rate[ct/keV]&quot;],label=&quot;3xCrab&quot;)
+
+df = pd.read_csv(&quot;crab_spec_3x.dat&quot;, delim_whitespace=True)
+plt.loglog(df[&quot;Energy[keV]&quot;],df[&quot;Rate[ct/keV]&quot;],ls=&quot;--&quot;,label=&quot;Combined&quot;)
+
+plt.legend()
+plt.xlabel(&quot;Energy [keV]&quot;)
+plt.ylabel(&quot;ct/keV&quot;)
+plt.savefig(&quot;combined_spectrum_comparison.pdf&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_32_0.png" src="../../_images/tutorials_DataIO_DataIO_example_32_0.png" />
+</div>
+</div>
+</section>
+<section id="Combining-binned-data">
+<h3>Combining binned data<a class="headerlink" href="#Combining-binned-data" title="Link to this heading"></a></h3>
+<p>An alternative way to combine the data is to sum the binned histograms. This requires that the histograms being combined have the same exact binning.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis = BinnedData(&quot;inputs.yaml&quot;)
+analysis.get_binned_data(unbinned_data=&quot;unbinned_data.hdf5&quot;, output_name=&quot;binned_data&quot;)
+combined_hist = analysis.binned_data + analysis.binned_data + analysis.binned_data
+
+print()
+print(&quot;The total number of photons has increased by a factor of 3, as expected:&quot;)
+print(&quot;single histogram: &quot; + str(np.sum(analysis.binned_data.contents.todense())))
+print(&quot;combined histogram: &quot; + str(np.sum(combined_hist.contents.todense())))
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+
+The total number of photons has increased by a factor of 3, as expected:
+single histogram: 3324977.0
+combined histogram: 9974931.0
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="Example-4:-Making-data-selections">
+<h2>Example 4: Making data selections<a class="headerlink" href="#Example-4:-Making-data-selections" title="Link to this heading"></a></h2>
+<section id="Make-time-cut">
+<h3>Make time cut<a class="headerlink" href="#Make-time-cut" title="Link to this heading"></a></h3>
+<p>Only time cuts are available for now. The parameters tmin and tmax are passed from the yaml file. In this example we will select the first half of the dataset.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis = BinnedData(&quot;inputs_half_time.yaml&quot;)
+analysis.select_data_time(unbinned_data=&quot;combined_unbinned_data.hdf5&quot;, output_name=&quot;selected_unbinned_data&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Making data selections...
+Saving file...
+</pre></div></div>
+</div>
+</section>
+<section id="Bin-the-selected-data">
+<h3>Bin the selected data<a class="headerlink" href="#Bin-the-selected-data" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis.get_binned_data(unbinned_data=&quot;selected_unbinned_data.hdf5&quot;, output_name=&quot;selected_combined_binned_data&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<p>Get raw spectrum and lightcurve:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis.get_raw_spectrum(binned_data=&quot;selected_combined_binned_data.hdf5&quot;, output_name=&quot;selected_crab_spec_3x&quot;)
+analysis.get_raw_lightcurve(binned_data=&quot;selected_combined_binned_data.hdf5&quot;, output_name=&quot;selected_crab_lc_3x&quot;)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+getting raw spectrum...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_40_1.png" src="../../_images/tutorials_DataIO_DataIO_example_40_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+getting raw lightcurve...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_40_3.png" src="../../_images/tutorials_DataIO_DataIO_example_40_3.png" />
+</div>
+</div>
+</section>
+<section id="Compare-to-the-full-data-set">
+<h3>Compare to the full data set<a class="headerlink" href="#Compare-to-the-full-data-set" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># LCs:
+# The plots below are normalized to the initial time.
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+df = pd.read_csv(&quot;crab_lc_3x.dat&quot;, delim_whitespace=True)
+plt.semilogy(df[&quot;Time[UTC]&quot;] - df[&quot;Time[UTC]&quot;][0], df[&quot;Rate[ct/s]&quot;],ls=&quot;-&quot;,label=&quot;Combined&quot;)
+
+df = pd.read_csv(&quot;selected_crab_lc_3x.dat&quot;, delim_whitespace=True)
+plt.semilogy(df[&quot;Time[UTC]&quot;] - df[&quot;Time[UTC]&quot;][0], df[&quot;Rate[ct/s]&quot;],ls=&quot;--&quot;,label=&quot;Selected Combined&quot;)
+
+plt.legend()
+plt.xlabel(&quot;Time [s]&quot;)
+plt.ylabel(&quot;ct/s&quot;)
+plt.savefig(&quot;combined_lc_comparison.pdf&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_42_0.png" src="../../_images/tutorials_DataIO_DataIO_example_42_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Spectrum
+df = pd.read_csv(&quot;crab_spec_3x.dat&quot;, delim_whitespace=True)
+plt.loglog(df[&quot;Energy[keV]&quot;],df[&quot;Rate[ct/keV]&quot;],ls=&quot;-&quot;,label=&quot;Combined&quot;)
+
+df = pd.read_csv(&quot;selected_crab_spec_3x.dat&quot;, delim_whitespace=True)
+plt.loglog(df[&quot;Energy[keV]&quot;],df[&quot;Rate[ct/keV]&quot;],ls=&quot;--&quot;,label=&quot;Selected Combined&quot;)
+
+plt.legend()
+plt.xlabel(&quot;Energy [keV]&quot;)
+plt.ylabel(&quot;ct/keV&quot;)
+plt.savefig(&quot;combined_spectrum_comparison.pdf&quot;)
+plt.show()
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_43_0.png" src="../../_images/tutorials_DataIO_DataIO_example_43_0.png" />
+</div>
+</div>
+</section>
+</section>
+<section id="Example-5:-Dealing-with-memory-issues">
+<h2>Example 5: Dealing with memory issues<a class="headerlink" href="#Example-5:-Dealing-with-memory-issues" title="Link to this heading"></a></h2>
+<p>Combining and binning data can be memory intensive. It’s therefore recommended to use a work station with plenty of RAM if possible. If you’re running into memory limitatons, a workaround is to use chunks.</p>
+<p>We can read the unbinned data in chuncks by specifying event_min and event_max:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis = BinnedData(&quot;inputs.yaml&quot;)
+analysis.read_tra(event_min=0, event_max=1000)
+print(&quot;Number of photons in COSI dataset: &quot; + str(analysis.cosi_dataset[&quot;TimeTags&quot;].size))
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Preparing to read file...
+Reading file...
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+  0%|          | 16106/53383576.0 [00:00&lt;04:04, 218242.46it/s]
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Stopping here: only reading a subset of events
+Making COSI data set...
+total events to procecss: 999
+Initializing arrays...
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Making dictionary...
+total processing time [s]: 10.723071336746216
+Number of photons in COSI dataset: 999
+</pre></div></div>
+</div>
+<p>The same thing can be done for binning the data in chuncks by specifying the event_range keyword:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>analysis = BinnedData(&quot;inputs.yaml&quot;)
+analysis.get_binned_data(unbinned_data=&quot;unbinned_data.hdf5&quot;,event_range=[0,1e6],make_binning_plots=True)
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+binning data...
+Time unit: s
+Em unit: keV
+Phi unit: deg
+PsiChi unit: None
+</pre></div></div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_47_1.png" src="../../_images/tutorials_DataIO_DataIO_example_47_1.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_47_2.png" src="../../_images/tutorials_DataIO_DataIO_example_47_2.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_47_3.png" src="../../_images/tutorials_DataIO_DataIO_example_47_3.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_47_4.png" src="../../_images/tutorials_DataIO_DataIO_example_47_4.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_47_5.png" src="../../_images/tutorials_DataIO_DataIO_example_47_5.png" />
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+plotting psichi in Galactic coordinates...
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../../_images/tutorials_DataIO_DataIO_example_47_7.png" src="../../_images/tutorials_DataIO_DataIO_example_47_7.png" />
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="Tutorials" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../response/SpacecraftFile.html" class="btn btn-neutral float-right" title="Spacecraft file: attitude and position" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1446 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image deconvolution &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Polarization" href="polarization.html" />
+    <link rel="prev" title="TS Map" href="ts_map.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            cosipy
+              <img src="../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="response.html">Detector response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_io.html">Data IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spacecraftfile.html">Spacecraft File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="threeml.html">COSILike (3ML plugin)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ts_map.html">TS Map</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Image deconvolution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#algorithm-description">Algorithm description</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-cosipy.image_deconvolution">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolution"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolution</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase"><code class="docutils literal notranslate"><span class="pre">ImageDeconvolutionDataInterfaceBase</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DataIF_COSI_DC2"><code class="docutils literal notranslate"><span class="pre">DataIF_COSI_DC2</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.ModelBase"><code class="docutils literal notranslate"><span class="pre">ModelBase</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.AllSkyImageModel"><code class="docutils literal notranslate"><span class="pre">AllSkyImageModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase"><code class="docutils literal notranslate"><span class="pre">DeconvolutionAlgorithmBase</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.RichardsonLucy"><code class="docutils literal notranslate"><span class="pre">RichardsonLucy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.RichardsonLucySimple"><code class="docutils literal notranslate"><span class="pre">RichardsonLucySimple</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeExposureTable</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.image_deconvolution.CoordsysConversionMatrix"><code class="docutils literal notranslate"><span class="pre">CoordsysConversionMatrix</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="polarization.html">Polarization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="util.html">Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API</a></li>
+      <li class="breadcrumb-item active">Image deconvolution</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/image_deconvolution.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="image-deconvolution">
+<h1>Image deconvolution<a class="headerlink" href="#image-deconvolution" title="Link to this heading"></a></h1>
+<section id="algorithm-description">
+<h2>Algorithm description<a class="headerlink" href="#algorithm-description" title="Link to this heading"></a></h2>
+<a class="reference internal image-reference" href="../_images/ImageDeconvolution.png"><img alt="ImageDeconvolution algorithm" src="../_images/ImageDeconvolution.png" style="width: 400px;" />
+</a>
+<a class="reference internal image-reference" href="../_images/ImageDeconvolutionDataInterfaceBase.png"><img alt="ImageDeconvolutionDataInterfaceBase members" src="../_images/ImageDeconvolutionDataInterfaceBase.png" style="width: 400px;" />
+</a>
+</section>
+<section id="module-cosipy.image_deconvolution">
+<span id="classes"></span><h2>Classes<a class="headerlink" href="#module-cosipy.image_deconvolution" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">ImageDeconvolution</span></span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution" title="Link to this definition"></a></dt>
+<dd><p>A class to reconstruct all-sky images from COSI data based on image deconvolution methods.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.model_classes">
+<span class="sig-name descname"><span class="pre">model_classes</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'AllSkyImage':</span> <span class="pre">&lt;class</span> <span class="pre">'cosipy.image_deconvolution.allskyimage.AllSkyImageModel'&gt;}</span></em><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.model_classes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.deconvolution_algorithm_classes">
+<span class="sig-name descname"><span class="pre">deconvolution_algorithm_classes</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'RL':</span> <span class="pre">&lt;class</span> <span class="pre">'cosipy.image_deconvolution.RichardsonLucy.RichardsonLucy'&gt;,</span> <span class="pre">'RLsimple':</span> <span class="pre">&lt;class</span> <span class="pre">'cosipy.image_deconvolution.RichardsonLucySimple.RichardsonLucySimple'&gt;}</span></em><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.deconvolution_algorithm_classes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.set_dataset">
+<span class="sig-name descname"><span class="pre">set_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.set_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.set_dataset" title="Link to this definition"></a></dt>
+<dd><p>Set dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataset</strong> (list of <a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase" title="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase</span></code></a> or its subclass) – Each component contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.set_mask">
+<span class="sig-name descname"><span class="pre">set_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.set_mask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.set_mask" title="Link to this definition"></a></dt>
+<dd><p>Set dataset</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mask</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>) – A mask which will be applied to a model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.read_parameterfile">
+<span class="sig-name descname"><span class="pre">read_parameterfile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter_filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.read_parameterfile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.read_parameterfile" title="Link to this definition"></a></dt>
+<dd><p>Read parameters from a yaml file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter_filepath</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><em>pathlib.Path</em></a>) – Path of parameter file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.dataset">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dataset</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.dataset" title="Link to this definition"></a></dt>
+<dd><p>Return the dataset.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.parameter">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parameter</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.parameter" title="Link to this definition"></a></dt>
+<dd><p>Return the registered parameter.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.override_parameter">
+<span class="sig-name descname"><span class="pre">override_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.override_parameter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.override_parameter" title="Link to this definition"></a></dt>
+<dd><p>Override parameter</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>*args</strong> – new parameter</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">image_deconvolution</span><span class="o">.</span><span class="n">override_parameter</span><span class="p">(</span><span class="s2">&quot;deconvolution:parameter_RL:iteration = 30&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.initial_model">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initial_model</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.initial_model" title="Link to this definition"></a></dt>
+<dd><p>Return the initial model.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.mask">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mask</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.mask" title="Link to this definition"></a></dt>
+<dd><p>Return the mask.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.results">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.results" title="Link to this definition"></a></dt>
+<dd><p>Return the results.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.initialize">
+<span class="sig-name descname"><span class="pre">initialize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.initialize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.initialize" title="Link to this definition"></a></dt>
+<dd><p>Initialize an initial model and an image deconvolution algorithm.
+It is mandatory to execute this method before running the image deconvolution.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.model_initialization">
+<span class="sig-name descname"><span class="pre">model_initialization</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.model_initialization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.model_initialization" title="Link to this definition"></a></dt>
+<dd><p>Create an instance of the model class and set initial values of it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>whether the instantiation and initialization are successfully done.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.register_deconvolution_algorithm">
+<span class="sig-name descname"><span class="pre">register_deconvolution_algorithm</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.register_deconvolution_algorithm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.register_deconvolution_algorithm" title="Link to this definition"></a></dt>
+<dd><p>Register the deconvolution algorithm</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>whether the deconvolution algorithm is successfully registered.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolution.run_deconvolution">
+<span class="sig-name descname"><span class="pre">run_deconvolution</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution.html#ImageDeconvolution.run_deconvolution"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolution.run_deconvolution" title="Link to this definition"></a></dt>
+<dd><p>Perform the image deconvolution. Make sure that the initialize method has been conducted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List containing results (reconstructed image, likelihood etc) at each iteration.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">ImageDeconvolutionDataInterfaceBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution_data_interface_base.html#ImageDeconvolutionDataInterfaceBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase" title="Link to this definition"></a></dt>
+<dd><p>A base class for managing data for image analysis, i.e.,
+event data, background models, response, coordsys conversion matrix etc.
+Subclasses must override these attributes and methods.</p>
+<p>Attributes:
+- self._event</p>
+<blockquote>
+<div><p>A binned histogram of events. It is an instance of histpy.Histogram.
+Its axes must be the same of self._data_axes.</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>self._bkg_models</dt><dd><p>A dictionary of binned histograms of background models.
+It is a dictionary of histpy.Histogram with keys of names of background models.
+Their axes must be the same of self._model_axes.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>self._summed_bkg_models</dt><dd><p>A dictionary of summed values of the background model histograms.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>self._exposure_map</dt><dd><p>A binned histogram of the exposures at each pixel in the model space.
+It is an instance of histpy.Histogram.
+Its axes must be the same of self._model_axes.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>self._model_axes</dt><dd><p>Axes for the data space. It is an instance of histpy.Axes.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>self._data_axes</dt><dd><p>Axes for the model space. It is an instance of histpy.Axes.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Methods:
+- keys_bkg_models()</p>
+<blockquote>
+<div><p>It returns a list of names of background models.</p>
+</div></blockquote>
+<ul class="simple">
+<li><dl class="simple">
+<dt>bkg_model(key)</dt><dd><p>It returns a binned histogram of a background model with the given key.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>summed_bkg_model(key)</dt><dd><p>It returns the summed value of the background histogram with the given key.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>calc_expectation(model)</dt><dd><p>It returns a histogram of expected counts from the given model.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>calc_T_product(dataspace_histogram)</dt><dd><p>It returns the product of the input histogram with the transonse matrix of the response function.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>calc_bkg_model_product(key, dataspace_histogram)</dt><dd><p>It returns the product of an input histogram with a background model with the given key.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>calc_likelihood(expectation)</dt><dd><p>It returns the log-likelihood with the given histogram of expected counts.</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>The basic idea of this class is to separate the data structure
+from the development of the image deconvolution algorithm.</p>
+<p>When the image deconvolution is performed, the deconvolution algorithm will look at only the above
+attributes and methods, and will not care about the actual response matrix and how it actually calculates
+expected counts or the product using the transpose matrix of the response function.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.name">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.event">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">event</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.event" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.exposure_map">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">exposure_map</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.exposure_map" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.model_axes">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">model_axes</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.model_axes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.data_axes">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">data_axes</span></span><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.data_axes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.keys_bkg_models">
+<span class="sig-name descname"><span class="pre">keys_bkg_models</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution_data_interface_base.html#ImageDeconvolutionDataInterfaceBase.keys_bkg_models"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.keys_bkg_models" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.bkg_model">
+<span class="sig-name descname"><span class="pre">bkg_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution_data_interface_base.html#ImageDeconvolutionDataInterfaceBase.bkg_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.bkg_model" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.summed_bkg_model">
+<span class="sig-name descname"><span class="pre">summed_bkg_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution_data_interface_base.html#ImageDeconvolutionDataInterfaceBase.summed_bkg_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.summed_bkg_model" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_expectation">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">calc_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict_bkg_norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">almost_zero</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution_data_interface_base.html#ImageDeconvolutionDataInterfaceBase.calc_expectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_expectation" title="Link to this definition"></a></dt>
+<dd><p>Calculate expected counts from a given model map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="#cosipy.image_deconvolution.ModelBase" title="cosipy.image_deconvolution.ModelBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.ModelBase</span></code></a> or its subclass) – Model</p></li>
+<li><p><strong>dict_bkg_norm</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>default None</em>) – background normalization for each background model, e.g, {‘albedo’: 0.95, ‘activation’: 1.05}</p></li>
+<li><p><strong>almost_zero</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>default 1e-12</em>) – In order to avoid zero components in extended count histogram, a tiny offset is introduced.
+It should be small enough not to effect statistics.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Expected count histogram</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_T_product">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">calc_T_product</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataspace_histogram</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution_data_interface_base.html#ImageDeconvolutionDataInterfaceBase.calc_T_product"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_T_product" title="Link to this definition"></a></dt>
+<dd><p>Calculate the product of the input histogram with the transonse matrix of the response function.
+Let R_{ij}, H_{i} be the response matrix and dataspace_histogram, respectively.
+Note that i is the index for the data space, and j is for the model space.
+In this method, sum_{j} H{i} R_{ij}, namely, R^{T} H is calculated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataspace_histogram</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>) – Its axes must be the same as self.data_axes</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The product with self.model_axes</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_bkg_model_product">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">calc_bkg_model_product</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataspace_histogram</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution_data_interface_base.html#ImageDeconvolutionDataInterfaceBase.calc_bkg_model_product"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_bkg_model_product" title="Link to this definition"></a></dt>
+<dd><p>Calculate the product of the input histogram with the background model.
+Let B_{i}, H_{i} be the background model and dataspace_histogram, respectively.
+In this method, sum_{i} B_{i} H_{i} is calculated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Background model name</p></li>
+<li><p><strong>dataspace_histogram</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>) – its axes must be the same as self.data_axes</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_loglikelihood">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">calc_loglikelihood</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expectation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/image_deconvolution_data_interface_base.html#ImageDeconvolutionDataInterfaceBase.calc_loglikelihood"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_loglikelihood" title="Link to this definition"></a></dt>
+<dd><p>Calculate log-likelihood from given expected counts or model/expectation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>expectation</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>) – Expected count histogram.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Log-likelood</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataIF_COSI_DC2">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">DataIF_COSI_DC2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/dataIF_COSI_DC2.html#DataIF_COSI_DC2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataIF_COSI_DC2" title="Link to this definition"></a></dt>
+<dd><p>A subclass of ImageDeconvolutionDataInterfaceBase for the COSI data challenge 2.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataIF_COSI_DC2.load">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_binned_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict_bkg_binned_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rsp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordsys_conv_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_miniDC2_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/dataIF_COSI_DC2.html#DataIF_COSI_DC2.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataIF_COSI_DC2.load" title="Link to this definition"></a></dt>
+<dd><p>Load data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The name of data</p></li>
+<li><p><strong>event_binned_data</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>) – Event histogram</p></li>
+<li><p><strong>dict_bkg_binned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a>) – Background models as {background_model_name: <code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>}</p></li>
+<li><p><strong>rsp</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code> or <a class="reference internal" href="response.html#cosipy.response.FullDetectorResponse" title="cosipy.response.FullDetectorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.response.FullDetectorResponse</span></code></a>) – Response</p></li>
+<li><p><strong>coordsys_conv_matrix</strong> (<a class="reference internal" href="#cosipy.image_deconvolution.CoordsysConversionMatrix" title="cosipy.image_deconvolution.CoordsysConversionMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.CoordsysConversionMatrix</span></code></a>, default False) – Coordsys conversion matrix</p></li>
+<li><p><strong>is_miniDC2_format</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default False</em>) – Whether the file format is for mini-DC2. It will be removed in the future.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of DataIF_COSI_DC2 containing the input data set</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.image_deconvolution.DataIF_COSI_DC2" title="cosipy.image_deconvolution.DataIF_COSI_DC2"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.DataIF_COSI_DC2</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataIF_COSI_DC2.calc_expectation">
+<span class="sig-name descname"><span class="pre">calc_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict_bkg_norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">almost_zero</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/dataIF_COSI_DC2.html#DataIF_COSI_DC2.calc_expectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataIF_COSI_DC2.calc_expectation" title="Link to this definition"></a></dt>
+<dd><p>Calculate expected counts from a given model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="#cosipy.image_deconvolution.AllSkyImageModel" title="cosipy.image_deconvolution.AllSkyImageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.AllSkyImageModel</span></code></a>) – Model map</p></li>
+<li><p><strong>dict_bkg_norm</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>default None</em>) – background normalization for each background model, e.g, {‘albedo’: 0.95, ‘activation’: 1.05}</p></li>
+<li><p><strong>almost_zero</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>default 1e-12</em>) – In order to avoid zero components in extended count histogram, a tiny offset is introduced.
+It should be small enough not to effect statistics.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Expected count histogram</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This method should be implemented in a more general class, for example, extended source response class in the future.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataIF_COSI_DC2.calc_T_product">
+<span class="sig-name descname"><span class="pre">calc_T_product</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataspace_histogram</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/dataIF_COSI_DC2.html#DataIF_COSI_DC2.calc_T_product"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataIF_COSI_DC2.calc_T_product" title="Link to this definition"></a></dt>
+<dd><p>Calculate the product of the input histogram with the transonse matrix of the response function.
+Let R_{ij}, H_{i} be the response matrix and dataspace_histogram, respectively.
+Note that i is the index for the data space, and j is for the model space.
+In this method, sum_{j} H{i} R_{ij}, namely, R^{T} H is calculated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataspace_histogram</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>) – Its axes must be the same as self.data_axes</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The product with self.model_axes</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataIF_COSI_DC2.calc_bkg_model_product">
+<span class="sig-name descname"><span class="pre">calc_bkg_model_product</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataspace_histogram</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/dataIF_COSI_DC2.html#DataIF_COSI_DC2.calc_bkg_model_product"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataIF_COSI_DC2.calc_bkg_model_product" title="Link to this definition"></a></dt>
+<dd><p>Calculate the product of the input histogram with the background model.
+Let B_{i}, H_{i} be the background model and dataspace_histogram, respectively.
+In this method, sum_{i} B_{i} H_{i} is calculated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Background model name</p></li>
+<li><p><strong>dataspace_histogram</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>) – its axes must be the same as self.data_axes</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>flaot</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DataIF_COSI_DC2.calc_loglikelihood">
+<span class="sig-name descname"><span class="pre">calc_loglikelihood</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expectation</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/dataIF_COSI_DC2.html#DataIF_COSI_DC2.calc_loglikelihood"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DataIF_COSI_DC2.calc_loglikelihood" title="Link to this definition"></a></dt>
+<dd><p>Calculate log-likelihood from given expected counts or model/expectation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>expectation</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>) – Expected count histogram.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Log-likelood</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">ModelBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/model_base.html#ModelBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ModelBase" title="Link to this definition"></a></dt>
+<dd><p>A base class of the model, i.e., a gamma-ray flux sky, and a gamma-ray distributions in a 3D space.</p>
+<p>Subclasses must override these methods. The <cite>ImageDeconvolution</cite> class will use them in the initialization process.</p>
+<p>Methods:
+- instantiate_from_parameters(cls, parameter)
+- set_values_from_parameters(self, parameter)</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelBase.instantiate_from_parameters">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">instantiate_from_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/model_base.html#ModelBase.instantiate_from_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ModelBase.instantiate_from_parameters" title="Link to this definition"></a></dt>
+<dd><p>Return an instantiate of the class using given parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter</strong> (py:class:<cite>yayc.Configurator</cite>) – Parameters for the specified algorithm.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>py:class:<cite>ModelBase</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelBase.set_values_from_parameters">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">set_values_from_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/model_base.html#ModelBase.set_values_from_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ModelBase.set_values_from_parameters" title="Link to this definition"></a></dt>
+<dd><p>Set values accordinng to the give parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter</strong> (py:class:<cite>yayc.Configurator</cite>) – Parameters for the specified algorithm.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.ModelBase.mask_pixels">
+<span class="sig-name descname"><span class="pre">mask_pixels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fill_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/model_base.html#ModelBase.mask_pixels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.ModelBase.mask_pixels" title="Link to this definition"></a></dt>
+<dd><p>Mask pixels</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mask</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.histogram.Histogram</span></code>)</p></li>
+<li><p><strong>fill_value</strong> (float or <a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Quantity.html#astropy.units.Quantity" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.quantity.Quantity</span></code></a>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">AllSkyImageModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/allskyimage.html#AllSkyImageModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel" title="Link to this definition"></a></dt>
+<dd><p>Photon flux maps in given energy bands. 2-dimensional histogram.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.nside">
+<span class="sig-name descname"><span class="pre">nside</span></span><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.nside" title="Link to this definition"></a></dt>
+<dd><p>Healpix NSIDE parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.energy_edges">
+<span class="sig-name descname"><span class="pre">energy_edges</span></span><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.energy_edges" title="Link to this definition"></a></dt>
+<dd><p>Bin edges for energies. We recommend to use a Quantity array with the unit of keV.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">np.array</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.scheme">
+<span class="sig-name descname"><span class="pre">scheme</span></span><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.scheme" title="Link to this definition"></a></dt>
+<dd><p>Healpix scheme. Either ‘ring’, ‘nested’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, default ‘ring’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.coordsys">
+<span class="sig-name descname"><span class="pre">coordsys</span></span><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.coordsys" title="Link to this definition"></a></dt>
+<dd><p>Instrinsic coordinates of the map. The default is ‘galactic’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str or <a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.BaseRepresentation.html#astropy.coordinates.BaseRepresentation" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.coordinates.BaseRepresentation</span></code></a>, default is ‘galactic’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.label_image">
+<span class="sig-name descname"><span class="pre">label_image</span></span><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.label_image" title="Link to this definition"></a></dt>
+<dd><p>The label name of the healpix axis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, default ‘lb’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.label_energy">
+<span class="sig-name descname"><span class="pre">label_energy</span></span><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.label_energy" title="Link to this definition"></a></dt>
+<dd><p>The label name of the energy axis. The default is ‘Ei’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, default ‘Ei’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.open">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hist'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/allskyimage.html#AllSkyImageModel.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.open" title="Link to this definition"></a></dt>
+<dd><p>Open a file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>py:class:<cite>AllSkyImageModel</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.instantiate_from_parameters">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">instantiate_from_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/allskyimage.html#AllSkyImageModel.instantiate_from_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.instantiate_from_parameters" title="Link to this definition"></a></dt>
+<dd><p>Generate an instance of this class</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter</strong> (py:class:<cite>yayc.Configurator</cite>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>py:class:<cite>AllSkyImageModel</cite></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The parameters should be given like this:</p>
+<p>nside: 8
+energy_edges:</p>
+<blockquote>
+<div><p>value: [100.,  200.,  500., 1000., 2000., 5000.]
+unit: “keV”</p>
+</div></blockquote>
+<p>scheme: “ring”
+coordinate: “galactic”
+unit: “cm-2 s-1 sr-1”</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.set_values_from_parameters">
+<span class="sig-name descname"><span class="pre">set_values_from_parameters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/allskyimage.html#AllSkyImageModel.set_values_from_parameters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.set_values_from_parameters" title="Link to this definition"></a></dt>
+<dd><p>Set the values accordinng to the specified algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter</strong> (py:class:<cite>yayc.Configurator</cite>) – Parameters for the specified algorithm.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Currently algorithm_name can be only ‘flat’. All of the pixel values in each energy bins will set to the given value.
+parameter should be {‘values’: [ flux value at 1st energy bin (without unit), flux value at 2nd energy bin, …]}.</p>
+<p>An example of contents in parameter is like this:</p>
+<p>algorithm: “flat”
+parameter:</p>
+<blockquote>
+<div><p>value: [1.0e-2, 1.0e-2, 1.0e-2, 1.0e-2, 1.0e-2]
+unit: “cm-2 s-1 sr-1”</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.set_values_from_extendedmodel">
+<span class="sig-name descname"><span class="pre">set_values_from_extendedmodel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extendedmodel</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/allskyimage.html#AllSkyImageModel.set_values_from_extendedmodel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.set_values_from_extendedmodel" title="Link to this definition"></a></dt>
+<dd><p>Set the values accordinng to the given astromodels.ExtendedSource.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>extendedmodel</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">astromodels.ExtendedSource</span></code>) – Extended source model</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.AllSkyImageModel.smoothing">
+<span class="sig-name descname"><span class="pre">smoothing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fwhm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/allskyimage.html#AllSkyImageModel.smoothing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.AllSkyImageModel.smoothing" title="Link to this definition"></a></dt>
+<dd><p>Smooth a map with a Gaussian filter</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fwhm</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Quantity.html#astropy.units.Quantity" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.quantity.Quantity</span></code></a>) – The FWHM of the Gaussian (with a unit of deg or rad). Default: 0 deg</p></li>
+<li><p><strong>sigma</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Quantity.html#astropy.units.Quantity" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.quantity.Quantity</span></code></a>) – The sigma of the Gaussian (with a unit of deg or rad). Override fwhm.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">DeconvolutionAlgorithmBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase" title="Link to this definition"></a></dt>
+<dd><p>A base class for image deconvolution algorithms.
+Subclasses should override these methods:</p>
+<ul class="simple">
+<li><p>initialization</p></li>
+<li><p>pre_processing</p></li>
+<li><p>Estep</p></li>
+<li><p>Mstep</p></li>
+<li><p>post_processing</p></li>
+<li><p>register_result</p></li>
+<li><p>check_stopping_criteria</p></li>
+<li><p>finalization</p></li>
+</ul>
+<p>When the method run_deconvolution is called in ImageDeconvolution class,
+the iteration method in this class is called for each iteration.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.initial_model">
+<span class="sig-name descname"><span class="pre">initial_model</span></span><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.initial_model" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.image_deconvolution.ModelBase" title="cosipy.image_deconvolution.ModelBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.ModelBase</span></code></a> or its subclass</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.dataset">
+<span class="sig-name descname"><span class="pre">dataset</span></span><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.dataset" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of <a class="reference internal" href="#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase" title="cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase</span></code></a> or its subclass</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.parameter">
+<span class="sig-name descname"><span class="pre">parameter</span></span><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.parameter" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>py:class:<cite>yayc.Configurator</cite></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.results">
+<span class="sig-name descname"><span class="pre">results</span></span><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.results" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a> of results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.dict_bkg_norm">
+<span class="sig-name descname"><span class="pre">dict_bkg_norm</span></span><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.dict_bkg_norm" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the dictionary of background normalizations</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.dict_dataset_indexlist_for_bkg_models">
+<span class="sig-name descname"><span class="pre">dict_dataset_indexlist_for_bkg_models</span></span><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.dict_dataset_indexlist_for_bkg_models" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the indices of data corresponding to each background model in the dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.initialization">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initialization</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.initialization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.initialization" title="Link to this definition"></a></dt>
+<dd><p>initialization before running the image deconvolution</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.pre_processing">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">pre_processing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.pre_processing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.pre_processing" title="Link to this definition"></a></dt>
+<dd><p>pre-processing for each iteration</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.Estep">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Estep</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.Estep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.Estep" title="Link to this definition"></a></dt>
+<dd><p>E-step.
+In this step, only self.expectation_list should be updated.
+If it will be performed in other step, typically post_processing() or check_stopping_criteria(),
+this step can be skipped.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.Mstep">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Mstep</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.Mstep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.Mstep" title="Link to this definition"></a></dt>
+<dd><p>M-step.
+In this step, only self.delta_model should be updated.
+If you want to apply some operations to self.delta_model,
+these should be performed in post_processing().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.post_processing">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">post_processing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.post_processing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.post_processing" title="Link to this definition"></a></dt>
+<dd><p>Post-processing for each iteration.
+In this step, if needed, you can apply some filters to self.delta_model and set it as self.processed_delta_model.
+Then, the updated model should be calculated as self.model.
+For example, Gaussian smoothing can be applied to self.delta_model in this step.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.register_result">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">register_result</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.register_result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.register_result" title="Link to this definition"></a></dt>
+<dd><p>Register results at the end of each iteration.
+Users can define what kinds of values are stored in this method.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.check_stopping_criteria">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">check_stopping_criteria</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.check_stopping_criteria"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.check_stopping_criteria" title="Link to this definition"></a></dt>
+<dd><p>Check if the iteration process should be continued or stopped.
+When it returns True, the iteration will stopped.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.finalization">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">finalization</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.finalization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.finalization" title="Link to this definition"></a></dt>
+<dd><p>finalization after running the image deconvolution</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.iteration">
+<span class="sig-name descname"><span class="pre">iteration</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.iteration"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.iteration" title="Link to this definition"></a></dt>
+<dd><p>Perform one iteration of image deconvolution.
+This method should not be overrided in subclasses.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_expectation_list">
+<span class="sig-name descname"><span class="pre">calc_expectation_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dict_bkg_norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">almost_zero</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-12</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.calc_expectation_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_expectation_list" title="Link to this definition"></a></dt>
+<dd><p>Calculate a list of expected count histograms corresponding to each data in the registered dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="#cosipy.image_deconvolution.ModelBase" title="cosipy.image_deconvolution.ModelBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.ModelBase</span></code></a> or its subclass) – Model</p></li>
+<li><p><strong>dict_bkg_norm</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>default None</em>) – background normalization for each background model, e.g, {‘albedo’: 0.95, ‘activation’: 1.05}</p></li>
+<li><p><strong>almost_zero</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>default 1e-12</em>) – In order to avoid zero components in extended count histogram, a tiny offset is introduced.
+It should be small enough not to effect statistics.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of expected count histograms</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of <code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_loglikelihood_list">
+<span class="sig-name descname"><span class="pre">calc_loglikelihood_list</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">expectation_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.calc_loglikelihood_list"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_loglikelihood_list" title="Link to this definition"></a></dt>
+<dd><p>Calculate a list of loglikelihood from each data in the registered dataset and the corresponding given expected count histogram.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>expectation_list</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>) – List of expected count histograms</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of Log-likelood</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a> of <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_exposure_map">
+<span class="sig-name descname"><span class="pre">calc_summed_exposure_map</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.calc_summed_exposure_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_exposure_map" title="Link to this definition"></a></dt>
+<dd><p>Calculate a list of exposure maps from the registered dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list of <code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_bkg_model">
+<span class="sig-name descname"><span class="pre">calc_summed_bkg_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.calc_summed_bkg_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_bkg_model" title="Link to this definition"></a></dt>
+<dd><p>Calculate the sum of histograms for a given background model in the registered dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Background model name</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_T_product">
+<span class="sig-name descname"><span class="pre">calc_summed_T_product</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataspace_histogram_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.calc_summed_T_product"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_T_product" title="Link to this definition"></a></dt>
+<dd><p>For each data in the registered dataset, the product of the corresponding input histogram with the transonse of the response function is computed.
+Then, this method returns the sum of all of the products.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dataspace_histogram_list</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>)</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_bkg_model_product">
+<span class="sig-name descname"><span class="pre">calc_summed_bkg_model_product</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataspace_histogram_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/deconvolution_algorithm_base.html#DeconvolutionAlgorithmBase.calc_summed_bkg_model_product"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.DeconvolutionAlgorithmBase.calc_summed_bkg_model_product" title="Link to this definition"></a></dt>
+<dd><p>For each data in the registered dataset, the product of the corresponding input histogram with the specified background model is computed.
+Then, this method returns the sum of all of the products.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Background model name</p></li>
+<li><p><strong>dataspace_histogram_list</strong> (list of <code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code>)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>flaot</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">RichardsonLucy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy" title="Link to this definition"></a></dt>
+<dd><p>A class for the RichardsonLucy algorithm.
+The algorithm here is based on Knoedlseder+99, Knoedlseder+05, Siegert+20.</p>
+<p>An example of parameter is as follows.</p>
+<p>iteration_max: 100
+minimum_flux:</p>
+<blockquote>
+<div><p>value: 0.0
+unit: “cm-2 s-1 sr-1”</p>
+</div></blockquote>
+<p>acceleration: True
+alpha_max: 10.0
+response_weighting: True
+response_weighting_index: 0.5
+smoothing: True
+smoothing_FWHM:</p>
+<blockquote>
+<div><p>value: 2.0
+unit: “deg”</p>
+</div></blockquote>
+<p>background_normalization_optimization: True
+background_normalization_range: {“albedo”: [0.9, 1.1]}
+save_results: True
+save_results_directory: “./results”</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy.initialization">
+<span class="sig-name descname"><span class="pre">initialization</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy.initialization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy.initialization" title="Link to this definition"></a></dt>
+<dd><p>initialization before running the image deconvolution</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy.pre_processing">
+<span class="sig-name descname"><span class="pre">pre_processing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy.pre_processing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy.pre_processing" title="Link to this definition"></a></dt>
+<dd><p>pre-processing for each iteration</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy.Estep">
+<span class="sig-name descname"><span class="pre">Estep</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy.Estep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy.Estep" title="Link to this definition"></a></dt>
+<dd><p>E-step (but it will be skipped).
+Note that self.expectation_list is updated in self.post_processing().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy.Mstep">
+<span class="sig-name descname"><span class="pre">Mstep</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy.Mstep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy.Mstep" title="Link to this definition"></a></dt>
+<dd><p>M-step in RL algorithm.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy.post_processing">
+<span class="sig-name descname"><span class="pre">post_processing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy.post_processing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy.post_processing" title="Link to this definition"></a></dt>
+<dd><p>Here three processes will be performed.
+- response weighting filter: the delta map is renormalized as pixels with large exposure times will have more feedback.
+- gaussian smoothing filter: the delta map is blurred with a Gaussian function.
+- acceleration of RL algirithm: the normalization of delta map is increased as long as the updated image has no non-negative components.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy.register_result">
+<span class="sig-name descname"><span class="pre">register_result</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy.register_result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy.register_result" title="Link to this definition"></a></dt>
+<dd><p>The values below are stored at the end of each iteration.
+- iteration: iteration number
+- model: updated image
+- delta_model: delta map after M-step
+- processed_delta_model: delta map after post-processing
+- alpha: acceleration parameter in RL algirithm
+- background_normalization: optimized background normalization
+- loglikelihood: log-likelihood</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy.check_stopping_criteria">
+<span class="sig-name descname"><span class="pre">check_stopping_criteria</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy.check_stopping_criteria"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy.check_stopping_criteria" title="Link to this definition"></a></dt>
+<dd><p>If iteration_count is smaller than iteration_max, the iterative process will continue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy.finalization">
+<span class="sig-name descname"><span class="pre">finalization</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy.finalization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy.finalization" title="Link to this definition"></a></dt>
+<dd><p>finalization after running the image deconvolution</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucy.calc_alpha">
+<span class="sig-name descname"><span class="pre">calc_alpha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delta_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucy.html#RichardsonLucy.calc_alpha"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucy.calc_alpha" title="Link to this definition"></a></dt>
+<dd><p>Calculate the acceleration parameter in RL algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Acceleration parameter</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucySimple">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">RichardsonLucySimple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">initial_model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucySimple.html#RichardsonLucySimple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucySimple" title="Link to this definition"></a></dt>
+<dd><p>A class for the original RichardsonLucy algorithm.
+Basically, this class can be used for testing codes.</p>
+<p>An example of parameter is as follows.</p>
+<p>iteration_max: 100
+minimum_flux:</p>
+<blockquote>
+<div><p>value: 0.0
+unit: “cm-2 s-1 sr-1”</p>
+</div></blockquote>
+<p>background_normalization_optimization: True</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucySimple.initialization">
+<span class="sig-name descname"><span class="pre">initialization</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucySimple.html#RichardsonLucySimple.initialization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucySimple.initialization" title="Link to this definition"></a></dt>
+<dd><p>initialization before running the image deconvolution</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucySimple.pre_processing">
+<span class="sig-name descname"><span class="pre">pre_processing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucySimple.html#RichardsonLucySimple.pre_processing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucySimple.pre_processing" title="Link to this definition"></a></dt>
+<dd><p>pre-processing for each iteration</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucySimple.Estep">
+<span class="sig-name descname"><span class="pre">Estep</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucySimple.html#RichardsonLucySimple.Estep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucySimple.Estep" title="Link to this definition"></a></dt>
+<dd><p>E-step in RL algoritm</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucySimple.Mstep">
+<span class="sig-name descname"><span class="pre">Mstep</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucySimple.html#RichardsonLucySimple.Mstep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucySimple.Mstep" title="Link to this definition"></a></dt>
+<dd><p>M-step in RL algorithm.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucySimple.post_processing">
+<span class="sig-name descname"><span class="pre">post_processing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucySimple.html#RichardsonLucySimple.post_processing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucySimple.post_processing" title="Link to this definition"></a></dt>
+<dd><p>Post-processing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucySimple.register_result">
+<span class="sig-name descname"><span class="pre">register_result</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucySimple.html#RichardsonLucySimple.register_result"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucySimple.register_result" title="Link to this definition"></a></dt>
+<dd><p>Register results at the end of each iteration.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucySimple.check_stopping_criteria">
+<span class="sig-name descname"><span class="pre">check_stopping_criteria</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucySimple.html#RichardsonLucySimple.check_stopping_criteria"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucySimple.check_stopping_criteria" title="Link to this definition"></a></dt>
+<dd><p>If iteration_count is smaller than iteration_max, the iterative process will continue.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.RichardsonLucySimple.finalization">
+<span class="sig-name descname"><span class="pre">finalization</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/RichardsonLucySimple.html#RichardsonLucySimple.finalization"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.RichardsonLucySimple.finalization" title="Link to this definition"></a></dt>
+<dd><p>finalization after running the image deconvolution</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">SpacecraftAttitudeExposureTable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable" title="Link to this definition"></a></dt>
+<dd><p>A class to analyze exposure time per each spacecraft attitude</p>
+<p>Table columns are:
+- scatt_binning_index: int
+- healpix_index: list of tuple. Each tuple is (healpix_index_zpointing, healpix_index_xpointing).
+- zpointing: np.array of [l, b] in degrees. Array of z-pointings assigned to each scatt bin.
+- xpointing: np.array of [l, b] in degrees. Array of x-pointings assigned to each scatt bin.
+- zpointing_averaged: [l, b] in degrees. Averaged z-pointing in each scatt bin.
+- xpointing_averaged: [l, b] in degrees. Averaged x-pointing in each scatt bin.
+- delta_time: np.array of float in second. Exposure times for pointings assigned to each scatt bin.
+- exposure: float in second. total exposure for each scatt bin.
+- num_pointings: number of pointings assigned to each scatt bin.
+- bkg_group: index of the backgroud group. will be used in the data analysis.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.df">
+<span class="sig-name descname"><span class="pre">df</span></span><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.df" title="Link to this definition"></a></dt>
+<dd><p>pandas dataframe with the above columns</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">pd.DataFrame</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.nside">
+<span class="sig-name descname"><span class="pre">nside</span></span><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.nside" title="Link to this definition"></a></dt>
+<dd><p>Healpix NSIDE parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.scheme">
+<span class="sig-name descname"><span class="pre">scheme</span></span><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.scheme" title="Link to this definition"></a></dt>
+<dd><p>Healpix scheme. Either ‘ring’, ‘nested’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, default ‘ring’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_orientation">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ring'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_exposure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_num_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.from_orientation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_orientation" title="Link to this definition"></a></dt>
+<dd><p>Produce exposure table from orientation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraftfile.SpacecraftFile</span></code></a>) – Orientation</p></li>
+<li><p><strong>nside</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Healpix NSIDE parameter.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>default 'ring'</em>) – Healpix scheme. Either ‘ring’, ‘nested’.</p></li>
+<li><p><strong>start</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.time.Time</span></code></a> or None, default None) – Start time to analyze the orientation</p></li>
+<li><p><strong>stop</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.time.Time</span></code></a> or None, default None) – Stop time to analyze the orientation</p></li>
+<li><p><strong>min_exposure</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – Minimum exposure time required for each scatt bin</p></li>
+<li><p><strong>min_num_pointings</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – Minimum number of pointings required for each scatt bin</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraftfile.SpacecraftAttitudeExposureTable</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.analyze_orientation">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">analyze_orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ring'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_exposure</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_num_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.analyze_orientation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.analyze_orientation" title="Link to this definition"></a></dt>
+<dd><p>Produce pd.DataFrame from orientation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraftfile.SpacecraftFile</span></code></a>) – Orientation</p></li>
+<li><p><strong>nside</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Healpix NSIDE parameter.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>default 'ring'</em>) – Healpix scheme. Either ‘ring’, ‘nested’.</p></li>
+<li><p><strong>start</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.time.Time</span></code></a> or None, default None) – Start time to analyze the orientation</p></li>
+<li><p><strong>stop</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.time.Time</span></code></a> or None, default None) – Stop time to analyze the orientation</p></li>
+<li><p><strong>min_exposure</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – Minimum exposure time required for each scatt bin</p></li>
+<li><p><strong>min_num_pointings</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – Minimum number of pointings required for each scatt bin</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">pd.DataFrame</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_fits">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.from_fits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.from_fits" title="Link to this definition"></a></dt>
+<dd><p>Read exposure table from a fits file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to file</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable" title="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.SpacecraftAttitudeExposureTable</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.save_as_fits">
+<span class="sig-name descname"><span class="pre">save_as_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.save_as_fits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.save_as_fits" title="Link to this definition"></a></dt>
+<dd><p>Save exposure table as a fits file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to file</p></li>
+<li><p><strong>overwrite</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default False</em>)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map">
+<span class="sig-name descname"><span class="pre">calc_pointing_trajectory_map</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/exposure_table.html#SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable.calc_pointing_trajectory_map" title="Link to this definition"></a></dt>
+<dd><p>Calculate a 2-dimensional map showing exposure time for each spacecraft attitude.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraft.SpacecraftAttitudeMap</span></code></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The default axes in SpacecraftAttitudeMap is x- and y-pointings,
+but here the spacecraft attitude is described with z- and x-pointings.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.CoordsysConversionMatrix">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.image_deconvolution.</span></span><span class="sig-name descname"><span class="pre">CoordsysConversionMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/coordsys_conversion_matrix.html#CoordsysConversionMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.CoordsysConversionMatrix" title="Link to this definition"></a></dt>
+<dd><p>A class for coordinate conversion matrix (ccm).</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.CoordsysConversionMatrix.time_binning_ccm">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">time_binning_ccm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">full_detector_response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_intervals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_nest_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/coordsys_conversion_matrix.html#CoordsysConversionMatrix.time_binning_ccm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.CoordsysConversionMatrix.time_binning_ccm" title="Link to this definition"></a></dt>
+<dd><p>Calculate a ccm from a given orientation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>full_detector_response</strong> (<a class="reference internal" href="response.html#cosipy.response.FullDetectorResponse" title="cosipy.response.FullDetectorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.response.FullDetectorResponse</span></code></a>) – Response</p></li>
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.spacecraftfile.SpacecraftFile</span></code></a>) – Orientation</p></li>
+<li><p><strong>time_intervals</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">np.array</span></code>) – The same format of binned_data.axes[‘Time’].edges</p></li>
+<li><p><strong>nside_model</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – If it is None, it will be the same as the NSIDE in the response.</p></li>
+<li><p><strong>is_nest_model</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default False</em>) – If scheme of the model map is nested, it should be False while it is rare.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Its axes are [ “Time”, “lb”, “NuLambda” ].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.image_deconvolution.CoordsysConversionMatrix" title="cosipy.image_deconvolution.CoordsysConversionMatrix"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.CoordsysConversionMatrix</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.CoordsysConversionMatrix.spacecraft_attitude_binning_ccm">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">spacecraft_attitude_binning_ccm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">full_detector_response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_table</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_averaged_pointing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/coordsys_conversion_matrix.html#CoordsysConversionMatrix.spacecraft_attitude_binning_ccm"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.CoordsysConversionMatrix.spacecraft_attitude_binning_ccm" title="Link to this definition"></a></dt>
+<dd><p>Calculate a ccm from a given exposure_table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>full_detector_response</strong> (<a class="reference internal" href="response.html#cosipy.response.FullDetectorResponse" title="cosipy.response.FullDetectorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.response.FullDetectorResponse</span></code></a>) – Response</p></li>
+<li><p><strong>exposure_table</strong> (<a class="reference internal" href="#cosipy.image_deconvolution.SpacecraftAttitudeExposureTable" title="cosipy.image_deconvolution.SpacecraftAttitudeExposureTable"><code class="xref py py-class docutils literal notranslate"><span class="pre">cosipy.image_deconvolution.SpacecraftAttitudeExposureTable</span></code></a>) – Scatt exposure table</p></li>
+<li><p><strong>nside_model</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em> or </em><em>None</em><em>, </em><em>default None</em>) – If it is None, it will be the same as the NSIDE in the response.</p></li>
+<li><p><strong>use_averaged_pointing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default False</em>) – If it is True, first the averaged Z- and X-pointings are calculated.
+Then the dwell time map is calculated once for ach model pixel and each scatt_binning_index.
+If it is False, the dwell time map is calculated for each attitude in zpointing and xpointing in the exposure table.
+Then the calculated dwell time maps are summed up.
+In the former case, the computation is fast but may lose the angular resolution.
+In the latter case, the conversion matrix is more accurate but it takes a long time to calculate it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Its axes are [ “ScAtt”, “lb”, “NuLambda” ].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>py:class:<a href="#id1"><span class="problematic" id="id2">`</span></a>cosipy.image_deconvolution.CoordsysConversionMatrix’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.image_deconvolution.CoordsysConversionMatrix.open">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hist'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/image_deconvolution/coordsys_conversion_matrix.html#CoordsysConversionMatrix.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.image_deconvolution.CoordsysConversionMatrix.open" title="Link to this definition"></a></dt>
+<dd><p>Open a ccm from a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to file.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>default 'hist'</em>) – Name of group where the histogram was saved.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Its axes are [ “lb”, “Time” or “ScAtt”, “NuLambda” ].</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>py:class:<a href="#id3"><span class="problematic" id="id4">`</span></a>cosipy.image_deconvolution.CoordsysConversionMatrix’</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ts_map.html" class="btn btn-neutral float-left" title="TS Map" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="polarization.html" class="btn btn-neutral float-right" title="Polarization" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

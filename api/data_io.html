@@ -1,0 +1,664 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data IO &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Spacecraft File" href="spacecraftfile.html" />
+    <link rel="prev" title="Detector response" href="response.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            cosipy
+              <img src="../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="response.html">Detector response</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Data IO</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-cosipy.data_io">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.data_io.DataIO"><code class="docutils literal notranslate"><span class="pre">DataIO</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.data_io.UnBinnedData"><code class="docutils literal notranslate"><span class="pre">UnBinnedData</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.data_io.BinnedData"><code class="docutils literal notranslate"><span class="pre">BinnedData</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.data_io.ReadTraTest"><code class="docutils literal notranslate"><span class="pre">ReadTraTest</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="spacecraftfile.html">Spacecraft File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="threeml.html">COSILike (3ML plugin)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ts_map.html">TS Map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_deconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="polarization.html">Polarization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="util.html">Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API</a></li>
+      <li class="breadcrumb-item active">Data IO</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/data_io.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-io">
+<h1>Data IO<a class="headerlink" href="#data-io" title="Link to this heading"></a></h1>
+<section id="module-cosipy.data_io">
+<span id="classes"></span><h2>Classes<a class="headerlink" href="#module-cosipy.data_io" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.data_io.DataIO">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.data_io.</span></span><span class="sig-name descname"><span class="pre">DataIO</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_yaml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/DataIO.html#DataIO"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.DataIO" title="Link to this definition"></a></dt>
+<dd><p>Handles main inputs and outputs.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.data_io.</span></span><span class="sig-name descname"><span class="pre">UnBinnedData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_yaml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData" title="Link to this definition"></a></dt>
+<dd><p>Handles unbinned data.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.read_tra">
+<span class="sig-name descname"><span class="pre">read_tra</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">run_test</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_ori</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_min</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_max</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.read_tra"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.read_tra" title="Link to this definition"></a></dt>
+<dd><p>Reads MEGAlib .tra (or .tra.gz) file and creates cosi datset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Prefix of output file (default is None, in which case no
+output is written).</p></li>
+<li><p><strong>run_test</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – This is for unit testing only! Keep False unless
+comparing to MEGAlib calculations.</p></li>
+<li><p><strong>use_ori</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Option to get pointing information from the orientation
+file, based on event time-stamps (default is False, in
+which case the pointing information comes from the event
+file itself). Note: this is an option for now, but will
+later be the default.</p></li>
+<li><p><strong>event_min</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Minimum event number to process (inclusive). All events
+below this will be skipped.</p></li>
+<li><p><strong>event_max</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – <p>Maximum event number to process (non-inclusive). All
+events at and above this will be skipped.</p>
+<p>Note: event_min and event_max correspond to the total
+number of events in the file, which is not necessarily the
+same as the event ID number. The purpose of this is to
+allow the data to be read in chunks, in order to overcome
+memory limitations, depending on the user’s system.</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The returned dictionary contains the COSI dataset, which
+has the form:
+cosi_dataset = {‘Energies’:erg,                        ‘TimeTags’:tt,                        ‘Xpointings’:np.array([lonX,latX]).T,                        ‘Ypointings’:np.array([lonY,latY]).T,                        ‘Zpointings’:np.array([lonZ,latZ]).T,                        ‘Phi’:phi,                        ‘Chi local’:chi_loc,                        ‘Psi local’:psi_loc,                        ‘Distance’:dist,                        ‘Chi galactic’:chi_gal,                        ‘Psi galactic’:psi_gal}            Arrays contain unbinned photon data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>cosi_dataset, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The current code is only able to handle data with Compton
+events. It will need to be modified to handle single-site
+and pair events.</p>
+<p>This method sets the instance attribute, cosi_dataset,
+but it does not explicitly return this.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.instrument_pointing">
+<span class="sig-name descname"><span class="pre">instrument_pointing</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.instrument_pointing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.instrument_pointing" title="Link to this definition"></a></dt>
+<dd><p>Get pointing information from ori file.</p>
+<p>Initializes interpolated functions for lonx, latx, lonz, latz
+in radians.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>xl_interp</strong> (<em>scipy:interpolate:interp1d</em>)</p></li>
+<li><p><strong>xb_interp</strong> (<em>scipy:interpolate:interp1d</em>)</p></li>
+<li><p><strong>zl_interp</strong> (<em>scipy:interpolate:interp1d</em>)</p></li>
+<li><p><strong>zb_interp</strong> (<em>scipy:interpolate:interp1d</em>)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method sets the instance attributes,
+but it does not explicitly return them.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.construct_scy">
+<span class="sig-name descname"><span class="pre">construct_scy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">scx_l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scx_b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scz_l</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scz_b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.construct_scy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.construct_scy" title="Link to this definition"></a></dt>
+<dd><p>Construct y-coordinate of instrument pointing given x and z directions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scx_l</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Longitude of x direction in degrees.</p></li>
+<li><p><strong>scx_b</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Latitude of x direction in degrees.</p></li>
+<li><p><strong>scz_l</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Longitude of z direction in degrees.</p></li>
+<li><p><strong>scz_b</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Latitude of z direction in degrees.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>ra</strong> (<em>float</em>) – Right ascension (in degrees) for y-coordinate of instrument pointing.</p></li>
+<li><p><strong>dec</strong> (<em>float</em>) – Declination (in degrees) for y-coordinate of instrument pointing.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Here, z is the optical axis.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.polar2cart">
+<span class="sig-name descname"><span class="pre">polar2cart</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ra</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.polar2cart"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.polar2cart" title="Link to this definition"></a></dt>
+<dd><p>Coordinate transformation of ra/dec (lon/lat) [phi/theta]
+polar/spherical coordinates into cartesian coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ra</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Right ascension in degrees.</p></li>
+<li><p><strong>dec</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a>) – Declination in degrees.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>x, y, and z cartesian coordinates in radians.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.cart2polar">
+<span class="sig-name descname"><span class="pre">cart2polar</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vector</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.cart2polar"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.cart2polar" title="Link to this definition"></a></dt>
+<dd><p>Coordinate transformation of cartesian x/y/z values into
+spherical (deg).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vector</strong> (<em>vec</em>) – Vector of x/y/z values.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>ra</strong> (<em>float</em>) – Right ascension in degrees.</p></li>
+<li><p><strong>dec</strong> (<em>float</em>) – Declination in degrees.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.write_unbinned_output">
+<span class="sig-name descname"><span class="pre">write_unbinned_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.write_unbinned_output"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.write_unbinned_output" title="Link to this definition"></a></dt>
+<dd><p>Writes unbinned data file to either fits or hdf5.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of output file. Only include prefix (not file type).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.get_dict_from_fits">
+<span class="sig-name descname"><span class="pre">get_dict_from_fits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_fits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.get_dict_from_fits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.get_dict_from_fits" title="Link to this definition"></a></dt>
+<dd><p>Constructs dictionary from input fits file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input_fits</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of input fits file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary constructed from input fits file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.get_dict_from_hdf5">
+<span class="sig-name descname"><span class="pre">get_dict_from_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_hdf5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.get_dict_from_hdf5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.get_dict_from_hdf5" title="Link to this definition"></a></dt>
+<dd><p>Constructs dictionary from input hdf5 file</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input_hdf5</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of input hdf5 file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary constructed from input hdf5 file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.get_dict">
+<span class="sig-name descname"><span class="pre">get_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.get_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.get_dict" title="Link to this definition"></a></dt>
+<dd><p>Constructs dictionary from input file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of input file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary constructed from input file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.select_data_time">
+<span class="sig-name descname"><span class="pre">select_data_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unbinned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.select_data_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.select_data_time" title="Link to this definition"></a></dt>
+<dd><p>Applies time cuts to unbinnned data dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>unbinned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Name of unbinned dictionary file.</p></li>
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Prefix of output file (default is None, in which case no
+file is saved).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.select_data_energy">
+<span class="sig-name descname"><span class="pre">select_data_energy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">emin</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unbinned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.select_data_energy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.select_data_energy" title="Link to this definition"></a></dt>
+<dd><p>Applies energy cuts to unbinnned data dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>emin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Minimum energy in keV.</p></li>
+<li><p><strong>emax</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Maximum energy in keV.</p></li>
+<li><p><strong>unbinned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Name of unbinned dictionary file.</p></li>
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Prefix of output file (default is None, in which case no
+file is saved).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.combine_unbinned_data">
+<span class="sig-name descname"><span class="pre">combine_unbinned_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_files</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.combine_unbinned_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.combine_unbinned_data" title="Link to this definition"></a></dt>
+<dd><p>Combines input unbinned data files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_files</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – List of file names to combine.</p></li>
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Prefix of output file.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.find_bad_intervals">
+<span class="sig-name descname"><span class="pre">find_bad_intervals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">times</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bad_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.find_bad_intervals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.find_bad_intervals" title="Link to this definition"></a></dt>
+<dd><p>Finds intervals where livetime is 0.0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>times</strong> (<em>array</em>) – Array of times from ori file.</p></li>
+<li><p><strong>values</strong> (<em>array</em>) – Array of livetimes from ori file.</p></li>
+<li><p><strong>bad_value</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The value that defines a bad time interval. It must match
+exactly the value in the ori file, including the
+type (float or int). Default is 0.0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>bad_intervals</strong> – List of bad time intervals.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a> of tuples</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.filter_good_data">
+<span class="sig-name descname"><span class="pre">filter_good_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">times</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bad_intervals</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.filter_good_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.filter_good_data" title="Link to this definition"></a></dt>
+<dd><p>Removes entries that fall within bad intervals.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>times</strong> (<em>array</em>) – Array of photon event times.</p></li>
+<li><p><strong>bad_intervals</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – List of bad intervals defined by livetime = 0.0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>filtered_index</strong> – List of indices of good events.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.UnBinnedData.cut_SAA_events">
+<span class="sig-name descname"><span class="pre">cut_SAA_events</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">unbinned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/UnBinnedData.html#UnBinnedData.cut_SAA_events"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.UnBinnedData.cut_SAA_events" title="Link to this definition"></a></dt>
+<dd><p>Cuts events corresponding to SAA passage based on input ori file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>unbinned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Name of unbinned dictionary file.</p></li>
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Prefix of output file (default is None, in which case no
+file is saved).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.data_io.</span></span><span class="sig-name descname"><span class="pre">BinnedData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_yaml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData" title="Link to this definition"></a></dt>
+<dd><p>Handles binned data.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData.get_binned_data">
+<span class="sig-name descname"><span class="pre">get_binned_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">unbinned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">make_binning_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">psichi_binning</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'galactic'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_range</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData.get_binned_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData.get_binned_data" title="Link to this definition"></a></dt>
+<dd><p>Bin the data using histpy and mhealpy.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>unbinned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Name of unbinned data file to use. Input file is either
+.fits or .hdf5 as specified in the unbinned_output
+parameter in inputs.yaml.</p></li>
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Prefix of output file.</p></li>
+<li><p><strong>make_binning_plots</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Option to make basic plots of the binning (default is False).</p></li>
+<li><p><strong>show_plots</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Option to show plots (default is False).</p></li>
+<li><p><strong>psichi_binning</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – ‘galactic’ for binning psichi in Galactic coordinates, or
+‘local’ for binning in local coordinates. Default is Galactic.</p></li>
+<li><p><strong>event_range</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> of </em><em>integers</em><em>, </em><em>optional</em>) – min and max event to use for the binning.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>binned_data</strong> – Data is binned in four axes: time, measured energy,
+Compton scattering angle (phi), and scattering direction
+(PsiChi).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>histpy:Histogram</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method constructs the instance attribute, binned_data,
+but it does not explicitly return it.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData.load_binned_data_from_hdf5">
+<span class="sig-name descname"><span class="pre">load_binned_data_from_hdf5</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binned_data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData.load_binned_data_from_hdf5"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData.load_binned_data_from_hdf5" title="Link to this definition"></a></dt>
+<dd><p>Loads binned histogram from hdf5 file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>binned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of binned data file to load.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>binned_data</strong> – Data is binned in four axes: time, measured energy,
+Compton scattering angle (phi), and scattering direction
+(PsiChi).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>histpy:Histogram</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method sets the instance attribute, binned_data,
+but it does not explicitly return it.</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData.get_binning_info">
+<span class="sig-name descname"><span class="pre">get_binning_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData.get_binning_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData.get_binning_info" title="Link to this definition"></a></dt>
+<dd><p>Get binning information from Histpy histogram.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>binned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Name of binned data hdf5 file to use.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData.plot_binned_data">
+<span class="sig-name descname"><span class="pre">plot_binned_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData.plot_binned_data"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData.plot_binned_data" title="Link to this definition"></a></dt>
+<dd><p>Plot binnned data for all axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>binned_data</strong> (<em>histpy:Histogram</em><em>, </em><em>optional</em>) – Name of binned histogram to use.</p></li>
+<li><p><strong>show_plots</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Option to show plots (default is True).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData.plot_psichi_map">
+<span class="sig-name descname"><span class="pre">plot_psichi_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData.plot_psichi_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData.plot_psichi_map" title="Link to this definition"></a></dt>
+<dd><p>Plot psichi healpix map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>binned_data</strong> (<em>histpy:Histogram</em><em>, </em><em>optional</em>) – Name of binned histogram to use.</p></li>
+<li><p><strong>show_plots</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Option to show plot (default is True).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData.plot_psichi_map_slices">
+<span class="sig-name descname"><span class="pre">plot_psichi_map_slices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Em</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData.plot_psichi_map_slices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData.plot_psichi_map_slices" title="Link to this definition"></a></dt>
+<dd><p>Plot psichi map in slices of Em and phi.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Em</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Bin of energy slice.</p></li>
+<li><p><strong>phi</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Bin of phi slice.</p></li>
+<li><p><strong>output</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Prefix of output plot.</p></li>
+<li><p><strong>binned_data</strong> (<em>histpy:Histogram</em><em>, </em><em>optional</em>) – Name of binned histogram to use.</p></li>
+<li><p><strong>coords</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em>, </em><em>optional</em>) – Coordinates of source position. Galactic longitude and
+latidude for Galactic coordinates. Azimuthal and latitude
+for local coordinates.</p></li>
+<li><p><strong>show_plots</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Option to show plots (default is True).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData.make_basic_plot">
+<span class="sig-name descname"><span class="pre">make_basic_plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plt_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'loglog'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig_kwargs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData.make_basic_plot"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData.make_basic_plot" title="Link to this definition"></a></dt>
+<dd><p>Make a basic plot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> or </em><em>array</em>) – x-axis data to be plotted</p></li>
+<li><p><strong>y</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> or </em><em>array</em>) – y-axis data to be plotted</p></li>
+<li><p><strong>plt_scale</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – scale of axes: loglog, semilogx, or semilogy.
+Default is loglog.</p></li>
+<li><p><strong>x_error</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a><em> or </em><em>array</em><em>, </em><em>optional</em>) – x error bars</p></li>
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Prefix of saved figure (default is None).</p></li>
+<li><p><strong>plot_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Pass any kwargs to plt.plot().</p></li>
+<li><p><strong>fig_kwargs</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><em>dict</em></a><em>, </em><em>optional</em>) – Pass any kwargs to plt.gca().set().</p></li>
+<li><p><strong>show_plots</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Wether or not to show plot (default is True).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData.get_raw_spectrum">
+<span class="sig-name descname"><span class="pre">get_raw_spectrum</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_rate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData.get_raw_spectrum"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData.get_raw_spectrum" title="Link to this definition"></a></dt>
+<dd><p>Calculates raw spectrum of binned data, plots, and writes to file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>binned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Name of binnned hdf5 data file.</p></li>
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Prefix of output files. Writes both pdf and dat file.</p></li>
+<li><p><strong>time_rate</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – If True, calculates ct/keV/s. The defualt is ct/keV.</p></li>
+<li><p><strong>show_plot</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Wether or not to show plot (default is False).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.BinnedData.get_raw_lightcurve">
+<span class="sig-name descname"><span class="pre">get_raw_lightcurve</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binned_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/BinnedData.html#BinnedData.get_raw_lightcurve"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.BinnedData.get_raw_lightcurve" title="Link to this definition"></a></dt>
+<dd><p>Calculates raw lightcurve of binned data, plots, and writes data to file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>binned_data</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Name of binnned hdf5 data file to use.</p></li>
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Prefix of output files. Writes both pdf and dat file.</p></li>
+<li><p><strong>show_plots</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Wether or not to show plot (default is False).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.data_io.ReadTraTest">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.data_io.</span></span><span class="sig-name descname"><span class="pre">ReadTraTest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_yaml</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pw</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/ReadTraTest.html#ReadTraTest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.ReadTraTest" title="Link to this definition"></a></dt>
+<dd><p>Old method for reading tra file, used for unit testing.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.data_io.ReadTraTest.read_tra_old">
+<span class="sig-name descname"><span class="pre">read_tra_old</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">make_plots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/data_io/ReadTraTest.html#ReadTraTest.read_tra_old"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.data_io.ReadTraTest.read_tra_old" title="Link to this definition"></a></dt>
+<dd><p>Reads in MEGAlib .tra (or .tra.gz) file.</p>
+<p>This method uses MEGAlib to read events from the tra file.
+This is used to compare to the new event reader, which is
+independent of MEGAlib.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>output_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Prefix of output file.</p></li>
+<li><p><strong>make_plots</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Option to make binning plot.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>cosi_dataset</strong> – Returns COSI dataset as a dictionary of the form:
+cosi_dataset = {‘Full filename’:self.data_file,                        ‘Energies’:erg,                        ‘TimeTags’:tt,                        ‘Xpointings’:np.array([lonX,latX]).T,                        ‘Ypointings’:np.array([lonY,latY]).T,                        ‘Zpointings’:np.array([lonZ,latZ]).T,                        ‘Phi’:phi,                        ‘Chi local’:chi_loc,                        ‘Psi local’:psi_loc,                        ‘Distance’:dist,                        ‘Chi galactic’:chi_gal,                        ‘Psi galactic’:psi_gal}</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)">dict</a></p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This method sets the instance attribute, cosi_dataset,
+but it does not explicitly return this.</p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="response.html" class="btn btn-neutral float-left" title="Detector response" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="spacecraftfile.html" class="btn btn-neutral float-right" title="Spacecraft File" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

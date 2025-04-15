@@ -1,0 +1,327 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.image_deconvolution.allskyimage &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.image_deconvolution.allskyimage</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.image_deconvolution.allskyimage</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">astropy.units</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">u</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">healpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">hp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Histogram</span><span class="p">,</span> <span class="n">Axes</span><span class="p">,</span> <span class="n">Axis</span><span class="p">,</span> <span class="n">HealpixAxis</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.response.functions</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_integrated_spectral_model</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.model_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelBase</span>
+
+<div class="viewcode-block" id="AllSkyImageModel">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.AllSkyImageModel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AllSkyImageModel</span><span class="p">(</span><span class="n">ModelBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Photon flux maps in given energy bands. 2-dimensional histogram.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    nside : int</span>
+<span class="sd">        Healpix NSIDE parameter.</span>
+<span class="sd">    energy_edges : :py:class:`np.array`</span>
+<span class="sd">        Bin edges for energies. We recommend to use a Quantity array with the unit of keV.</span>
+<span class="sd">    scheme : str, default &#39;ring&#39;</span>
+<span class="sd">        Healpix scheme. Either &#39;ring&#39;, &#39;nested&#39;.</span>
+<span class="sd">    coordsys : str or :py:class:`astropy.coordinates.BaseRepresentation`, default is &#39;galactic&#39;</span>
+<span class="sd">        Instrinsic coordinates of the map. The default is &#39;galactic&#39;.</span>
+<span class="sd">    label_image : str, default &#39;lb&#39;</span>
+<span class="sd">        The label name of the healpix axis.</span>
+<span class="sd">    label_energy : str, default &#39;Ei&#39;</span>
+<span class="sd">        The label name of the energy axis. The default is &#39;Ei&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">nside</span><span class="p">,</span>
+                 <span class="n">energy_edges</span><span class="p">,</span>
+                 <span class="n">scheme</span> <span class="o">=</span> <span class="s1">&#39;ring&#39;</span><span class="p">,</span>
+                 <span class="n">coordsys</span> <span class="o">=</span> <span class="s1">&#39;galactic&#39;</span><span class="p">,</span>
+                 <span class="n">label_image</span> <span class="o">=</span> <span class="s1">&#39;lb&#39;</span><span class="p">,</span>
+                 <span class="n">label_energy</span> <span class="o">=</span> <span class="s1">&#39;Ei&#39;</span><span class="p">,</span>
+                 <span class="n">unit</span> <span class="o">=</span> <span class="s1">&#39;1/(s*cm*cm*sr)&#39;</span>
+                 <span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">energy_edges</span><span class="o">.</span><span class="n">unit</span> <span class="o">!=</span> <span class="n">u</span><span class="o">.</span><span class="n">keV</span><span class="p">:</span>
+
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The unit of the given energy_edges is </span><span class="si">{</span><span class="n">energy_edges</span><span class="o">.</span><span class="n">unit</span><span class="si">}</span><span class="s2">. It will be converted to keV.&quot;</span><span class="p">)</span>
+            <span class="n">energy_edges</span> <span class="o">=</span> <span class="n">energy_edges</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;keV&#39;</span><span class="p">)</span>
+
+        <span class="n">image_axis</span> <span class="o">=</span> <span class="n">HealpixAxis</span><span class="p">(</span><span class="n">nside</span> <span class="o">=</span> <span class="n">nside</span><span class="p">,</span>
+                                 <span class="n">scheme</span> <span class="o">=</span> <span class="n">scheme</span><span class="p">,</span>
+                                 <span class="n">coordsys</span> <span class="o">=</span> <span class="n">coordsys</span><span class="p">,</span>
+                                 <span class="n">label</span> <span class="o">=</span> <span class="n">label_image</span><span class="p">)</span>
+
+        <span class="n">energy_axis</span> <span class="o">=</span> <span class="n">Axis</span><span class="p">(</span><span class="n">edges</span> <span class="o">=</span> <span class="n">energy_edges</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="n">label_energy</span><span class="p">,</span> <span class="n">scale</span> <span class="o">=</span> <span class="s2">&quot;log&quot;</span><span class="p">)</span>
+
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">([</span><span class="n">image_axis</span><span class="p">,</span> <span class="n">energy_axis</span><span class="p">])</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">sparse</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">unit</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AllSkyImageModel.open">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.AllSkyImageModel.open">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">open</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;hist&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Open a file</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        filename: str</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        py:class:`AllSkyImageModel`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">hist</span> <span class="o">=</span> <span class="n">Histogram</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+        <span class="n">allskyimage</span> <span class="o">=</span> <span class="n">AllSkyImageModel</span><span class="p">(</span><span class="n">nside</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">nside</span><span class="p">,</span> 
+                                    <span class="n">energy_edges</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">edges</span><span class="p">,</span>
+                                    <span class="n">scheme</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">scheme</span><span class="p">,</span> 
+                                    <span class="n">coordsys</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">coordsys</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> 
+                                    <span class="n">label_image</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> 
+                                    <span class="n">label_energy</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+                                    <span class="n">unit</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">unit</span><span class="p">)</span>
+
+        <span class="n">allskyimage</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">hist</span><span class="o">.</span><span class="n">contents</span>
+
+        <span class="k">del</span> <span class="n">hist</span>
+        <span class="k">return</span> <span class="n">allskyimage</span></div>
+
+
+<div class="viewcode-block" id="AllSkyImageModel.instantiate_from_parameters">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.AllSkyImageModel.instantiate_from_parameters">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">instantiate_from_parameters</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">parameter</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate an instance of this class</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        parameter : py:class:`yayc.Configurator`</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        py:class:`AllSkyImageModel`</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        The parameters should be given like this:</span>
+
+<span class="sd">        nside: 8</span>
+<span class="sd">        energy_edges:</span>
+<span class="sd">            value: [100.,  200.,  500., 1000., 2000., 5000.]</span>
+<span class="sd">            unit: &quot;keV&quot;</span>
+<span class="sd">        scheme: &quot;ring&quot;</span>
+<span class="sd">        coordinate: &quot;galactic&quot;</span>
+<span class="sd">        unit: &quot;cm-2 s-1 sr-1&quot;</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">new</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">nside</span> <span class="o">=</span> <span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;nside&#39;</span><span class="p">],</span>
+                  <span class="n">energy_edges</span> <span class="o">=</span> <span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;energy_edges&#39;</span><span class="p">][</span><span class="s1">&#39;value&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;energy_edges&#39;</span><span class="p">][</span><span class="s1">&#39;unit&#39;</span><span class="p">]),</span> 
+                  <span class="n">scheme</span> <span class="o">=</span> <span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;scheme&#39;</span><span class="p">],</span> 
+                  <span class="n">coordsys</span> <span class="o">=</span> <span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;coordinate&#39;</span><span class="p">],</span>
+                  <span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;unit&#39;</span><span class="p">]))</span>
+
+        <span class="k">return</span> <span class="n">new</span></div>
+
+
+<div class="viewcode-block" id="AllSkyImageModel.set_values_from_parameters">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.AllSkyImageModel.set_values_from_parameters">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_values_from_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the values accordinng to the specified algorithm. </span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        parameter : py:class:`yayc.Configurator`</span>
+<span class="sd">            Parameters for the specified algorithm.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        Currently algorithm_name can be only &#39;flat&#39;. All of the pixel values in each energy bins will set to the given value.</span>
+<span class="sd">        parameter should be {&#39;values&#39;: [ flux value at 1st energy bin (without unit), flux value at 2nd energy bin, ...]}.</span>
+
+<span class="sd">        An example of contents in parameter is like this:</span>
+
+<span class="sd">        algorithm: &quot;flat&quot;</span>
+<span class="sd">        parameter:</span>
+<span class="sd">            value: [1.0e-2, 1.0e-2, 1.0e-2, 1.0e-2, 1.0e-2]</span>
+<span class="sd">            unit: &quot;cm-2 s-1 sr-1&quot;</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">algorithm_name</span> <span class="o">=</span> <span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;algorithm&#39;</span><span class="p">]</span>
+        <span class="n">algorithm_parameter</span> <span class="o">=</span> <span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">algorithm_name</span> <span class="o">==</span> <span class="s2">&quot;flat&quot;</span><span class="p">:</span>
+            <span class="n">unit</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">Unit</span><span class="p">(</span><span class="n">algorithm_parameter</span><span class="p">[</span><span class="s1">&#39;unit&#39;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">algorithm_parameter</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]):</span>
+                <span class="bp">self</span><span class="p">[:,</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span> <span class="o">*</span> <span class="n">unit</span></div>
+
+    <span class="c1">#    elif algorithm_name == ... </span>
+    <span class="c1">#       ...</span>
+
+<div class="viewcode-block" id="AllSkyImageModel.set_values_from_extendedmodel">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.AllSkyImageModel.set_values_from_extendedmodel">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_values_from_extendedmodel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">extendedmodel</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the values accordinng to the given astromodels.ExtendedSource.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        extendedmodel : :py:class:`astromodels.ExtendedSource`</span>
+<span class="sd">            Extended source model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">integrated_flux</span> <span class="o">=</span> <span class="n">get_integrated_spectral_model</span><span class="p">(</span><span class="n">spectrum</span> <span class="o">=</span> <span class="n">extendedmodel</span><span class="o">.</span><span class="n">spectrum</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                                        <span class="n">energy_axis</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        
+        <span class="n">npix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">npix</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pix2skycoord</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">npix</span><span class="p">))</span>
+
+        <span class="n">normalized_map</span> <span class="o">=</span> <span class="n">extendedmodel</span><span class="o">.</span><span class="n">spatial_shape</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">l</span><span class="o">.</span><span class="n">deg</span><span class="p">,</span> <span class="n">coords</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">deg</span><span class="p">)</span> <span class="o">/</span> <span class="n">u</span><span class="o">.</span><span class="n">sr</span>
+
+        <span class="bp">self</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">normalized_map</span><span class="p">,</span> <span class="n">integrated_flux</span><span class="o">.</span><span class="n">contents</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> </div>
+
+
+<div class="viewcode-block" id="AllSkyImageModel.smoothing">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.AllSkyImageModel.smoothing">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">smoothing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fwhm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">sigma</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Smooth a map with a Gaussian filter</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        fwhm: :py:class:`astropy.units.quantity.Quantity`</span>
+<span class="sd">            The FWHM of the Gaussian (with a unit of deg or rad). Default: 0 deg</span>
+<span class="sd">        sigma: :py:class:`astropy.units.quantity.Quantity`</span>
+<span class="sd">            The sigma of the Gaussian (with a unit of deg or rad). Override fwhm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">fwhm</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fwhm</span> <span class="o">=</span> <span class="mf">0.0</span> <span class="o">*</span> <span class="n">u</span><span class="o">.</span><span class="n">deg</span>
+        
+        <span class="k">if</span> <span class="n">sigma</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fwhm</span> <span class="o">=</span> <span class="mf">2.354820</span> <span class="o">*</span> <span class="n">sigma</span>
+
+        <span class="n">allskyimage_new</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s1">&#39;Ei&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nbins</span><span class="p">):</span>
+            <span class="n">allskyimage_new</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">hp</span><span class="o">.</span><span class="n">smoothing</span><span class="p">(</span><span class="bp">self</span><span class="p">[:,</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">fwhm</span> <span class="o">=</span> <span class="n">fwhm</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s1">&#39;rad&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">unit</span>
+
+        <span class="k">return</span> <span class="n">allskyimage_new</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

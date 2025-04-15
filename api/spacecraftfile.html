@@ -1,0 +1,447 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spacecraft File &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="COSILike (3ML plugin)" href="threeml.html" />
+    <link rel="prev" title="Data IO" href="data_io.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            cosipy
+              <img src="../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="response.html">Detector response</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_io.html">Data IO</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Spacecraft File</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-cosipy.spacecraftfile">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.spacecraftfile.SpacecraftFile"><code class="docutils literal notranslate"><span class="pre">SpacecraftFile</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.spacecraftfile.SpacecraftAttitudeMap"><code class="docutils literal notranslate"><span class="pre">SpacecraftAttitudeMap</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="threeml.html">COSILike (3ML plugin)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ts_map.html">TS Map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_deconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="polarization.html">Polarization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="util.html">Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API</a></li>
+      <li class="breadcrumb-item active">Spacecraft File</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/spacecraftfile.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="spacecraft-file">
+<h1>Spacecraft File<a class="headerlink" href="#spacecraft-file" title="Link to this heading"></a></h1>
+<section id="module-cosipy.spacecraftfile">
+<span id="classes"></span><h2>Classes<a class="headerlink" href="#module-cosipy.spacecraftfile" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.spacecraftfile.</span></span><span class="sig-name descname"><span class="pre">SpacecraftFile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">earth_zenith</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">altitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">livetime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instrument</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'COSI'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frame</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'galactic'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile" title="Link to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.parse_from_file">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">parse_from_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.parse_from_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.parse_from_file" title="Link to this definition"></a></dt>
+<dd><p>Parses timestamps, axis positions from file and returns to __init__.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The file path of the pointings.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The SpacecraftFile object.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile">cosipy.spacecraftfile.SpacecraftFile</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_time">
+<span class="sig-name descname"><span class="pre">get_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_time" title="Link to this definition"></a></dt>
+<dd><p>Return the array pf pointing times as a astropy.Time object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>time_array</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a><em>, </em><em>optional</em>) – The time array (the default is <cite>None</cite>, which implies the time array will be taken from the instance).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The time stamps of the orientation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v7.0)">astropy.time.Time</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_altitude">
+<span class="sig-name descname"><span class="pre">get_altitude</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_altitude"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_altitude" title="Link to this definition"></a></dt>
+<dd><p>Return the array of Earth altitude.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the Earth altitude.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>numpy array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_time_delta">
+<span class="sig-name descname"><span class="pre">get_time_delta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_array</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_time_delta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_time_delta" title="Link to this definition"></a></dt>
+<dd><p>Return an array of the time period between neighbouring time points.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>time_array</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a><em>, </em><em>optional</em>) – The time delta array (the default is <cite>None</cite>, which implies the time array will be taken from the instance).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>time_delta</strong> – The time difference between the neighbouring time stamps.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v7.0)">astropy.time.Time</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.interpolate_direction">
+<span class="sig-name descname"><span class="pre">interpolate_direction</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trigger</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.interpolate_direction"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.interpolate_direction" title="Link to this definition"></a></dt>
+<dd><p>Linearly interpolates position at a given time between two timestamps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>trigger</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v7.0)"><em>astropy.time.Time</em></a>) – The time of the event.</p></li>
+<li><p><strong>idx</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The closest index in the pointing to the trigger time.</p></li>
+<li><p><strong>direction</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a>) – The pointing axis (x,z).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The interpolated positions.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)">numpy.ndarray</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.source_interval">
+<span class="sig-name descname"><span class="pre">source_interval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.source_interval"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.source_interval" title="Link to this definition"></a></dt>
+<dd><p>Returns the SpacecraftFile file class object for the source interval.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>start</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v7.0)"><em>astropy.time.Time</em></a>) – The start time of the orientation period.</p></li>
+<li><p><strong>stop</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.time.Time.html#astropy.time.Time" title="(in Astropy v7.0)"><em>astropy.time.Time</em></a>) – The end time of the orientation period.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>cosipy.spacecraft.SpacecraftFile</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_attitude">
+<span class="sig-name descname"><span class="pre">get_attitude</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_pointings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_attitude"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_attitude" title="Link to this definition"></a></dt>
+<dd><p>Converts the x, y and z pointings to the attitude of the telescope.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x_pointings</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a><em>, </em><em>optional</em>) – The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft (the default is <cite>None</cite>, which implies that the x pointings will be taken from the instance).</p></li>
+<li><p><strong>y_pointings</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a><em>, </em><em>optional</em>) – The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft (the default is <cite>None</cite>, which implies that the y pointings will be taken from the instance).</p></li>
+<li><p><strong>z_pointings</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a><em>, </em><em>optional</em>) – The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft (the default is <cite>None</cite>, which implies that the z pointings will be taken from the instance).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The attitude of the spacecraft.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>scoords.attitude.Attitude</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_target_in_sc_frame">
+<span class="sig-name descname"><span class="pre">get_target_in_sc_frame</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_coord</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attitude</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quiet</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_target_in_sc_frame"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_target_in_sc_frame" title="Link to this definition"></a></dt>
+<dd><p>Convert the x, y and z pointings of the spacescraft axes to the path of the source in the spacecraft frame.
+Specify the pointings of at least two axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The name of the target object.</p></li>
+<li><p><strong>target_coord</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a>) – The coordinates of the target object.</p></li>
+<li><p><strong>attitude</strong> (<em>scoords.Attitude</em><em>, </em><em>optional</em>) – The attitude of the spacecraft (the default is <cite>None</cite>, which implies the attitude will be taken from the instance).</p></li>
+<li><p><strong>quiet</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default=False</em>) – Setting <cite>True</cite> to stop printing the messages.</p></li>
+<li><p><strong>save</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default=False</em>) – Setting <cite>True</cite> to save the target coordinates in the spacecraft frame.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The target coordinates in the spacecraft frame.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)">astropy.coordinates.SkyCoord</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_dwell_map">
+<span class="sig-name descname"><span class="pre">get_dwell_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pa_convention</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_dwell_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_dwell_map" title="Link to this definition"></a></dt>
+<dd><p>Generates the dwell time map for the source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>response</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><em>pathlib.Path</em></a>) – The path to the response file.</p></li>
+<li><p><strong>src_path</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a><em>, </em><em>optional</em>) – The movement of source in the detector frame (the default is <cite>None</cite>, which implies that the <cite>src_path</cite> will be read from the instance).</p></li>
+<li><p><strong>save</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default=False</em>) – Set True to save the dwell time map.</p></li>
+<li><p><strong>pa_convention</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Polarization convention of response (‘RelativeX’, ‘RelativeY’, or ‘RelativeZ’)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The dwell time map.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>mhealpy.containers.healpix_map.HealpixMap</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_scatt_map">
+<span class="sig-name descname"><span class="pre">get_scatt_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_coord</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheme</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'ring'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordsys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'galactic'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_earth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6378.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">earth_occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_scatt_map"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_scatt_map" title="Link to this definition"></a></dt>
+<dd><p>Bin the spacecraft attitude history into a 4D histogram that
+contains the accumulated time the axes of the spacecraft where
+looking at a given direction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_coord</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><em>astropy.coordinates.SkyCoord</em></a>) – The coordinates of the target object.</p></li>
+<li><p><strong>nside</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – The nside of the scatt map.</p></li>
+<li><p><strong>scheme</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The scheme of the scatt map (the default is “ring”)</p></li>
+<li><p><strong>coordsys</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The coordinate system used in the scatt map (the default is “galactic).</p></li>
+<li><p><strong>r_earth</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Earth radius in km (default is 6378 km).</p></li>
+<li><p><strong>earth_occ</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Option to include Earth occultation in scatt map calculation.
+Default is True.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>h_ori</strong> – The spacecraft attitude map.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.spacecraftfile.SpacecraftAttitudeMap" title="cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap">cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_psr_rsp">
+<span class="sig-name descname"><span class="pre">get_psr_rsp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dwell_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pa_convention</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_psr_rsp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_psr_rsp" title="Link to this definition"></a></dt>
+<dd><p>Generates the point source response based on the response file and dwell time map.
+dts is used to find the exposure time for this observation.</p>
+<p>:param : The response for the observation (the defaul is <cite>None</cite>, which implies that the <cite>response</cite> will be read from the instance).
+:type : response : str or pathlib.Path, optional
+:param dwell_map: The time dwell map for the source, you can load saved dwell time map using this parameter if you’ve saved it before (the defaul is <cite>None</cite>, which implies that the <cite>dwell_map</cite> will be read from the instance).
+:type dwell_map: str, optional
+:param dts: The elapsed time for each pointing. It must has the same size as the pointings. If you have saved this array, you can load it using this parameter (the defaul is <cite>None</cite>, which implies that the <cite>dts</cite> will be read from the instance).
+:type dts: numpy.ndarray or str, optional</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>Ei_edges</strong> (<em>numpy.ndarray</em>) – The edges of the incident energy.</p></li>
+<li><p><strong>Ei_lo</strong> (<em>numpy.ndarray</em>) – The lower edges of the incident energy.</p></li>
+<li><p><strong>Ei_hi</strong> (<em>numpy.ndarray</em>) – The upper edges of the incident energy.</p></li>
+<li><p><strong>Em_edges</strong> (<em>numpy.ndarray</em>) – The edges of the measured energy.</p></li>
+<li><p><strong>Em_lo</strong> (<em>numpy.ndarray</em>) – The lower edges of the measured energy.</p></li>
+<li><p><strong>Em_hi</strong> (<em>numpy.ndarray</em>) – The upper edges of the measured energy.</p></li>
+<li><p><strong>areas</strong> (<em>numpy.ndarray</em>) – The effective area of each energy bin.</p></li>
+<li><p><strong>matrix</strong> (<em>numpy.ndarray</em>) – The energy dispersion matrix.</p></li>
+<li><p><strong>pa_convention</strong> (<em>str, optional</em>) – Polarization convention of response (‘RelativeX’, ‘RelativeY’, or ‘RelativeZ’)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_arf">
+<span class="sig-name descname"><span class="pre">get_arf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_arf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_arf" title="Link to this definition"></a></dt>
+<dd><p>Converts the point source response to an arf file that can be read by XSPEC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>out_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the arf file to save. (the default is <cite>None</cite>, which implies that the saving name will be the target name of the instance).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_rmf">
+<span class="sig-name descname"><span class="pre">get_rmf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_rmf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_rmf" title="Link to this definition"></a></dt>
+<dd><p>Converts the point source response to an rmf file that can be read by XSPEC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>out_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the arf file to save. (the default is None, which implies that the saving name will be the target name of the instance).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.get_pha">
+<span class="sig-name descname"><span class="pre">get_pha</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src_counts</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">errors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rmf_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arf_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bkg_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exposure_time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dts</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">telescope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'COSI'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">instrument</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'COSI'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.get_pha"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.get_pha" title="Link to this definition"></a></dt>
+<dd><p>Generate the pha file that can be read by XSPEC. This file stores the counts info of the source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>src_counts</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a>) – The counts in each energy band. If you have src_counts with unit counts/kev/s, you must convert it to counts by multiplying it with exposure time and the energy band width.</p></li>
+<li><p><strong>errors</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a>) – The error for counts. It has the same unit requirement as src_counts.</p></li>
+<li><p><strong>rmf_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The rmf file name to be written into the pha file (the default is <cite>None</cite>, which implies that it uses the rmf file generate by function <cite>get_rmf</cite>)</p></li>
+<li><p><strong>arf_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The arf file name to be written into the pha file (the default is <cite>None</cite>, which implies that it uses the arf file generate by function <cite>get_arf</cite>)</p></li>
+<li><p><strong>bkg_file</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The background file name (the default is <cite>None</cite>, which implied the <cite>src_counts</cite> is source counts only).</p></li>
+<li><p><strong>exposure_time</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – The exposure time for this source observation (the default is <cite>None</cite>, which implied that the exposure time will be calculated by <cite>dts</cite>).</p></li>
+<li><p><strong>dts</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a><em>, </em><em>optional</em>) – It’s used to calculate the exposure time. It has the same effect as <cite>exposure_time</cite>. If both <cite>exposure_time</cite> and <cite>dts</cite> are given, <cite>dts</cite> will write over the exposure_time (the default is <cite>None</cite>, which implies that the <cite>dts</cite> will be read from the instance).</p></li>
+<li><p><strong>telescope</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the telecope (the default is “COSI”).</p></li>
+<li><p><strong>instrument</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The instrument name (the default is “COSI”).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.plot_arf">
+<span class="sig-name descname"><span class="pre">plot_arf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dpi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.plot_arf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.plot_arf" title="Link to this definition"></a></dt>
+<dd><p>Read the arf fits file, plot and save it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The directory if the arf fits file (the default is <cite>None</cite>, which implies the file name will be read from the instance).</p></li>
+<li><p><strong>save_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the saved image of effective area (the default is <cite>None</cite>, which implies the file name will be read from the instance).</p></li>
+<li><p><strong>dpi</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – The dpi of the saved image (the default is 300).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftFile.plot_rmf">
+<span class="sig-name descname"><span class="pre">plot_rmf</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dpi</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/SpacecraftFile.html#SpacecraftFile.plot_rmf"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftFile.plot_rmf" title="Link to this definition"></a></dt>
+<dd><p>Read the rmf fits file, plot and save it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The directory if the arf fits file (the default is <cite>None</cite>, which implies the file name will be read from the instance).</p></li>
+<li><p><strong>save_name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the saved image of effective area (the default is <cite>None</cite>, which implies the file name will be read from the instance).</p></li>
+<li><p><strong>dpi</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – The dpi of the saved image (the default is 300).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.spacecraftfile.SpacecraftAttitudeMap">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.spacecraftfile.</span></span><span class="sig-name descname"><span class="pre">SpacecraftAttitudeMap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/spacecraftfile/scatt_map.html#SpacecraftAttitudeMap"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.spacecraftfile.SpacecraftAttitudeMap" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="data_io.html" class="btn btn-neutral float-left" title="Data IO" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="threeml.html" class="btn btn-neutral float-right" title="COSILike (3ML plugin)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

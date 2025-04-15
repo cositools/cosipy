@@ -1,0 +1,363 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.ts_map.fast_norm_fit &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.ts_map.fast_norm_fit</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.ts_map.fast_norm_fit</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">log</span><span class="p">,</span> <span class="n">sqrt</span><span class="p">,</span> <span class="n">sqrt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">math</span><span class="w"> </span><span class="kn">import</span> <span class="n">factorial</span>
+
+<div class="viewcode-block" id="FastNormFit">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.FastNormFit">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FastNormFit</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Perform a fast poisson maximum likelihood ratio fit of the normalization of a </span>
+<span class="sd">    source over background.</span>
+
+<span class="sd">    The likelihood ratio as a function of the norm is computed as follow</span>
+
+<span class="sd">    .. math::</span>
+<span class="sd">    </span>
+<span class="sd">        TS(N) = 2 \\sum_i \\left( \\frac{\\log P(d_i; b_i+N e_i)}{\\log P(d_i; b_i)} \\right)</span>
+
+<span class="sd">    where :math:`P(d; \lambda)` is the Poisson probability of obtaining :math:`d`</span>
+<span class="sd">    count where :math:`\lambda` is expected on average; :math:`b` is the estimated</span>
+<span class="sd">    number of background counts; :math:`N` is the normalization; and :math:`e` </span>
+<span class="sd">    is the expected excess -i.e. signal- per normalization unit -i.e. the </span>
+<span class="sd">    number of excess counts equals :math:`N`. </span>
+
+<span class="sd">    It can be shown that :math:`TS(N)` has analytic derivative of arbitrary </span>
+<span class="sd">    order and that the Newton&#39;s method is guaranteed to converge if initialized</span>
+<span class="sd">    at :math:`N=0`.</span>
+
+<span class="sd">    .. note::</span>
+
+<span class="sd">        The background is not allowed to float. It is assumed the error on the</span>
+<span class="sd">        estimation of the background is small compared to the fluctuation of the</span>
+<span class="sd">        background itself (i.e. :math:`N_{B}/N_{off} \\lll 1`).</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">    </span>
+<span class="sd">        Because of the Poisson probability, :math:`TS(N)` is only well-defined</span>
+<span class="sd">        for :math:`N \geq 1`. By default, underfluctuations are set to </span>
+<span class="sd">        :math:`TS(N=0) = 0`. For cases when there is benefit in letting the</span>
+<span class="sd">        normalization float to negative values, you can use `allow_negative`, </span>
+<span class="sd">        but in that case the results are only valid in the Gaussian regime.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        max_iter (int): Maximum number of iteration</span>
+<span class="sd">        conv_frac_tol (float): Convergence stopping condition, expressed as the</span>
+<span class="sd">            ratio between the size of the last step and the current norm value.</span>
+<span class="sd">        zero_ts_tol (float): If zero_ts_tol &lt; TS &lt; 0, then TS is set to 0 </span>
+<span class="sd">            without failed flag status (analytically, TS &lt; 0 should never happen)</span>
+<span class="sd">        allow_negative (bool): Allow the normalization to float toward </span>
+<span class="sd">            negative values</span>
+<span class="sd">    &quot;&quot;&quot;</span>    
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">conv_frac_tol</span> <span class="o">=</span> <span class="mf">1e-3</span><span class="p">,</span>
+                 <span class="n">zero_ts_tol</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+                 <span class="n">allow_negative</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span> <span class="o">=</span> <span class="n">max_iter</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conv_frac_tol</span> <span class="o">=</span> <span class="n">conv_frac_tol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">zero_ts_tol</span> <span class="o">=</span> <span class="n">zero_ts_tol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allow_negative</span> <span class="o">=</span> <span class="n">allow_negative</span>
+
+<div class="viewcode-block" id="FastNormFit.ts">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.FastNormFit.ts">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="n">norm</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get TS for a given normalization. </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (array): Observed counts</span>
+<span class="sd">            bkg (array): Background estimation. Same size as data. </span>
+<span class="sd">                Every element should be &gt;0</span>
+<span class="sd">            unit_excess (array): Expected excess per normalization unit. </span>
+<span class="sd">                Same size as data.</span>
+<span class="sd">            norm (float or array): Normalization value</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">            float or array: TS, same shape as norm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">bkg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bkg</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">unit_excess</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">unit_excess</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        
+        <span class="n">ts</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">d</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">ue</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">):</span> 
+
+            <span class="n">e</span> <span class="o">=</span> <span class="n">norm</span><span class="o">*</span><span class="n">ue</span>
+
+            <span class="k">if</span> <span class="n">d</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ts</span> <span class="o">-=</span> <span class="n">e</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ts</span> <span class="o">+=</span> <span class="n">d</span> <span class="o">*</span> <span class="n">log</span><span class="p">((</span><span class="n">b</span><span class="o">+</span><span class="n">e</span><span class="p">)</span> <span class="o">/</span> <span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="n">e</span>
+ 
+        <span class="n">ts</span> <span class="o">*=</span> <span class="mi">2</span>
+     
+        <span class="k">return</span> <span class="n">ts</span></div>
+
+
+<div class="viewcode-block" id="FastNormFit.dts">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.FastNormFit.dts">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the derivative of TS with respecto to the normalization,</span>
+<span class="sd">        at given normalization. </span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (array): Observed counts</span>
+<span class="sd">            bkg (array): Background estimation. Same size as data. </span>
+<span class="sd">                Every element should be &gt;0</span>
+<span class="sd">            unit_excess (array): Expected excess per normalization unit. </span>
+<span class="sd">                Same size as data.</span>
+<span class="sd">            norm (float or array): Normalization value</span>
+<span class="sd">            order (int): Derivative order</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">            float or array: d^n TS / dN^n, same shape as norm</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">order</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Order must be &gt; 1&quot;</span><span class="p">)</span>
+        
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">bkg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bkg</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+        <span class="n">unit_excess</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">unit_excess</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+        <span class="n">dts</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">norm</span><span class="p">)</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">d</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">ue</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">):</span> 
+
+            <span class="n">e</span> <span class="o">=</span> <span class="n">norm</span><span class="o">*</span><span class="n">ue</span>
+
+            <span class="k">if</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">dts</span> <span class="o">+=</span> <span class="n">d</span> <span class="o">*</span> <span class="p">(</span><span class="n">ue</span><span class="o">/</span><span class="p">(</span><span class="n">b</span><span class="o">+</span><span class="n">e</span><span class="p">))</span><span class="o">**</span><span class="n">order</span>
+
+        <span class="k">if</span> <span class="n">order</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">ue</span> <span class="ow">in</span> <span class="n">unit_excess</span><span class="p">:</span> 
+        
+                <span class="n">dts</span> <span class="o">-=</span> <span class="n">ue</span>
+
+        <span class="n">dts</span> <span class="o">*=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">((</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="n">order</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span> <span class="o">*</span> <span class="n">factorial</span><span class="p">(</span><span class="n">order</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">dts</span></div>
+
+        
+<div class="viewcode-block" id="FastNormFit.solve">
+<a class="viewcode-back" href="../../../api/ts_map.html#cosipy.ts_map.FastNormFit.solve">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">solve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the maximum TS, fitted normalization and normalization error </span>
+<span class="sd">        (:math:`\Delta TS = 1`)</span>
+
+<span class="sd">        .. note::</span>
+
+<span class="sd">            The normalization error is obtained from approximating the TS </span>
+<span class="sd">            function as as parabola (i.e. valid in the Gaussian regime). TS</span>
+<span class="sd">            and norm are indeed valid in the Poisson regime.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (array): Observed counts</span>
+<span class="sd">            bkg (array): Background estimation. Same size as data. </span>
+<span class="sd">                Every element should be &gt;0</span>
+<span class="sd">            unit_excess (array): Expected excess per normalization unit. </span>
+<span class="sd">                Same size as data.</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">            (float, float, float, bool): ts, norm, norm error and status (0 = good) </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">dts0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dts0</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Underfluctuation</span>
+
+            <span class="c1"># A negative norm is not well defined since we use a</span>
+            <span class="c1"># Poisson Likelihood. When negative norm is allowed we assume</span>
+            <span class="c1"># that we are in the Gaussian regime</span>
+
+            <span class="n">ddts0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">order</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_negative</span><span class="p">:</span>
+
+                <span class="n">ts</span> <span class="o">=</span> <span class="n">dts0</span><span class="o">*</span><span class="n">dts0</span><span class="o">/</span><span class="mi">2</span><span class="o">/</span><span class="n">ddts0</span>
+
+                <span class="n">norm</span> <span class="o">=</span> <span class="o">-</span><span class="n">dts0</span><span class="o">/</span><span class="n">ddts0</span>
+
+                <span class="n">norm_err</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="o">/</span><span class="n">ddts0</span><span class="p">)</span>
+            
+            <span class="k">else</span><span class="p">:</span>
+
+                <span class="n">ts</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">norm</span> <span class="o">=</span> <span class="mi">0</span>
+
+                <span class="k">if</span> <span class="n">ddts0</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+                    <span class="n">norm_err</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="o">/</span><span class="n">dts0</span>
+                
+                <span class="k">else</span><span class="p">:</span>
+
+                    <span class="n">norm_err</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dts0</span><span class="o">*</span><span class="n">dts0</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">ddts0</span><span class="p">)</span> <span class="o">+</span> <span class="n">dts0</span><span class="p">)</span> <span class="o">/</span> <span class="n">ddts0</span>
+
+            <span class="c1">#Never failed, results where analytical</span>
+            <span class="n">failed</span> <span class="o">=</span> <span class="kc">False</span>
+            
+            <span class="k">return</span> <span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">norm_err</span><span class="p">,</span> <span class="n">failed</span><span class="p">)</span>
+
+        <span class="c1"># Newton&#39;s method</span>
+
+        <span class="n">conv</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">iteration</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">while</span> <span class="p">(</span><span class="ow">not</span> <span class="n">conv</span> <span class="ow">and</span> <span class="n">iteration</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">):</span>
+
+            <span class="n">step</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">dts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">order</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">dts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">order</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span>
+<span class="p">)</span>
+        
+            <span class="n">norm</span> <span class="o">+=</span> <span class="n">step</span>
+
+            <span class="k">if</span> <span class="n">step</span><span class="o">/</span><span class="n">norm</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv_frac_tol</span><span class="p">:</span>
+                <span class="n">conv</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="n">iteration</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="c1"># One extra step using Halley&#39;s method to avoid being biased toward </span>
+            
+        <span class="n">f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">fpp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">norm</span> <span class="o">-=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">f</span> <span class="o">*</span> <span class="n">fp</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">fp</span> <span class="o">*</span> <span class="n">fp</span> <span class="o">-</span> <span class="n">f</span> <span class="o">*</span> <span class="n">fpp</span><span class="p">)</span>
+
+        <span class="c1"># Compute ts, norm error and checks</span>
+
+        <span class="n">ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="n">norm</span><span class="p">)</span>
+
+        <span class="n">norm_err</span> <span class="o">=</span> <span class="n">sqrt</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">dts</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">bkg</span><span class="p">,</span> <span class="n">unit_excess</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="n">failed</span> <span class="o">=</span> <span class="p">(</span><span class="n">norm</span> <span class="o">&lt;</span> <span class="mi">0</span>  <span class="ow">or</span> <span class="n">iteration</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_iter</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">ts</span> <span class="o">&lt;</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">zero_ts_tol</span><span class="p">:</span>
+            <span class="n">failed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">ts</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1">#Assumed to be a numerical error</span>
+            <span class="n">ts</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">norm_err</span><span class="p">,</span> <span class="n">failed</span><span class="p">,</span> <span class="n">iteration</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

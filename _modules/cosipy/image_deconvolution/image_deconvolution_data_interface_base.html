@@ -1,0 +1,301 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.image_deconvolution.image_deconvolution_data_interface_base &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.image_deconvolution.image_deconvolution_data_interface_base</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.image_deconvolution.image_deconvolution_data_interface_base</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+
+<div class="viewcode-block" id="ImageDeconvolutionDataInterfaceBase">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ImageDeconvolutionDataInterfaceBase</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A base class for managing data for image analysis, i.e., </span>
+<span class="sd">    event data, background models, response, coordsys conversion matrix etc.</span>
+<span class="sd">    Subclasses must override these attributes and methods.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">    - self._event </span>
+<span class="sd">        A binned histogram of events. It is an instance of histpy.Histogram.</span>
+<span class="sd">        Its axes must be the same of self._data_axes.</span>
+<span class="sd">    - self._bkg_models</span>
+<span class="sd">        A dictionary of binned histograms of background models.</span>
+<span class="sd">        It is a dictionary of histpy.Histogram with keys of names of background models.</span>
+<span class="sd">        Their axes must be the same of self._model_axes.</span>
+<span class="sd">    - self._summed_bkg_models</span>
+<span class="sd">        A dictionary of summed values of the background model histograms.</span>
+<span class="sd">    - self._exposure_map </span>
+<span class="sd">        A binned histogram of the exposures at each pixel in the model space.</span>
+<span class="sd">        It is an instance of histpy.Histogram.</span>
+<span class="sd">        Its axes must be the same of self._model_axes.</span>
+<span class="sd">    - self._model_axes </span>
+<span class="sd">        Axes for the data space. It is an instance of histpy.Axes.</span>
+<span class="sd">    - self._data_axes </span>
+<span class="sd">        Axes for the model space. It is an instance of histpy.Axes.</span>
+<span class="sd">    </span>
+<span class="sd">    Methods:</span>
+<span class="sd">    - keys_bkg_models()</span>
+<span class="sd">        It returns a list of names of background models.</span>
+<span class="sd">    - bkg_model(key)</span>
+<span class="sd">        It returns a binned histogram of a background model with the given key.</span>
+<span class="sd">    - summed_bkg_model(key)</span>
+<span class="sd">        It returns the summed value of the background histogram with the given key.</span>
+<span class="sd">    - calc_expectation(model)</span>
+<span class="sd">        It returns a histogram of expected counts from the given model.</span>
+<span class="sd">    - calc_T_product(dataspace_histogram)</span>
+<span class="sd">        It returns the product of the input histogram with the transonse matrix of the response function.</span>
+<span class="sd">    - calc_bkg_model_product(key, dataspace_histogram)</span>
+<span class="sd">        It returns the product of an input histogram with a background model with the given key.</span>
+<span class="sd">    - calc_likelihood(expectation)</span>
+<span class="sd">        It returns the log-likelihood with the given histogram of expected counts.</span>
+
+<span class="sd">    The basic idea of this class is to separate the data structure</span>
+<span class="sd">    from the development of the image deconvolution algorithm.</span>
+<span class="sd">    </span>
+<span class="sd">    When the image deconvolution is performed, the deconvolution algorithm will look at only the above </span>
+<span class="sd">    attributes and methods, and will not care about the actual response matrix and how it actually calculates</span>
+<span class="sd">    expected counts or the product using the transpose matrix of the response function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="c1"># must assign data to them somewhere</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_event</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># histpy.Histogram</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_models</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># a dictionary of histpy.Histogram</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summed_bkg_models</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># a dictionary of float</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_exposure_map</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># histpy.Histogram</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_axes</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># histpy.Axes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data_axes</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1"># histpy.Axes</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">event</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_event</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">exposure_map</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exposure_map</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">model_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_axes</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">data_axes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data_axes</span>
+
+<div class="viewcode-block" id="ImageDeconvolutionDataInterfaceBase.keys_bkg_models">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.keys_bkg_models">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">keys_bkg_models</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bkg_models</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolutionDataInterfaceBase.bkg_model">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.bkg_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">bkg_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolutionDataInterfaceBase.summed_bkg_model">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.summed_bkg_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">summed_bkg_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summed_bkg_models</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolutionDataInterfaceBase.calc_expectation">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_expectation">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_expectation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">dict_bkg_norm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">almost_zero</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate expected counts from a given model map.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        model : :py:class:`cosipy.image_deconvolution.ModelBase` or its subclass</span>
+<span class="sd">            Model</span>
+<span class="sd">        dict_bkg_norm : dict, default None</span>
+<span class="sd">            background normalization for each background model, e.g, {&#39;albedo&#39;: 0.95, &#39;activation&#39;: 1.05}</span>
+<span class="sd">        almost_zero : float, default 1e-12</span>
+<span class="sd">            In order to avoid zero components in extended count histogram, a tiny offset is introduced.</span>
+<span class="sd">            It should be small enough not to effect statistics.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`histpy.Histogram`</span>
+<span class="sd">            Expected count histogram</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolutionDataInterfaceBase.calc_T_product">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_T_product">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_T_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataspace_histogram</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the product of the input histogram with the transonse matrix of the response function.</span>
+<span class="sd">        Let R_{ij}, H_{i} be the response matrix and dataspace_histogram, respectively.</span>
+<span class="sd">        Note that i is the index for the data space, and j is for the model space.</span>
+<span class="sd">        In this method, \sum_{j} H{i} R_{ij}, namely, R^{T} H is calculated.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataspace_histogram: :py:class:`histpy.Histogram`</span>
+<span class="sd">            Its axes must be the same as self.data_axes</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        :py:class:`histpy.Histogram`</span>
+<span class="sd">            The product with self.model_axes</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    
+<div class="viewcode-block" id="ImageDeconvolutionDataInterfaceBase.calc_bkg_model_product">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_bkg_model_product">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_bkg_model_product</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">dataspace_histogram</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the product of the input histogram with the background model.</span>
+<span class="sd">        Let B_{i}, H_{i} be the background model and dataspace_histogram, respectively.</span>
+<span class="sd">        In this method, \sum_{i} B_{i} H_{i} is calculated.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key: str</span>
+<span class="sd">            Background model name</span>
+<span class="sd">        dataspace_histogram: :py:class:`histpy.Histogram`</span>
+<span class="sd">            its axes must be the same as self.data_axes</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+
+    
+<div class="viewcode-block" id="ImageDeconvolutionDataInterfaceBase.calc_loglikelihood">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase.calc_loglikelihood">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calc_loglikelihood</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expectation</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate log-likelihood from given expected counts or model/expectation.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        expectation : :py:class:`histpy.Histogram`</span>
+<span class="sd">            Expected count histogram.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        float</span>
+<span class="sd">            Log-likelood</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

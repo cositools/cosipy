@@ -1,0 +1,410 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.source_injector.source_injector &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.source_injector.source_injector</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.source_injector.source_injector</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Histogram</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.response</span><span class="w"> </span><span class="kn">import</span> <span class="n">FullDetectorResponse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">h5py</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">h5</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">histpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">Histogram</span><span class="p">,</span> <span class="n">Axis</span><span class="p">,</span> <span class="n">Axes</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cosipy.response</span><span class="w"> </span><span class="kn">import</span> <span class="n">PointSourceResponse</span><span class="p">,</span> <span class="n">ExtendedSourceResponse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mhealpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">HealpixMap</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+<div class="viewcode-block" id="SourceInjector">
+<a class="viewcode-back" href="../../../api/source_injector.html#cosipy.source_injector.SourceInjector">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SourceInjector</span><span class="p">():</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response_path</span><span class="p">,</span> <span class="n">response_frame</span> <span class="o">=</span> <span class="s2">&quot;spacecraftframe&quot;</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        `SourceInjector` convolve response, source model(s) and orientation to produce a mocked simulated data. The data can be saved for data anlysis with cosipy.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        response : str or pathlib.Path</span>
+<span class="sd">            The path to the response file</span>
+<span class="sd">        response_frame : str, optional</span>
+<span class="sd">            The frame of the Compton data space (CDS) of the response. It only accepts `spacecraftframe` or &quot;galactic&quot;. (the default is `spacecraftframe`, which means the CDS is in the detector frame.)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">response_path</span> <span class="o">=</span>  <span class="n">response_path</span>
+        
+        <span class="k">if</span> <span class="n">response_frame</span> <span class="o">==</span> <span class="s2">&quot;spacecraftframe&quot;</span> <span class="ow">or</span> <span class="n">response_frame</span> <span class="o">==</span> <span class="s2">&quot;galactic&quot;</span><span class="p">:</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">response_frame</span> <span class="o">=</span> <span class="n">response_frame</span>
+        
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;The response frame can only be `spacecraftframe` or `galactic`!&quot;</span><span class="p">)</span>
+
+
+
+<div class="viewcode-block" id="SourceInjector.get_psr_in_galactic">
+<a class="viewcode-back" href="../../../api/source_injector.html#cosipy.source_injector.SourceInjector.get_psr_in_galactic">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_psr_in_galactic</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">response_path</span><span class="p">,</span> <span class="n">spectrum</span><span class="p">):</span>
+<span class="w">        </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the point source response (psr) in galactic. Please be aware that you must use a galactic response!</span>
+<span class="sd">        To do: to make the weight parameter not hardcoded</span>
+<span class="sd">        </span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        coordinate : astropy.coordinates.SkyCoord</span>
+<span class="sd">            The coordinate.</span>
+<span class="sd">        response_path : str or path.lib.Path</span>
+<span class="sd">            The path to the response.</span>
+<span class="sd">        spectrum : astromodels.functions</span>
+<span class="sd">            The spectrum of the source to be placed at the hypothesis coordinate.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        psr : histpy.Histogram</span>
+<span class="sd">            The point source response of the spectrum at the hypothesis coordinate.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Open the response</span>
+        <span class="c1"># Notes from Israel: Inside it contains a single histogram with all the regular axes for a Compton Data Space (CDS) analysis, in galactic coordinates. Since there is no class yet to handle it, this is how to read in the HDF5 manually.</span>
+        
+        <span class="k">with</span> <span class="n">h5</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">response_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+
+            <span class="n">axes_group</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;hist/axes&#39;</span><span class="p">]</span>
+            <span class="n">axes</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">axis</span> <span class="ow">in</span> <span class="n">axes_group</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="c1"># Get class. Backwards compatible with version</span>
+                <span class="c1"># with only Axis</span>
+                <span class="n">axis_cls</span> <span class="o">=</span> <span class="n">Axis</span>
+                <span class="k">if</span> <span class="s1">&#39;__class__&#39;</span> <span class="ow">in</span> <span class="n">axis</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+                    <span class="n">class_module</span><span class="p">,</span> <span class="n">class_name</span> <span class="o">=</span> <span class="n">axis</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;__class__&#39;</span><span class="p">]</span>
+                    <span class="n">axis_cls</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">class_module</span><span class="p">],</span> <span class="n">class_name</span><span class="p">)</span>
+                <span class="n">axes</span> <span class="o">+=</span> <span class="p">[</span><span class="n">axis_cls</span><span class="o">.</span><span class="n">_open</span><span class="p">(</span><span class="n">axis</span><span class="p">)]</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">Axes</span><span class="p">(</span><span class="n">axes</span><span class="p">)</span>
+        
+        <span class="c1"># get the pixel number of the hypothesis coordinate</span>
+        <span class="n">map_temp</span> <span class="o">=</span> <span class="n">HealpixMap</span><span class="p">(</span><span class="n">base</span> <span class="o">=</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">coordinate_pix_number</span> <span class="o">=</span> <span class="n">map_temp</span><span class="o">.</span><span class="n">ang2pix</span><span class="p">(</span><span class="n">coordinate</span><span class="p">)</span>
+        
+        <span class="c1"># get the expectation for the hypothesis coordinate (a point source)</span>
+        <span class="k">with</span> <span class="n">h5</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="n">response_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pix</span> <span class="o">=</span> <span class="n">coordinate_pix_number</span>
+            <span class="n">psr</span> <span class="o">=</span> <span class="n">PointSourceResponse</span><span class="p">(</span><span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;hist/contents&#39;</span><span class="p">][</span><span class="n">pix</span><span class="o">+</span><span class="mi">1</span><span class="p">],</span> <span class="n">unit</span> <span class="o">=</span> <span class="n">f</span><span class="p">[</span><span class="s1">&#39;hist&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s1">&#39;unit&#39;</span><span class="p">])</span>
+                
+        <span class="k">return</span> <span class="n">psr</span></div>
+
+
+
+<div class="viewcode-block" id="SourceInjector.inject_point_source">
+<a class="viewcode-back" href="../../../api/source_injector.html#cosipy.source_injector.SourceInjector.inject_point_source">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inject_point_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spectrum</span><span class="p">,</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">orientation</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">source_name</span> <span class="o">=</span> <span class="s2">&quot;point_source&quot;</span><span class="p">,</span>
+                            <span class="n">make_spectrum_plot</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">data_save_path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">project_axes</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the expected counts for a point source.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        spectrum : astromodels.functions</span>
+<span class="sd">            The spectrum model defined from `astromodels`.</span>
+<span class="sd">        coordinate : astropy.coordinates.SkyCoord</span>
+<span class="sd">            The coordinate of the point source.</span>
+<span class="sd">        orientation : cosipy.spacecraftfile.SpacecraftFile, option</span>
+<span class="sd">            The orientation of the telescope during the mock simulation. This is needed when using a detector response. (the default is `None`, which means a galactic response is used.</span>
+<span class="sd">        source_name : str, optional</span>
+<span class="sd">            The name of the source (the default is `point_source`).</span>
+<span class="sd">        make_spectrum_plot : bool, optional</span>
+<span class="sd">            Set `True` to make the plot of the injected spectrum.</span>
+<span class="sd">        data_save_path : str or pathlib.Path, optional</span>
+<span class="sd">            The path to save the injected data to a `.h5` file. This should include the file name. (the default is `None`, which means the injected data won&#39;t be saved.</span>
+<span class="sd">        project_axes : list, optional</span>
+<span class="sd">            The axes to project before saving the data file (the default is `None`, which means the data won&#39;t be projected).</span>
+<span class="sd">            </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        histpy.Histogram</span>
+<span class="sd">            The `Histogram object of the injected spectrum.`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        
+        <span class="c1"># get the point source response in local frame</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_frame</span> <span class="o">==</span> <span class="s2">&quot;spacecraftframe&quot;</span><span class="p">:</span>
+
+            <span class="k">if</span> <span class="n">orientation</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;The when the data are binned in spacecraftframe frame, orientation must be provided to compute the expected counts.&quot;</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">FullDetectorResponse</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">response_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">:</span>
+                
+                <span class="n">scatt_map</span> <span class="o">=</span> <span class="n">orientation</span><span class="o">.</span><span class="n">get_scatt_map</span><span class="p">(</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">nside</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span> <span class="n">coordsys</span> <span class="o">=</span> <span class="s1">&#39;galactic&#39;</span><span class="p">,</span> <span class="n">earth_occ</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+                
+                <span class="n">psr</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">get_point_source_response</span><span class="p">(</span><span class="n">coord</span><span class="o">=</span><span class="n">coordinate</span><span class="p">,</span> <span class="n">scatt_map</span><span class="o">=</span><span class="n">scatt_map</span><span class="p">)</span>
+                
+        <span class="c1"># get the point source response in galactic frame</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_frame</span> <span class="o">==</span> <span class="s2">&quot;galactic&quot;</span><span class="p">:</span>
+
+            <span class="n">psr</span> <span class="o">=</span> <span class="n">SourceInjector</span><span class="o">.</span><span class="n">get_psr_in_galactic</span><span class="p">(</span><span class="n">coordinate</span> <span class="o">=</span> <span class="n">coordinate</span><span class="p">,</span> <span class="n">response_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_path</span><span class="p">,</span> <span class="n">spectrum</span> <span class="o">=</span> <span class="n">spectrum</span><span class="p">)</span>
+
+        <span class="n">injected</span> <span class="o">=</span> <span class="n">psr</span><span class="o">.</span><span class="n">get_expectation</span><span class="p">(</span><span class="n">spectrum</span><span class="p">)</span>
+        <span class="c1"># setting the Em and Ei scale to linear to match the simulated data</span>
+        <span class="c1"># The linear scale of Em is the default for COSI data</span>
+        <span class="n">injected</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;Em&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">axis_scale</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span>
+
+        <span class="k">if</span> <span class="n">project_axes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">injected</span> <span class="o">=</span> <span class="n">injected</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="n">project_axes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">make_spectrum_plot</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">,</span> <span class="n">plot</span> <span class="o">=</span> <span class="n">injected</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">&quot;Em&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;Injected point source&quot;</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="s2">&quot;green&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper right&quot;</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Em [keV]&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Counts&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">data_save_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">injected</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data_save_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">injected</span></div>
+
+
+<div class="viewcode-block" id="SourceInjector.get_esr">
+<a class="viewcode-back" href="../../../api/source_injector.html#cosipy.source_injector.SourceInjector.get_esr">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_esr</span><span class="p">(</span><span class="n">source_model</span><span class="p">,</span> <span class="n">response_path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the extended source response from the response file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source_model : astromodels.ExtendedSource</span>
+<span class="sd">            The model representing the extended source.</span>
+<span class="sd">        response_path : str or pathlib.Path</span>
+<span class="sd">            The path to the response file.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        esr : histpy.Histogram</span>
+<span class="sd">            The extended source response object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ExtendedSourceResponse</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">response_path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading Extended Source Response: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SourceInjector.inject_extended_source">
+<a class="viewcode-back" href="../../../api/source_injector.html#cosipy.source_injector.SourceInjector.inject_extended_source">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inject_extended_source</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">source_model</span><span class="p">,</span>
+        <span class="n">source_name</span><span class="o">=</span><span class="s2">&quot;extended_source&quot;</span><span class="p">,</span>
+        <span class="n">data_save_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">project_axes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">make_spectrum_plot</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the expected counts for an extended source.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        source_model : astromodels.ExtendedSource</span>
+<span class="sd">            The all sky model defined from an astromodels extended source model.</span>
+<span class="sd">        source_name : str, optional</span>
+<span class="sd">            The name of the source (the default is `extended_source`).</span>
+<span class="sd">        make_spectrum_plot : bool, optional</span>
+<span class="sd">            Set `True` to make the plot of the injected spectrum.</span>
+<span class="sd">        data_save_path : str or pathlib.Path, optional</span>
+<span class="sd">            The path to save the injected data to a `.h5` file. This should include the file name. (the default is `None`, which means the injected data won&#39;t be saved.</span>
+<span class="sd">        project_axes : list, optional</span>
+<span class="sd">            The axes to project before saving the data file (the default is `None`, which means the data won&#39;t be projected).</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        histpy.Histogram</span>
+<span class="sd">            The `Histogram object of the injected spectrum.`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">esr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_esr</span><span class="p">(</span><span class="n">source_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_path</span><span class="p">)</span>
+        <span class="n">injected</span> <span class="o">=</span> <span class="n">esr</span><span class="o">.</span><span class="n">get_expectation_from_astromodel</span><span class="p">(</span><span class="n">source_model</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">project_axes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">injected</span> <span class="o">=</span> <span class="n">injected</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="n">project_axes</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">make_spectrum_plot</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">,</span> <span class="n">plot</span> <span class="o">=</span> <span class="n">injected</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">&quot;Em&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Injected </span><span class="si">{</span><span class="n">source_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;blue&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper right&quot;</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Em [keV]&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Counts&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">data_save_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">injected</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data_save_path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">injected</span></div>
+
+    
+<div class="viewcode-block" id="SourceInjector.inject_model">
+<a class="viewcode-back" href="../../../api/source_injector.html#cosipy.source_injector.SourceInjector.inject_model">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inject_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">orientation</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">make_spectrum_plot</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">data_save_path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">project_axes</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">response_frame</span> <span class="o">==</span> <span class="s2">&quot;spacecraftframe&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">orientation</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;The when the data are binned in spacecraftframe frame, orientation must be provided to compute the expected counts.&quot;</span><span class="p">)</span>
+                
+        <span class="bp">self</span><span class="o">.</span><span class="n">components</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c1"># first inject point sources</span>
+        <span class="n">point_sources</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">point_sources</span>
+        
+        <span class="c1"># iterate through all point sources</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">point_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            
+            <span class="n">injected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inject_point_source</span><span class="p">(</span><span class="n">spectrum</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">spectrum</span><span class="o">.</span><span class="n">main</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">coordinate</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">sky_coord</span><span class="p">,</span>
+                                                <span class="n">orientation</span> <span class="o">=</span> <span class="n">orientation</span><span class="p">,</span> <span class="n">source_name</span> <span class="o">=</span> <span class="n">name</span><span class="p">)</span>
+            
+            <span class="n">injected</span><span class="o">.</span><span class="n">axes</span><span class="p">[</span><span class="s2">&quot;Em&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">axis_scale</span> <span class="o">=</span> <span class="s2">&quot;log&quot;</span>  <span class="c1"># set to log scale manually. This inconsistency is from the detector response module</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">injected</span>
+            
+        <span class="c1"># second inject extended sources</span>
+        <span class="n">extended_sources</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">extended_sources</span>
+        
+        <span class="c1"># iterate through all extended sources</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">extended_sources</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            
+            <span class="n">injected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inject_extended_source</span><span class="p">(</span><span class="n">source_model</span> <span class="o">=</span> <span class="n">source</span><span class="p">,</span> <span class="n">source_name</span> <span class="o">=</span> <span class="n">name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">injected</span>
+            
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            
+            <span class="c1"># if there is only one component, the injected all is just the only component</span>
+            <span class="n">injected_all</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">data_save_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">injected_all</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">data_save_path</span><span class="p">)</span>
+                
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            
+            <span class="n">injected_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">components</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            
+            <span class="n">injected_all</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">injected_list</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            
+            <span class="c1"># add the rest of the injected sources</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">injected_list</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="n">injected_all</span> <span class="o">+=</span> <span class="n">i</span>
+                
+        <span class="k">if</span> <span class="n">make_spectrum_plot</span><span class="p">:</span>
+            <span class="n">ax</span><span class="p">,</span> <span class="n">plot</span> <span class="o">=</span> <span class="n">injected_all</span><span class="o">.</span><span class="n">project</span><span class="p">(</span><span class="s2">&quot;Em&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">draw</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s2">&quot;log&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Em [keV]&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;Counts&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span> <span class="n">fontweight</span><span class="o">=</span><span class="s2">&quot;bold&quot;</span><span class="p">)</span>
+                
+            <span class="k">return</span> <span class="n">injected_all</span></div>
+</div>
+
+        
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

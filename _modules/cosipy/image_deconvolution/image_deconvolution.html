@@ -1,0 +1,379 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>cosipy.image_deconvolution.image_deconvolution &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            cosipy
+              <img src="../../../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api/index.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">cosipy.image_deconvolution.image_deconvolution</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for cosipy.image_deconvolution.image_deconvolution</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">tqdm.autonotebook</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">yayc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Configurator</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.allskyimage</span><span class="w"> </span><span class="kn">import</span> <span class="n">AllSkyImageModel</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.RichardsonLucy</span><span class="w"> </span><span class="kn">import</span> <span class="n">RichardsonLucy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.RichardsonLucySimple</span><span class="w"> </span><span class="kn">import</span> <span class="n">RichardsonLucySimple</span>
+
+<div class="viewcode-block" id="ImageDeconvolution">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ImageDeconvolution</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A class to reconstruct all-sky images from COSI data based on image deconvolution methods.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_classes</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;AllSkyImage&quot;</span><span class="p">:</span> <span class="n">AllSkyImageModel</span><span class="p">}</span>
+    <span class="n">deconvolution_algorithm_classes</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;RL&quot;</span><span class="p">:</span> <span class="n">RichardsonLucy</span><span class="p">,</span> <span class="s2">&quot;RLsimple&quot;</span><span class="p">:</span> <span class="n">RichardsonLucySimple</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_class</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution_class</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="ImageDeconvolution.set_dataset">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.set_dataset">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set dataset</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataset : list of :py:class:`cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase` or its subclass</span>
+<span class="sd">            Each component contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+        
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dataset for image deconvolution was set -&gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolution.set_mask">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.set_mask">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mask</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set dataset</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mask: :py:class:`histpy.Histogram`</span>
+<span class="sd">            A mask which will be applied to a model </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span> <span class="o">=</span> <span class="n">mask</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolution.read_parameterfile">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.read_parameterfile">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">read_parameterfile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter_filepath</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Read parameters from a yaml file.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        parameter_filepath : str or pathlib.Path</span>
+<span class="sd">            Path of parameter file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span> <span class="o">=</span> <span class="n">Configurator</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">parameter_filepath</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;parameter file for image deconvolution was set -&gt; </span><span class="si">{</span><span class="n">parameter_filepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the registered parameter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span>
+
+<div class="viewcode-block" id="ImageDeconvolution.override_parameter">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.override_parameter">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">override_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Override parameter</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        *args</span>
+<span class="sd">            new parameter</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; image_deconvolution.override_parameter(&quot;deconvolution:parameter_RL:iteration = 30&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parameter</span><span class="o">.</span><span class="n">override</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initial_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the initial model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Need to initialize model in the image_deconvolution instance!&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">mask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the mask.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mask</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">results</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the results.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution</span><span class="o">.</span><span class="n">results</span>
+
+<div class="viewcode-block" id="ImageDeconvolution.initialize">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.initialize">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize an initial model and an image deconvolution algorithm.</span>
+<span class="sd">        It is mandatory to execute this method before running the image deconvolution.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;#### Initialization Starts ####&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_initialization</span><span class="p">()</span>        
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_deconvolution_algorithm</span><span class="p">()</span>        
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;#### Initialization Finished ####&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolution.model_initialization">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.model_initialization">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">model_initialization</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create an instance of the model class and set initial values of it.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool </span>
+<span class="sd">            whether the instantiation and initialization are successfully done.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># set self._model_class</span>
+        <span class="n">model_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;model_definition&#39;</span><span class="p">][</span><span class="s1">&#39;class&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">model_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The model class &quot;</span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s1">&quot; does not exist!&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_classes</span><span class="p">[</span><span class="n">model_name</span><span class="p">]</span>
+
+        <span class="c1"># instantiate the model class</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;&lt; Instantiating the model class </span><span class="si">{</span><span class="n">model_name</span><span class="si">}</span><span class="s2"> &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="n">parameter_model_property</span> <span class="o">=</span> <span class="n">Configurator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;model_definition&#39;</span><span class="p">][</span><span class="s1">&#39;property&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_class</span><span class="o">.</span><span class="n">instantiate_from_parameters</span><span class="p">(</span><span class="n">parameter_model_property</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;---- parameters ----&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">parameter_model_property</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span>
+
+        <span class="c1"># setting initial values</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&lt;&lt; Setting initial values of the created model object &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="n">parameter_model_initialization</span> <span class="o">=</span> <span class="n">Configurator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;model_definition&#39;</span><span class="p">][</span><span class="s1">&#39;initialization&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model</span><span class="o">.</span><span class="n">set_values_from_parameters</span><span class="p">(</span><span class="n">parameter_model_initialization</span><span class="p">)</span>
+
+        <span class="c1"># applying a mask to the model if needed</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initial_model</span><span class="o">.</span><span class="n">mask_pixels</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># axes check</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_model_response_consistency</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;The model axes mismatches with the reponse in the dataset!&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;---- parameters ----&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">parameter_model_initialization</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="ImageDeconvolution.register_deconvolution_algorithm">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.register_deconvolution_algorithm">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_deconvolution_algorithm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register the deconvolution algorithm</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool </span>
+<span class="sd">            whether the deconvolution algorithm is successfully registered.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;&lt;&lt; Registering the deconvolution algorithm &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="n">parameter_deconvolution</span> <span class="o">=</span> <span class="n">Configurator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="p">[</span><span class="s1">&#39;deconvolution&#39;</span><span class="p">])</span>
+
+        <span class="n">algorithm_name</span> <span class="o">=</span> <span class="n">parameter_deconvolution</span><span class="p">[</span><span class="s1">&#39;algorithm&#39;</span><span class="p">]</span>
+        <span class="n">algorithm_parameter</span> <span class="o">=</span> <span class="n">Configurator</span><span class="p">(</span><span class="n">parameter_deconvolution</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">algorithm_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">deconvolution_algorithm_classes</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The algorithm &quot;</span><span class="si">{</span><span class="n">algorithm_name</span><span class="si">}</span><span class="s1">&quot; does not exist!&#39;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deconvolution_algorithm_classes</span><span class="p">[</span><span class="n">algorithm_name</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution_class</span><span class="p">(</span><span class="n">initial_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_model</span><span class="p">,</span> 
+                                                        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> 
+                                                        <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> 
+                                                        <span class="n">parameter</span> <span class="o">=</span> <span class="n">algorithm_parameter</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;---- parameters ----&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">parameter_deconvolution</span><span class="o">.</span><span class="n">dump</span><span class="p">())</span> </div>
+
+
+<div class="viewcode-block" id="ImageDeconvolution.run_deconvolution">
+<a class="viewcode-back" href="../../../api/image_deconvolution.html#cosipy.image_deconvolution.ImageDeconvolution.run_deconvolution">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">run_deconvolution</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform the image deconvolution. Make sure that the initialize method has been conducted.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        list</span>
+<span class="sd">            List containing results (reconstructed image, likelihood etc) at each iteration. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;#### Image Deconvolution Starts ####&quot;</span><span class="p">)</span>
+       
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;&lt; Initialization &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution</span><span class="o">.</span><span class="n">initialization</span><span class="p">()</span>
+        
+        <span class="n">stop_iteration</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution</span><span class="o">.</span><span class="n">iteration_max</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">stop_iteration</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="n">stop_iteration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution</span><span class="o">.</span><span class="n">iteration</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;&lt; Finalization &gt;&gt;&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_deconvolution</span><span class="o">.</span><span class="n">finalization</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;#### Image Deconvolution Finished ####&quot;</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_model_response_consistency</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if the model axes is consistent with the dataset</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        bool </span>
+<span class="sd">            whether the axes of dataset are consistent with the model.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">model_axes</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">initial_model</span><span class="o">.</span><span class="n">axes</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

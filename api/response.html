@@ -1,0 +1,589 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detector response &mdash; cosipy __version__ = &#34;0.3.4&#34;
+ documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f9fafa83"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Data IO" href="data_io.html" />
+    <link rel="prev" title="API" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            cosipy
+              <img src="../_static/cosipy_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/other_examples.html">Other examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">API</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Detector response</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-cosipy.response">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.response.PointSourceResponse"><code class="docutils literal notranslate"><span class="pre">PointSourceResponse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.response.DetectorResponse"><code class="docutils literal notranslate"><span class="pre">DetectorResponse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.response.FullDetectorResponse"><code class="docutils literal notranslate"><span class="pre">FullDetectorResponse</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cosipy.response.ExtendedSourceResponse"><code class="docutils literal notranslate"><span class="pre">ExtendedSourceResponse</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="data_io.html">Data IO</a></li>
+<li class="toctree-l2"><a class="reference internal" href="spacecraftfile.html">Spacecraft File</a></li>
+<li class="toctree-l2"><a class="reference internal" href="threeml.html">COSILike (3ML plugin)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ts_map.html">TS Map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="image_deconvolution.html">Image deconvolution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="polarization.html">Polarization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source_injector.html">Source injector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="util.html">Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../dev/index.html">For developers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">cosipy</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">API</a></li>
+      <li class="breadcrumb-item active">Detector response</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/response.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="detector-response">
+<h1>Detector response<a class="headerlink" href="#detector-response" title="Link to this heading"></a></h1>
+<p>Different matrices that charaterize the response of the instrument. These encode the effective
+area and the various detector effects seens in the data, and allow to compute
+the expected counts given a source hypothesis.</p>
+<section id="module-cosipy.response">
+<span id="classes"></span><h2>Classes<a class="headerlink" href="#module-cosipy.response" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.response.PointSourceResponse">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.response.</span></span><span class="sig-name descname"><span class="pre">PointSourceResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/PointSourceResponse.html#PointSourceResponse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.PointSourceResponse" title="Link to this definition"></a></dt>
+<dd><p>Handles the multi-dimensional matrix that describes the expected
+response of the instrument for a particular point in the sky.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Axes</span></code>) – <p>Binning information for each variable. The following labels are expected:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ei</span></code>: Real energy</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Em</span></code>: Measured energy. Optional</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Phi</span></code>: Compton angle. Optional.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PsiChi</span></code>:  Location in the Compton Data Space (HEALPix pixel). Optional.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SigmaTau</span></code>: Electron recoil angle (HEALPix pixel). Optional.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Dist</span></code>: Distance from first interaction. Optional.</p></li>
+</ul>
+</p></li>
+<li><p><strong>contents</strong> (array, <a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Quantity.html#astropy.units.Quantity" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.Quantity</span></code></a> or <a class="reference external" href="https://sparse.pydata.org/en/stable/api/SparseArray/#sparse.SparseArray" title="(in sparse v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse.SparseArray</span></code></a>) – Array containing the differential effective area convolved with wht source exposure.</p></li>
+<li><p><strong>unit</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Unit.html#astropy.units.Unit" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.Unit</span></code></a>, optional) – Physical units, if not specified as part of <code class="docutils literal notranslate"><span class="pre">contents</span></code>. Units of <code class="docutils literal notranslate"><span class="pre">area*time</span></code>
+are expected.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.response.PointSourceResponse.photon_energy_axis">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">photon_energy_axis</span></span><a class="headerlink" href="#cosipy.response.PointSourceResponse.photon_energy_axis" title="Link to this definition"></a></dt>
+<dd><p>Real energy bins (<code class="docutils literal notranslate"><span class="pre">Ei</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Axes</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.PointSourceResponse.get_expectation">
+<span class="sig-name descname"><span class="pre">get_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">spectrum</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">polarization</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/PointSourceResponse.html#PointSourceResponse.get_expectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.PointSourceResponse.get_expectation" title="Link to this definition"></a></dt>
+<dd><p>Convolve the response with a spectral (and optionally, polarization) hypothesis to obtain the expected
+excess counts from the source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>spectrum</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">threeML.Model</span></code>) – Spectral hypothesis.</p></li>
+<li><p><strong>polarization</strong> (<em>'astromodels.core.polarization.LinearPolarization'</em><em>, </em><em>optional</em>) – Polarization angle and degree. The angle is assumed to have same convention as point source response.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Histogram with the expected counts on each analysis bin</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.response.DetectorResponse">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.response.</span></span><span class="sig-name descname"><span class="pre">DetectorResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/DetectorResponse.html#DetectorResponse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.DetectorResponse" title="Link to this definition"></a></dt>
+<dd><p>Handles the multi-dimensional matrix that describes the
+response of the instrument for a particular <code class="xref py py-class docutils literal notranslate"><span class="pre">SpacecraftFrame</span></code> coordinate
+location.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>axes</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Axes</span></code>) – <p>Binning information for each variable. The following labels are expected:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">Ei</span></code>: Real energy</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Em</span></code>: Measured energy</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Phi</span></code>: Compton angle. Optional.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PsiChi</span></code>:  Location in the Compton Data Space (HEALPix pixel). Optional.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SigmaTau</span></code>: Electron recoil angle (HEALPix pixel). Optional.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Dist</span></code>: Distance from first interaction. Optional.</p></li>
+</ul>
+</p></li>
+<li><p><strong>contents</strong> (array, <a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Quantity.html#astropy.units.Quantity" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.Quantity</span></code></a> or <a class="reference external" href="https://sparse.pydata.org/en/stable/api/SparseArray/#sparse.SparseArray" title="(in sparse v0.0.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">sparse.SparseArray</span></code></a>) – Array containing the differential effective area.</p></li>
+<li><p><strong>unit</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Unit.html#astropy.units.Unit" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.Unit</span></code></a>, optional) – Physical area units, if not specified as part of <code class="docutils literal notranslate"><span class="pre">contents</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.DetectorResponse.get_spectral_response">
+<span class="sig-name descname"><span class="pre">get_spectral_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/DetectorResponse.html#DetectorResponse.get_spectral_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.DetectorResponse.get_spectral_response" title="Link to this definition"></a></dt>
+<dd><p>Reduced detector response, projected along the real and measured energy axes only.
+The Compton Data Space axes are not included.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>copy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – If true, a copy of the cached spectral response will be returned.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cosipy.response.DetectorResponse" title="cosipy.response.DetectorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">DetectorResponse</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.DetectorResponse.get_effective_area">
+<span class="sig-name descname"><span class="pre">get_effective_area</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">energy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">copy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/DetectorResponse.html#DetectorResponse.get_effective_area"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.DetectorResponse.get_effective_area" title="Link to this definition"></a></dt>
+<dd><p>Compute the effective area at a given energy. If no energy is specified, the
+output is a histogram for the effective area at each energy bin.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>energy</strong> (optional, <a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Quantity.html#astropy.units.Quantity" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.Quantity</span></code></a>) – Energy/energies at which to interpolate the linearly effective area</p></li>
+<li><p><strong>copy</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – If true, a copy of the cached effective will be returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Quantity.html#astropy.units.Quantity" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.Quantity</span></code></a> or <code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.DetectorResponse.get_dispersion_matrix">
+<span class="sig-name descname"><span class="pre">get_dispersion_matrix</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/DetectorResponse.html#DetectorResponse.get_dispersion_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.DetectorResponse.get_dispersion_matrix" title="Link to this definition"></a></dt>
+<dd><p>Compute the energy dispersion matrix, also known as migration matrix. This holds the
+probability of an event with real energy <code class="docutils literal notranslate"><span class="pre">Ei</span></code> to be reconstructed with an measured
+energy <code class="docutils literal notranslate"><span class="pre">Em</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Histogram</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.response.DetectorResponse.photon_energy_axis">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">photon_energy_axis</span></span><a class="headerlink" href="#cosipy.response.DetectorResponse.photon_energy_axis" title="Link to this definition"></a></dt>
+<dd><p>Real energy bins (<code class="docutils literal notranslate"><span class="pre">Ei</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Axes</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.response.DetectorResponse.measured_energy_axis">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">measured_energy_axis</span></span><a class="headerlink" href="#cosipy.response.DetectorResponse.measured_energy_axis" title="Link to this definition"></a></dt>
+<dd><p>Measured energy bins (<code class="docutils literal notranslate"><span class="pre">Em</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Axes</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.response.</span></span><span class="sig-name descname"><span class="pre">FullDetectorResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/FullDetectorResponse.html#FullDetectorResponse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.FullDetectorResponse" title="Link to this definition"></a></dt>
+<dd><p>Handles the multi-dimensional matrix that describes the
+full all-sky response of the instrument.</p>
+<p>You can access the <a class="reference internal" href="#cosipy.response.DetectorResponse" title="cosipy.response.DetectorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">DetectorResponse</span></code></a> at a given pixel using the <code class="docutils literal notranslate"><span class="pre">[]</span></code>
+operator. Alternatively you can obtain the interpolated reponse using
+<a class="reference internal" href="#cosipy.response.FullDetectorResponse.get_interp_response" title="cosipy.response.FullDetectorResponse.get_interp_response"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_interp_response()</span></code></a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.open">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Spectrumfile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Linear'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">single_pixel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">90</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pa_convention</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/FullDetectorResponse.html#FullDetectorResponse.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.FullDetectorResponse.open" title="Link to this definition"></a></dt>
+<dd><p>Open a detector response file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (str, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a>)</p></li>
+<li><p><strong>.rsp</strong><strong>)</strong> (<em>Path to the response file</em><em> (</em><em>.h5 or</em>)</p></li>
+<li><p><strong>Spectrumfile</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>,</em>) – <dl class="simple">
+<dt>path to the input spectrum file used</dt><dd><p>for the simulation (optional).</p>
+</dd>
+<dt>norm<span class="classifier">str,</span></dt><dd><p>type of normalisation : file (then specify also SpectrumFile)
+,powerlaw, Mono or Linear</p>
+</dd>
+<dt>alpha<span class="classifier">int,</span></dt><dd><p>if the normalisation is “powerlaw”, value of the spectral index.</p>
+</dd>
+<dt>single_pixel<span class="classifier">bool,</span></dt><dd><p>True if there is only one pixel and not full-sky.</p>
+</dd>
+<dt>emin,emax<span class="classifier">float</span></dt><dd><p>emin/emax used in the simulation source file.</p>
+</dd>
+<dt>pa_convention<span class="classifier">str, optional</span></dt><dd><p>Polarization convention of response (‘RelativeX’, ‘RelativeY’, or ‘RelativeZ’)</p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.is_sparse">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">is_sparse</span></span><a class="headerlink" href="#cosipy.response.FullDetectorResponse.is_sparse" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.ndim">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ndim</span></span><a class="headerlink" href="#cosipy.response.FullDetectorResponse.ndim" title="Link to this definition"></a></dt>
+<dd><p>Dimensionality of detector response matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.axes">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">axes</span></span><a class="headerlink" href="#cosipy.response.FullDetectorResponse.axes" title="Link to this definition"></a></dt>
+<dd><p>List of axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="xref py py-class docutils literal notranslate"><span class="pre">histpy.Axes</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.unit">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unit</span></span><a class="headerlink" href="#cosipy.response.FullDetectorResponse.unit" title="Link to this definition"></a></dt>
+<dd><p>Physical unit of the contents of the detector reponse.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.units.Unit.html#astropy.units.Unit" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.units.Unit</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.close">
+<span class="sig-name descname"><span class="pre">close</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/FullDetectorResponse.html#FullDetectorResponse.close"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.FullDetectorResponse.close" title="Link to this definition"></a></dt>
+<dd><p>Close the HDF5 file containing the response</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.filename">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">filename</span></span><a class="headerlink" href="#cosipy.response.FullDetectorResponse.filename" title="Link to this definition"></a></dt>
+<dd><p>Path to on-disk file containing DetectorResponse</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Path</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.get_interp_response">
+<span class="sig-name descname"><span class="pre">get_interp_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">coord</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/FullDetectorResponse.html#FullDetectorResponse.get_interp_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.FullDetectorResponse.get_interp_response" title="Link to this definition"></a></dt>
+<dd><p>Get the bilinearly interpolated response at a given coordinate location.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>coord</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.coordinates.SkyCoord</span></code></a>) – Coordinate in the <code class="xref py py-class docutils literal notranslate"><span class="pre">SpacecraftFrame</span></code></p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cosipy.response.DetectorResponse" title="cosipy.response.DetectorResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">DetectorResponse</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.get_point_source_response">
+<span class="sig-name descname"><span class="pre">get_point_source_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">exposure_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coord</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scatt_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Earth_occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/FullDetectorResponse.html#FullDetectorResponse.get_point_source_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.FullDetectorResponse.get_point_source_response" title="Link to this definition"></a></dt>
+<dd><p>Convolve the all-sky detector response with exposure for a source at a given
+sky location.</p>
+<p>Provide either a exposure map (aka dweel time map) or a combination of a
+sky coordinate and a spacecraft attitude map.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>exposure_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">mhealpy.HealpixMap</span></code>) – Effective time spent by the source at each pixel location in spacecraft coordinates</p></li>
+<li><p><strong>coord</strong> (<a class="reference external" href="https://docs.astropy.org/en/stable/api/astropy.coordinates.SkyCoord.html#astropy.coordinates.SkyCoord" title="(in Astropy v7.0)"><code class="xref py py-class docutils literal notranslate"><span class="pre">astropy.coordinates.SkyCoord</span></code></a>) – Source coordinate</p></li>
+<li><p><strong>scatt_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">SpacecraftAttitudeMap</span></code>) – Spacecraft attitude map</p></li>
+<li><p><strong>Earth_occ</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>optional</em>) – Option to include Earth occultation in the respeonce.
+Default is True, in which case you can only pass one
+coord, which must be the same as was used for the scatt map.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#cosipy.response.PointSourceResponse" title="cosipy.response.PointSourceResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PointSourceResponse</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.get_point_source_response_per_image_pixel">
+<span class="sig-name descname"><span class="pre">get_point_source_response_per_image_pixel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ipix_image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordsys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'galactic'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside_scatt_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Earth_occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/FullDetectorResponse.html#FullDetectorResponse.get_point_source_response_per_image_pixel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.FullDetectorResponse.get_point_source_response_per_image_pixel" title="Link to this definition"></a></dt>
+<dd><p>Generate point source response for a specific HEALPix pixel by convolving
+the all-sky detector response with exposure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ipix_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – HEALPix pixel index</p></li>
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><em>cosipy.spacecraftfile.SpacecraftFile</em></a>) – Spacecraft attitude information</p></li>
+<li><p><strong>coordsys</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>default 'galactic'</em>) – Coordinate system (currently only ‘galactic’ is supported)</p></li>
+<li><p><strong>nside_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – NSIDE parameter for image reconstruction.
+If None, uses the detector response’s NSIDE.</p></li>
+<li><p><strong>nside_scatt_map</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – NSIDE parameter for scatt map generation.
+If None, uses the detector response’s NSIDE.</p></li>
+<li><p><strong>Earth_occ</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default True</em>) – Whether to include Earth occultation in the response</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Point source response for the specified pixel</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.response.PointSourceResponse" title="cosipy.response.PointSourceResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">PointSourceResponse</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.get_extended_source_response">
+<span class="sig-name descname"><span class="pre">get_extended_source_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orientation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordsys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'galactic'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside_scatt_map</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Earth_occ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/FullDetectorResponse.html#FullDetectorResponse.get_extended_source_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.FullDetectorResponse.get_extended_source_response" title="Link to this definition"></a></dt>
+<dd><p>Generate extended source response by convolving the all-sky detector
+response with exposure over the entire sky.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>orientation</strong> (<a class="reference internal" href="spacecraftfile.html#cosipy.spacecraftfile.SpacecraftFile" title="cosipy.spacecraftfile.SpacecraftFile"><em>cosipy.spacecraftfile.SpacecraftFile</em></a>) – Spacecraft attitude information</p></li>
+<li><p><strong>coordsys</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>default 'galactic'</em>) – Coordinate system (currently only ‘galactic’ is supported)</p></li>
+<li><p><strong>nside_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – NSIDE parameter for image reconstruction.
+If None, uses the detector response’s NSIDE.</p></li>
+<li><p><strong>nside_scatt_map</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – NSIDE parameter for scatt map generation.
+If None, uses the detector response’s NSIDE.</p></li>
+<li><p><strong>Earth_occ</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a><em>, </em><em>default True</em>) – Whether to include Earth occultation in the response</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Extended source response covering the entire sky</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.response.ExtendedSourceResponse" title="cosipy.response.ExtendedSourceResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedSourceResponse</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.FullDetectorResponse.merge_psr_to_extended_source_response">
+<span class="sig-name descname"><span class="pre">merge_psr_to_extended_source_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">basename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coordsys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'galactic'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nside_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/FullDetectorResponse.html#FullDetectorResponse.merge_psr_to_extended_source_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.FullDetectorResponse.merge_psr_to_extended_source_response" title="Link to this definition"></a></dt>
+<dd><p>Create extended source response by merging multiple point source responses.</p>
+<p>Reads point source response files matching the pattern <cite>basename</cite> + index + file_extension.
+For example, with basename=’histograms/<a href="#id2"><span class="problematic" id="id3">hist_</span></a>’, filenames are expected to be like ‘histograms/hist_00001.hdf5’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>basename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Base filename pattern for point source response files</p></li>
+<li><p><strong>coordsys</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>default 'galactic'</em>) – Coordinate system (currently only ‘galactic’ is supported)</p></li>
+<li><p><strong>nside_image</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – NSIDE parameter for image reconstruction.
+If None, uses the detector response’s NSIDE.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Combined extended source response</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.response.ExtendedSourceResponse" title="cosipy.response.ExtendedSourceResponse"><code class="xref py py-class docutils literal notranslate"><span class="pre">ExtendedSourceResponse</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="cosipy.response.ExtendedSourceResponse">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cosipy.response.</span></span><span class="sig-name descname"><span class="pre">ExtendedSourceResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/ExtendedSourceResponse.html#ExtendedSourceResponse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.ExtendedSourceResponse" title="Link to this definition"></a></dt>
+<dd><p>A class to represent and manipulate extended source response data.</p>
+<p>This class provides methods to load data from HDF5 files, access contents,
+units, and axes information, and calculate expectations based on sky models.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.ExtendedSourceResponse.get_expectation">
+<span class="sig-name descname"><span class="pre">get_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">allsky_image_model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/ExtendedSourceResponse.html#ExtendedSourceResponse.get_expectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.ExtendedSourceResponse.get_expectation" title="Link to this definition"></a></dt>
+<dd><p>Calculate expectation based on an all-sky image model.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.ExtendedSourceResponse.get_expectation_from_astromodel">
+<span class="sig-name descname"><span class="pre">get_expectation_from_astromodel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/ExtendedSourceResponse.html#ExtendedSourceResponse.get_expectation_from_astromodel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.ExtendedSourceResponse.get_expectation_from_astromodel" title="Link to this definition"></a></dt>
+<dd><p>Calculate expectation from an astronomical model source.</p>
+</dd></dl>
+
+<p class="rubric">Notes</p>
+<p>Currently, the axes of the response must be [‘NuLambda’, ‘Ei’, ‘Em’, ‘Phi’, ‘PsiChi’].</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="cosipy.response.ExtendedSourceResponse.open">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">open</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'hist'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/ExtendedSourceResponse.html#ExtendedSourceResponse.open"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#cosipy.response.ExtendedSourceResponse.open" title="Link to this definition"></a></dt>
+<dd><p>Load data from an HDF5 file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The path to the HDF5 file.</p></li>
+<li><p><strong>name</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – The name of the histogram group in the HDF5 file (default is ‘hist’).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new instance of ExtendedSourceResponse with loaded data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#cosipy.response.ExtendedSourceResponse" title="cosipy.response.ExtendedSourceResponse.ExtendedSourceResponse">ExtendedSourceResponse</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.13)"><strong>ValueError</strong></a> – If the shape of the contents does not match the axes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">get_expectation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">allsky_image_model</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/ExtendedSourceResponse.html#ExtendedSourceResponse.get_expectation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>Calculate expectation based on an all-sky image model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>allsky_image_model</strong> (<em>Histogram</em>) – The all-sky image model to use for calculation.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A histogram representing the calculated expectation.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Histogram</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">get_expectation_from_astromodel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/cosipy/response/ExtendedSourceResponse.html#ExtendedSourceResponse.get_expectation_from_astromodel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd><p>Calculate expectation from an astromodels extended source model.</p>
+<p>This method creates an AllSkyImageModel based on the current axes configuration,
+sets its values from the provided astromodels extended source model, and then
+calculates the expectation using the get_expectation method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source</strong> (<em>astromodels.ExtendedSource</em>) – An astromodels extended source model object. This model represents
+the spatial and spectral distribution of an extended astronomical source.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A histogram representing the calculated expectation based on the
+provided extended source model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Histogram</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="API" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="data_io.html" class="btn btn-neutral float-right" title="Data IO" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, COSI Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
