@@ -208,7 +208,7 @@ class MOCTSMap(FastTSMap):
         
         # initialize the 0th order moc map, which is equlivent to a 0th order single resolution map
         uniq = nest2uniq(1, np.arange(12))
-        moc_map_ts = HealpixMap(data = np.repeat(0, 12), uniq = uniq)
+        moc_map_ts = HealpixMap(data = np.repeat(0., 12), uniq = uniq)
         
         # make the 0th order fit over all pixels
         hypothesis_coords = MOCTSMap.uniq2skycoord(moc_map_ts.uniq)
