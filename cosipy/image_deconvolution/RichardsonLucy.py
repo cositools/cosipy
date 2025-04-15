@@ -148,7 +148,7 @@ class RichardsonLucy(RichardsonLucySimple):
                        "processed_delta_model": self.processed_delta_model,
                        "background_normalization": self.dict_bkg_norm.copy(),
                        "alpha": self.alpha, 
-                       "log-likelihood": copy.deepcopy(self.log_likelihood_list)}
+                       "log-likelihood": self.log_likelihood_list}
 
         # show intermediate results
         logger.info(f'  alpha: {this_result["alpha"]}')
