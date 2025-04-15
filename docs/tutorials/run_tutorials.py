@@ -3,6 +3,8 @@
 import logging
 import traceback
 
+from nbclient.exceptions import CellExecutionError
+
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
@@ -213,6 +215,7 @@ def main():
                         os.symlink(local_copy, wdir/local_copy.name)
 
         # Run
+        failed = False
         if not args.dry:
             for notebook in notebooks:
                 source_nb_path = config.absolute_path(notebook)
@@ -232,10 +235,22 @@ def main():
                     logger.info(f"Executing notebook {source_nb_path}...")
                     start_time = timeit.default_timer()
                     ep = ExecutePreprocessor(timeout=config['globals:timeout'], kernel_name=config['globals:kernel'])
-                    ep_out = ep.preprocess(nb, {'metadata': {'path': str(wdir)}})
-                    elapsed = timeit.default_timer() - start_time
-                    logger.info(f"Notebook {source_nb_path} took {elapsed} seconds to finish.")
 
+                    try:
+                        ep_out = ep.preprocess(nb, {'metadata': {'path': str(wdir)}})
+                    except CellExecutionError as e:
+                        # Will re-raise after output and cleaning
+                        cell_exception = e
+                        failed = True
+
+                    elapsed = timeit.default_timer() - start_time
+
+                    if failed:
+                        logger.error(f"Notebook {source_nb_path} failed after {elapsed} seconds")
+                    else:
+                        logger.info(f"Notebook {source_nb_path} took {elapsed} seconds to finish.")
+
+                    # Save output
                     nb_exec_path = nb_path.with_name(nb_path.stem + "_executed" + nb_path.suffix)
                     with open(nb_exec_path, 'w', encoding='utf-8') as exec_nb_file:
                         nbformat.write(nb, exec_nb_file)
@@ -249,6 +264,10 @@ def main():
 
         # Remove file logger
         logger.removeHandler(file_handler)
+
+        # Re-raise if failed
+        if failed:
+            raise cell_exception
 
     # Loop through each tutorial
     summary = {}
