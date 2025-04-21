@@ -2,8 +2,9 @@ from histpy import Histogram, Axes, Axis
 import numpy as np
 import astropy.units as u
 import gc
-
+from astromodels.functions.function import Function1D, FunctionMeta, ModelAssertionViolation, Function2D, Function3D
 from .functions import get_integrated_extended_model
+from .functions_3d import get_integrated_extended_model_3d
 
 class ExtendedSourceResponse(Histogram):
     """
@@ -128,7 +129,13 @@ class ExtendedSourceResponse(Histogram):
             A histogram representing the calculated expectation based on the
             provided extended source model.
         """
+      
+        if isinstance(source.spatial_shape, Function3D):
 
-        allsky_image_model = get_integrated_extended_model(source, image_axis = self.axes[0], energy_axis = self.axes[1])
+            allsky_image_model = get_integrated_extended_model_3d(source, image_axis = self.axes[0], energy_axis = self.axes[1])
+        
+        else:
 
+            allsky_image_model = get_integrated_extended_model(source, image_axis = self.axes[0], energy_axis = self.axes[1]) 
+        
         return self.get_expectation(allsky_image_model)
