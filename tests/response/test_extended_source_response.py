@@ -3,7 +3,8 @@ from cosipy.response import ExtendedSourceResponse
 from cosipy.image_deconvolution import AllSkyImageModel
 
 from astromodels import Gaussian, Gaussian_on_sphere, ExtendedSource
-import astropy.units as u
+from astromodels import *
+import astropy.units as u 
 
 extended_response_path = test_data.path/"test_precomputed_response.h5"
 
@@ -49,5 +50,19 @@ def test_get_expectation_from_astromodel():
     
     # Calculate the expectation
     hist = resp.get_expectation_from_astromodel(extended_model)
+
+    assert isinstance(hist[:], u.quantity.Quantity) == True
+
+def test_get_expectation_from_astromodel_3d():
+
+    resp = ExtendedSourceResponse.open(extended_response_path)
+
+    # Upload source model:
+    extended_model = load_model(test_data.path/'galprop_model.yaml')
+    extended_model.galprop_source.spatial_shape._fitsfile = test_data.path/'ics_isotropic_healpix_54_0780000f.gz' 
+    extended_model.galprop_source.spatial_shape.set_version(54)
+    
+    # Calculate the expectation
+    hist = resp.get_expectation_from_astromodel(extended_model.galprop_source)
 
     assert isinstance(hist[:], u.quantity.Quantity) == True
