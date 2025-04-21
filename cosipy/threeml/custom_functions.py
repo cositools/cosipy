@@ -1,4 +1,4 @@
-from astromodels.functions.function import Function1D, FunctionMeta, ModelAssertionViolation,Function2D
+from astromodels.functions.function import Function1D, FunctionMeta, ModelAssertionViolation, Function2D, Function3D
 import astromodels.functions.numba_functions as nb_func
 from astromodels.utils.angular_distance import angular_distance
 from threeML import Band, DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
@@ -6,13 +6,18 @@ import astropy.units as astropy_units
 from astropy.units import Quantity
 from past.utils import old_div
 from scipy.special import gammainc, expi
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, RegularGridInterpolator
 from scipy import integrate
 import numpy as np
 import math
 import astropy.units as u
-
+from astropy.io import fits
+import healpy as hp
 from histpy import Histogram, Axes, Axis
+from astropy.coordinates import BaseCoordinateFrame, ICRS, Galactic, SkyCoord
+
+import logging
+logger = logging.getLogger(__name__)
 
 class Band_Eflux(Function1D, metaclass=FunctionMeta):
     r"""
@@ -291,4 +296,170 @@ class Wide_Asymm_Gaussian_on_sphere(Function2D, metaclass=FunctionMeta):
         if isinstance(z, u.Quantity):
             z = z.value
         return np.ones_like(z)        
+
+class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
+
+    r"""
+    description : 
+        A custom 3D function that reads a GALPROP HEALPix map and
+        interpolates over energy for a given set of sky positions in 
+        Galactic coordinates (default is all-sky). The intensity is 
+        interpolated from the GALPROP spectra stored in the HEALPix 
+        map, and scaled by a normalization constant K. 
+
+        This class is compatible with healpix outputs from GALPROP v54 and
+        v57 (default). The GALPROP maps should be defined in Galactic 
+        coordinates and specify the intensity in units of ph/cm2/s/sr/MeV, 
+        with energy given in MeV.
+
+        When calling the function, energies are assumed to be in MeV, 
+        coordinates in degrees (galactic frame), and fluxes are returned 
+        in 1/(cm2 MeV s sr).
+    
+    latex : $ K \times \ \mathrm{GALPROP_map(l,b,E)}$
+    
+    parameters :
+        K :
+            desc : Normalization factor (unitless)
+            initial value : 1.0
+            min : 0
+            max : 1e3
+            delta : 0.01
+            is_normalization : True
+    """
+
+    def _setup(self):
+        self._file_loaded = False
+        self._fitsfile = None
+        self._frame = Galactic().name
+        self._result = None
+        self._gal_version = 57
+
+    def set_frame(self, new_frame):
         
+        """
+        Set a new frame for the coordinates (the default is ICRS J2000)
+
+        :param new_frame: a coordinate frame from astropy
+        :return: (none)
+        """
+        assert isinstance(new_frame, BaseCoordinateFrame)
+
+        self._frame = new_frame.name
+
+    def set_version(self,v):
+        
+        """
+        Set GALPROP version for input skymap. 
+
+        "param v: version number, either 56 (default) or 54.
+        """
+        
+        if not v in [54,57]:
+            raise ValueError("GALPROP version must be 54 or 56.")
+
+        self._gal_version = v
+
+    def load_file(self, fits_path):
+
+        self._fitsfile = fits_path
+        self._file_loaded = True
+        logger.info(f"loading GALPROP model: {self._fitsfile}")
+
+        with fits.open(fits_path) as hdul:
+            skymap_hdu = hdul['SKYMAP']
+            energy_hdu = hdul['ENERGIES']
+
+            if self._gal_version == 57:
+                self.table = np.stack([skymap_hdu.data[col] for col in skymap_hdu.columns.names], axis=1)
+                self.energy = energy_hdu.data['ENERGY'] * u.MeV # in MeV
+            
+            if self._gal_version == 54:
+                self.table = np.stack([skymap_hdu.data[s] for s in range(skymap_hdu.data.shape[0])], axis=1)[0]
+                self.energy = energy_hdu.data['MeV'] * u.MeV # in MeV
+
+        self.n_pixels, self.n_energies = self.table.shape
+        self.nside = hp.npix2nside(self.n_pixels)
+
+    def _set_units(self, x_unit, y_unit, z_unit, w_unit):
+    
+        self.K.unit = u.dimensionless_unscaled
+
+    def evaluate(self, x, y, z, K):
+    
+        if x.shape != y.shape:
+            raise ValueError("x and y must have the same shape")
+
+        if self._fitsfile == None:
+            raise RuntimeError("Need to either specify or load a fits file")
+
+        if self._file_loaded == False:
+            self.load_file(self._fitsfile)
+
+        if self._frame != "galactic":
+            logger.info(f"Converting input coords from {self._frame} to galactic")
+            _coord = SkyCoord(ra=x, dec=y, frame=self._frame, unit="deg")
+            x = _coord.transform_to("galactic").l.deg
+            y = _coord.transform_to("galactic").b.deg
+
+        theta = np.radians(90.0 - y)
+        phi = np.radians(x)
+        pix = hp.ang2pix(self.nside, theta, phi)
+
+        # Get interpolated function.
+        logger.info("Interpolating GALPROP map...")
+        self._result = np.zeros((x.size, z.size))
+        for i, p in enumerate(pix):
+            spectrum = self.table[p] 
+            interp_func = interp1d(self.energy, spectrum, bounds_error=False, fill_value='extrapolate')
+            self._result[i] = interp_func(z)  
+              
+        return K * self._result * ((u.MeV * u.s * u.cm**2 * u.sr) ** (-1))
+
+    def to_dict(self, minimal=False):
+
+        data = super(Function3D, self).to_dict(minimal)
+
+        if not minimal:
+
+            data['extra_setup'] = {"_fitsfile": self._fitsfile, "_frame": self._frame}
+
+        return data
+ 
+    def get_total_spatial_integral(self, z, avg_int=False, nside=None):
+        
+        """
+        Returns the total integral over the spatial components.
+
+        :return: an array of values of the integral (same dimension as z).
+        """
+
+        # access with results.optimized_model["galprop_source"].spatial_shape.nside
+
+        if nside != None:
+            # Get spatial grid from nside
+            n_pixels = hp.nside2npix(nside) 
+            ipix = np.arange(n_pixels)
+            coords = hp.pix2ang(nside, ipix, lonlat=True)
+            logger.info(f"using nside={nside} from user input in evaluate method")
+
+        else:
+            # Get spatial grid from GALPROP map:
+            self.load_file(self._fitsfile)
+            ipix = np.arange(self.n_pixels)
+            coords = hp.pix2ang(self.nside, ipix, lonlat=True)
+            logger.info(f"using nside={self.nside} from GALPROP map in evaluate method")
+
+        x = coords[0]
+        y = coords[1]
+        
+        intensity_3d = self.evaluate(x, y, z, self.K.value)
+
+        # We are calculating the average intensity (and not the total in)
+        intensity_2d = np.sum(intensity_3d,axis=0)
+
+        if avg_int == True:
+            intensity_2d /= len(intensity_3d) # return average intensity
+
+        return intensity_2d
+
