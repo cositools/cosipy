@@ -38,6 +38,9 @@ def test_GalpropHealpixModel(tmp_path):
     flux_icrs = galprop_model.evaluate(l, b, e, 1)
     assert np.array_equal(flux,flux_icrs) == False 
 
+    # Test integration method:
+    galprop_model.get_total_spatial_integral(e, avg_int=True, nside=2)
+
     # Write output:
     src = ExtendedSource("galprop_source", spatial_shape=galprop_model)
     model = Model(src)
