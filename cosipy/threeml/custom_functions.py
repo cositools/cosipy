@@ -338,7 +338,7 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
     def set_frame(self, new_frame):
         
         """
-        Set a new frame for the coordinates (the default is ICRS J2000)
+        Set a new frame for the coordinates (the default is Galactic)
 
         :param new_frame: a coordinate frame from astropy
         :return: (none)
