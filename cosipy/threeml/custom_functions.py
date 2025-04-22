@@ -352,11 +352,11 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
         """
         Set GALPROP version for input skymap. 
 
-        "param v: version number, either 56 (default) or 54.
+        "param v: version number, either 57 (default) or 54.
         """
         
         if not v in [54,57]:
-            raise ValueError("GALPROP version must be 54 or 56.")
+            raise ValueError("GALPROP version must be 54 or 57.")
 
         self._gal_version = v
 
