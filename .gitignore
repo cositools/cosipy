@@ -133,4 +133,7 @@ dmypy.json
 
 # OS
 .DS_store
-/test_pipeline/
+
+# IDEs
+# PyCharm / IntelliJ
+/.idea

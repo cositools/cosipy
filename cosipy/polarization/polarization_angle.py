@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
+from scoords import SpacecraftFrame
 
 from .conventions import PolarizationConvention
 
@@ -99,5 +100,62 @@ class PolarizationAngle:
         return PolarizationAngle(pa_2,
                                  self.skycoord,
                                  convention = convention2)
+
+    @classmethod
+    def from_scattering_direction(cls, psichi, source_coord, convention):
+        """
+        Calculate the azimuthal scattering angle of a scattered photon.
+        
+        Parameters
+        ----------
+        psichi : astropy.coordinates.SkyCoord
+            Scattered photon direction
+        source_coord : astropy.coordinates.SkyCoord
+            Source direction
+        convention :
+            cosipy.polarization.PolarizationConvention
+
+        Returns
+        -------
+        azimuthal_scattering_angle : cosipy.polarization.PolarizationAngle
+            Azimuthal scattering angle
+        """
+
+        source_coord = source_coord.transform_to(convention.frame)
+        psichi = psichi.transform_to(convention.frame)
+
+        reference_coord = convention.get_basis(source_coord)[0]
+
+        source_vector_cartesian = source_coord.cartesian.xyz.value
+        reference_vector_cartesian = reference_coord.cartesian.xyz.value
+        scattered_photon_vector = psichi.cartesian.xyz.value
+
+        # Project scattered photon vector onto plane perpendicular to source direction
+        d = np.dot(scattered_photon_vector, source_vector_cartesian) / np.dot(source_vector_cartesian, source_vector_cartesian)
+        projection = [scattered_photon_vector[0] - (d * source_vector_cartesian[0]), 
+                      scattered_photon_vector[1] - (d * source_vector_cartesian[1]), 
+                      scattered_photon_vector[2] - (d * source_vector_cartesian[2])]
+
+        # Calculate angle between scattered photon vector & reference vector on plane perpendicular to source direction
+        cross_product = np.cross(projection, reference_vector_cartesian)
+        if np.dot(source_vector_cartesian, cross_product) < 0:
+            sign = -1
+        else:
+            sign = 1
+        normalization = np.sqrt(np.dot(projection, projection)) * np.sqrt(np.dot(reference_vector_cartesian, reference_vector_cartesian))
+
+        dot_product = np.dot(projection, reference_vector_cartesian) / normalization
+
+        if dot_product < -1. and np.isclose(dot_product, -1.):
+            dot_product = -1.
+        elif dot_product > 1. and np.isclose(dot_product, 1.):
+            dot_product = 1.
+
+        angle = Angle(sign * np.arccos(dot_product), unit=u.rad)
+
+        azimuthal_scattering_angle = cls(angle, source_coord, convention=convention)
+
+        return azimuthal_scattering_angle
+
 
         
