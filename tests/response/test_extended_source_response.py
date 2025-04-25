@@ -2,8 +2,7 @@ from cosipy import test_data
 from cosipy.response import ExtendedSourceResponse
 from cosipy.image_deconvolution import AllSkyImageModel
 
-from astromodels import Gaussian, Gaussian_on_sphere, ExtendedSource
-from astromodels import *
+from astromodels import Gaussian, Gaussian_on_sphere, ExtendedSource, Model, load_model
 import astropy.units as u 
 
 extended_response_path = test_data.path/"test_precomputed_response.h5"

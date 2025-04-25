@@ -2,7 +2,7 @@ from cosipy.threeml.custom_functions import GalpropHealpixModel
 from cosipy import test_data
 import numpy as np
 from  astropy.coordinates import Galactic, ICRS
-from astromodels import *
+from astromodels import ExtendedSource, Model
 
 def test_GalpropHealpixModel(tmp_path):
 
