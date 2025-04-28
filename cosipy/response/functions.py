@@ -72,7 +72,7 @@ def get_integrated_spectral_model(spectrum, energy_axis):
                          for lo_lim,hi_lim
                          in zip(energy_axis.lower_bounds, energy_axis.upper_bounds)])
     
-    flux = Histogram(energy_axis, contents = flux)
+    flux = Histogram(energy_axis, contents = flux, copy_contents = False)
 
     return flux
 
@@ -111,7 +111,8 @@ def get_integrated_extended_model(extendedmodel, image_axis, energy_axis):
 
     normalized_map = extendedmodel.spatial_shape(coords.l.deg, coords.b.deg) / u.sr
 
-    flux_map = Histogram([image_axis, energy_axis], contents = np.tensordot(normalized_map, integrated_flux.contents, axes = 0))
+    flux_map = Histogram((image_axis, energy_axis),
+                         contents = np.tensordot(normalized_map, integrated_flux.contents, axes = 0),
+                         copy_contents = False)
 
     return flux_map
-    

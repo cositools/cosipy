@@ -2,7 +2,7 @@
 import sys
 import numpy as np
 import h5py
-from histpy import Histogram, HealpixAxis, Axis
+from histpy import Histogram, HealpixAxis, Axis, Axes
 from scoords import SpacecraftFrame, Attitude
 from mhealpy import HealpixMap, HealpixBase
 import healpy as hp
@@ -95,7 +95,7 @@ class BinnedData(UnBinnedData):
                     scheme = self.scheme, coordsys = 'galactic', label='PsiChi')
             coords = SkyCoord(l=self.cosi_dataset['Chi galactic']*u.deg, 
                     b=self.cosi_dataset['Psi galactic']*u.deg, frame = 'galactic')
-        if psichi_binning == 'local':
+        elif psichi_binning == 'local':
             psichi_axis = HealpixAxis(nside = self.nside, 
                     scheme = self.scheme, coordsys = SpacecraftFrame(), label='PsiChi')
             coords = SkyCoord(lon=self.cosi_dataset['Chi local']*u.rad, 
@@ -103,11 +103,11 @@ class BinnedData(UnBinnedData):
                     frame = SpacecraftFrame())
 
         # Initialize histogram:
-        self.binned_data = Histogram([Axis(time_bin_edges*u.s, label='Time'), 
-            Axis(energy_bin_edges*u.keV, label='Em'), 
-            Axis(phi_bin_edges*u.deg, label='Phi'), 
-            psichi_axis], 
-            sparse=True)
+        axes = Axes([Axis(time_bin_edges*u.s, label='Time'), 
+                     Axis(energy_bin_edges*u.keV, label='Em'), 
+                     Axis(phi_bin_edges*u.deg, label='Phi'), 
+                     psichi_axis], copy_axes=False)
+        self.binned_data = Histogram(axes, sparse=True)
          
         # Fill histogram:
         if event_range == None:

@@ -40,7 +40,7 @@ class DeconvolutionAlgorithmBase(ABC):
         self.mask = mask 
         self.parameter = parameter 
         self.results = []
-        
+
         # background normalization
         self.dict_bkg_norm = {}
         self.dict_dataset_indexlist_for_bkg_models = {}
@@ -57,7 +57,7 @@ class DeconvolutionAlgorithmBase(ABC):
 
         logger.debug(f'dict_bkg_norm: {self.dict_bkg_norm}')
         logger.debug(f'dict_dataset_indexlist_for_bkg_models: {self.dict_dataset_indexlist_for_bkg_models}')
-        
+
         # minimum flux
         self.minimum_flux = parameter.get('minimum_flux:value', 0.0)
 
@@ -213,10 +213,10 @@ class DeconvolutionAlgorithmBase(ABC):
 
         Returns
         -------
-        list of :py:class:`histpy.Histogram`
+        :py:class:`histpy.Histogram`
         """
 
-        return functools.reduce(lambda x, y: x + y, map(lambda data: data.exposure_map, self.dataset))
+        return self._histogram_sum([ data.exposure_map for data in self.dataset ])
 
     def calc_summed_bkg_model(self, key):
         """
@@ -233,8 +233,8 @@ class DeconvolutionAlgorithmBase(ABC):
         """
         
         indexlist = self.dict_dataset_indexlist_for_bkg_models[key]
-        
-        return np.sum([self.dataset[i].summed_bkg_model(key) for i in indexlist])
+
+        return sum([self.dataset[i].summed_bkg_model(key) for i in indexlist])
 
     def calc_summed_T_product(self, dataspace_histogram_list):
         """
@@ -250,7 +250,8 @@ class DeconvolutionAlgorithmBase(ABC):
         :py:class:`histpy.Histogram`
         """
 
-        return functools.reduce(lambda x, y: x + y, map(lambda data, hist: data.calc_T_product(hist), self.dataset, dataspace_histogram_list))
+        return self._histogram_sum([data.calc_T_product(hist)
+                                    for data, hist in zip(self.dataset, dataspace_histogram_list)])
 
     def calc_summed_bkg_model_product(self, key, dataspace_histogram_list):
         """
@@ -270,13 +271,29 @@ class DeconvolutionAlgorithmBase(ABC):
 
         indexlist = self.dict_dataset_indexlist_for_bkg_models[key]
 
-        return functools.reduce(lambda x, y: x + y, map(lambda i: self.dataset[i].calc_bkg_model_product(key = key, dataspace_histogram = dataspace_histogram_list[i]), indexlist))
+        return sum(
+            self.dataset[i].calc_bkg_model_product(key = key, dataspace_histogram = dataspace_histogram_list[i])
+            for i in indexlist
+        )
+
+    @staticmethod
+    def _histogram_sum(hlist):
+        """
+        Sum a list of Histograms.  If only one input, just return it.
+        """
+        if len(hlist) == 1:
+            return hlist[0]
+        else:
+            result = hlist[0].copy()
+            for h in hlist[1:]:
+                result += h
+            return result
 
     def save_histogram(self, filename, counter_name, histogram_key, only_final_result = False):
-        
+
         # save last result
         self.results[-1][histogram_key].write(filename, name = 'result', overwrite = True)
-        
+
         # save all results
         if not only_final_result:
 
@@ -289,15 +306,15 @@ class DeconvolutionAlgorithmBase(ABC):
     def save_results_as_fits(self, filename, counter_name, values_key_name_format, dicts_key_name_format, lists_key_name_format):
 
         hdu_list = []
-        
+
         # primary HDU
         primary_hdu = fits.PrimaryHDU()
 
         hdu_list.append(primary_hdu)
-        
+
         # counter
         col_counter = fits.Column(name=counter_name, array=[int(result[counter_name]) for result in self.results], format = 'K') #64bit integer
-        
+
         # values
         for key, name, fits_format in values_key_name_format:
 
@@ -311,9 +328,9 @@ class DeconvolutionAlgorithmBase(ABC):
 
         # dictionary
         for key, name, fits_format in dicts_key_name_format:
-            
+
             dict_keys = list(self.results[0][key].keys())
-            
+
             chunk_size = 998 # when the number of columns >= 1000, the fits file may not be saved.
             for i_chunk, chunked_dict_keys in enumerate([dict_keys[i:i+chunk_size] for i in range(0, len(dict_keys), chunk_size)]):
 
@@ -330,7 +347,7 @@ class DeconvolutionAlgorithmBase(ABC):
 
         # list
         for key, name, fits_format in lists_key_name_format:
-            
+
             cols_list = [fits.Column(name=f"{self.dataset[i].name}", array=[result[key][i] for result in self.results], format=fits_format) for i in range(len(self.dataset))]
 
             hdu = fits.BinTableHDU.from_columns([col_counter] + cols_list)
@@ -338,6 +355,6 @@ class DeconvolutionAlgorithmBase(ABC):
             hdu.name = name
 
             hdu_list.append(hdu)
-        
+
         # write
         fits.HDUList(hdu_list).writeto(filename, overwrite=True)

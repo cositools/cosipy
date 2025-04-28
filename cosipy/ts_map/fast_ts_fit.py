@@ -131,13 +131,13 @@ class FastTSMap():
         
         hist_axes_labels = hist.axes.labels
         cds_labels = ["PsiChi", "Phi"]
-        if not all([label in hist_axes_labels for label in cds_labels]):
+        if not all(label in hist_axes_labels for label in cds_labels):
             raise ValueError("The data doesn't contain the full Compton Data Space!")
             
         hist = hist.project(["Em", "PsiChi", "Phi"]) # make sure the first axis is the measured energy
         hist_cds_sliced = FastTSMap.slice_energy_channel(hist, energy_channel[0], energy_channel[1])   
         hist_cds = hist_cds_sliced.project(["PsiChi", "Phi"])
-        cds_array = np.array(hist_cds.to_dense()[:]).flatten()  # here [:] is equivalent to [:, :]
+        cds_array = np.array(hist_cds.to_dense()).ravel()
         del hist
         del hist_cds_sliced
         del hist_cds
@@ -171,18 +171,8 @@ class FastTSMap():
         # Notes from Israel: Inside it contains a single histogram with all the regular axes for a Compton Data Space (CDS) analysis, in galactic coordinates. Since there is no class yet to handle it, this is how to read in the HDF5 manually.
         
         with h5.File(response_path) as f:
-
             axes_group = f['hist/axes']
-            axes = []
-            for axis in axes_group.values():
-                # Get class. Backwards compatible with version
-                # with only Axis
-                axis_cls = Axis
-                if '__class__' in axis.attrs:
-                    class_module, class_name = axis.attrs['__class__']
-                    axis_cls = getattr(sys.modules[class_module], class_name)
-                axes += [axis_cls._open(axis)]
-        axes = Axes(axes)
+            axes = Axes.open(axes_group)
         
         # get the pixel number of the hypothesis coordinate
         map_temp = HealpixMap(base = axes[0])
@@ -376,8 +366,8 @@ class FastTSMap():
             ts_nside = hp.npix2nside(len(hypothesis_coords))
         
         # get the flattened data_cds_array
-        data_cds_array = FastTSMap.get_cds_array(self._data, energy_channel).flatten()
-        bkg_model_cds_array = FastTSMap.get_cds_array(self._bkg_model, energy_channel).flatten()
+        data_cds_array = FastTSMap.get_cds_array(self._data, energy_channel).ravel()
+        bkg_model_cds_array = FastTSMap.get_cds_array(self._bkg_model, energy_channel).ravel()
         
         if (data_cds_array[bkg_model_cds_array ==0]!=0).sum() != 0:
             #raise ValueError("You have data!=0 but bkg=0, check your inputs!")
@@ -540,5 +530,3 @@ class FastTSMap():
         info = p.memory_full_info()
         memory = info.uss / 1024. / 1024
         logger.info('{} memory used: {} MB'.format(hint, memory))
-        
-    
