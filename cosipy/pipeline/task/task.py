@@ -11,6 +11,7 @@ from cosipy.pipeline.src.fitting import MODEL_IDS
 from astropy import units as u
 from astropy.io.misc import yaml
 
+from pathlib import Path
 
 def cosi_threemlfit(argv=None):
     # Parse arguments from commandline
@@ -22,7 +23,7 @@ def cosi_threemlfit(argv=None):
         description=textwrap.dedent(
             """
             Fits a source at l,b and optionally in a time window tstart-tstop using the given model.
-            Data, response and orientation files should be in the same indir.
+            Data, response and orientation files paths in the config file should be relative to the config file.
             Outputs fit results in a fits file and a pdf plot of the fits.
             """),
         formatter_class=argparse.RawTextHelpFormatter)
@@ -30,15 +31,18 @@ def cosi_threemlfit(argv=None):
     apar.add_argument('--config',
                       help="Path to .yaml file listing all the parameters.See example in test_data.",
                       required=True)
+    apar.add_argument('-o','--output-dir',
+                      help="Output directory. Current working directory by default")
 
     args = apar.parse_args(argv)
 
     # Config
     config = Configurator.open(args.config)
 
+    # Default output
+    odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
+
     #
-    indir=config.get("indir")
-    odir=config.get("odir")
     sou_data=config.get("sou_data")
     sou_yaml=config.get("sou_yaml")
     bk_data = config.get("bk_data")
@@ -55,24 +59,15 @@ def cosi_threemlfit(argv=None):
     par_streams=config.get("par_streams")
     par_minvalues=config.get("par_minvalues")
     par_maxvalues=config.get('par_maxvalues')
-    #
-    if indir is None:
-        print(indir)
-        indir=str(test_data.path)
-    if odir is None:
-        print(odir)
-        odir=str(test_data.path)
-    #
-    print(indir)
-    print(odir)
-    #
-    sou_data_path=os.path.join(indir,sou_data)
-    sou_yaml_path=os.path.join(indir,sou_yaml)
-    bk_data_path=os.path.join(indir,bk_data)
-    bk_yaml_path=os.path.join(indir,bk_yaml)
-    resp_path=os.path.join(indir,resp)
-    ori_path=os.path.join(indir,ori)
-    #
+
+    sou_data_path = config.config_path.parent/sou_data
+    sou_yaml_path = config.config_path.parent/sou_yaml
+    bk_data_path = config.config_path.parent/bk_data
+    bk_yaml_path = config.config_path.parent/bk_yaml
+    resp_path = config.config_path.parent/resp
+    ori_path = config.config_path.parent/ori
+
+
     sou_binned_data = load_binned_data(sou_yaml_path, sou_data_path)
     bk_binned_data = load_binned_data(bk_yaml_path, bk_data_path)
     ori = load_ori(ori_path)
@@ -90,13 +85,14 @@ def cosi_threemlfit(argv=None):
     results, cts_exp = get_fit_results(sou_binned_data, bk_binned_data, resp_path, ori, l, b,
                                                    souname, bkname, spectrum)
     results.display()
-    results.write_to(str(odir + "/" + souname + ".fits"), overwrite=True)
+    odir_souname = odir/souname
+    results.write_to(odir_souname.with_suffix(".fits"), overwrite=True)
                 #
     pars_sou, epars_sou, par_bk, epar_bk = get_fit_par(results, souname, bkname)
     fl, el_fl, eh_fl = get_fit_fluxes(results)
     print("flux=%f +%f -%f" % (fl, el_fl, eh_fl))
                 #
-    figname = str(odir + "/fit_"+souname+".pdf")
+    figname = odir_souname.with_suffix(".pdf")
     plot_fit(sou_binned_data, cts_exp, figname)
 #
 
