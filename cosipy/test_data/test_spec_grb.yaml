@@ -1,4 +1,4 @@
-sources:
+threeml_source_models:
   crab (point source): &crab_source_model
     position:
       l:
@@ -140,45 +140,29 @@ sources:
             free: false
         polarization: { }
 
-cosi_threemlfit:
-  model:
+threemlfit:
+  model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
     grb_dc2_tutorial (point source): *grb_dc2_tutorial_source_model
-
-
-
-
-
-
-sou_data: "test_spectral_fit_data.h5"
-bk_data: "test_spectral_fit_background.h5"
-resp: "test_full_detector_response.h5"
-ori: "20280301_2s.ori"
-sou_yaml: "test_spectral_fit.yaml"
-bk_yaml: "test_spectral_fit.yaml"
-souname: "grb_test"
-bkname: "test_bkcosi"
-l: 50
-b: -45
-model_id: "Band"
-par_streams:
-  - |
-    !astropy.units.Quantity
-    unit: !astropy.units.Unit {unit: 1 / (cm2 keV s)}
-    value: 0.1
-  - |
-    !astropy.units.Quantity
-    unit: !astropy.units.Unit {unit: ''}
-    value: -1
-  - |
-    !astropy.units.Quantity
-    unit: !astropy.units.Unit {unit: keV}
-    value: 300.0
-  - |
-    !astropy.units.Quantity
-    unit: !astropy.units.Unit {unit: ''}
-    value: -2.0
-  - |
-    !astropy.units.Quantity
-    unit: !astropy.units.Unit {unit: keV}
-    value: 500.0
-par_minvalues: [1e-50,-1.5,100.0,-5.0,null]
+  sc_file: 20280301_2s.ori
+  data:
+    class: DataInterfaceTBD
+    args:
+      - test_spectral_fit_data.h5
+    kwargs:
+      input_yaml: test_spectral_fit.yaml
+  background: # This is a list of background component
+    class: ExpectationInterfaceTBD
+    args:
+      - test_spectral_fit_background.h5
+    kwargs:
+      input_yaml: test_spectral_fit.yaml
+  response:
+    class: ExpectationInterfaceTBD
+    args:
+      - test_full_detector_response.h5
+  cuts:
+    class: EventCutInterfaceTBD
+    args:
+    kwargs:
+      tstart: null
+      tstop: null
