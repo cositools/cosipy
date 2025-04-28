@@ -13,6 +13,8 @@ from astropy.io.misc import yaml
 
 from pathlib import Path
 
+from astromodels.core.model_parser import ModelParser
+
 def cosi_threemlfit(argv=None):
     # Parse arguments from commandline
     apar = argparse.ArgumentParser(
@@ -42,23 +44,24 @@ def cosi_threemlfit(argv=None):
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
 
+    # Parse model
+    model = ModelParser(model_dict = config['cosi_threemlfit:model']).get_model()
+
     #
     sou_data=config.get("sou_data")
     sou_yaml=config.get("sou_yaml")
     bk_data = config.get("bk_data")
     bk_yaml= config.get("bk_yaml")
-    ori =config.get("ori")
+
+    ori = config.get("ori")
+
     resp=config.get("resp")
-    l=config.get("l")
-    b=config.get("b")
+
     tstart=config.get("tstart")
     tstop=config.get("tstop")
-    souname=config.get("souname")
+
     bkname=config.get("bkname")
-    model_id=config.get("model_id")
-    par_streams=config.get("par_streams")
-    par_minvalues=config.get("par_minvalues")
-    par_maxvalues=config.get('par_maxvalues')
+
 
     sou_data_path = config.config_path.parent/sou_data
     sou_yaml_path = config.config_path.parent/sou_yaml
@@ -71,7 +74,7 @@ def cosi_threemlfit(argv=None):
     sou_binned_data = load_binned_data(sou_yaml_path, sou_data_path)
     bk_binned_data = load_binned_data(bk_yaml_path, bk_data_path)
     ori = load_ori(ori_path)
-            #
+
     if tstart is not None and tstop is not None:
         sou_sliced_data=tslice_binned_data(sou_binned_data, tstart, tstop)
         sou_binned_data=sou_sliced_data
@@ -79,23 +82,21 @@ def cosi_threemlfit(argv=None):
         bk_binned_data=bk_sliced_data
         ori_sliced = tslice_ori(ori, tstart, tstop)
         ori=ori_sliced
-            #
-    pars = [yaml.load(p) for p in par_streams]
-    spectrum=build_spectrum(MODEL_IDS[model_id], pars, par_minvalues, par_maxvalues)
-    results, cts_exp = get_fit_results(sou_binned_data, bk_binned_data, resp_path, ori, l, b,
-                                                   souname, bkname, spectrum)
+
+
+    results, cts_exp = get_fit_results(sou_binned_data, bk_binned_data, resp_path, ori,
+                                                   bkname, model)
     results.display()
-    odir_souname = odir/souname
-    results.write_to(odir_souname.with_suffix(".fits"), overwrite=True)
-                #
-    pars_sou, epars_sou, par_bk, epar_bk = get_fit_par(results, souname, bkname)
+    results.write_to(odir/"results.fits", overwrite=True)
+
+    fitted_par_err = get_fit_par(results)
+    for par_name,(par_median,par_err) in fitted_par_err.items():
+        print(f"{par_name} = {par_median:.2e} +/- {par_err:.2e}")
+
     fl, el_fl, eh_fl = get_fit_fluxes(results)
     print("flux=%f +%f -%f" % (fl, el_fl, eh_fl))
-                #
-    figname = odir_souname.with_suffix(".pdf")
-    plot_fit(sou_binned_data, cts_exp, figname)
-#
 
+    plot_fit(sou_binned_data, cts_exp, odir/"raw_spectrum.pdf")
 
 if __name__ == "__main__":
     cosi_threemlfit()
