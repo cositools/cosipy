@@ -28,7 +28,8 @@ def cosi_threemlfit(argv=None):
         formatter_class=argparse.RawTextHelpFormatter)
 
     apar.add_argument('--config',
-                      help="Path to .yaml file listing all the parameters.See example in test_data.")
+                      help="Path to .yaml file listing all the parameters.See example in test_data.",
+                      required=True)
     apar.add_argument('--indir',
                       help="Optional. Path to a folder containing data, orientation and response files. Default is cosipy/test_data")
     apar.add_argument('--odir',
@@ -69,10 +70,8 @@ def cosi_threemlfit(argv=None):
     args = apar.parse_args(argv)
 
     # Config
-    if args.config is None:
-        config = Configurator()
-    else:
-        config = Configurator.open(args.config)
+    config = Configurator.open(args.config)
+
     #
     indir=config.get("indir")
     odir=config.get("odir")
