@@ -1,0 +1,33 @@
+  sou_data: "test_spectral_fit_data.h5"
+  bk_data: "test_spectral_fit_background.h5"
+  resp: "test_full_detector_response.h5"
+  ori: "20280301_2s.ori"
+  sou_yaml: "test_spectral_fit.yaml"
+  bk_yaml: "test_spectral_fit.yaml"
+  souname: "grb_test"
+  bkname: "test_bkcosi"
+  l: 50
+  b: -45
+  model_id: "Band"
+  par_streams:
+    - |
+      !astropy.units.Quantity
+      unit: !astropy.units.Unit {unit: 1 / (cm2 keV s)}
+      value: 0.1
+    - |
+      !astropy.units.Quantity
+      unit: !astropy.units.Unit {unit: ''}
+      value: -1
+    - |
+      !astropy.units.Quantity
+      unit: !astropy.units.Unit {unit: keV}
+      value: 300.0
+    - |
+      !astropy.units.Quantity
+      unit: !astropy.units.Unit {unit: ''}
+      value: -2.0
+    - |
+      !astropy.units.Quantity
+      unit: !astropy.units.Unit {unit: keV}
+      value: 500.0
+  par_minvalues: [1e-50,-1.5,100.0,-5.0,null]
