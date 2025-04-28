@@ -138,3 +138,5 @@ def cosi_threemlfit(argv=None):
 #
 
 
+if __name__ == "__main__":
+    cosi_threemlfit()
