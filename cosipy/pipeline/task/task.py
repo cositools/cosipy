@@ -52,17 +52,17 @@ def cosi_threemlfit(argv=None):
     model = ModelParser(model_dict = config['model']).get_model()
 
     # Parse input files from config file
-    sou_data_path = config.config_path.parent/config["data:args"][0]
-    sou_yaml_path = config.config_path.parent / config["data:kwargs:input_yaml"]
+    sou_data_path = config.absolute_path(config["data:args"][0])
+    sou_yaml_path = config.absolute_path(config["data:kwargs:input_yaml"])
     sou_binned_data = load_binned_data(sou_yaml_path, sou_data_path)
 
-    bk_data_path = config.config_path.parent/config["background:args"][0]
-    bk_yaml_path = config.config_path.parent/config["background:kwargs:input_yaml"]
+    bk_data_path = config.absolute_path(config["background:args"][0])
+    bk_yaml_path = config.absolute_path(config["background:kwargs:input_yaml"])
     bk_binned_data = load_binned_data(bk_yaml_path, bk_data_path)
 
-    resp_path = config.config_path.parent/config["response:args"][0]
+    resp_path = config.absolute_path(config["response:args"][0])
 
-    ori = load_ori(config.config_path.parent/config["sc_file"])
+    ori = load_ori(config.absolute_path(config["sc_file"]))
 
     # Slice time, if needed
     tstart = config.get("cuts:kwargs:tstart")
