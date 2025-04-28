@@ -118,6 +118,10 @@ class LineBackgroundEstimation:
             The calculated negative log-likelihood.
         """
         expected_spectrum = self._calc_expected_spectrum(*args)
+
+        # Avoid log(0) using NumPy's machine epsilon
+        expected_spectrum = np.maximum(expected_spectrum, np.finfo(float).eps)
+
         return -np.sum(self.energy_spectrum.contents[~self.mask] * np.log(expected_spectrum)[~self.mask]) + np.sum(expected_spectrum[~self.mask])
     
     def plot_energy_spectrum(self):
@@ -158,22 +162,75 @@ class LineBackgroundEstimation:
         
         return ax, _
         
-    def fit_energy_spectrum(self):
+    def fit_energy_spectrum(self, param_limits=None, fixed_params=None, stepsize_params=None):
         """
         Fit the background energy spectrum model to the data.
+
+        Parameters
+        ----------
+        param_limits : dict, optional
+            Dictionary containing parameter limits in the format {param_index: (lower_limit, upper_limit)}.
+            For example, {0: (0, 10), 2: (None, 5)} sets the first parameter between 0 and 10,
+            and the third parameter to have no lower limit but an upper limit of 5.
+        fixed_params : dict, optional
+            Dictionary containing fixed parameter values in the format {param_index: value}.
+            For example, {1: 2.5} fixes the second parameter to 2.5.
+        stepsize_params : dict, optional
+            Dictionary containing initial step sizes for parameters in the format {param_index: step_size}.
+            For example, {0: 0.1} sets the step size for the first parameter.
 
         Returns
         -------
         Minuit
             The Minuit object containing the fit results.
         """
+        # Initialize Minuit with parameters
         m = Minuit(self._negative_log_likelihood, *self.bkg_spectrum_model_parameter)
         m.errordef = Minuit.LIKELIHOOD
+
+        # Set parameter limits if provided
+        if param_limits:
+            for param_idx, (lower, upper) in param_limits.items():
+                if param_idx < 0 or param_idx >= len(self.bkg_spectrum_model_parameter):
+                    logger.warning(f"Parameter index {param_idx} out of range, skipping")
+                    continue
+                    
+                param_name = m.parameters[param_idx]
+                
+                # Set the limits
+                if lower is not None and upper is not None:
+                    m.limits[param_name] = (lower, upper)
+                elif lower is not None:
+                    m.limits[param_name] = (lower, None)
+                elif upper is not None:
+                    m.limits[param_name] = (None, upper)
         
+        # Fix parameters if provided
+        if fixed_params:
+            for param_idx, value in fixed_params.items():
+                if param_idx < 0 or param_idx >= len(self.bkg_spectrum_model_parameter):
+                    logger.warning(f"Parameter index {param_idx} out of range, skipping")
+                    continue
+                    
+                param_name = m.parameters[param_idx]
+                m.values[param_name] = value
+                m.fixed[param_name] = True
+        
+        # Set error parameters if provided
+        if stepsize_params:
+            for param_idx, step_size in stepsize_params.items():
+                if param_idx < 0 or param_idx >= len(self.bkg_spectrum_model_parameter):
+                    logger.warning(f"Parameter index {param_idx} out of range, skipping")
+                    continue
+                    
+                param_name = m.parameters[param_idx]
+                m.errors[param_name] = step_size
+
+        # Run the optimization
         m.migrad()
         m.hesse()
 
-        # update the background model parameters
+        # Update the background model parameters
         self.bkg_spectrum_model_parameter = list(m.values)
         self.bkg_spectrum_model_parameter_errors = list(m.errors)
         

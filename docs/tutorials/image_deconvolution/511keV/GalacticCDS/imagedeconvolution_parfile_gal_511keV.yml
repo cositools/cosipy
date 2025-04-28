@@ -19,15 +19,24 @@ deconvolution:
   algorithm: "RL"
   parameter:
     iteration_max: 10
-    acceleration: True
-    alpha_max: 10.0
-    response_weighting: True
-    response_weighting_index: 0.5
-    smoothing: True
-    smoothing_FWHM:
-      value: 2.0
-      unit: "deg"
-    background_normalization_optimization: True
-    background_normalization_range: {"albedo": [0.01, 10.0]}
-    save_results: False
-    save_results_directory: "./results"
+    acceleration:
+        activate: True
+        alpha_max: 10.0
+    response_weighting:
+        activate: True
+        index: 0.5
+    smoothing:
+        activate: True
+        FWHM:
+            value: 2.0
+            unit: "deg"
+    stopping_criteria:
+        statistics: "log-likelihood"
+        threshold: 0.01
+    background_normalization_optimization:
+        activate: True
+        range: {"albedo": [0.01, 10.0]}
+    save_results:
+        activate: False
+        directory: "./results"
+        only_final_result: True

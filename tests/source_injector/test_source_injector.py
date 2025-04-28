@@ -13,7 +13,7 @@ from astromodels import ExtendedSource, Powerlaw, Gaussian_on_sphere
 def test_inject_point_source():
 
     # defind the response and orientation
-    response_path = test_data.path / "test_full_detector_response.h5"
+    response_path = test_data.path / "test_full_detector_response_dense.h5"
     orientation_path = test_data.path / "20280301_2s.ori"
     ori = SpacecraftFile.parse_from_file(orientation_path)
     
@@ -45,8 +45,9 @@ def test_inject_point_source():
     assert isinstance(results, u.quantity.Quantity) == True
     
     assert np.allclose(results.value,
-                       [2.18846305e-03, 9.45773119e-03, 1.34892237e-02, 2.78741695e-03, 1.08413769e-02, 
-                        6.28299687e-03, 3.63716712e-03, 1.43443841e-03,3.79135752e-04, 2.10058977e-05])
+                       [2.05940386e-03, 9.06560708e-03, 1.30262444e-02, 2.71322727e-03,
+                        1.05921139e-02, 6.18942003e-03, 3.60320471e-03, 1.42216081e-03,
+                        3.73789028e-04, 2.09146980e-05])
 
 
 
