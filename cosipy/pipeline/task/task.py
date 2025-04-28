@@ -30,42 +30,6 @@ def cosi_threemlfit(argv=None):
     apar.add_argument('--config',
                       help="Path to .yaml file listing all the parameters.See example in test_data.",
                       required=True)
-    apar.add_argument('--indir',
-                      help="Optional. Path to a folder containing data, orientation and response files. Default is cosipy/test_data")
-    apar.add_argument('--odir',
-                      help="Optional. Path to a folder where to save outputs. Default is cosipy/test_data")
-    apar.add_argument('--sou_data',
-                      help="Required. Name of the file containing the source.")
-    apar.add_argument('--sou_yaml',
-                      help="Required. Name of the .yaml file containing the binning information of the source file")
-    apar.add_argument('--bk_data',
-                      help="Required. Name of the background file.")
-    apar.add_argument('--bk_yaml',
-                      help="Required. Name of the .yaml file containing the binning information of the bk file")
-    apar.add_argument('--ori',
-                      help="Required. Name of the orientation file.")
-    apar.add_argument('--resp',
-                      help="Required. Name of the response file.")
-    apar.add_argument('--l',
-                      help="Required. Galactic longitude of the source.")
-    apar.add_argument('--b',
-                      help="Required. Galactic latitude of the source.")
-    apar.add_argument('--tstart',
-                      help="Optional. Starting time of time window to be fitted.")
-    apar.add_argument('--tstop',
-                      help="Optional. Ending time of time window to be fitted.")
-    apar.add_argument('--souname',
-                      help="Required. Name of the source, to be used internally to threeml.")
-    apar.add_argument('--bkname',
-                      help="Required. Name of the background, to be used internally to threeml.")
-    apar.add_argument('--model_id',
-                      help="Required. ID of the model to be fitted. Dictionary of models in pipeline/fitting")
-    apar.add_argument('--par_streams',
-                      help="Required. List of start values of parameters as astropy quantity streams. Streams can be generated with the method yaml.dump. Order should be as in threeml.")
-    apar.add_argument('--par_minvalues',
-                      help="Optional. List of min values of the parameters.")
-    apar.add_argument('--par_maxvalues',
-                      help="Optional. List of max values of the parameters.")
 
     args = apar.parse_args(argv)
 
