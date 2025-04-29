@@ -1,3 +1,9 @@
+import logging
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 import argparse, textwrap
 
 from yayc import Configurator
@@ -35,8 +41,15 @@ def cosi_threemlfit(argv=None):
                       help="Override config parameters. e.g. \"section:param_int = 2\" \"section:param_string = b\"")
     apar.add_argument('-o','--output-dir',
                       help="Output directory. Current working directory by default")
+    apar.add_argument('--log-level', default='info',
+                      help='Set the logging level (debug, info, warning, error, critical)')
+    apar.add_argument('--overwrite', action='store_true', default=False,
+                      help='Overwrite outputs. Otherwise, if a file with the same name already exists, it will throw an error.')
 
     args = apar.parse_args(argv)
+
+    # Logger
+    logger.setLevel(level=args.log_level.upper())
 
     # config file
     full_config = Configurator.open(args.config)
@@ -82,16 +95,22 @@ def cosi_threemlfit(argv=None):
 
     # Results
     results.display()
-    results.write_to(odir/"results.fits", overwrite=True)
+    results.write_to(odir/"results.fits", overwrite=args.overwrite)
 
+    print("Median and errors:")
     fitted_par_err = get_fit_par(results)
     for par_name,(par_median,par_err) in fitted_par_err.items():
         print(f"{par_name} = {par_median:.2e} +/- {par_err:.2e}")
 
+    print("Total flux:")
     fl, el_fl, eh_fl = get_fit_fluxes(results)
     print("flux=%f +%f -%f" % (fl, el_fl, eh_fl))
 
-    plot_fit(sou_binned_data, cts_exp, odir/"raw_spectrum.pdf")
+    plot_filename = odir/"raw_spectrum.pdf"
+    if plot_filename.exists() and not args.overwrite:
+        raise RuntimeError(f"{plot_filename} already exists. If you mean to replace it then use --overwrite.")
+
+    plot_fit(sou_binned_data, cts_exp, plot_filename)
 
 if __name__ == "__main__":
     cosi_threemlfit()
