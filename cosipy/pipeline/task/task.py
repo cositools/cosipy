@@ -39,6 +39,10 @@ def cosi_threemlfit(argv=None):
                       help="Path withing the config file with the tutorials information")
     apar.add_argument("--override", nargs='*',
                       help="Override config parameters. e.g. \"section:param_int = 2\" \"section:param_string = b\"")
+    apar.add_argument("--tstart", type = float,
+                      help="Start time of the signal (unix seconds)")
+    apar.add_argument("--tstop", type=float,
+                      help="Stop time of the signal (unix seconds)")
     apar.add_argument('-o','--output-dir',
                       help="Output directory. Current working directory by default")
     apar.add_argument('--log-level', default='info',
@@ -55,8 +59,17 @@ def cosi_threemlfit(argv=None):
     full_config = Configurator.open(args.config)
     config = Configurator(full_config[args.config_group])
     config.config_path = full_config.config_path
+
+    # General overrides
     if args.override is not None:
         config.override(*args.override)
+
+    # Other specific convenience overrides
+    if args.tstart:
+        config["cuts:kwargs:tstart"] = args.tstart
+
+    if args.tstop:
+        config["cuts:kwargs:tstop"] = args.tstop
 
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
@@ -82,6 +95,10 @@ def cosi_threemlfit(argv=None):
     tstop = config.get("cuts:kwargs:tstop")
 
     if tstart is not None and tstop is not None:
+
+        tstart = Time(tstart, format='unix')
+        tstop = Time(tstop, format='unix')
+
         sou_sliced_data=tslice_binned_data(sou_binned_data, tstart, tstop)
         sou_binned_data=sou_sliced_data
         bk_sliced_data = tslice_binned_data(bk_binned_data, tstart - 100, tstop + 100)
