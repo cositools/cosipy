@@ -619,8 +619,6 @@ class PolarizationStokes():
             plt.ylabel('mu_100')
             plt.show()
 
-        logger.info('mu_100: ' + str(round(mu_100['mu'], 2)))
-
         return mu_100
     
     def compute_data_pseudo_stokes(self, show=False):
@@ -791,7 +789,7 @@ class PolarizationStokes():
         pol_I = len(qs)
         pol_Q = np.sum(qs) / mu
         pol_U = np.sum(us) / mu
-        # print('Q, U, unsubtracted:', pol_Q/pol_I, pol_U/pol_I)
+        
 
         unpol_I = len(bkg_qs) * BACKSCAL
         unpol_Q = np.sum(bkg_qs) * BACKSCAL / mu
@@ -799,12 +797,14 @@ class PolarizationStokes():
         print('Q, U unpolarized:', unpol_Q/unpol_I, unpol_U/unpol_I)
         unpol_modulation = mu * np.sqrt(unpol_Q**2. + unpol_U**2.) / unpol_I
         unpol_sQ = np.sqrt((2. - unpol_modulation**2.) / ((unpol_I - 1.) * mu**2.))  
-        print('unpol_uncertainty:', unpol_sQ*100, '%')
+        print('Q, U unpolarized uncertainty:', unpol_sQ*100, '%')
 
         I = pol_I - unpol_I
         print('check I(src+bkg) vs I(src):', pol_I, I)
-        self.Q = pol_Q/pol_I - unpol_Q/unpol_I * 1/(2.575*unpol_sQ)
-        self.U = pol_U/pol_I - unpol_U/unpol_I * 1/(2.575*unpol_sQ)
+        self.Q = pol_Q/pol_I - unpol_Q/unpol_I * BACKSCAL
+        self.U = pol_U/pol_I - unpol_U/unpol_I * BACKSCAL
+
+        print('Q, U, unsubtracted:', pol_Q/pol_I, pol_U/pol_I)
         print('Q, U, subtracted:', self.Q, self.U)
 
         polarization_fraction = np.sqrt(self.Q**2. + self.U**2.)
@@ -848,9 +848,12 @@ class PolarizationStokes():
                 c_mdp = plt.Circle((0, 0), radius=mdp, facecolor='tab:red', alpha=0.3, linewidth=1, linestyle='--', 
                                    label=r'MDP$_{99}$ = %.2f %%'%(self._mdp99*100)) 
                 plt.gca().add_artist(c_mdp)
+            label_data = ("Measured (Bkg subtracted)\n"
+                        "PD = (%.1f ± %.1f)%%\n"
+                        "PA = (%.1f ± %.1f) deg"
+                        % (pol_PD, pol_1sigmaPD, np.degrees(pol_PA), pol_1sigmaPA) )
 
-            plt.plot(Qa, Ua, 'o', markersize=5, color='red',
-                     label=r'Measured (Bkg subtracted) \\ PD = (%.1f $\pm$ %.1f)%% \\ PA = (%.1f $\pm$ %.1f) deg'%(pol_PD, pol_1sigmaPD, pol_PA, pol_1sigmaPA))
+            plt.plot(Qa, Ua, 'o', markersize=5, color='red', label=label_data)
             pol_c = plt.Circle((Qa, Ua), radius=pol_sQ, facecolor='none', edgecolor='red', linewidth=1)
             pol_c2 = plt.Circle((Qa, Ua), radius=2*pol_sQ, facecolor='none', edgecolor='red', linewidth=1)
             pol_c3 = plt.Circle((Qa, Ua), radius=3*pol_sQ, facecolor='none', edgecolor='red', linewidth=1)
