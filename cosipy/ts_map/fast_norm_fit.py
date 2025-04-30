@@ -77,9 +77,9 @@ class FastNormFit:
             float or array: TS, same shape as norm
         """
         
-        data = np.array(data).flatten()
-        bkg = np.array(bkg).flatten()
-        unit_excess = np.array(unit_excess).flatten()
+        data = np.array(data).ravel()
+        bkg = np.array(bkg).ravel()
+        unit_excess = np.array(unit_excess).ravel()
         
         ts = 0 if np.isscalar(norm) else np.zeros(np.shape(norm))
 
@@ -118,9 +118,9 @@ class FastNormFit:
         if order < 1:
             raise ValueError("Order must be > 1")
         
-        data = np.array(data).flatten()
-        bkg = np.array(bkg).flatten()
-        unit_excess = np.array(unit_excess).flatten()
+        data = np.array(data).ravel()
+        bkg = np.array(bkg).ravel()
+        unit_excess = np.array(unit_excess).ravel()
 
         dts = 0 if np.isscalar(norm) else np.zeros(np.shape(norm))
 

@@ -3,9 +3,7 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-from copy import deepcopy
-
-from histpy import Histogram, Axes, Axis
+from histpy import Histogram
 
 import astropy.units as u
 
@@ -37,7 +35,31 @@ class DetectorResponse(Histogram):
 
         self._spec = None
         self._aeff = None
-    
+
+    def copy(self):
+
+        new = super().copy()
+
+        new._spec = None if self._spec is None else self._spec.copy()
+        new._aeff = None if self._aeff is None else self._aeff.copy()
+
+        return new
+
+    def _write(self, file, group_name):
+        group = super()._write(file, group_name)
+
+        # do not write _spec and _aeff, as they
+        # can be recomputed after load later on
+
+    @classmethod
+    def _open(cls, hist_group):
+        new = super()._open(hist_group)
+
+        new._spec = None
+        new._aeff = None
+
+        return new
+
     def get_spectral_response(self, copy = True):
         """
         Reduced detector response, projected along the real and measured energy axes only.
@@ -61,7 +83,7 @@ class DetectorResponse(Histogram):
                                           unit = spec.unit)
 
         if copy:
-            return deepcopy(self._spec)
+            return self._spec.copy()
         else:
             return self._spec
         
@@ -87,7 +109,7 @@ class DetectorResponse(Histogram):
 
         if energy is None:
             if copy:
-                return deepcopy(self._aeff)
+                return self._aeff.copy()
             else:
                 return self._aeff
         else:

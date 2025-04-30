@@ -1,7 +1,6 @@
 import astropy.units as u
 import numpy as np
 import healpy as hp
-import copy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -54,38 +53,9 @@ class AllSkyImageModel(ModelBase):
 
         energy_axis = Axis(edges = energy_edges, label = label_energy, scale = "log")
 
-        axes = Axes([image_axis, energy_axis])
+        axes = Axes([image_axis, energy_axis], copy_axes=False)
 
         super().__init__(axes, sparse = False, unit = unit)
-
-    @classmethod
-    def open(cls, filename, name = 'hist'):
-        """
-        Open a file
-
-        Parameters
-        ----------
-        filename: str
-        
-        Returns
-        -------
-        py:class:`AllSkyImageModel`
-        """
-
-        hist = Histogram.open(filename, name)
-
-        allskyimage = AllSkyImageModel(nside = hist.axes[0].nside, 
-                                    energy_edges = hist.axes[1].edges,
-                                    scheme = hist.axes[0].scheme, 
-                                    coordsys = hist.axes[0].coordsys.name, 
-                                    label_image = hist.axes[0].label, 
-                                    label_energy = hist.axes[1].label,
-                                    unit = hist.unit)
-
-        allskyimage[:] = hist.contents
-
-        del hist
-        return allskyimage
 
     @classmethod
     def instantiate_from_parameters(cls, parameter):
@@ -193,7 +163,7 @@ class AllSkyImageModel(ModelBase):
         if sigma is not None:
             fwhm = 2.354820 * sigma
 
-        allskyimage_new = copy.deepcopy(self)
+        allskyimage_new = self.copy()
         
         for i in range(self.axes['Ei'].nbins):
             allskyimage_new[:,i] = hp.smoothing(self[:,i].value, fwhm = fwhm.to('rad').value) * self.unit

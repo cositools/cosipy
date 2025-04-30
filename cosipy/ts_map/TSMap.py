@@ -4,7 +4,7 @@ from threeML import DataList, Powerlaw, PointSource, Model, JointLikelihood
 
 import numpy as np
 
-from histpy import Histogram, Axis
+from histpy import Histogram, Axis, Axes
 
 from scipy import stats
 
@@ -167,33 +167,36 @@ class TSMap:
         # using rad due to mollweide projection
         self.ra_range  = (-np.pi  , np.pi  ) # rad
         self.dec_range = (-np.pi/2, np.pi/2) # rad
+
+        axes = Axes((Axis(np.linspace(*self.ra_range , 50), label = "ra" ), 
+                     Axis(np.linspace(*self.dec_range, 25), label = "dec"),),
+                    copy_axes=False)
+
+        contents = np.empty((axes['ra'].nbins, axes['dec'].nbins))
         
-        self.log_like = Histogram(
-            [Axis(np.linspace(*self.ra_range , 50), label = "ra" ), 
-             Axis(np.linspace(*self.dec_range, 25), label = "dec"),]
-        )
-        
-        for i in range(self.log_like.axes['ra'].nbins):
-            for j in range(self.log_like.axes['dec'].nbins):
+        for i in range(axes['ra'].nbins):
+            for j in range(axes['dec'].nbins):
         
                 # progress
-                logger.info(f"\rra = {i:2d}/{self.log_like.axes['ra'].nbins}   ", end = "")
-                logger.info(f"dec = {j:2d}/{self.log_like.axes['dec'].nbins}   ", end = "")
+                logger.info(f"\rra = {i:2d}/{axes['ra'].nbins}   ", end = "")
+                logger.info(f"dec = {j:2d}/{axes['dec'].nbins}   ", end = "")
         
                 # changing the position parameters
                 # converting rad to deg due to ra and dec in 3ML PointSource
-                if self.log_like.axes['ra'].centers[i] < 0:
-                    self.source.position.ra = (self.log_like.axes['ra'].centers[i] + 2*np.pi) * (180/np.pi) # deg
+                if axes['ra'].centers[i] < 0:
+                    self.source.position.ra = (axes['ra'].centers[i] + 2*np.pi) * (180/np.pi) # deg
                 else:
-                    self.source.position.ra = (self.log_like.axes['ra'].centers[i]) * (180/np.pi) # deg
-                self.source.position.dec = self.log_like.axes['dec'].centers[j] * (180/np.pi) # deg
+                    self.source.position.ra = (axes['ra'].centers[i]) * (180/np.pi) # deg
+                self.source.position.dec = axes['dec'].centers[j] * (180/np.pi) # deg
                 
                 # maximum likelihood
                 self.like.fit(quiet=True)
                 
                 # converting the min (- log likelihood) from 3ML to the max log likelihood for TS 
-                self.log_like[i, j] = -self.like._current_minimum 
-        
+                contents[i, j] = -self.like._current_minimum 
+
+        return Histogram(axes, contents = contents, copy_contents = False)
+    
     # iterate ra and dec to find the best fit of bkg
     # only see it as constant for now
     # set the normalization to 0, that is, background-only null-hypothesis
@@ -328,5 +331,3 @@ class TSMap:
         ax.set_ylabel('Dec.', fontsize=15);
         ax.tick_params(axis='x', colors='White')
         ax.legend(fontsize=10)
-        
-    

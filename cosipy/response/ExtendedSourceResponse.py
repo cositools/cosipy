@@ -1,4 +1,4 @@
-from histpy import Histogram, Axes, Axis
+from histpy import Histogram
 import numpy as np
 import astropy.units as u
 import gc
@@ -60,26 +60,12 @@ class ExtendedSourceResponse(Histogram):
         ValueError
             If the shape of the contents does not match the axes.
         """
-        hist = super().open(filename, name)
+        resp = super().open(filename, name)
 
-        axes = hist.axes
-        contents = hist[:]
-        sumw2 = hist.sumw2 
-        unit = hist.unit
-        track_overflow = False
-        
-        new = cls(axes, contents = contents,
-                        sumw2 = sumw2,
-                        unit = unit,
-                        track_overflow = track_overflow)
-
-        if new.is_sparse:
-            new = new.to_dense()
-        
-        del hist
-        gc.collect()
-
-        return new
+        if resp.is_sparse:
+            resp = resp.to_dense()
+ 
+        return resp
 
     def get_expectation(self, allsky_image_model):
         """
@@ -104,7 +90,7 @@ class ExtendedSourceResponse(Histogram):
             contents = np.tensordot(allsky_image_model.contents, self.contents, axes=([0,1], [0,1]))
             contents *= self.axes[0].pixarea()
 
-            return Histogram(edges=self.axes[2:], contents=contents)
+            return Histogram(edges=self.axes[2:], contents=contents, copy_contents=False)
         
         else:
             raise ValueError(f"The input allskymodel mismatches with the extended source response.")
