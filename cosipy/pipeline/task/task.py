@@ -22,13 +22,14 @@ def cosi_threemlfit(argv=None):
     apar = argparse.ArgumentParser(
         usage=textwrap.dedent(
             """
-            %(prog)s [--help] <command> [<args>] <filename> [<options>]
+            %(prog)s [--help] --config /path/to/config/file <command> [<options>]
             """),
         description=textwrap.dedent(
             """
             Fits a source at l,b and optionally in a time window tstart-tstop using the given model.
             Data, response and orientation files paths in the config file should be relative to the config file.
-            Outputs fit results in a fits file and a pdf plot of the fits.
+            Outputs fit results in a fits file and a pdf plot of the fits. The fitted parameter
+            are also printed to stdout.
             """),
         formatter_class=argparse.RawTextHelpFormatter)
 
@@ -78,9 +79,9 @@ def cosi_threemlfit(argv=None):
     model = ModelParser(model_dict = config['model']).get_model()
 
     # Parse input files from config file
-    sou_data_path = config.absolute_path(config["data:args"][0])
-    sou_yaml_path = config.absolute_path(config["data:kwargs:input_yaml"])
-    sou_binned_data = load_binned_data(sou_yaml_path, sou_data_path)
+    data_path = config.absolute_path(config["data:args"][0])
+    yaml_path = config.absolute_path(config["data:kwargs:input_yaml"])
+    binned_data = load_binned_data(yaml_path, data_path)
 
     bk_data_path = config.absolute_path(config["background:args"][0])
     bk_yaml_path = config.absolute_path(config["background:kwargs:input_yaml"])
@@ -99,15 +100,15 @@ def cosi_threemlfit(argv=None):
         tstart = Time(tstart, format='unix')
         tstop = Time(tstop, format='unix')
 
-        sou_sliced_data=tslice_binned_data(sou_binned_data, tstart, tstop)
-        sou_binned_data=sou_sliced_data
+        sliced_data=tslice_binned_data(binned_data, tstart, tstop)
+        binned_data=sliced_data
         bk_sliced_data = tslice_binned_data(bk_binned_data, tstart - 100, tstop + 100)
         bk_binned_data=bk_sliced_data
         ori_sliced = tslice_ori(ori, tstart, tstop)
         ori=ori_sliced
 
     # Calculation
-    results, cts_exp = get_fit_results(sou_binned_data, bk_binned_data, resp_path, ori,
+    results, cts_exp = get_fit_results(binned_data, bk_binned_data, resp_path, ori,
                                                    "cosi_bkg", model)
 
     # Results
@@ -127,7 +128,7 @@ def cosi_threemlfit(argv=None):
     if plot_filename.exists() and not args.overwrite:
         raise RuntimeError(f"{plot_filename} already exists. If you mean to replace it then use --overwrite.")
 
-    plot_fit(sou_binned_data, cts_exp, plot_filename)
+    plot_fit(binned_data, cts_exp, plot_filename)
 
 if __name__ == "__main__":
     cosi_threemlfit()
