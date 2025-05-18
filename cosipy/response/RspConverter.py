@@ -19,6 +19,45 @@ class RspConverter():
     optimized HDF5.
     """
 
+    # map from axis labels in .rsp file to
+    # axis labels in HDF5 file
+    axis_name_map = {
+        '"Initial energy [keV]"'      : "Ei",
+        '"#nu [deg]" "#lambda [deg]"' : "NuLambda",
+        '"Polarization Angle [deg]"'  : "Pol",
+        '"Measured energy [keV]"'     : "Em",
+        '"#psi [deg]" "#chi [deg]"'   : "PsiChi",
+        '"#phi [deg]"'                : "Phi",
+        '"#sigma [deg]" "#tau [deg]"' : "SigmaTau",
+        '"Distance [cm]"'             : "Dist"
+    }
+
+    # parameters for non-Healpix axes
+    # (unit, scale)
+    axis_params = {
+        "Ei":       ("keV", "log"),
+        "Pol":      ("deg", "linear"),
+        "Em":       ("keV", "log"),
+        "Phi":      ("deg", "linear"),
+        "Dist":     ("cm", "linear")
+    }
+
+    # textual descriptions of each axis (used for pretty-printing)
+    axis_description = {
+        'Ei': "Initial simulated energy",
+        'NuLambda': "Location of the simulated source in the spacecraft coordinates",
+        'Pol': "Polarization angle",
+        'Em': "Measured energy",
+        'PsiChi': "Location in the Compton Data Space",
+        'Phi': "Compton angle",
+        'SigmaTau': "Electron recoil angle",
+        'Dist': "Distance from first interaction"
+    }
+
+    # ordered subset of .rsp axes to keep for HDF5 response
+    axis_order = ("NuLambda", "Ei", "Pol", "Em", "Phi", "PsiChi")
+
+
     def __init__(self,
                  default_norm="Linear",
                  default_emin=90,
@@ -165,6 +204,9 @@ class RspConverter():
                     if is_sparse:
                         raise RuntimeError("Not supported: sparse .rsp files")
 
+                case 'RD': # start of data for sparse .rsp
+                    raise RuntimeError("Not supported: sparse .rsp files")
+
                 case 'AN':
                     axes_names.append(' '.join(line[1:]))
 
@@ -186,12 +228,12 @@ class RspConverter():
                 case 'AT':
                     axes_types.append(line[2])
 
-                case 'RD':
-                    break
-
-                case "StartStream":
+                case 'StartStream': # start of data for dense .rsp
                     hdr["nbins"] = int(line[1])
                     break
+
+                case 'StopStream': # end of data for dense .rsp -- should never appear
+                    raise RunTimeError("StopStream encountered before StartStream")
 
                 case _: # any other field
                     hdr["headers"][key] = " ".join(line[1:])
@@ -209,33 +251,17 @@ class RspConverter():
         assert hdr["nbins"] > 0, \
             "no bin count provided for response"
 
-        # Convert axes names to labels and make sure all the
-        # expected axes are present
-        axis_name_map = {
-            '"Initial energy [keV]"'      : "Ei",
-            '"#nu [deg]" "#lambda [deg]"' : "NuLambda",
-            '"Polarization Angle [deg]"'  : "Pol",
-            '"Measured energy [keV]"'     : "Em",
-            '"#psi [deg]" "#chi [deg]"'   : "PsiChi",
-            '"#phi [deg]"'                : "Phi",
-            '"#sigma [deg]" "#tau [deg]"' : "SigmaTau",
-            '"Distance [cm]"'             : "Dist"
-        }
 
-        axes_labels = [ axis_name_map[n] for n in axes_names ]
-
-        # parameters for non-Healpix axes
-        axis_params = {
-            "Ei":       ("keV", "log"),
-            "Pol":      ("deg", "linear"),
-            "Em":       ("keV", "log"),
-            "Phi":      ("deg", "linear"),
-            "Dist":     ("cm", "linear")
-        }
+        axes_labels = [ RspConverter.axis_name_map[n] for n in axes_names ]
 
         # Construct Axes object from specified axes' properties
         axes = []
         for axis_edges, axis_type, axis_label in zip(axes_edges, axes_types, axes_labels):
+
+            # skip axes that are not in HDF5 axis order; we assume that
+            # these axes are *not* dimeisions of the counts data!
+            if axis_label not in RspConverter.axis_order:
+                continue
 
             if axis_type == 'HEALPix':
                 nside, scheme = axis_edges
@@ -251,11 +277,10 @@ class RspConverter():
                                             coordsys=SpacecraftFrame(),
                                             label=axis_label))
             else:
-                unit, scale = axis_params[axis_label]
+                unit, scale = RspConverter.axis_params[axis_label]
                 axes.append(Axis(edges=axis_edges, unit=unit, scale=scale, label=axis_label))
 
-        # skip last axis (Dist)
-        axes = Axes(axes[:-1], copy_axes=False)
+        axes = Axes(axes, copy_axes = False)
 
         return (axes, hdr)
 
@@ -303,6 +328,19 @@ class RspConverter():
 
         match norm:
 
+            case "Linear":
+
+                emin, emax = hdr["norm_params"]
+
+                logger.info(f"normalisation: linear with energy range [{emin}-{emax}]")
+
+                nperchannel_norm = ewidth / (emax - emin)
+
+            case "Mono" :
+                logger.info("normalisation: mono")
+
+                nperchannel_norm = np.array([1.])
+
             case "powerlaw":
                 emin, emax = hdr["norm_params"]
 
@@ -322,19 +360,6 @@ class RspConverter():
                 else:
                     a = 1 - self.alpha
                     nperchannel_norm = (e_hi**a - e_lo**a) / (emax**a - emin**a)
-
-            case "Linear":
-
-                emin, emax = hdr["norm_params"]
-
-                logger.info(f"normalisation: linear with energy range [{emin}-{emax}]")
-
-                nperchannel_norm = ewidth / (emax - emin)
-
-            case "Mono" :
-                logger.info("normalisation: mono")
-
-                nperchannel_norm = np.array([1.])
 
             case "Gaussian" :
                 raise NotImplementedError("Gaussian norm for multiple bins not yet implemented")
@@ -381,6 +406,7 @@ class RspConverter():
                 vmax = np.maximum(vmax, np.max(vals))
 
         t = np.min_scalar_type(vmax)
+
         logger.info(f"Using element type {t} for response counts")
 
         return t
@@ -441,18 +467,20 @@ class RspConverter():
 
         counts = np.reshape(counts, axes.shape, order='F')
 
-        # force the first two axes to be NuLambda, Ei. These
-        # axes are stored in the opposite order in the .rsp
-        # file, but the final HDF5 response must put NuLambda
-        # first.
+        # reorder the axes as specified for the HDF5 file
+        ax_order = [ ax for ax in RspConverter.axis_order
+                     if ax in axes.labels ]
+        idx_order = axes.label_to_index(ax_order)
+        axes = axes[idx_order]
 
-        ax_order = ["NuLambda", "Ei"] + \
-            [ ax for ax in axes.labels if ax not in ("NuLambda", "Ei") ]
-        tp = axes.label_to_index(ax_order) # permutation of counts dims
-        axes = axes[tp] # make axes match permuted counts
+        # reorder counts dimension to match reordered axes
+        counts = np.transpose(counts, idx_order)
 
-        counts = np.transpose(counts, tp)
-        counts = np.ascontiguousarray(counts) # convert to C ordering
+        # make sure the counts array is contiguous and C-oidered
+        # (this is very expensive if the .rsp is F-ordered, but
+        # if we don't do it, h5py will do it less efficiently when
+        # we write the output.)
+        counts = np.ascontiguousarray(counts)
 
         return counts, axes
 
@@ -519,21 +547,9 @@ class RspConverter():
             axes_group = drm.create_group('AXES', track_order=True)
             axes.write(axes_group)
 
-            # save textual descriptions of each axis (used for pretty-printing)
-            axis_description = {
-                'Ei': "Initial simulated energy",
-                'NuLambda': "Location of the simulated source in the spacecraft coordinates",
-                'Pol': "Polarization angle",
-                'Em': "Measured energy",
-                'PsiChi': "Location in the Compton Data Space",
-                'Phi': "Compton angle",
-                'SigmaTau': "Electron recoil angle",
-                'Dist': "Distance from first interaction"
-            }
-
             axes_desc_group = drm.create_group('AXIS_DESCRIPTIONS')
             for label in axes.labels:
-                axes_desc_group.attrs[label] = axis_description[label]
+                axes_desc_group.attrs[label] = RspConverter.axis_description[label]
 
             # save effective area for each Ei; make it an array if scalar
             eff_area = np.broadcast_to(eff_area, axes["Ei"].nbins)
@@ -543,7 +559,8 @@ class RspConverter():
             # to the COSI "good chunks" notebook.  Basically, we store
             # a chunk representing the CDS for each of the possible
             # source params.
-            chunk_sizes = [ 1 if axis.label in ("NuLambda", "Ei", "Pol") else axis.nbins
+            chunk_sizes = [ 1 if axis.label in ("NuLambda", "Ei", "Pol")
+                            else axis.nbins
                             for axis in axes ]
 
             ds = drm.create_dataset('CONTENTS',
