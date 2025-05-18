@@ -193,7 +193,7 @@ class FullDetectorResponse(HealpixBase):
 
         rest_axes = self._axes[1:]
 
-        counts = self._file['DRM/CONTENTS'][pix]
+        counts = self._drm['CONTENTS'][pix]
 
         # FIXME: cosipy code expects this -- enforce for now
         counts.swapaxes(rest_axes.label_to_index("Phi"),
@@ -206,6 +206,28 @@ class FullDetectorResponse(HealpixBase):
                                 contents=data,
                                 unit=self.unit,
                                 copy_contents=False)
+
+
+    def __array__(self, copy=None):
+        """
+        Return the entire contents of the response as an array.
+
+        We need to ensure that the returned array has had the
+        effective area applied, and that it follows the old
+        axis ordering, as for __getitem__.  (The latter is
+        temporary until the call sites are fixed to not
+        care about Phi vs PsiChi order.)
+
+        """
+
+        counts = np.array(self._drm['CONTENTS'], copy=copy)
+
+        # FIXME: cosipy code expects this -- enforce for now
+        counts.swapaxes(self._axes.label_to_index("Phi"),
+                        self._axes.label_to_index("PsiChi"))
+
+        data = counts * rest_axes.expand_dims(self.eff_area,
+                                              self._axes.label_to_index("Ei"))
 
     def close(self):
         """

@@ -90,7 +90,7 @@ class RspConverter():
 
     def convert_to_h5(self,
                       rsp_filename,
-                      elt_type = np.uint32):
+                      elt_type = None):
 
         """
         Given a response file in .rsp.gz format, read it
