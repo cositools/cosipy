@@ -85,7 +85,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
 
         if isinstance(rsp, FullDetectorResponse):
             logger.info('Loading the response matrix onto your computer memory...')
-            new._load_full_detector_response_on_memory(rsp)
+            new._image_response = rsp.to_histogram()
             logger.info('Finished')
         elif isinstance(rsp, Histogram):
             new._image_response = rsp
@@ -189,24 +189,6 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         logger.info(f"The axes in the event and background files are redefined. Now they are consistent with those of the response file.")
 
         return True
-
-    def _load_full_detector_response_on_memory(self, full_detector_response):
-        """
-        Load a response file on the computer memory.
-        """
-
-        axes_image_response = Axes((full_detector_response.axes["NuLambda"],
-                                    full_detector_response.axes["Ei"],
-                                    full_detector_response.axes["Em"],
-                                    full_detector_response.axes["Phi"],
-                                    full_detector_response.axes["PsiChi"]),
-                                   copy_axes=False)
-
-        contents = np.array(full_detector_response)
-
-        self._image_response = Histogram(axes_image_response, contents=contents,
-                                         unit = full_detector_response.unit,
-                                         copy_contents = False)
 
     def _calc_exposure_map(self):
         """
