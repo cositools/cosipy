@@ -11,7 +11,7 @@ from cosipy import test_data
 from cosipy.response import FullDetectorResponse
 from cosipy.spacecraftfile import SpacecraftFile
 
-response_path = test_data.path / "test_full_detector_response_dense.h5"
+response_path = test_data.path / "test_full_detector_response.h5"
 orientation_path = test_data.path / "20280301_first_10sec.ori"
 
 def test_open():
@@ -26,28 +26,6 @@ def test_open():
                       ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'])
 
         assert response.unit.is_equivalent('m2')
-
-def test_write_h5(tmp_path):
-    """
-    Tests storing a Histogram as an HDF5 response
-    """
-
-    tmp_rsp = tmp_path / 'tmp_rsp.h5'
-
-    drm = Histogram([HealpixAxis(nside=1, label='NuLambda'),
-                     Axis(np.geomspace(200, 5000, 11) * u.keV, label='Ei'),
-                     Axis(np.geomspace(200, 5000, 11) * u.keV, label='Em'),
-                     Axis(np.linspace(0, 180, 11) * u.deg, label='Phi'),
-                     HealpixAxis(nside=1, label='PsiChi')],
-                    contents=np.ones([12, 10, 10, 10, 12]),
-                    unit='cm2')
-
-    FullDetectorResponse._write_h5(drm, tmp_rsp)
-
-    with FullDetectorResponse.open(tmp_rsp) as rsp:
-
-        assert arr_eq(rsp[0].project("Ei").contents.to_value('cm2'), (10*10*12)*np.ones(10))
-
 
 def test_get_item():
 
@@ -76,7 +54,7 @@ def test_get_interp_response():
                       ['Ei', 'Em', 'Phi', 'PsiChi'])
 
         assert drm.unit.is_equivalent('m2')
-        
+
 def test_get_extended_source_response():
 
     orientation = SpacecraftFile.parse_from_file(orientation_path)

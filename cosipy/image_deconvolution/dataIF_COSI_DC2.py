@@ -38,11 +38,8 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         # None if using Galactic CDS, mandotary if using local CDS
         self._coordsys_conv_matrix = None
 
-        # optional
-        self.is_miniDC2_format = False #should be removed in the future
-
     @classmethod
-    def load(cls, name, event_binned_data, dict_bkg_binned_data, rsp, coordsys_conv_matrix = None, is_miniDC2_format = False):
+    def load(cls, name, event_binned_data, dict_bkg_binned_data, rsp, coordsys_conv_matrix = None):
         """
         Load data
 
@@ -58,8 +55,6 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
             Response
         coordsys_conv_matrix : :py:class:`cosipy.image_deconvolution.CoordsysConversionMatrix`, default False
             Coordsys conversion matrix
-        is_miniDC2_format : bool, default False
-            Whether the file format is for mini-DC2. It will be removed in the future.
 
         Returns
         -------
@@ -88,11 +83,9 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
            new._coordsys_conv_matrix.is_sparse:
             new._coordsys_conv_matrix.contents.enable_caching()
 
-        new.is_miniDC2_format = is_miniDC2_format
-
         if isinstance(rsp, FullDetectorResponse):
             logger.info('Loading the response matrix onto your computer memory...')
-            new._load_full_detector_response_on_memory(rsp, is_miniDC2_format)
+            new._load_full_detector_response_on_memory(rsp)
             logger.info('Finished')
         elif isinstance(rsp, Histogram):
             new._image_response = rsp
@@ -161,10 +154,6 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
             event_edges, event_unit = self._event.axes[name].edges, self._event.axes[name].unit
             response_edges, response_unit = self._image_response.axes[name].edges, self._image_response.axes[name].unit
 
-#            if type(response_edges) == u.quantity.Quantity and self.is_miniDC2_format == True:
-            if event_unit is None and response_unit is not None and self.is_miniDC2_format == True: # this is only for the old data in the miniDC2 challenge. I will remove them in the near future (or in the final dataIF).
-                response_edges = response_edges.value
-
             if np.all(event_edges == response_edges):
                 logger.info(f"    --> pass (edges)")
             else:
@@ -201,7 +190,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
 
         return True
 
-    def _load_full_detector_response_on_memory(self, full_detector_response, is_miniDC2_format):
+    def _load_full_detector_response_on_memory(self, full_detector_response):
         """
         Load a response file on the computer memory.
         """
@@ -213,12 +202,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
                                     full_detector_response.axes["PsiChi"]),
                                    copy_axes=False)
 
-        if is_miniDC2_format:
-            npix = axes_image_response["NuLambda"].npix
-            slices = [ np.sum(full_detector_response[ipix].to_dense(), axis = (4,5)) for ipix in tqdm(range(npix)) ] #Ei, Em, Phi, PsiChi
-            contents = np.stack(slices)
-        else:
-            contents = np.array(full_detector_response)
+        contents = np.array(full_detector_response)
 
         self._image_response = Histogram(axes_image_response, contents=contents,
                                          unit = full_detector_response.unit,

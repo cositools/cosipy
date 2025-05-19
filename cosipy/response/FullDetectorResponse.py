@@ -226,8 +226,10 @@ class FullDetectorResponse(HealpixBase):
         counts.swapaxes(self._axes.label_to_index("Phi"),
                         self._axes.label_to_index("PsiChi"))
 
-        data = counts * rest_axes.expand_dims(self.eff_area,
-                                              self._axes.label_to_index("Ei"))
+        data = counts * self._axes.expand_dims(self.eff_area,
+                                               self._axes.label_to_index("Ei"))
+
+        return data
 
     def close(self):
         """

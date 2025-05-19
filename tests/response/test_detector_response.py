@@ -14,54 +14,51 @@ from pytest import approx
 response_path = test_data.path/"test_full_detector_response.h5"
 
 def test_get_effective_area():
-    
+
     with FullDetectorResponse.open(response_path) as response:
 
         drm = response[0]
 
-        assert drm.ndim == 6
-        
-        assert arr_eq(drm.axes.labels,
-                      ['Ei', 'Em', 'Phi', 'PsiChi', 'SigmaTau', 'Dist'])
-        
         assert drm.unit.is_equivalent('m2')
 
-        assert drm.get_effective_area(511*u.keV).to_value('cm2') == approx(1.70905119244)
+        assert drm.get_effective_area(511*u.keV).to_value('cm2') == approx(58.425129112973515)
 
         aeff = drm.get_effective_area()
-        
+
         assert aeff.ndim == 1
-        
+
         assert arr_eq(aeff.axes.labels, ['Ei'])
-        
+
         assert aeff.unit.is_equivalent('m2')
 
         assert drm.axes['Ei'] == aeff.axis
-        
+
         print(aeff.contents)
 
         assert np.allclose(aeff.contents.to_value('cm2'),
-                           [0.06106539, 0.46578213, 1.19104624, 1.67014663, 2.07199291,
-                            2.24013146, 2.09571064, 1.71057496, 1.17616575, 0.80718952])
-        
-        
+                           [ 9.08694864, 35.97844922, 56.56536617, 58.62912692, 53.78421084,
+                            46.68086907, 37.56363809, 25.57306065, 18.39937526, 10.23204873])
+
+
 def test_spectral_response():
-        
+
     with FullDetectorResponse.open(response_path) as response:
-        
+
         drm = response[0]
 
         spec = drm.get_spectral_response().to_dense()
 
         assert np.allclose(spec[0].to_value('cm2'),
-                           [0.05987875, 0.00118664, 0.        , 0.        , 0.        ,
+                           [8.92579524, 0.16115340, 0.        , 0.        , 0.        ,
                             0.        , 0.        , 0.        , 0.        , 0.        ])
         assert np.allclose(spec[5].to_value('cm2'),
-                           [0.00760535, 0.04997702, 0.16718662, 0.06108004, 0.58040561,
-                            1.37079256, 0.00308426, 0.        , 0.        , 0.        ])
+                           [0.333909932, 2.01132240,    3.42465851,   3.72364539, 7.76190391,
+                            29.39873340, 0.0266955763,  0.,           0.,         0.])
+
         assert np.allclose(spec[9].to_value('cm2'),
-                           [0.00543126, 0.03039386, 0.07430311, 0.05662412, 0.12452137,
-                            0.12412425, 0.1377126 , 0.11414493, 0.10317496, 0.03675906])
+                           [0.09259213, 0.45248619, 0.86409322, 1.13900893, 0.5104818,
+                            0.4244306,  0.94009569, 2.3514951,  3.09151486, 0.36585021])
+
 
 def test_spectral_readwrite(tmp_path):
 
@@ -78,21 +75,21 @@ def test_spectral_readwrite(tmp_path):
         aeff2 = drm.get_effective_area()
 
         assert spec == spec2 and aeff == aeff2
-        
+
 def test_get_dispersion_matrix():
 
     with FullDetectorResponse.open(response_path) as response:
-        
+
         drm = response[0]
-        
+
         rmf = drm.get_dispersion_matrix()
 
         assert np.allclose(rmf.project('Ei').to_dense().contents, 1)
-    
+
 def test_cosi_response(tmp_path):
 
     # Just check if it runs without errors
-    
+
     cosi_response(['dump','header', str(response_path)])
 
     cosi_response(['dump', 'aeff', str(response_path),
@@ -113,4 +110,3 @@ def test_cosi_response(tmp_path):
     cosi_response(['plot', 'dispersion' ,str(response_path),
                    '--lat', '90deg', '--lon', '0deg',
                    '-o', str(tmp_path/'test_plot_dispersion.png')])
-
