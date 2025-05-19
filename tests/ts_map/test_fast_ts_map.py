@@ -116,6 +116,7 @@ def test_get_ei_cds_array_galactic():
                                         response_path = response_path,
                                         spectrum = spectrum,
                                         cds_frame = "galactic")
+
     ei_cds_read = np.load(test_data.path / "ei_cds_galactic.npy")
 
     assert np.allclose(ei_cds, ei_cds_read)
