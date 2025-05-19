@@ -9,17 +9,17 @@ import os
 from pathlib import Path
 from astropy.time import Time
 
+energy_edges = 10**np.linspace(2, 4, 10 + 1) # ten bins from 100 to 10000 KeV
+
 def test_get_time():
 
     ori_path = test_data.path / "20280301_first_10sec.ori"
 
     ori = SpacecraftFile.parse_from_file(ori_path)
 
+    start = 1835478000.0
     assert np.allclose(ori.get_time().value,
-                       [1835478000.0, 1835478001.0, 1835478002.0,
-                        1835478003.0, 1835478004.0, 1835478005.0,
-                        1835478006.0, 1835478007.0, 1835478008.0,
-                        1835478009.0, 1835478010.0])
+                       np.linspace(start, start + 10, 11))
 
 
 def test_get_time_delta():
@@ -29,9 +29,7 @@ def test_get_time_delta():
     time_delta = ori.get_time_delta()
     time_delta.format = "sec"
 
-    assert np.allclose(time_delta.value, np.array([1.000000, 1.000000, 1.000000, 1.000000, 1.000000,
-                                                   1.000000, 1.000000, 1.000000, 1.000000, 1.000000]))
-
+    assert np.allclose(time_delta.value, np.ones(10))
 
 
 def test_get_attitude():
@@ -138,23 +136,17 @@ def test_get_psr_rsp():
 
     Ei_edges, Ei_lo, Ei_hi, Em_edges, Em_lo, Em_hi, areas, matrix = ori.get_psr_rsp()
 
-    assert np.allclose(Ei_edges,
-                       np.array([100., 158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57,  10000.]))
+    assert np.allclose(Ei_edges, energy_edges)
 
-    assert np.allclose(Ei_lo,
-                       np.array([100., 158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57]))
+    assert np.allclose(Ei_lo, energy_edges[:-1])
 
-    assert np.allclose(Ei_hi,
-                       np.array([158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57,  10000.]))
+    assert np.allclose(Ei_hi, energy_edges[1:])
 
-    assert np.allclose(Em_edges,
-                       np.array([100., 158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57,  10000.]))
+    assert np.allclose(Em_edges, energy_edges)
 
-    assert np.allclose(Em_lo,
-                       np.array([100., 158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57]))
+    assert np.allclose(Em_lo, energy_edges[:-1])
 
-    assert np.allclose(Em_hi,
-                       np.array([158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57,  10000.]))
+    assert np.allclose(Em_hi, energy_edges[1:])
 
     assert np.allclose(areas,
                        np.array([ 9.07843857, 35.97189941, 56.56903076, 58.62650146, 53.77538452,
@@ -212,11 +204,9 @@ def test_get_arf():
 
     fits_file = fits.open("test.arf")
 
-    assert np.allclose(fits_file[1].data.field("ENERG_LO"),
-                       np.array([100., 158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57]))
+    assert np.allclose(fits_file[1].data.field("ENERG_LO"), energy_edges[:-1])
 
-    assert np.allclose(fits_file[1].data.field("ENERG_HI"),
-                       np.array([158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57,  10000.]))
+    assert np.allclose(fits_file[1].data.field("ENERG_HI"), energy_edges[1:])
 
     assert np.allclose(fits_file[1].data.field("SPECRESP"),
                        np.array([ 9.07843857, 35.97189941, 56.56903076, 58.62650146, 53.77538452,
@@ -243,14 +233,11 @@ def test_get_rmf():
 
     fits_file = fits.open("test.rmf")
 
-    assert np.allclose(fits_file[1].data.field("ENERG_LO"),
-                       np.array([100., 158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57]))
+    assert np.allclose(fits_file[1].data.field("ENERG_LO"), energy_edges[:-1])
 
-    assert np.allclose(fits_file[1].data.field("ENERG_HI"),
-                       np.array([158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57,  10000.]))
+    assert np.allclose(fits_file[1].data.field("ENERG_HI"), energy_edges[1:])
 
-    assert np.allclose(fits_file[1].data.field("N_GRP"),
-                       np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]))
+    assert np.allclose(fits_file[1].data.field("N_GRP"), np.ones(10))
 
     matrix_flattened = []
     for i in fits_file[1].data.field("MATRIX"):

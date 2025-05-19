@@ -75,24 +75,13 @@ def test_get_psr_in_galactic():
                        np.array([15.55747177,  65.20970322, 117.94904394, 149.31606904, 147.99053903,
                                  141.45116585, 139.85987318,  90.13002543,  27.58632961, 1.59177036]))
 
+    assert np.allclose(psr.axes["Ei"].edges.value, 10**np.linspace(2, 4, 10 + 1))
 
-    assert np.allclose(psr.axes["Ei"].edges[:].value,
-                       np.array([100., 158.489, 251.189, 398.107, 630.957,
-                                 1000., 1584.89, 2511.89, 3981.07, 6309.57,
-                                 10000.]))
+    assert np.allclose(psr.axes["Em"].edges.value, psr.axes["Ei"].edges.value)
 
-    assert np.allclose(psr.axes["Em"].edges[:].value,
-                       np.array([100., 158.489, 251.189, 398.107, 630.957,
-                                 1000., 1584.89, 2511.89, 3981.07, 6309.57,
-                                 10000.]))
+    assert np.allclose(psr.axes["Phi"].edges.value, np.linspace(0, 180, 180//6 + 1))
 
-    assert np.allclose(psr.axes["Phi"].edges[:].value,
-                                          np.array([0.,   6.,  12.,  18.,  24.,  30.,  36.,  42.,  48.,  54.,  60.,
-                                                    66.,  72.,  78.,  84.,  90.,  96., 102., 108., 114., 120., 126.,
-                                                    132., 138., 144., 150., 156., 162., 168., 174., 180.]))
-
-    assert np.allclose(psr.axes["PsiChi"].edges,
-                       np.array([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12]))
+    assert psr.axes["PsiChi"].nside == 1
 
 
 def test_get_ei_cds_array_galactic():
