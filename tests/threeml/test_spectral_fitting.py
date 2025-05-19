@@ -65,12 +65,17 @@ def test_point_source_spectral_fit():
 
     like = JointLikelihood(model, plugins, verbose = False)
 
-    like.fit()
+    like.fit(compute_covariance = False) # avoid sampling-related threeML crashes
 
-    assert np.allclose([source.spectrum.main.Band.K.value, source.spectrum.main.Band.alpha.value, source.spectrum.main.Band.beta.value, source.spectrum.main.Band.xp.value, bkg_par.value],
-                       [1.0522695866399103,  2.6276132958523926, -2.909795888815157, 18.19702619330248, 2.3908438191547012], atol=[0.1, 0.1, 0.1, 1.0, 0.1])
+    sp = source.spectrum.main.Band
 
-    assert np.allclose([cosi.get_log_like()], [213.14242014103897], atol=[1.0])
+    assert np.allclose([sp.K.value, sp.alpha.value, sp.beta.value, sp.xp.value, bkg_par.value],
+                       [1.0522695866399103, 2.6276132958523926, -2.909795888815157, 18.19702619330248, 2.3908438191547012],
+                       atol=[0.1, 0.1, 0.1, 1.0, 0.1])
+
+    assert np.allclose([cosi.get_log_like()],
+                       [213.14242014103897],
+                       atol=[1.0])
 
     # Test scatt map method:
     coord = SkyCoord(l=184.56*u.deg,b=-5.78*u.deg,frame="galactic")
