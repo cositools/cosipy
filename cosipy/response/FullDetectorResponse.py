@@ -112,31 +112,6 @@ class FullDetectorResponse(HealpixBase):
 
         new._unit = u.Unit(new._drm.attrs['UNIT'])
 
-
-        """
-        # Axes
-        axes = []
-        for axis_label in new._drm["AXES"]:
-
-            axis = new._drm['AXES'][axis_label]
-
-            axis_type = axis.attrs['TYPE']
-
-            if axis_type == 'healpix':
-                axes.append(HealpixAxis(edges=np.array(axis),
-                                        nside=axis.attrs['NSIDE'],
-                                        scheme=axis.attrs['SCHEME'],
-                                        coordsys=SpacecraftFrame(),
-                                        label=axis_label))
-            else:
-                axes.append(Axis(edges=np.array(axis),
-                                 unit=axis.attrs['UNIT'],
-                                 scale=axis_type,
-                                 label=axis_label))
-
-        new._axes = Axes(axes, copy_axes=False)
-        """
-
         # effective area for counts
         new.eff_area = np.array(new._drm["EFF_AREA"])
 
@@ -185,6 +160,18 @@ class FullDetectorResponse(HealpixBase):
         """
 
         return self._unit
+
+    @property
+    def eff_area(self):
+        """
+        Effective area of bins with each Ei.
+
+        Returns
+        --------
+        :py:class:`np.ndarray`
+        """
+
+        return np.array(self._drm["EFF_AREA"])
 
     def __getitem__(self, pix):
 
