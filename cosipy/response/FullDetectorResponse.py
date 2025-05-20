@@ -82,7 +82,7 @@ class FullDetectorResponse(HealpixBase):
         if filename.suffix == ".h5":
             return cls._open_h5(filename, pa_convention)
         elif "".join(filename.suffixes[-2:]) == ".rsp.gz":
-            converter = RspCoverter(norm, emin, emax, single_pixel, alpha)
+            converter = RspConverter(norm, emin, emax, single_pixel, alpha)
             h5_filename = converter.convert_to_h5(filename)
             return cls._open_h5(h5_filename, pa_convention)
         else:
@@ -113,7 +113,7 @@ class FullDetectorResponse(HealpixBase):
         new._unit = u.Unit(new._drm.attrs['UNIT'])
 
         # effective area for counts
-        new.eff_area = np.array(new._drm["EFF_AREA"])
+        new._eff_area = np.array(new._drm["EFF_AREA"])
 
         # Init HealpixMap (local coordinates, main axis)
         HealpixBase.__init__(new,
@@ -171,7 +171,7 @@ class FullDetectorResponse(HealpixBase):
         :py:class:`np.ndarray`
         """
 
-        return np.array(self._drm["EFF_AREA"])
+        return self._eff_area
 
     def __getitem__(self, pix):
 
@@ -182,7 +182,7 @@ class FullDetectorResponse(HealpixBase):
 
         counts = self._drm['CONTENTS'][pix]
 
-        data = counts * rest_axes.expand_dims(self.eff_area,
+        data = counts * rest_axes.expand_dims(self._eff_area,
                                               rest_axes.label_to_index("Ei"))
 
         return DetectorResponse(rest_axes,
@@ -198,7 +198,7 @@ class FullDetectorResponse(HealpixBase):
         """
         counts = np.array(self._drm['CONTENTS'])
 
-        contents = counts * self._axes.expand_dims(self.eff_area,
+        contents = counts * self._axes.expand_dims(self._eff_area,
                                                self._axes.label_to_index("Ei"))
 
         return Histogram(self._axes,
