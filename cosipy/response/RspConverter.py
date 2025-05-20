@@ -1,6 +1,8 @@
 import logging
 logger = logging.getLogger(__name__)
 
+from pathlib import Path
+
 import gzip
 
 import numpy as np
@@ -15,8 +17,14 @@ import hdf5plugin
 
 class RspConverter():
     """
-    Converter for dense response files stored in .rsp.gz format into
-    optimized HDF5.
+    Converter between response files stored in .rsp.gz format and
+    optimized HDF5 format on disk.
+
+    Use method convert_to_h5() to convert a .rsp.gz file to .h5.
+
+    Use method convert_to_rsp() to convert a FullDetectorResponse
+    (backed by an .h5 file) to .rsp.gz.
+
     """
 
     # map from axis labels in .rsp file to
@@ -55,8 +63,10 @@ class RspConverter():
     }
 
     # ordered subset of .rsp axes to keep for HDF5 response
-    axis_order = ("NuLambda", "Ei", "Pol", "Em", "Phi", "PsiChi")
+    fd_axis_order =  ("NuLambda", "Ei", "Pol", "Em", "Phi", "PsiChi")
 
+    # order  of axes expected in .rsp file
+    rsp_axis_order = ("Ei", "NuLambda", "Pol", "Em", "Phi", "PsiChi")
 
     def __init__(self,
                  default_norm="Linear",
@@ -90,6 +100,9 @@ class RspConverter():
 
     def convert_to_h5(self,
                       rsp_filename,
+                      h5_filename = None,
+                      overwrite = False,
+                      compress = True,
                       elt_type = None):
 
         """
@@ -100,6 +113,14 @@ class RspConverter():
         ----------
         rsp_filename: string
            name of input file (must end with .rsp.gz)
+        h5_filename : string (optional)
+           name of output file (should end with .h5); if not
+           specified, use base name of rsp_filename with .h5 extension
+        overwrite : bool
+           overwrite the target filename if it exists
+        compress: bool
+           true iff response HDF5 file should use internal
+           compression
         elt_type: numpy datatype or None
            type used to store raw event counts; if None,
            infer smallest feasible type from data (requires
@@ -112,10 +133,14 @@ class RspConverter():
 
         """
 
-        h5_filename = rsp_filename.replace(".rsp.gz", ".h5")
+        if h5_filename is None:
+            h5_filename = str(rsp_filename).replace(".rsp.gz", ".h5")
+
+        if Path(h5_filename).exists and not overwrite:
+            raise RuntimeError(f"Not overwriting existing HDF5 file {h5_filename}")
 
         if elt_type is None:
-            elt_type = self.get_min_elt_type(rsp_filename)
+            elt_type = self._get_min_elt_type(rsp_filename)
 
         with gzip.open(rsp_filename, "rt") as f:
 
@@ -123,9 +148,10 @@ class RspConverter():
             eff_area = self._get_eff_area(axes, hdr)
 
             nbins = hdr["nbins"]
-            counts, axes = self._read_dense_rsp(f, axes, nbins, elt_type)
+            counts, axes = self._read_rsp(f, axes, nbins, elt_type)
 
-        self._write_h5_dense(axes, counts, eff_area, h5_filename, headers=hdr["headers"])
+            self._write_h5(axes, counts, eff_area, h5_filename,
+                           compress=compress, headers=hdr["headers"])
 
         return h5_filename
 
@@ -260,7 +286,7 @@ class RspConverter():
 
             # skip axes that are not in HDF5 axis order; we assume that
             # these axes are *not* dimeisions of the counts data!
-            if axis_label not in RspConverter.axis_order:
+            if axis_label not in RspConverter.fd_axis_order:
                 continue
 
             if axis_type == 'HEALPix':
@@ -374,7 +400,7 @@ class RspConverter():
 
 
     @staticmethod
-    def get_min_elt_type(rsp_filename):
+    def _get_min_elt_type(rsp_filename):
         """
         Determine the smallest integer type sufficient
         to hold every count a dense response file.
@@ -413,7 +439,7 @@ class RspConverter():
 
 
     @staticmethod
-    def _read_dense_rsp(rsp_file, axes, nbins, elt_type):
+    def _read_rsp(rsp_file, axes, nbins, elt_type):
         """
         Read a dense response with nbins bins from file rsp_file.
         Create the response matrix as type elt_type, which must
@@ -468,7 +494,7 @@ class RspConverter():
         counts = np.reshape(counts, axes.shape, order='F')
 
         # reorder the axes as specified for the HDF5 file
-        ax_order = [ ax for ax in RspConverter.axis_order
+        ax_order = [ ax for ax in RspConverter.fd_axis_order
                      if ax in axes.labels ]
         idx_order = axes.label_to_index(ax_order)
         axes = axes[idx_order]
@@ -486,7 +512,8 @@ class RspConverter():
 
 
     @staticmethod
-    def _write_h5_dense(axes, counts, eff_area, h5_filename, headers=None):
+    def _write_h5(axes, counts, eff_area, h5_filename,
+                  compress=True, headers=None):
         """
         Write the response to an HDF5 file.  All data is stored in a
         group "DRM" within the file.
@@ -518,15 +545,17 @@ class RspConverter():
 
         Parameters
         ----------
-        axes -- Axes object
+        axes : Axes object
           axes of response
-        counts -- ndarray of int of shape axes.shape
+        counts : ndarray of int of shape axes.shape
           raw count data
-        eff_area -- ndarray of float
+        eff_area : ndarray of float
           effective area scaling for each Ei
-        h5_filename -- string
+        h5_filename : string
           file name to be written
-        headers -- dict or None
+        compress : bool
+          True iff HDF5 file should use internal compression
+        headers : dict or None
           dictionary of keys and contents of header lines other than axis info,
           to be written to the HEADERS group
         """
@@ -563,12 +592,19 @@ class RspConverter():
                             else axis.nbins
                             for axis in axes ]
 
+            if compress:
+                compression = hdf5plugin.Bitshuffle()
+                shuffle = (counts.dtype.itemsize > 1)
+            else:
+                compression = None
+                shuffle = False
+
             ds = drm.create_dataset('CONTENTS',
                                     counts.shape,
                                     dtype=counts.dtype,
                                     chunks=tuple(chunk_sizes),
-                                    compression=hdf5plugin.Bitshuffle(),
-                                    shuffle=(counts.dtype.itemsize > 1))
+                                    compression=compression,
+                                    shuffle=shuffle)
 
             # write output for one bin on axis 0 at a time,
             # which should reduce transient memory usage to
@@ -576,6 +612,113 @@ class RspConverter():
             # (Axis 0 is NuLambda, which generally has many bins.)
             for j in range(axes[0].nbins):
                 ds[j] = counts[j]
+
+
+    @staticmethod
+    def convert_to_rsp(fullDetectorResponse,
+                       rsp_filename,
+                       overwrite = False):
+        """
+        Convert a FullDetectorResponse object backed by an HDF5 file
+        into a textual .rsp.gz response.  We reuse the header
+        information stored in the HDF5 file, along with its axes and
+        counts.
+
+        Parameters
+        ----------
+        fullDetectorResponse : FullDetectorResponse
+           object to be converted
+        rsp_filename : string
+           path to write .rsp.gz file (should end with .rsp.gz)
+        overwrite : bool
+           if true, overwrite existing response if it exists
+
+        """
+
+        if Path(rsp_filename).exists and not overwrite:
+            raise RuntimeError(f"Not overwriting existing .rsp.gz file {rsp_filename}")
+
+        # reorder axes if needed to match the expected order for an .rsp file
+        axes = fullDetectorResponse._axes
+        ax_order = [ ax for ax in RspConverter.rsp_axis_order
+                     if ax in axes.labels ]
+        idx_order = axes.label_to_index(ax_order)
+
+        axes = axes[idx_order]
+
+        counts = np.array(fullDetectorResponse._drm["CONTENTS"])
+        counts = np.transpose(counts, idx_order)
+
+        RspConverter._write_rsp(fullDetectorResponse._drm["HEADERS"].attrs,
+                                axes, counts, rsp_filename)
+
+
+    @staticmethod
+    def _write_rsp(headers, axes, counts, rsp_filename):
+        """
+        Write an .rsp.gz file with all necessary info.
+
+        Parameters
+        ----------
+        headers : dict-like
+          stored headers from original response
+        axes : Axes
+          axes to write
+        counts :
+          counts of Histogram
+        rsp_filename :
+           name of response file to write (should be .rsp.gz).
+
+        """
+
+        # invert the axis name map to get names to write to .rsp
+        axis_names = {}
+        for desc in RspConverter.axis_name_map:
+            axis_names[RspConverter.axis_name_map[desc]] = desc
+
+        with gzip.open(rsp_filename, "wt") as f:
+
+            f.write("# computed reduced response\n")
+
+            # write non-axis headers
+            for key in headers:
+                f.write(f"{key} {headers[key]}\n")
+
+            # write axes
+            for axis in axes:
+                f.write(f"AN {axis_names[axis.label]}\n")
+
+                if isinstance(axis, HealpixAxis):
+                    f.write("AT 2D HEALPix\n")
+                    if axis.nbins == 1:
+                        order = -1
+                    else:
+                        order = int(np.log2(axis.nside))
+
+                    f.write(f"AD {order} RING\n")
+
+                else:
+                    f.write(f"AT 1D BinEdges\n")
+
+                    edges = np.array_str(axis.edges.value,
+                                         max_line_width=1000000000).strip("[] ")
+                    f.write(f"AD {edges}\n")
+
+            # write counts
+
+            f.write(f"StartStream {counts.size}\n")
+
+            # counts are printed one one line in FORTRAN order
+            cts = np.ravel(counts, order='F')
+            chunksize = 10000000
+            s = 0
+            while s < len(cts):
+                vals = cts[s:s+chunksize]
+                s += len(vals)
+                f.write("".join((f"{str(v)} " for v in vals)))
+                f.write("\n")
+
+            f.write("StopStream\n")
 
 
 class BufferedList:

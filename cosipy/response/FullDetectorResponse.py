@@ -203,33 +203,16 @@ class FullDetectorResponse(HealpixBase):
                                 unit=self.unit,
                                 copy_contents=False)
 
-
-    def __array__(self, copy=None):
-        """
-        Return the entire contents of the response as an array.
-
-        We need to ensure that the returned array has had the
-        effective area applied.  The axis order follows what
-        is in the response file, which should be
-
-           NuLambda, Ei, (Pol), Em, Phi, PsiChi
-
-        """
-
-        counts = np.array(self._drm['CONTENTS'], copy=copy)
-
-        data = counts * self._axes.expand_dims(self.eff_area,
-                                               self._axes.label_to_index("Ei"))
-
-        return data
-
     def to_histogram(self):
         """
         Return a Histogram containing the response, with matching
         axes and units.
 
         """
-        contents = np.array(self)
+        counts = np.array(self._drm['CONTENTS'])
+
+        contents = counts * self._axes.expand_dims(self.eff_area,
+                                               self._axes.label_to_index("Ei"))
 
         return Histogram(self._axes,
                          contents = contents,
