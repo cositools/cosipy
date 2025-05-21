@@ -41,14 +41,15 @@ class FullDetectorResponse(HealpixBase):
     :py:func:`get_interp_response`.
     """
 
+    # supported HDF5 response version
+    rsp_version = 2
+
     def __init__(self, *args, **kwargs):
         # Overload parent init. Called in class methods.
         pass
 
     @classmethod
-    def open(cls, filename, pa_convention=None,
-             norm="Linear", emin=90, emax=10000,
-             alpha = 0, single_pixel = False):
+    def open(cls, filename, pa_convention=None):
 
         """
         Open a detector response file.
@@ -60,31 +61,12 @@ class FullDetectorResponse(HealpixBase):
 
         file.pa_convention : str, optional
             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ')
-
-         norm : str,
-             type of normalisation : file (then specify also SpectrumFile)
-             ,powerlaw, Mono or Linear
-
-         emin,emax : float
-             emin/emax used in the simulation source
-
-         alpha : int,
-             if the normalisation is "powerlaw", value of the spectral index.
-
-
-         single_pixel : bool,
-             True if there is only one pixel and not full-sky.
-
         """
 
         filename = Path(filename)
 
         if filename.suffix == ".h5":
             return cls._open_h5(filename, pa_convention)
-        elif "".join(filename.suffixes[-2:]) == ".rsp.gz":
-            converter = RspConverter(norm, emin, emax, single_pixel, alpha)
-            h5_filename = converter.convert_to_h5(filename)
-            return cls._open_h5(h5_filename, pa_convention)
         else:
             raise ValueError(
                 "Unsupported file format. Only .h5 and .rsp.gz extensions are supported.")
@@ -107,6 +89,11 @@ class FullDetectorResponse(HealpixBase):
         new._file = h5.File(filename, mode='r')
 
         new._drm = new._file['DRM']
+
+        # verify response format version
+        rsp_version = new._drm.attrs.get('VERSION', default=1)
+        if rsp_version != cls.rsp_version:
+            raise RuntimeError(f"Response format is version {rsp_version}; we require version {cls.rsp_version}")
 
         new._axes = Axes.open(new._drm["AXES"])
 
@@ -175,12 +162,12 @@ class FullDetectorResponse(HealpixBase):
 
     def __getitem__(self, pix):
 
-        if not isinstance(pix, (int, np.integer)) or pix < 0 or not pix < self.npix:
-            raise IndexError("Pixel number out of range, or not an integer")
+        if not isinstance(pix, (int, np.integer)):
+            raise IndexError("Pixel index must be an integer")
 
         rest_axes = self._axes[1:]
 
-        counts = self._drm['CONTENTS'][pix]
+        counts = self._drm['COUNTS'][pix]
 
         data = counts * rest_axes.expand_dims(self._eff_area,
                                               rest_axes.label_to_index("Ei"))
@@ -196,7 +183,7 @@ class FullDetectorResponse(HealpixBase):
         axes and units.
 
         """
-        counts = np.array(self._drm['CONTENTS'])
+        counts = np.array(self._drm['COUNTS'])
 
         contents = counts * self._axes.expand_dims(self._eff_area,
                                                self._axes.label_to_index("Ei"))
@@ -396,7 +383,8 @@ class FullDetectorResponse(HealpixBase):
 
         return coordsys, nside_image, nside_scatt_map
 
-    def get_point_source_response_per_image_pixel(self, ipix_image, orientation, coordsys = 'galactic', nside_image = None, nside_scatt_map = None, Earth_occ = True):
+    def get_point_source_response_per_image_pixel(self, ipix_image, orientation, coordsys = 'galactic',
+                                                  nside_image = None, nside_scatt_map = None, Earth_occ = True):
         """
         Generate point source response for a specific HEALPix pixel by convolving
         the all-sky detector response with exposure.

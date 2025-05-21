@@ -27,6 +27,9 @@ class RspConverter():
 
     """
 
+    # version of response file format
+    rsp_version = 2
+
     # map from axis labels in .rsp file to
     # axis labels in HDF5 file
     axis_name_map = {
@@ -516,10 +519,11 @@ class RspConverter():
                   compress=True, headers=None):
         """
         Write the response to an HDF5 file.  All data is stored in a
-        group "DRM" within the file.
+        group "DRM" within the file.  This group has an attribute
+        VERSION that records the response format version.
 
         The response is stored as raw counts (in whatever bit width
-        was chosen during .rsp reading) in the CONTENTS dataset,
+        was chosen during .rsp reading) in the COUNTS dataset,
         together with an effective area array, of length equal to the
         number of Ei bins, in the EFF_AREA dataset.
 
@@ -528,7 +532,7 @@ class RspConverter():
 
           counts * axes.expand_dims(eff_area, axes.label_to_index('Ei'))
 
-        The CONTENTS dataset is chunked according to the "good chunks"
+        The COUNTS dataset is chunked according to the "good chunks"
         scheme, with one chunk per (NuLambda, Ei, Pol) (i.e., one
         chunk per CDS).  Chunks are compressed using a scheme with
         much lower read-time overhead than gzip.
@@ -563,6 +567,7 @@ class RspConverter():
         with h5.File(h5_filename, mode="w") as f:
 
             drm = f.create_group('DRM')
+            drm.attrs["VERSION"] = RspConverter.rsp_version
 
             if headers is not None:
                 # save any header values not deducible from Axes or contents
@@ -599,7 +604,7 @@ class RspConverter():
                 compression = None
                 shuffle = False
 
-            ds = drm.create_dataset('CONTENTS',
+            ds = drm.create_dataset('COUNTS',
                                     counts.shape,
                                     dtype=counts.dtype,
                                     chunks=tuple(chunk_sizes),
@@ -646,7 +651,7 @@ class RspConverter():
 
         axes = axes[idx_order]
 
-        counts = np.array(fullDetectorResponse._drm["CONTENTS"])
+        counts = np.array(fullDetectorResponse._drm["COUNTS"])
         counts = np.transpose(counts, idx_order)
 
         RspConverter._write_rsp(fullDetectorResponse._drm["HEADERS"].attrs,
