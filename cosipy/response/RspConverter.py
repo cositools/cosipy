@@ -564,21 +564,35 @@ class RspConverter():
           to be written to the HEADERS group
         """
 
+        def inv_perm(p):
+            """ invert a permutation of [0...len(p) - 1] """
+            r = np.empty_like(p)
+            for i, v in enumerate(p):
+                r[v] = i
+            return r
+
         with h5.File(h5_filename, mode="w") as f:
 
             drm = f.create_group('DRM')
             drm.attrs["VERSION"] = RspConverter.rsp_version
 
+            header_group = drm.create_group('HEADERS')
             if headers is not None:
                 # save any header values not deducible from Axes or contents
-                header_group = drm.create_group('HEADERS', track_order=True)
                 for key in headers:
                     header_group.attrs[key] = headers[key]
+
+                # record how the header keys should be permuted when we
+                # reread them from the file to recover the original order
+                drm.attrs["HEADER_ORDER"] = inv_perm(np.argsort(list(headers.keys())))
+            else:
+                # no headers
+                drm.attrs["HEADER_ORDER"] = np.array([])
 
             drm.attrs['UNIT'] = 'cm2'
             drm.attrs['SPARSE'] = False
 
-            axes_group = drm.create_group('AXES', track_order=True)
+            axes_group = drm.create_group('AXES')
             axes.write(axes_group)
 
             axes_desc_group = drm.create_group('AXIS_DESCRIPTIONS')
@@ -587,7 +601,7 @@ class RspConverter():
 
             # save effective area for each Ei; make it an array if scalar
             eff_area = np.broadcast_to(eff_area, axes["Ei"].nbins)
-            drm.create_dataset('EFF_AREA', data=eff_area)
+            drm.create_dataset('EFF_AREA', data=eff_area, track_times=False)
 
             # These are the recommended chunk sizes per axis according
             # to the COSI "good chunks" notebook.  Basically, we store
@@ -609,7 +623,8 @@ class RspConverter():
                                     dtype=counts.dtype,
                                     chunks=tuple(chunk_sizes),
                                     compression=compression,
-                                    shuffle=shuffle)
+                                    shuffle=shuffle,
+                                    track_times=False)
 
             # write output for one bin on axis 0 at a time,
             # which should reduce transient memory usage to
@@ -654,8 +669,13 @@ class RspConverter():
         counts = np.array(fullDetectorResponse._drm["COUNTS"])
         counts = np.transpose(counts, idx_order)
 
-        RspConverter._write_rsp(fullDetectorResponse._drm["HEADERS"].attrs,
-                                axes, counts, rsp_filename)
+        # extract the headers in the order that they were written
+        hdr_attrs = fullDetectorResponse._drm["HEADERS"].attrs
+        hdr_ids = list(hdr_attrs.keys())
+        hdr_order = fullDetectorResponse._drm.attrs["HEADER_ORDER"]
+        hdrs = { hdr_ids[idx] : hdr_attrs[hdr_ids[idx]] for idx in hdr_order }
+
+        RspConverter._write_rsp(hdrs, axes, counts, rsp_filename)
 
 
     @staticmethod
@@ -665,7 +685,7 @@ class RspConverter():
 
         Parameters
         ----------
-        headers : dict-like
+        headers : dict
           stored headers from original response
         axes : Axes
           axes to write
