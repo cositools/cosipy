@@ -46,6 +46,8 @@ def cosi_threemlfit(argv=None):
                       help="Stop time of the signal (unix seconds)")
     apar.add_argument('-o','--output-dir',
                       help="Output directory. Current working directory by default")
+    apar.add_argument('--suffix',
+                      help="Optional suffix to be added in the names of the output files")
     apar.add_argument('--log-level', default='info',
                       help='Set the logging level (debug, info, warning, error, critical)')
     apar.add_argument('--overwrite', action='store_true', default=False,
@@ -74,6 +76,8 @@ def cosi_threemlfit(argv=None):
 
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
+    result_name="results.fits" if not args.suffix else str("results_"+args.suffix+".fits")
+    plot_name="raw_spectrum.pdf" if not args.suffix else str("raw_spectrum_"+args.suffix+".pdf")
 
     # Parse model
     model = ModelParser(model_dict = config['model']).get_model()
@@ -113,7 +117,7 @@ def cosi_threemlfit(argv=None):
 
     # Results
     results.display()
-    results.write_to(odir/"results.fits", overwrite=args.overwrite)
+    results.write_to(odir/result_name, overwrite=args.overwrite)
 
     print("Median and errors:")
     fitted_par_err = get_fit_par(results)
@@ -124,7 +128,7 @@ def cosi_threemlfit(argv=None):
     fl, el_fl, eh_fl = get_fit_fluxes(results)
     print("flux=%f +%f -%f" % (fl, el_fl, eh_fl))
 
-    plot_filename = odir/"raw_spectrum.pdf"
+    plot_filename = odir/plot_name
     if plot_filename.exists() and not args.overwrite:
         raise RuntimeError(f"{plot_filename} already exists. If you mean to replace it then use --overwrite.")
 
