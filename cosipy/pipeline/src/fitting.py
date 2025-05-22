@@ -49,7 +49,7 @@ def build_spectrum(model, pars, par_minvalues, par_maxvalues):
 
 
 
-def get_fit_results(sou,bk,resp_path,ori,l,b,souname,bkname,spectrum):
+def get_fit_results(sou,bk,resp_path,ori,bkname,model):
     """
     Fits the spectrum to the data
     """
@@ -68,39 +68,34 @@ def get_fit_results(sou,bk,resp_path,ori,l,b,souname,bkname,spectrum):
                     nuisance_param=bkg_par,
                     earth_occ=True)  # background parameter
 
-    source = PointSource(souname,  # Name of source (arbitrary, but needs to be unique)
-                         l=l,  # Longitude (deg)
-                         b=b,  # Latitude (deg)
-                         spectral_shape=spectrum)  # Spectral model
-
-    model = Model(source)
     cosi.set_model(model)
     plugins = DataList(cosi)
     like = JointLikelihood(model, plugins, verbose=False)
     like.fit()
     results = like.results
-    expectation = cosi._expected_counts[souname]
+
+    # FIXME: Do no rely on protected variables. _expected_counts is not guaranteed to
+    #   survive refactoring. Revisit this after the interfaces refactoring
+    expectation = None
+    for source_expectation in cosi._expected_counts.values():
+        if expectation is None:
+            expectation = source_expectation.copy()
+        else:
+            expectation += source_expectation
+
     tot_exp_counts=expectation.project('Em').todense().contents + (bkg_par.value * bk.project('Em').todense().contents)
     #
     #
     return results,tot_exp_counts
 
-def get_fit_par(results,souname,bkname):
+def get_fit_par(results):
     """
-    Extracts dictionaries from the fit results
-    par_sou,epar_sou,par_bk,epar_bk
+    Extracts a dictionary whose keys are the free parameters of the model,
+    and values are a tuple with the median and standard deviation.
     """
-    par_sou = {par.name: results.get_variates(par.path).median
-               for par in results.optimized_model[souname].parameters.values()
-               if par.free}
-    #
-    epar_sou = {par.name: results.get_variates(par.path).std
-                for par in results.optimized_model[souname].parameters.values()
-                if par.free}
 
-    par_bk=results.get_variates(bkname).median
-    epar_bk = results.get_variates(bkname).std
-    return(par_sou,epar_sou,par_bk,epar_bk)
+    return {par_name: (results.get_variates(par.path).median, results.get_variates(par.path).std)
+              for par_name, par in results.optimized_model.free_parameters.items()}
 
 def get_fit_fluxes(results):
     """

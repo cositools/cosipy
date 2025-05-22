@@ -1,33 +1,168 @@
-  sou_data: "test_spectral_fit_data.h5"
-  bk_data: "test_spectral_fit_background.h5"
-  resp: "test_full_detector_response.h5"
-  ori: "20280301_2s.ori"
-  sou_yaml: "test_spectral_fit.yaml"
-  bk_yaml: "test_spectral_fit.yaml"
-  souname: "grb_test"
-  bkname: "test_bkcosi"
-  l: 50
-  b: -45
-  model_id: "Band"
-  par_streams:
-    - |
-      !astropy.units.Quantity
-      unit: !astropy.units.Unit {unit: 1 / (cm2 keV s)}
-      value: 0.1
-    - |
-      !astropy.units.Quantity
-      unit: !astropy.units.Unit {unit: ''}
-      value: -1
-    - |
-      !astropy.units.Quantity
-      unit: !astropy.units.Unit {unit: keV}
-      value: 300.0
-    - |
-      !astropy.units.Quantity
-      unit: !astropy.units.Unit {unit: ''}
-      value: -2.0
-    - |
-      !astropy.units.Quantity
-      unit: !astropy.units.Unit {unit: keV}
-      value: 500.0
-  par_minvalues: [1e-50,-1.5,100.0,-5.0,null]
+threeml_source_models:
+  crab (point source): &crab_source_model
+    position:
+      l:
+        value: 184.56
+        desc: Galactic longitude
+        min_value: 0.0
+        max_value: 360.0
+        unit: deg
+        is_normalization: false
+        delta: 18.456
+        free: false
+      b:
+        value: -5.78
+        desc: Galactic latitude
+        min_value: -90.0
+        max_value: 90.0
+        unit: deg
+        is_normalization: false
+        delta: 0.5780000000000001
+        free: false
+      equinox: J2000
+    spectrum:
+      main:
+        Band:
+          K:
+            value: 3.0699999999999974e-05
+            desc: Differential flux at the pivot energy
+            min_value: 1.0e-50
+            max_value: null
+            unit: keV-1 s-1 cm-2
+            is_normalization: true
+            delta: 1.0e-05
+            free: true
+          alpha:
+            value: -1.99
+            desc: low-energy photon index
+            min_value: -2.14
+            max_value: 3.0
+            unit: ''
+            is_normalization: false
+            delta: 0.01
+            free: true
+          xp:
+            value: 5.310000000000005
+            desc: peak in the x * x * N (nuFnu if x is a energy)
+            min_value: 1.0
+            max_value: null
+            unit: keV
+            is_normalization: false
+            delta: 50.0
+            free: true
+          beta:
+            value: -2.32
+            desc: high-energy photon index
+            min_value: -5.0
+            max_value: -2.15
+            unit: ''
+            is_normalization: false
+            delta: 0.01
+            free: true
+          piv:
+            value: 500.0
+            desc: pivot energy
+            min_value: null
+            max_value: null
+            unit: keV
+            is_normalization: false
+            delta: 10.0
+            free: false
+        polarization: {}
+  grb_dc2_tutorial (point source): &grb_dc2_tutorial_source_model
+    position:
+      l:
+        value: 93.0
+        desc: Galactic longitude
+        min_value: 0.0
+        max_value: 360.0
+        unit: deg
+        is_normalization: false
+        delta: 9.3
+        free: false
+      b:
+        value: -53.0
+        desc: Galactic latitude
+        min_value: -90.0
+        max_value: 90.0
+        unit: deg
+        is_normalization: false
+        delta: 5.300000000000001
+        free: false
+      equinox: J2000
+    spectrum:
+      main:
+        Band:
+          K:
+            value: 1.0
+            desc: Differential flux at the pivot energy
+            min_value: 1.0e-50
+            max_value: null
+            unit: keV-1 s-1 cm-2
+            is_normalization: true
+            delta: 1.0e-05
+            free: true
+          alpha:
+            value: -1.0
+            desc: low-energy photon index
+            min_value: -1.5
+            max_value: 3.0
+            unit: ''
+            is_normalization: false
+            delta: 0.1
+            free: true
+          xp:
+            value: 449.99999999999983
+            desc: peak in the x * x * N (nuFnu if x is a energy)
+            min_value: 10.0
+            max_value: null
+            unit: keV
+            is_normalization: false
+            delta: 50.0
+            free: true
+          beta:
+            value: -3.0
+            desc: high-energy photon index
+            min_value: -15.0
+            max_value: -1.6
+            unit: ''
+            is_normalization: false
+            delta: 0.2
+            free: true
+          piv:
+            value: 500.0
+            desc: pivot energy
+            min_value: null
+            max_value: null
+            unit: keV
+            is_normalization: false
+            delta: 10.0
+            free: false
+        polarization: { }
+
+threemlfit:
+  model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
+    grb_dc2_tutorial (point source): *grb_dc2_tutorial_source_model
+  sc_file: 20280301_2s.ori
+  data:
+    class: DataInterfaceTBD
+    args:
+      - test_spectral_fit_data.h5
+    kwargs:
+      input_yaml: test_spectral_fit.yaml
+  background: # This is a list of background component
+    class: ExpectationInterfaceTBD
+    args:
+      - test_spectral_fit_background.h5
+    kwargs:
+      input_yaml: test_spectral_fit.yaml
+  response:
+    class: ExpectationInterfaceTBD
+    args:
+      - test_full_detector_response.h5
+  cuts:
+    class: EventCutInterfaceTBD
+    args:
+    kwargs:
+      tstart: null
+      tstop: null

@@ -1,7 +1,7 @@
 from cosipy import BinnedData
 from cosipy.spacecraftfile import SpacecraftFile
 
-
+from astropy.time import Time
 
 
 def load_binned_data(yaml_path,data_path):
@@ -19,23 +19,21 @@ def load_ori(ori_path):
     ori = SpacecraftFile.parse_from_file(ori_path)
     return ori
 
-def tslice_binned_data(data, tmin, tmax):
+def tslice_binned_data(data, tmin:Time, tmax:Time):
     """Slice a binned dataset in time"""
-    idx_tmin = np.where(data.axes['Time'].edges.value >= tmin)[0][0]
-    idx_tmax_all = np.where(data.axes['Time'].edges.value <= tmax)
+    idx_tmin = np.where(data.axes['Time'].edges.value >= tmin.unix)[0][0]
+    idx_tmax_all = np.where(data.axes['Time'].edges.value <= tmax.unix)
     y = len(idx_tmax_all[0]) - 1
-    idx_tmax = np.where(data.axes['Time'].edges.value <= tmax)[0][y]
+    idx_tmax = np.where(data.axes['Time'].edges.value <= tmax.unix)[0][y]
     tsliced_data = data.slice[{'Time': slice(idx_tmin, idx_tmax)}]
     return tsliced_data
 
 
 
 
-def tslice_ori(ori, tmin, tmax):
+def tslice_ori(ori, tmin:Time, tmax:Time):
     """
     Slices time for the orientation file
     """
-    ori_min = Time(tmin, format='unix')
-    ori_max = Time(tmax, format='unix')
-    tsliced_ori = ori.source_interval(ori_min, ori_max)
+    tsliced_ori = ori.source_interval(tmin, tmax)
     return tsliced_ori
