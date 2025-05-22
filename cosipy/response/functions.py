@@ -105,10 +105,9 @@ def get_integrated_extended_model(extendedmodel, image_axis, energy_axis):
         raise ValueError
 
     integrated_flux = get_integrated_spectral_model(spectrum = extendedmodel.spectrum.main.shape, energy_axis = energy_axis)
-
+    
     npix = image_axis.npix
     coords = image_axis.pix2skycoord(np.arange(npix))
-
     normalized_map = extendedmodel.spatial_shape(coords.l.deg, coords.b.deg) / u.sr
 
     flux_map = Histogram((image_axis, energy_axis),
