@@ -104,7 +104,7 @@ def cosi_threemlfit(argv=None):
         binned_data=sliced_data
         bk_sliced_data = tslice_binned_data(bk_binned_data, tstart - 100, tstop + 100)
         bk_binned_data=bk_sliced_data
-        ori_sliced = tslice_ori(ori, tstart, tstop)
+        ori_sliced = ori.source_interval(tstart, tstop)
         ori=ori_sliced
 
     # Calculation

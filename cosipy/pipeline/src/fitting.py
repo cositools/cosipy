@@ -7,48 +7,6 @@ from threeML import Band, PointSource, Model, JointLikelihood, DataList
 from astromodels import Parameter
 from astropy import units as u
 
-
-MODEL_IDS={'Band': Band,
-           }
-
-
-def build_spectrum(model, pars, par_minvalues, par_maxvalues):
-    """
-    Builds a threeML spectrum given the model class and params
-    Args:
-        pars: list of astropy quantities
-        par_minvalues: list of minimum values, must be the same length of pars (can be None)
-        par_minvalues: list of maximum values, must be the same length of pars (can be None)
-    Return:
-        threeML spectrum with assigned par values
-    """
-
-    spectrum = model()  # Instantiate the model
-    par_list = list(spectrum.parameters.keys())  # Correctly get the keys
-
-    if len(pars) != len(par_list) :
-        raise ValueError("Number of parameters provided does not match the model's expected parameters.") #Important check
-
-    for i in range(len(pars)):
-        parameter_name = par_list[i]  # Get the parameter name (key)
-        print (parameter_name)
-        #
-        spectrum.parameters[parameter_name].unit= pars[i].unit #Adjust units
-        #
-        ##Adjust parameters range
-        #
-        if par_maxvalues is not None:
-            spectrum.parameters[parameter_name].max_value= par_maxvalues[i]
-        if par_minvalues is not None:
-            spectrum.parameters[parameter_name].min_value= par_minvalues[i]
-        #Inizializza il parametro
-        spectrum.parameters[parameter_name].value=pars[i]
-    return(spectrum)
-
-
-
-
-
 def get_fit_results(sou,bk,resp_path,ori,bkname,model):
     """
     Fits the spectrum to the data
