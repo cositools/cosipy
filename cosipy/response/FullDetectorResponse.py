@@ -140,6 +140,18 @@ class FullDetectorResponse(HealpixBase):
         return self._axes.ndim
 
     @property
+    def shape(self):
+        """
+        Shape of detector response matrix.
+
+        Returns
+        -------
+        tuple of axis sizes
+        """
+
+        return self._axes.shape
+
+    @property
     def axes(self):
         """
         List of axes.
