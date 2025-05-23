@@ -22,7 +22,10 @@ releases, features
   - separation of raw counts from effective area, which allows
     FullDetectorResponse to export the latter as needed and
 	may enable future performance improvements for code that
-	needs to compute and average PSRs
+	needs to compute and average PSRs.  The dtype of the effective 
+    area, and hence the values returned when computing PSRs etc.,
+	can now be set at load time; hence, the same response can be
+	used in float32 or float64 with no additional overhead.
   - automatic "good chunks" chunking of .h5 responses at creation time
   - HDF5 tweaks to avoid writing timestamps, so that (with support
     from a forthcoming release of histpy) the MD5 signature of an

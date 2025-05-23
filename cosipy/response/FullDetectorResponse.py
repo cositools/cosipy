@@ -49,7 +49,7 @@ class FullDetectorResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename, pa_convention=None):
+    def open(cls, filename, dtype=None, pa_convention=None):
 
         """
         Open a detector response file.
@@ -59,20 +59,24 @@ class FullDetectorResponse(HealpixBase):
         filename : str, :py:class:`~pathlib.Path`
              Path to the response file (.h5 or .rsp.gz)
 
-        file.pa_convention : str, optional
+        dtype : numpy dtype or None
+             Dtype of values to be returned when accessing response
+             contents. If None, use the type stored in the file
+
+        pa_convention : str, optional
             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ')
         """
 
         filename = Path(filename)
 
         if filename.suffix == ".h5":
-            return cls._open_h5(filename, pa_convention)
+            return cls._open_h5(filename, dtype, pa_convention)
         else:
             raise ValueError(
                 "Unsupported file format. Only .h5 and .rsp.gz extensions are supported.")
 
     @classmethod
-    def _open_h5(cls, filename, pa_convention=None):
+    def _open_h5(cls, filename, dtype=None, pa_convention=None):
         """
          Open a detector response h5 file.
 
@@ -80,6 +84,11 @@ class FullDetectorResponse(HealpixBase):
          ----------
          filename : str, :py:class:`~pathlib.Path`
              Path to HDF5 file
+
+        dtype : numpy dtype or None
+             Dtype of values to be returned when accessing response
+             contents. If None, use the type stored in the file
+             (specifically, the type of EFF_AREA)
 
          pa_convention : str, optional
              Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ')
@@ -100,7 +109,12 @@ class FullDetectorResponse(HealpixBase):
         new._unit = u.Unit(new._drm.attrs['UNIT'])
 
         # effective area for counts
-        new._eff_area = np.array(new._drm["EFF_AREA"])
+        ea = np.array(new._drm["EFF_AREA"])
+
+        # eff_area type determines return type of __getitem__
+        if dtype is not None:
+            ea = ea.astype(dtype, copy=False)
+        new._eff_area = ea
 
         # Init HealpixMap (local coordinates, main axis)
         HealpixBase.__init__(new,
