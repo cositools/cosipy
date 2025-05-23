@@ -613,17 +613,14 @@ class RspConverter():
 
             if compress:
                 compression = hdf5plugin.Bitshuffle()
-                shuffle = (counts.dtype.itemsize > 1)
             else:
                 compression = None
-                shuffle = False
 
             ds = drm.create_dataset('COUNTS',
                                     counts.shape,
                                     dtype=counts.dtype,
                                     chunks=tuple(chunk_sizes),
                                     compression=compression,
-                                    shuffle=shuffle,
                                     track_times=False)
 
             # write output for one bin on axis 0 at a time,
