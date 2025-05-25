@@ -145,16 +145,34 @@ class RspConverter():
         if elt_type is None:
             elt_type = self._get_min_elt_type(rsp_filename)
 
+        # read all info from the .rsp file
         with gzip.open(rsp_filename, "rt") as f:
 
             axes, hdr = self._read_response_header(f)
             eff_area = self._get_eff_area(axes, hdr)
 
             nbins = hdr["nbins"]
-            counts, axes = self._read_rsp(f, axes, nbins, elt_type)
+            counts = self._read_counts(f, axes, nbins, elt_type)
 
-            self._write_h5(axes, counts, eff_area, h5_filename,
-                           compress=compress, headers=hdr["headers"])
+        # reorder the axes as specified for the HDF5 file
+        ax_order = [ ax for ax in RspConverter.fd_axis_order
+                     if ax in axes.labels ]
+        idx_order = axes.label_to_index(ax_order)
+        axes = axes[idx_order]
+
+        # create the output file and determine how many initial axes
+        # constitute the index of each chunk
+        h5_file, n_idx_axes = \
+            RspConverter._create_h5(axes, elt_type, eff_area, h5_filename,
+                                    compress=compress, headers=hdr["headers"])
+
+        # transpose counts into the output axis order
+        counts = counts.transpose(idx_order)
+
+        # write the counts to the HDF5 file
+        self._write_counts(counts, n_idx_axes, h5_file)
+
+        h5_file.close()
 
         return h5_filename
 
@@ -403,6 +421,138 @@ class RspConverter():
 
 
     @staticmethod
+    def _create_h5(axes, counts_dtype, eff_area, h5_filename,
+                  compress=True, headers=None):
+        """
+        Create the HDF5 file to hold the response, writing everything
+        except the raw counts.  All data is stored in a group "DRM"
+        within the file.  This group has an attribute VERSION that
+        records the response format version.
+
+        The response is stored as raw counts (in whatever bit width
+        was chosen during .rsp reading) in the COUNTS dataset,
+        together with an effective area array, of length equal to the
+        number of Ei bins, in the EFF_AREA dataset.
+
+        The full floating-point response is therefore obtained by
+        performing
+
+          counts * axes.expand_dims(eff_area, axes.label_to_index('Ei'))
+
+        The COUNTS dataset is chunked according to the "good chunks"
+        scheme, with one chunk per (NuLambda, Ei, Pol) (i.e., one
+        chunk per CDS).  It is assumed that the output axis order can
+        be divided into n initial axes that describe the index of a
+        chunk, followed by the axes of the chunk itself.  Chunks are
+        compressed using a scheme with much lower read-time overhead
+        than gzip.
+
+        The AXES group describes the axes of the response; it should
+        be read using Axes.open() to create an Axes object.  There is
+        also an AXIS_DESCRIPTIONS group whose attributes are brief
+        textual descriptions of each named axis.
+
+        If headers is not None, it is a dictionary of header keys, each
+        giving the contents of the line with that key in the .rsp file.
+        These key/contents pairs are stored as attributes of a HEADERS
+        group.
+
+        Parameters
+        ----------
+        axes : Axes object
+          axes of response
+        counts_dtype : numpy dtype
+          integer type of counts dataset
+        eff_area : ndarray of float
+          effective area scaling for each Ei
+        h5_filename : string
+          file name to be written
+        compress : bool
+          True iff HDF5 file should use internal compression
+        headers : dict or None
+          dictionary of keys and contents of header lines other than axis info,
+          to be written to the HEADERS group
+
+        Returns
+        -------
+        f, n_idx_axes
+          f : handle to newly created HDF5 file
+          n_idx_axes : number of initial axes that index the chunk array
+
+        """
+
+        def inv_perm(p):
+            """ invert a permutation of [0...len(p) - 1] """
+            r = np.empty_like(p)
+            for i, v in enumerate(p):
+                r[v] = i
+            return r
+
+        f = h5.File(h5_filename, mode="w")
+
+        drm = f.create_group('DRM')
+        drm.attrs["VERSION"] = RspConverter.rsp_version
+
+        header_group = drm.create_group('HEADERS')
+        if headers is not None:
+            # save any header values not deducible from Axes or contents
+            for key in headers:
+                header_group.attrs[key] = headers[key]
+
+            # record how the header keys should be permuted when we
+            # reread them from the file to recover the original order
+            drm.attrs["HEADER_ORDER"] = inv_perm(np.argsort(list(headers.keys())))
+        else:
+            # no headers
+            drm.attrs["HEADER_ORDER"] = np.array([])
+
+        drm.attrs['UNIT'] = 'cm2'
+        drm.attrs['SPARSE'] = False
+
+        axes_group = drm.create_group('AXES')
+        axes.write(axes_group)
+
+        axes_desc_group = drm.create_group('AXIS_DESCRIPTIONS')
+        for label in axes.labels:
+            axes_desc_group.attrs[label] = RspConverter.axis_description[label]
+
+        # save effective area for each Ei; make it an array if scalar
+        eff_area = np.broadcast_to(eff_area, axes["Ei"].nbins)
+        drm.create_dataset('EFF_AREA', data=eff_area, track_times=False)
+
+        # Compute the recommended chunk size per axis according
+        # to the COSI "good chunks" notebook.  Basically, we store
+        # a chunk representing the CDS for each of the possible
+        # source params.
+
+        is_idx_axis = [ axis.label in ("NuLambda", "Ei", "Pol")
+                        for axis in axes ]
+
+        # number of initial axes that index the array of chunks
+        n_idx_axes = np.sum(is_idx_axis, dtype=int)
+
+        assert all(is_idx_axis[:n_idx_axes]), \
+            "Error: axes of each response chunk must be at end of counts' axis list"
+
+        chunk_sizes = [ 1 if is_idx else axis.nbins
+                        for axis, is_idx  in zip(axes, is_idx_axis) ]
+
+        if compress:
+            compression = hdf5plugin.Bitshuffle()
+        else:
+            compression = None
+
+        ds = drm.create_dataset('COUNTS',
+                                axes.shape,
+                                dtype=counts_dtype,
+                                chunks=tuple(chunk_sizes),
+                                compression=compression,
+                                track_times=False)
+
+        return (f, n_idx_axes)
+
+
+    @staticmethod
     def _get_min_elt_type(rsp_filename):
         """
         Determine the smallest integer type sufficient
@@ -442,7 +592,7 @@ class RspConverter():
 
 
     @staticmethod
-    def _read_rsp(rsp_file, axes, nbins, elt_type):
+    def _read_counts(rsp_file, axes, nbins, elt_type):
         """
         Read a dense response with nbins bins from file rsp_file.
         Create the response matrix as type elt_type, which must
@@ -496,139 +646,51 @@ class RspConverter():
 
         counts = np.reshape(counts, axes.shape, order='F')
 
-        # reorder the axes as specified for the HDF5 file
-        ax_order = [ ax for ax in RspConverter.fd_axis_order
-                     if ax in axes.labels ]
-        idx_order = axes.label_to_index(ax_order)
-        axes = axes[idx_order]
-
-        # reorder counts dimension to match reordered axes
-        counts = np.transpose(counts, idx_order)
-
-        # make sure the counts array is contiguous and C-oidered
-        # (this is very expensive if the .rsp is F-ordered, but
-        # if we don't do it, h5py will do it less efficiently when
-        # we write the output.)
-        counts = np.ascontiguousarray(counts)
-
-        return counts, axes
+        return counts
 
 
     @staticmethod
-    def _write_h5(axes, counts, eff_area, h5_filename,
-                  compress=True, headers=None):
+    def _write_counts(counts, n_idx_axes, h5_file):
         """
-        Write the response to an HDF5 file.  All data is stored in a
-        group "DRM" within the file.  This group has an attribute
-        VERSION that records the response format version.
+        Write the counts matrix to the output HDF5 file.  We
+        write the data a chunk at a time to limit memory usage
+        beyond the input counts array to a small fraction of its size.
 
-        The response is stored as raw counts (in whatever bit width
-        was chosen during .rsp reading) in the COUNTS dataset,
-        together with an effective area array, of length equal to the
-        number of Ei bins, in the EFF_AREA dataset.
-
-        The full floating-point response is therefore obtained by
-        performing
-
-          counts * axes.expand_dims(eff_area, axes.label_to_index('Ei'))
-
-        The COUNTS dataset is chunked according to the "good chunks"
-        scheme, with one chunk per (NuLambda, Ei, Pol) (i.e., one
-        chunk per CDS).  Chunks are compressed using a scheme with
-        much lower read-time overhead than gzip.
-
-        The AXES group describes the axes of the response; it should
-        be read using Axes.open() to create an Axes object.  There is
-        also an AXIS_DESCRIPTIONS group whose attributes are brief
-        textual descriptions of each named axis.
-
-        If headers is not None, it is a dictionary of header keys, each
-        giving the contents of the line with that key in the .rsp file.
-        These key/contents pairs are stored as attributes of a HEADERS
-        group.
+        The counts matrix is divided into chunks, with the first
+        n_idx_axes axes specifying the chunk index and the
+        remainder indexing into a chunk.  counts is not guaranteed
+        to be C-contiguous in memory, so we make it so one chunk
+        at a time as we write the output.
 
         Parameters
         ----------
-        axes : Axes object
-          axes of response
-        counts : ndarray of int of shape axes.shape
-          raw count data
-        eff_area : ndarray of float
-          effective area scaling for each Ei
-        h5_filename : string
-          file name to be written
-        compress : bool
-          True iff HDF5 file should use internal compression
-        headers : dict or None
-          dictionary of keys and contents of header lines other than axis info,
-          to be written to the HEADERS group
+        counts : ndarray
+          Matrix of counts to write
+        n_idx_axes : int
+          number of initial axes describing a chunk index
+        h5_file : HDF5 file handle
+          file containing counts dataset to write
+
         """
 
-        def inv_perm(p):
-            """ invert a permutation of [0...len(p) - 1] """
-            r = np.empty_like(p)
-            for i, v in enumerate(p):
-                r[v] = i
-            return r
+        ds = h5_file["DRM/COUNTS"]
 
-        with h5.File(h5_filename, mode="w") as f:
+        # Construct an iterator that enumerates the indices
+        # of each chunk, so that we can extract chunks from the
+        # counts array one at a time.
 
-            drm = f.create_group('DRM')
-            drm.attrs["VERSION"] = RspConverter.rsp_version
+        it = np.nditer(counts,
+                       flags=["multi_index"],
+                       op_axes=[list(range(n_idx_axes))])
 
-            header_group = drm.create_group('HEADERS')
-            if headers is not None:
-                # save any header values not deducible from Axes or contents
-                for key in headers:
-                    header_group.attrs[key] = headers[key]
+        while not it.finished:
+            chunk_idx = it.multi_index
 
-                # record how the header keys should be permuted when we
-                # reread them from the file to recover the original order
-                drm.attrs["HEADER_ORDER"] = inv_perm(np.argsort(list(headers.keys())))
-            else:
-                # no headers
-                drm.attrs["HEADER_ORDER"] = np.array([])
+            chunk = counts[chunk_idx]
+            chunk = np.ascontiguousarray(chunk) # to C order
+            ds[chunk_idx] = chunk
 
-            drm.attrs['UNIT'] = 'cm2'
-            drm.attrs['SPARSE'] = False
-
-            axes_group = drm.create_group('AXES')
-            axes.write(axes_group)
-
-            axes_desc_group = drm.create_group('AXIS_DESCRIPTIONS')
-            for label in axes.labels:
-                axes_desc_group.attrs[label] = RspConverter.axis_description[label]
-
-            # save effective area for each Ei; make it an array if scalar
-            eff_area = np.broadcast_to(eff_area, axes["Ei"].nbins)
-            drm.create_dataset('EFF_AREA', data=eff_area, track_times=False)
-
-            # These are the recommended chunk sizes per axis according
-            # to the COSI "good chunks" notebook.  Basically, we store
-            # a chunk representing the CDS for each of the possible
-            # source params.
-            chunk_sizes = [ 1 if axis.label in ("NuLambda", "Ei", "Pol")
-                            else axis.nbins
-                            for axis in axes ]
-
-            if compress:
-                compression = hdf5plugin.Bitshuffle()
-            else:
-                compression = None
-
-            ds = drm.create_dataset('COUNTS',
-                                    counts.shape,
-                                    dtype=counts.dtype,
-                                    chunks=tuple(chunk_sizes),
-                                    compression=compression,
-                                    track_times=False)
-
-            # write output for one bin on axis 0 at a time,
-            # which should reduce transient memory usage to
-            # at most a small fraction of the number of counts.
-            # (Axis 0 is NuLambda, which generally has many bins.)
-            for j in range(axes[0].nbins):
-                ds[j] = counts[j]
+            it.iternext()
 
 
     @staticmethod
