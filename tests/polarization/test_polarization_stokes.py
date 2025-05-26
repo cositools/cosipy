@@ -52,3 +52,7 @@ def test_stokes_polarization():
     polarization = source_photons.calculate_polarization(qs, us, bkg_qs, bkg_us, 
                                                          average_mu['mu'], show_plots=True, 
                                                          mdp=source_photons._mdp99)
+    
+    assert np.allclose([polarization['fraction']*100, polarization['fraction uncertainty']*100,
+                        polarization['angle'].angle.degree, polarization['angle uncertainty'].degree],
+                        [13.73038868282377, 2.1295224814008353, 1.4851296518928818, 0.07562763316088744], atol=[1.0, 0.5, 1.0, 0.1])
