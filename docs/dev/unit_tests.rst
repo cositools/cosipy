@@ -13,7 +13,7 @@ Running unit tests
 
 Install ``pytest`` and ``pytest-cov`` with::
 
-    pip pytest pytest-cov
+    pip install pytest pytest-cov
 
 Go to the root folder of your local working repository, the one containing the folder ``tests``. You need to clone the repository, as opposed to installing cosipy with ``pip``.
     
