@@ -7,7 +7,6 @@ from cosipy.response import PointSourceResponse, ExtendedSourceResponse
 import sys
 from mhealpy import HealpixMap
 
-
 class SourceInjector():
 
     def __init__(self, response_path, response_frame = "spacecraftframe"):
