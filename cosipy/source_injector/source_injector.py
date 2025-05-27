@@ -146,7 +146,7 @@ class SourceInjector():
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
         if make_PsiChi_plot :
-            plot, ax = injected_all.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
+            plot, ax = injected.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
         
@@ -225,7 +225,7 @@ class SourceInjector():
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
         if make_PsiChi_plot :
-            plot, ax = injected_all.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
+            plot, ax = injected.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
             
