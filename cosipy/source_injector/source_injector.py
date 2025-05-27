@@ -7,6 +7,7 @@ from cosipy.response import PointSourceResponse, ExtendedSourceResponse
 import sys
 from mhealpy import HealpixMap
 
+
 class SourceInjector():
 
     def __init__(self, response_path, response_frame = "spacecraftframe"):
@@ -74,7 +75,7 @@ class SourceInjector():
 
 
     def inject_point_source(self, spectrum, coordinate, orientation = None, source_name = "point_source",
-                            make_spectrum_plot = False, data_save_path = None, project_axes = None):
+                            make_spectrum_plot = False, make_PsiChi_plot=False ,data_save_path = None, project_axes = None):
 
         """
         Get the expected counts for a point source.
@@ -91,6 +92,8 @@ class SourceInjector():
             The name of the source (the default is `point_source`).
         make_spectrum_plot : bool, optional
             Set `True` to make the plot of the injected spectrum.
+        make_PsiChi_plot : bool, optional
+            Set `True` to make the plot of the PsiChi map (galactic).
         data_save_path : str or pathlib.Path, optional
             The path to save the injected data to a `.h5` file. This should include the file name. (the default is `None`, which means the injected data won't be saved.
         project_axes : list, optional
@@ -143,6 +146,11 @@ class SourceInjector():
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
+        if make_PsiChi_plot :
+            plot, ax = injected_all.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
+            ax.get_figure().set_figwidth(4)
+            ax.get_figure().set_figheight(3)
+        
         if data_save_path is not None:
             injected.write(data_save_path)
 
@@ -177,6 +185,7 @@ class SourceInjector():
         data_save_path=None,
         project_axes=None,
         make_spectrum_plot=False,
+        make_PsiChi_plot=False 
     ):
         """
         Get the expected counts for an extended source.
@@ -189,6 +198,8 @@ class SourceInjector():
             The name of the source (the default is `extended_source`).
         make_spectrum_plot : bool, optional
             Set `True` to make the plot of the injected spectrum.
+        make_PsiChi_plot : bool, optional
+            Set `True` to make the plot of the PsiChi map (galactic).
         data_save_path : str or pathlib.Path, optional
             The path to save the injected data to a `.h5` file. This should include the file name. (the default is `None`, which means the injected data won't be saved.
         project_axes : list, optional
@@ -214,12 +225,17 @@ class SourceInjector():
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
+        if make_PsiChi_plot :
+            plot, ax = injected_all.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
+            ax.get_figure().set_figwidth(4)
+            ax.get_figure().set_figheight(3)
+            
         if data_save_path is not None:
             injected.write(data_save_path)
 
         return injected
 
-    def inject_model(self, model, orientation = None, make_spectrum_plot = False, data_save_path = None, project_axes = None):
+    def inject_model(self, model, orientation = None, make_spectrum_plot = False, make_PsiChi_plot = True , data_save_path = None, project_axes = None):
 
         if self.response_frame == "spacecraftframe":
             if orientation == None:
@@ -275,4 +291,9 @@ class SourceInjector():
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
+        if make_PsiChi_plot :
+            plot, ax = injected_all.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
+            ax.get_figure().set_figwidth(4)
+            ax.get_figure().set_figheight(3)
+            
             return injected_all
