@@ -54,7 +54,8 @@ class ReadTraTest(UnBinnedData):
                         'Psi local':psi_loc,\
                         'Distance':dist,\
                         'Chi galactic':chi_gal,\
-                        'Psi galactic':psi_gal}
+                        'Psi galactic':psi_gal,\
+                        'CO seq':CO_seq}
         
         Note
         ----
@@ -103,7 +104,10 @@ class ReadTraTest(UnBinnedData):
         chi_gal = []
         # Measured gal angle psi (lat direction)
         psi_gal = [] 
+        # Compton seq
+        CO_seq = []
 
+        
         # Browse through tra file, select events, and sort into corresponding list:
         # Note: The Reader class from MEGAlib knows where an event starts and ends and
         # returns the Event object which includes all information of an event.
@@ -143,12 +147,17 @@ class ReadTraTest(UnBinnedData):
             chi_gal.append((Event.GetGalacticPointingRotationMatrix()*Event.Dg()).Phi())
             # Gal longitude angle corresponding to chi:
             psi_gal.append((Event.GetGalacticPointingRotationMatrix()*Event.Dg()).Theta())
-                
+            # Compton sequence (nb of interaction) 
+            CO_seq.append(Event.SequenceLength())
+
+            
         # Initialize arrays:
         erg = np.array(erg)
         tt = np.array(tt)
         et = np.array(et)
 
+        CO_seq = np.array(CO_seq)
+        
         latX = np.array(latX)
         lonX = np.array(lonX)
         # Change longitudes to from 0..360 deg to -180..180 deg
@@ -201,7 +210,8 @@ class ReadTraTest(UnBinnedData):
                         'Psi local':self.psi_loc_old,
                         'Distance':dist,
                         'Chi galactic':self.chi_gal_old,
-                        'Psi galactic':self.psi_gal_old} 
+                        'Psi galactic':self.psi_gal_old,
+                       'Compton Seq':CO_seq} 
         self.cosi_dataset = cosi_dataset
 
         # Write unbinned data to file (either fits or hdf5):
