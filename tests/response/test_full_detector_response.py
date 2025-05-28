@@ -16,11 +16,18 @@ orientation_path = test_data.path / "20280301_first_10sec.ori"
 
 def test_open():
 
-    with FullDetectorResponse.open(response_path) as response:
+    with FullDetectorResponse.open(response_path, dtype=np.float32) as response:
 
         assert response.filename == response_path
 
         assert response.ndim == 5
+
+        assert response.shape == tuple(response.axes.nbins)
+
+        assert response.eff_area.dtype == np.float32
+        assert len(response.eff_area) == response.axes['Ei'].nbins
+
+        assert response.counts.shape == response.shape
 
         assert arr_eq(response.axes.labels,
                       ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'])
