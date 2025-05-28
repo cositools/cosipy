@@ -14,6 +14,8 @@ from scoords import SpacecraftFrame
 import h5py as h5
 import hdf5plugin
 
+from tqdm.autonotebook import tqdm
+
 
 class RspConverter():
     """
@@ -75,7 +77,8 @@ class RspConverter():
                  default_norm="Linear",
                  default_emin=90,
                  default_emax=10000,
-                 alpha=0):
+                 alpha=0,
+                 quiet=False):
 
         """
         Parameters
@@ -91,15 +94,19 @@ class RspConverter():
              normalization)
 
          alpha : int
-             vlue of spectral index (for powerlaw normalization)
+             value of spectral index (for powerlaw normalization)
+
+         quiet : boolean
+             disable logging and progress bars (default False)
 
         """
+
+        self.quiet = quiet
 
         self.default_norm = default_norm
         self.default_emin = default_emin
         self.default_emax = default_emax
         self.alpha = alpha
-
 
     def convert_to_h5(self,
                       rsp_filename,
@@ -241,7 +248,7 @@ class RspConverter():
                             hdr["norm_params"] = ( float(line[2]), float(line[3]), float(line[4]) )
 
                     else:
-                        logger.info(f"norm not found in file! Assuming {hdr['norm']}")
+                        logger.warning(f"norm not found in file! Assuming {hdr['norm']}")
                         assert hdr['norm'] == 'Linear', "parameters not given for default norm"
 
                     hdr["headers"][key] = " ".join(line[1:])
@@ -288,7 +295,6 @@ class RspConverter():
         # check if the type of spectrum is known
         assert hdr["norm"] in ("powerlaw", "Mono", "Linear", "Gaussian"), \
             f"unknown normalisation {hdr['norm']}"
-        logger.info(f"normalisation is {hdr['norm']}")
 
         # check the number of simulated events is not 0
         assert hdr["nevents_sim"] != 0, \
@@ -369,7 +375,9 @@ class RspConverter():
                 0.5 * (1 + erf( (edges[1] - Gauss_mean)/(4*np.sqrt(2)) ) )
 
             assert gauss_int == 1, "The gaussian spectrum is not fully contained in this single bin!"
-            logger.info("Only one bin so we will use the Mono normalisation")
+
+            if not self.quiet:
+                logger.info("Only one bin so we will use the Mono normalisation")
 
             norm = "Mono"
 
@@ -379,19 +387,23 @@ class RspConverter():
 
                 emin, emax = hdr["norm_params"]
 
-                logger.info(f"normalisation: linear with energy range [{emin}-{emax}]")
+                if not self.quiet:
+                    logger.info(f"normalisation: linear with energy range [{emin}-{emax}]")
 
                 nperchannel_norm = ewidth / (emax - emin)
 
             case "Mono" :
-                logger.info("normalisation: mono")
+                if not self.quiet:
+                    logger.info("normalisation: mono")
 
                 nperchannel_norm = np.array([1.])
 
             case "powerlaw":
                 emin, emax = hdr["norm_params"]
 
-                logger.info(f"normalisation: powerlaw with index {self.alpha} with energy range [{emin}-{emax}]keV")
+                if not self.quiet:
+                    logger.info(f"normalisation: powerlaw with index {self.alpha} with energy range [{emin}-{emax}]keV")
+
                 # From powerlaw
                 e_lo = axes['Ei'].lower_bounds
                 e_hi = axes['Ei'].upper_bounds
@@ -552,8 +564,7 @@ class RspConverter():
         return (f, n_idx_axes)
 
 
-    @staticmethod
-    def _get_min_elt_type(rsp_filename):
+    def _get_min_elt_type(self, rsp_filename):
         """
         Determine the smallest integer type sufficient
         to hold every count a dense response file.
@@ -575,7 +586,12 @@ class RspConverter():
                 # consume the file header
                 line = line.split()
                 if len(line) > 0 and line[0] == "StartStream":
+                    nbins = int(line[1])
                     break
+
+            tq = tqdm(total=nbins,
+                      desc="Getting type for counts",
+                      disable=self.quiet)
 
             # read all the counts and keep the maximum
             b = BufferedList(rsp_file)
@@ -583,16 +599,19 @@ class RspConverter():
             while not b.eol():
                 vals = np.fromstring(b.read(), dtype=np.uint64, sep=' ')
                 vmax = np.maximum(vmax, np.max(vals))
+                tq.update(n=len(vals))
+
+            tq.close()
 
         t = np.min_scalar_type(vmax)
 
-        logger.info(f"Using element type {t} for response counts")
+        if not self.quiet:
+            logger.info(f"Using element type {t} for response counts")
 
         return t
 
 
-    @staticmethod
-    def _read_counts(rsp_file, axes, nbins, elt_type):
+    def _read_counts(self, rsp_file, axes, nbins, elt_type):
         """
         Read a dense response with nbins bins from file rsp_file.
         Create the response matrix as type elt_type, which must
@@ -633,13 +652,21 @@ class RspConverter():
         counts = np.empty(nbins, dtype=elt_type)
         b = BufferedList(rsp_file)
 
+        tq = tqdm(total=nbins,
+                  desc="Reading counts",
+                  disable=self.quiet)
+
         ptr = 0
         while not b.eol():
             vals = np.fromstring(b.read(), dtype=np.uint64, sep=' ')
+            nvals = len(vals)
             if np.any(vals > np.iinfo(counts.dtype).max):
                 raise ValueError("Count value out of range for type {counts.dtype}")
-            counts[ptr:ptr + len(vals)] = vals
-            ptr += len(vals)
+            counts[ptr:ptr + nvals] = vals
+            ptr += nvals
+            tq.update(n=nvals)
+
+        tq.close()
 
         if ptr < nbins:
             raise ValueError("Not enough values read from file")
@@ -649,8 +676,7 @@ class RspConverter():
         return counts
 
 
-    @staticmethod
-    def _write_counts(counts, n_idx_axes, h5_file):
+    def _write_counts(self, counts, n_idx_axes, h5_file):
         """
         Write the counts matrix to the output HDF5 file.  We
         write the data a chunk at a time to limit memory usage
@@ -675,6 +701,11 @@ class RspConverter():
 
         ds = h5_file["DRM/COUNTS"]
 
+        # number of chunks to write
+        tq = tqdm(total=np.prod(counts.shape[:n_idx_axes]),
+                  desc="Writing chunks",
+                  disable=self.quiet)
+
         # Construct an iterator that enumerates the indices
         # of each chunk, so that we can extract chunks from the
         # counts array one at a time.
@@ -691,7 +722,9 @@ class RspConverter():
             ds[chunk_idx] = chunk
 
             it.iternext()
+            tq.update()
 
+        tq.close()
 
     @staticmethod
     def convert_to_rsp(fullDetectorResponse,

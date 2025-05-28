@@ -17,7 +17,7 @@ def test_get_effective_area():
 
     with FullDetectorResponse.open(response_path) as response:
 
-        drm = response[0]
+        drm = response.get_pixel(0)
 
         assert drm.unit.is_equivalent('m2')
 
@@ -44,7 +44,7 @@ def test_spectral_response():
 
     with FullDetectorResponse.open(response_path) as response:
 
-        drm = response[0]
+        drm = response.get_pixel(0)
 
         spec = drm.get_spectral_response().to_dense()
 
@@ -64,7 +64,7 @@ def test_spectral_readwrite(tmp_path):
 
     with FullDetectorResponse.open(response_path) as response:
 
-        drm = response[0]
+        drm = response.get_pixel(0)
         spec = drm.get_spectral_response().to_dense()
         aeff = drm.get_effective_area()
 
@@ -80,7 +80,7 @@ def test_get_dispersion_matrix():
 
     with FullDetectorResponse.open(response_path) as response:
 
-        drm = response[0]
+        drm = response.get_pixel(0)
 
         rmf = drm.get_dispersion_matrix()
 

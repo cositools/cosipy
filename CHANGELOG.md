@@ -21,7 +21,7 @@ releases, features
 	responses)
   - separation of raw counts from effective area, which allows
     FullDetectorResponse to export the latter as needed and
-	may enable future performance improvements for code that
+    enables future performance improvements for code that
 	needs to compute and average PSRs.  The dtype of the effective 
     area, and hence the values returned when computing PSRs etc.,
 	can now be set at load time; hence, the same response can be

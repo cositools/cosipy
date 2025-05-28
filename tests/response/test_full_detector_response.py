@@ -31,7 +31,7 @@ def test_get_item():
 
     with FullDetectorResponse.open(response_path) as response:
 
-        drm = response[0]
+        drm = response.get_pixel(0, weight=1.0)
 
         assert drm.ndim == 4
 
@@ -39,6 +39,10 @@ def test_get_item():
                       ['Ei', 'Em', 'Phi', 'PsiChi'])
 
         assert drm.unit.is_equivalent('m2')
+
+        drm2 = response[0] # shorthand for get_pixel with unit weight
+
+        assert drm == drm2
 
 def test_get_interp_response():
 
