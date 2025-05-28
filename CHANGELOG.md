@@ -11,8 +11,10 @@ Developers: please keep track of notable changes here.
 HDF5 response file format has changed substantially.  The new format,
 which is *not* compatible with the .h5 response format from prior
 releases, features
-  - internal compression that decompresses chunks ~2x faster than gzip
-    while offering comparable compression on disk
+  - internal compression using BitShuffle algorithm, which gives chunk
+    access times within 50% of uncompressed for smaller responses and
+	much faster for larger ones while offering same or better compression 
+	on disk.
   - much faster conversion from .rsp.gz to .h5, with greatly reduced
     memory usage
   - ability to convert from .rsp.gz to .h5 and back to 
