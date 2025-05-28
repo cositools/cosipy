@@ -198,6 +198,24 @@ class FullDetectorResponse(HealpixBase):
 
         return self._drm['COUNTS']
 
+    @property
+    def headers(self):
+        """
+        Headers from original .rsp file
+
+        Returns
+        -------
+        dict mapping header tags (e.g. "SP") to contents
+        """
+
+        # extract the headers in the order that they were written
+        hdr_attrs = self._drm["HEADERS"].attrs
+        hdr_ids = list(hdr_attrs.keys())
+        hdr_order = self._drm.attrs["HEADER_ORDER"]
+        hdrs = { hdr_ids[idx] : hdr_attrs[hdr_ids[idx]] for idx in hdr_order }
+
+        return hdrs
+
     def get_pixel(self, pix, weight=None):
         """
         Extract the portion of the response corresponding to a

@@ -27,6 +27,11 @@ def test_open():
 
         assert response.unit.is_equivalent('m2')
 
+        hdr = response.headers
+
+        for tag in ('Version', 'NM', 'OD', 'TS', 'SA', 'SP', 'BE', 'CE'):
+            assert tag in hdr
+
 def test_get_item():
 
     with FullDetectorResponse.open(response_path) as response:

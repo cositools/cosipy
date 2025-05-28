@@ -761,11 +761,7 @@ class RspConverter():
         counts = np.array(fullDetectorResponse._drm["COUNTS"])
         counts = np.transpose(counts, idx_order)
 
-        # extract the headers in the order that they were written
-        hdr_attrs = fullDetectorResponse._drm["HEADERS"].attrs
-        hdr_ids = list(hdr_attrs.keys())
-        hdr_order = fullDetectorResponse._drm.attrs["HEADER_ORDER"]
-        hdrs = { hdr_ids[idx] : hdr_attrs[hdr_ids[idx]] for idx in hdr_order }
+        hdrs = fullDetectorResponse.headers
 
         RspConverter._write_rsp(hdrs, axes, counts, rsp_filename)
 
