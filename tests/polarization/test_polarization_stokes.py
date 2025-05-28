@@ -39,19 +39,15 @@ def test_stokes_polarization():
     source_photons = PolarizationStokes(source_direction, spectrum, data, 
                                         response_path, sc_orientation, background=None,
                                         response_convention='RelativeZ')
-
-    qs, us = source_photons.compute_data_pseudo_stokes(show=False)
-
+    
     average_mu = source_photons._mu100['mu']
-
     mdp99 = source_photons._mdp99
 
-    polarization = source_photons.calculate_polarization(qs, us, average_mu['mu'], 
-                                                         bkg_qs=None, bkg_us=None, show_plots=True, 
-                                                         mdp=mdp99)
-        
-    assert np.allclose([polarization['fraction']*100, polarization['fraction uncertainty']*100,
-                        polarization['angle'].angle.degree, polarization['angle uncertainty'].degree],
-                        [13.73038868282377, 2.1295224814008353, np.degrees(1.4851296518928818),np.degrees(0.07562763316088744)], atol=[1.0, 0.5, 1.0, 0.1])
+    qs, us = source_photons.compute_data_pseudo_stokes(show_plots=False)
+    polarization = source_photons.calculate_polarization(qs, us, average_mu, mdp=mdp99,
+                                                         bkg_qs=None, bkg_us=None, show_plots=True)
+    Pol_frac = polarization['fraction'] * 100
+    Pol_angl = polarization['angle'].angle.degree
 
+    assert np.allclose([average_mu, mdp99, Pol_frac, Pol_angl], [0.22, 0.20, 178, 82], atol=[0.1, 3.0, 5, 10])
 

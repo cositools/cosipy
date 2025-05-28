@@ -1016,7 +1016,6 @@ class PolarizationStokes():
         pol_U = np.sum(us) / mu
         print('I, Q, U, mu', pol_I, pol_Q, pol_U, mu)
         
-        
         self.QN = pol_Q/pol_I 
         self.UN = pol_U/pol_I 
         print('Q, U (unsubtracted:)', self.QN, self.UN)
@@ -1048,7 +1047,9 @@ class PolarizationStokes():
             # print('I unpolarized:', unpol_I)
             print('Q, U unpolarized:', unpol_Q/unpol_I, unpol_U/unpol_I)
             unpol_modulation = mu * np.sqrt(unpol_Q**2. + unpol_U**2.) / unpol_I
-            unpol_sQ = np.sqrt((2. - unpol_modulation**2.) / ((unpol_I - 1.) * mu**2.))  
+            unpol_sI = np.sqrt(unpol_I)
+            unpol_sQ = np.sqrt((2 - unpol_modulation**2) * unpol_sI**2 / unpol_I**2 / mu**2)
+            unpol_sU = np.sqrt((2 - unpol_modulation**2) * unpol_sI**2 / unpol_I**2 / mu**2)
             print('Q, U unpolarized uncertainty:', unpol_sQ*100, '%')
 
             self.QN = np.sum([pol_Q/pol_I, unpol_Q/unpol_I * BACKSCAL])
@@ -1057,25 +1058,25 @@ class PolarizationStokes():
             print('Q, U, subtracted:', self.QN, self.UN)
 
 
+        pol_sI = np.sqrt(I)
+        pol_sQ = np.sqrt((2 - self.QN**2) * pol_sI**2 / I**2 / mu**2)
+        pol_sU = np.sqrt((2 - self.UN**2) * pol_sI**2 / I**2 / mu**2)
+        pol_covQNUN = - (self.QN * self.UN) / I**2
+        print('Q/I, U/I, uncertainty:', pol_sQ, pol_sU, np.sqrt(pol_sQ))
+
+        # Reconstructed polarization fraction uncertainty: See eq 36 in Kislat 2015
         polarization_fraction = np.sqrt(self.QN**2. + self.UN**2.)
+        m = mu * polarization_fraction 
+        polarization_fraction_uncertainty = np.sqrt((2 - m**2)/((I - 1) * mu**2))
         pol_PD = polarization_fraction * 100
+        pol_1sigmaPD = polarization_fraction_uncertainty * 100
+        
+        # Reconstructed polarization angle uncertainty: See eq 37 in Kislat 2015
         pol_PA = 0.5 * np.arctan2(self.UN, self.QN)
         # Convert to 0 to 180 deg (just the convention)
         if pol_PA < 0:
             pol_PA += np.pi 
 
-        Qa, Ua = rotate_points_to_x_axis(polarization_fraction, pol_PA)
-        # print('Q/I, U/I:', Qa, Ua)
-        pol_sQ = np.sqrt((2/mu**2 - self.QN**2) / I**2)
-        pol_sU = np.sqrt((2/mu**2 - self.UN**2) / I**2)
-        pol_covQNUN = - (self.QN * self.UN) / I**2
-        print('Q/I, U/I, uncertainty:', pol_sQ, pol_sU, np.sqrt(pol_sQ))
-
-        # Reconstructed polarization fraction uncertainty: See eq 36 in Kislat 2015
-        m = mu * polarization_fraction 
-        polarization_fraction_uncertainty = np.sqrt((2 - m**2)/((I - 1) * mu**2))
-        pol_1sigmaPD = polarization_fraction_uncertainty * 100
-        # Reconstructed polarization angle uncertainty: See eq 37 in Kislat 2015
         pol_1sigmaPA = np.degrees(1 / (m * np.sqrt(2. * (I - 1.))))
         print('\n ############################## \n')
         print('     PD: %.2f'%(pol_PD), '+/- %.2f'%(pol_1sigmaPD), '%') 
@@ -1125,10 +1126,10 @@ class PolarizationStokes():
                 plt.gca().add_artist(unpol_c2)
                 plt.gca().add_artist(unpol_c3)
 
-            plt.plot(Qa, Ua, 'o', markersize=5, color='red', label=label_data)
-            pol_c = plt.Circle((Qa, Ua), radius=polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
-            pol_c2 = plt.Circle((Qa, Ua), radius=2*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
-            pol_c3 = plt.Circle((Qa, Ua), radius=3*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
+            plt.plot(self.QN, self.UN, 'o', markersize=5, color='red', label=label_data)
+            pol_c = plt.Circle((self.QN, self.UN), radius=polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
+            pol_c2 = plt.Circle((self.QN, self.UN), radius=2*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
+            pol_c3 = plt.Circle((self.QN, self.UN), radius=3*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
             plt.gca().add_artist(pol_c)
             plt.gca().add_artist(pol_c2)
             plt.gca().add_artist(pol_c3)
