@@ -11,11 +11,12 @@ def test_convert_rsp_to_h5(tmp_path):
 
     tmp_h5_filename = tmp_path / "fdr.h5"
 
-    c = RspConverter()
+    c = RspConverter(bufsize = 100000)
 
     c.convert_to_h5(rspgz_response_path,
                     h5_filename = tmp_h5_filename,
                     overwrite = True)
+
 
     fdr = FullDetectorResponse.open(h5_response_path)
     fdr2 = FullDetectorResponse.open(tmp_h5_filename)
@@ -23,8 +24,27 @@ def test_convert_rsp_to_h5(tmp_path):
     h1 = fdr.to_dr()
     h2 = fdr2.to_dr()
 
+    fdr.close()
+    fdr2.close()
+
     assert h1 == h2
 
+
+    c.convert_to_h5(rspgz_response_path,
+                    h5_filename = tmp_h5_filename,
+                    overwrite = True,
+                    compress=False)
+
+    fdr = FullDetectorResponse.open(h5_response_path)
+    fdr2 = FullDetectorResponse.open(tmp_h5_filename)
+
+    h1 = fdr.to_dr()
+    h2 = fdr2.to_dr()
+
+    fdr.close()
+    fdr2.close()
+
+    assert h1 == h2
 
 def test_convert_h5_to_rsp(tmp_path):
 
@@ -33,7 +53,7 @@ def test_convert_h5_to_rsp(tmp_path):
 
     fdr = FullDetectorResponse.open(h5_response_path)
 
-    c = RspConverter()
+    c = RspConverter(bufsize = 100000)
 
     c.convert_to_rsp(fdr, tmp_rsp_filename, overwrite=True)
 
@@ -43,5 +63,8 @@ def test_convert_h5_to_rsp(tmp_path):
 
     h1 = fdr.to_dr()
     h2 = fdr2.to_dr()
+
+    fdr.close()
+    fdr2.close()
 
     assert h1 == h2

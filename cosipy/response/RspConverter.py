@@ -78,7 +78,8 @@ class RspConverter():
                  default_emin=90,
                  default_emax=10000,
                  alpha=0,
-                 quiet=False):
+                 quiet=False,
+                 bufsize = 10000000):
 
         """
         Parameters
@@ -99,9 +100,13 @@ class RspConverter():
          quiet : boolean
              disable logging and progress bars (default False)
 
+        bufsize: int
+             rough size of buffer to be used for reading/writing counts
+
         """
 
         self.quiet = quiet
+        self.bufsize = bufsize
 
         self.default_norm = default_norm
         self.default_emin = default_emin
@@ -146,7 +151,7 @@ class RspConverter():
         if h5_filename is None:
             h5_filename = str(rsp_filename).replace(".rsp.gz", ".h5")
 
-        if Path(h5_filename).exists and not overwrite:
+        if Path(h5_filename).exists() and not overwrite:
             raise RuntimeError(f"Not overwriting existing HDF5 file {h5_filename}")
 
         if elt_type is None:
@@ -170,8 +175,8 @@ class RspConverter():
         # create the output file and determine how many initial axes
         # constitute the index of each chunk
         h5_file, n_idx_axes = \
-            RspConverter._create_h5(axes, elt_type, eff_area, h5_filename,
-                                    compress=compress, headers=hdr["headers"])
+            self._create_h5(axes, elt_type, eff_area, h5_filename,
+                            compress=compress, headers=hdr["headers"])
 
         # transpose counts into the output axis order
         counts = counts.transpose(idx_order)
@@ -594,7 +599,7 @@ class RspConverter():
                       disable=self.quiet)
 
             # read all the counts and keep the maximum
-            b = BufferedList(rsp_file)
+            b = BufferedList(rsp_file, bufsize=self.bufsize)
             vmax = np.uint64(0)
             while not b.eol():
                 vals = np.fromstring(b.read(), dtype=np.uint64, sep=' ')
@@ -650,7 +655,7 @@ class RspConverter():
         """
 
         counts = np.empty(nbins, dtype=elt_type)
-        b = BufferedList(rsp_file)
+        b = BufferedList(rsp_file, bufsize=self.bufsize)
 
         tq = tqdm(total=nbins,
                   desc="Reading counts",
@@ -726,8 +731,8 @@ class RspConverter():
 
         tq.close()
 
-    @staticmethod
-    def convert_to_rsp(fullDetectorResponse,
+    def convert_to_rsp(self,
+                       fullDetectorResponse,
                        rsp_filename,
                        overwrite = False):
         """
@@ -747,7 +752,7 @@ class RspConverter():
 
         """
 
-        if Path(rsp_filename).exists and not overwrite:
+        if Path(rsp_filename).exists() and not overwrite:
             raise RuntimeError(f"Not overwriting existing .rsp.gz file {rsp_filename}")
 
         # reorder axes if needed to match the expected order for an .rsp file
@@ -763,11 +768,10 @@ class RspConverter():
 
         hdrs = fullDetectorResponse.headers
 
-        RspConverter._write_rsp(hdrs, axes, counts, rsp_filename)
+        self._write_rsp(hdrs, axes, counts, rsp_filename)
 
 
-    @staticmethod
-    def _write_rsp(headers, axes, counts, rsp_filename):
+    def _write_rsp(self, headers, axes, counts, rsp_filename):
         """
         Write an .rsp.gz file with all necessary info.
 
@@ -814,7 +818,7 @@ class RspConverter():
                     f.write(f"AT 1D BinEdges\n")
 
                     edges = np.array_str(axis.edges.value,
-                                         max_line_width=1000000000).strip("[] ")
+                                         max_line_width=100000000).strip("[] ")
                     f.write(f"AD {edges}\n")
 
             # write counts
@@ -823,13 +827,14 @@ class RspConverter():
 
             # counts are printed one one line in FORTRAN order
             cts = np.ravel(counts, order='F')
-            chunksize = 10000000
+            chunksize = self.bufsize//2 # shrink to allow for spaces
+
             s = 0
             while s < len(cts):
                 vals = cts[s:s+chunksize]
                 s += len(vals)
                 f.write("".join((f"{str(v)} " for v in vals)))
-                f.write("\n")
+            f.write("\n")
 
             f.write("StopStream\n")
 
@@ -889,6 +894,7 @@ class BufferedList:
                     # last buffer did not end with separator; read to
                     # next separator and move those chars to s.
                     loc = self.buf.find(self.sep)
+
                     if loc != -1:
                         s += self.buf[:loc]
                         self.buf = self.buf[loc+1:]
