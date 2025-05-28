@@ -3,7 +3,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 from scoords import SpacecraftFrame
 
-from cosipy.polarization import PolarizationStokes
+from cosipy.polarization.polarization_stokes import PolarizationStokes
 from cosipy.spacecraftfile import SpacecraftFile
 from cosipy import UnBinnedData
 from cosipy.threeml.custom_functions import Band_Eflux
@@ -19,7 +19,7 @@ a = 10. * u.keV
 b = 10000. * u.keV
 alpha = -1.
 beta = -2.
-ebreak = 350. * u.keV
+ebreak = 350. * u.keV 
 K = 50. / u.cm / u.cm / u.s
 spectrum = Band_Eflux(a = a.value,
                       b = b.value,
@@ -34,25 +34,24 @@ spectrum.K.unit = K.unit
 
 source_direction = SkyCoord(0, 70, representation_type='spherical', frame=SpacecraftFrame(attitude=attitude), unit=u.deg)
 
-# bin_edges = Angle(np.linspace(-np.pi, np.pi, 10), unit=u.rad)
-
-background = {'Psi local': [0, 0], 'Chi local': [0, 0], 'Psi galactic': [0, 0], 'Chi galactic': [0, 0], 'Energies': [300., 300.], 'TimeTags': [1., 2.]}
-
 def test_stokes_polarization():
 
-    source_photons = PolarizationStokes(source_direction, spectrum, data, background, 
-                                        response_path, sc_orientation, 
-                                        response_convention='RelativeX')
+    source_photons = PolarizationStokes(source_direction, spectrum, data, 
+                                        response_path, sc_orientation, background=None,
+                                        response_convention='RelativeZ')
 
-    qs, us = source_photons.compute_data_pseudo_stokes(show=True)
-    bkg_qs, bkg_us = source_photons.compute_background_pseudo_stokes(show=True)
+    qs, us = source_photons.compute_data_pseudo_stokes(show=False)
 
-    average_mu = source_photons.calculate_average_mu100(show_plots=True) 
+    average_mu = source_photons._mu100['mu']
 
-    polarization = source_photons.calculate_polarization(qs, us, bkg_qs, bkg_us, 
-                                                         average_mu['mu'], show_plots=True, 
-                                                         mdp=source_photons._mdp99)
-    
+    mdp99 = source_photons._mdp99
+
+    polarization = source_photons.calculate_polarization(qs, us, average_mu['mu'], 
+                                                         bkg_qs=None, bkg_us=None, show_plots=True, 
+                                                         mdp=mdp99)
+        
     assert np.allclose([polarization['fraction']*100, polarization['fraction uncertainty']*100,
                         polarization['angle'].angle.degree, polarization['angle uncertainty'].degree],
-                        [13.73038868282377, 2.1295224814008353, 1.4851296518928818, 0.07562763316088744], atol=[1.0, 0.5, 1.0, 0.1])
+                        [13.73038868282377, 2.1295224814008353, np.degrees(1.4851296518928818),np.degrees(0.07562763316088744)], atol=[1.0, 0.5, 1.0, 0.1])
+
+
