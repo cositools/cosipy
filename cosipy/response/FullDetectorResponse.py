@@ -180,24 +180,40 @@ class FullDetectorResponse(HealpixBase):
         Effective area of bins with each Ei.
 
         Returns
-        --------
+        -------
         :py:class:`np.ndarray`
         """
 
         return self._eff_area
 
-    def __getitem__(self, pix):
+    @property
+    def counts(self):
+        """
+        Raw counts array on disk.
+
+        Returns
+        -------
+        :py:class:`h5py.dataset`
+        """
+
+        return self._drm['COUNTS']
+
+    def get_pixel(self, pix, weight=None):
         """
         Extract the portion of the response corresponding to a
-        single source sky pixel on the NuLambda axis.
+        single source sky pixel on the NuLambda axis, optionally
+        weighting the result by a given weight.
 
-        NB: despite using [] syntax, this is *not* a general
-        array accessor for the FDR.
+        Specifying the weight as an argument lets us apply it to the
+        eff_area, rather than to the entire slice of counts, for
+        greater efficiency.
 
         Parameters
         ----------
         pix : integer
            pixel index to extract
+        weight : optional float or Quantity
+           weight to apply to the response slice
 
         Returns
         -------
@@ -206,20 +222,33 @@ class FullDetectorResponse(HealpixBase):
 
         """
 
-        if not isinstance(pix, (int, np.integer)):
-            raise IndexError("Pixel index must be an integer")
-
         rest_axes = self._axes[1:]
 
         counts = self._drm['COUNTS'][pix]
 
-        data = counts * rest_axes.expand_dims(self._eff_area,
-                                              rest_axes.label_to_index("Ei"))
+        w = self._eff_area
+        unit = self.unit
+
+        if weight is not None:
+            if isinstance(weight, Quantity):
+                w = w * weight.value
+                unit *= weight.unit
+            else:
+                w = w * weight
+
+        data = counts * rest_axes.expand_dims(w, rest_axes.label_to_index("Ei"))
 
         return DetectorResponse(rest_axes,
                                 contents = data,
-                                unit = self.unit,
+                                unit = unit,
                                 copy_contents = False)
+
+    def __getitem__(self, pix):
+
+        if not isinstance(pix, (int, np.integer)):
+            raise IndexError("Pixel index must be an integer")
+
+        return self.get_pixel(pix)
 
     def to_dr(self):
         """
@@ -294,7 +323,7 @@ class FullDetectorResponse(HealpixBase):
                               unit=self.unit)
 
         for p, w in zip(pixels, weights):
-            dr += self[p]*w
+            dr += self.get_pixel(p, weight=w)
 
         return dr
 
@@ -345,7 +374,7 @@ class FullDetectorResponse(HealpixBase):
                                       unit=u.cm*u.cm*u.s)
 
             for p in np.nonzero(exposure_map)[0]:
-                psr += self[p] * exposure_map[p]
+                psr += self.get_pixel(p, weight=exposure_map[p])
 
             return psr
 
@@ -380,7 +409,7 @@ class FullDetectorResponse(HealpixBase):
                 loc_nulambda_pixels = np.array(self._axes['NuLambda'].find_bin(coord),
                                                ndmin = 1)
 
-                dr_pix = Histogram.concatenate(coords_axis, [self[i] for i in loc_nulambda_pixels])
+                dr_pix = Histogram.concatenate(coords_axis, [self.get_pixel(i) for i in loc_nulambda_pixels])
 
                 dr_pix.axes['PsiChi'].coordsys = SpacecraftFrame(attitude = att)
 
