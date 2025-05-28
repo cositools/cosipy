@@ -85,7 +85,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
 
         if isinstance(rsp, FullDetectorResponse):
             logger.info('Loading the response matrix onto your computer memory...')
-            new._image_response = rsp.to_histogram()
+            new._image_response = rsp.to_dr()
             logger.info('Finished')
         elif isinstance(rsp, Histogram):
             new._image_response = rsp

@@ -187,6 +187,24 @@ class FullDetectorResponse(HealpixBase):
         return self._eff_area
 
     def __getitem__(self, pix):
+        """
+        Extract the portion of the response corresponding to a
+        single source sky pixel on the NuLambda axis.
+
+        NB: despite using [] syntax, this is *not* a general
+        array accessor for the FDR.
+
+        Parameters
+        ----------
+        pix : integer
+           pixel index to extract
+
+        Returns
+        -------
+        A DetectorResponse containing the specified part of the full
+        response.
+
+        """
 
         if not isinstance(pix, (int, np.integer)):
             raise IndexError("Pixel index must be an integer")
@@ -199,25 +217,29 @@ class FullDetectorResponse(HealpixBase):
                                               rest_axes.label_to_index("Ei"))
 
         return DetectorResponse(rest_axes,
-                                contents=data,
-                                unit=self.unit,
-                                copy_contents=False)
+                                contents = data,
+                                unit = self.unit,
+                                copy_contents = False)
 
-    def to_histogram(self):
+    def to_dr(self):
         """
-        Return a Histogram containing the response, with matching
-        axes and units.
+        Load the full response in memory.
+
+        Returns
+        -------
+        a DetectorResponse containing the full response.
 
         """
+
         counts = np.array(self._drm['COUNTS'])
 
-        contents = counts * self._axes.expand_dims(self._eff_area,
+        data = counts * self._axes.expand_dims(self._eff_area,
                                                self._axes.label_to_index("Ei"))
 
-        return Histogram(self._axes,
-                         contents = contents,
-                         unit = self._unit,
-                         copy_contents = False)
+        return DetectorResponse(self._axes,
+                                contents = data,
+                                unit = self._unit,
+                                copy_contents = False)
 
     def close(self):
         """
@@ -271,9 +293,7 @@ class FullDetectorResponse(HealpixBase):
         dr = DetectorResponse(self._axes[1:],
                               unit=self.unit)
 
-
         for p, w in zip(pixels, weights):
-
             dr += self[p]*w
 
         return dr

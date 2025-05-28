@@ -20,8 +20,8 @@ def test_convert_rsp_to_h5(tmp_path):
     fdr = FullDetectorResponse.open(h5_response_path)
     fdr2 = FullDetectorResponse.open(tmp_h5_filename)
 
-    h1 = fdr.to_histogram()
-    h2 = fdr2.to_histogram()
+    h1 = fdr.to_dr()
+    h2 = fdr2.to_dr()
 
     assert h1 == h2
 
@@ -41,7 +41,7 @@ def test_convert_h5_to_rsp(tmp_path):
 
     fdr2 = FullDetectorResponse.open(tmp_h5_filename)
 
-    h1 = fdr.to_histogram()
-    h2 = fdr2.to_histogram()
+    h1 = fdr.to_dr()
+    h2 = fdr2.to_dr()
 
     assert h1 == h2
