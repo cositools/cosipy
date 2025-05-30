@@ -215,3 +215,23 @@ tutorials:
           unzip: True
           checksum: 9c1309efec9a37afdcd49b7a443b280b
 
+    galactic_diffuse_continuum:
+      notebook: spectral_fits/galactic_diffuse_continuum/galdiff_continuum.ipynb
+      ancillary_files:
+        - spectral_fits/galactic_diffuse_continuum/galdiff.yaml
+      wasabi_files:
+        COSI-SMEX/DC3/Data/Orientation/DC3_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.ori:
+          checksum: e5e71e3528e39b855b0e4f74a1a2eebe
+        COSI-SMEX/DC3/Data/Backgrounds/Ge/AlbedoPhotons_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
+          checksum: 191a451ee597fd2e4b1cf237fc72e6e2
+        COSI-SMEX/DC3/Data/Sources/GalTotal_SA100_F98_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
+          checksum: 9fda5a7b15a90358abc2b886979f9fef
+        COSI-SMEX/cosipy_tutorials/galactic_diffuse_continuum/total_healpix_57_SA100_F98_example.gz:
+          checksum: 82cbeb9a86d86637f19f31c762f379fc
+        COSI-SMEX/DC3/Data/Responses/ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse_nside8.area.good_chunks.h5.zip:
+          unzip: True
+          checksum: b8e1772c9bca3d0726f0c0956ccb0786
+        COSI-SMEX/DC3/Data/Responses/extended_source_response/extended_source_response_continuum_merged.h5.gz:
+          unzip: True
+          checksum: 92ed7e22b1dafce6b57611d5cdb6cf70
+
