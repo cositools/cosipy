@@ -31,6 +31,8 @@ tutorials:
           unzip: True # Optional. False by default
           #unzip_output: # Optional, if the unzipped file name is different from just removing the .zip or .gz
 
+    test_must_fail_magic:
+       notebook: test/test_must_fail_magic.ipynb
 
     dataIO:
       notebook: DataIO/DataIO_example.ipynb
