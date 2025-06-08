@@ -1,0 +1,35 @@
+#----------#
+
+# Full path to data file:
+data_file: "Output/GalacticScan.inc1.id1.extracted.filtered.tra.gz"
+
+# Full path to ori file:
+ori_file: "/discover/nobackup/ckarwin/COSI/Data_Challenge/DC3/orientation_files/DC3_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.ori"
+
+# Full path to mass model (this needs to be moved to housekeeping_data_io.yaml)
+geo_file: "/discover/nobackup/ckarwin/COSI/Data_Challenge/DC3/mass_model/massmodel-cosi-dc3/COSISMEX.sim.geo.setup"
+
+# Event selections:
+use_ps: 'false' # 'true' for point source selection or 'false' for all sky
+coordinates: 1 # 1 for Galactic
+ps_glon: 263.552 # Galactic longitude of ps location [deg]
+ps_glat: -2.787 # Galactic latitude of ps location [deg]
+ps_rad_max: 20 # maximum radial window (= ARM for Compton) [deg]
+time_mode: 0 # 0 for all time, 1 for time selection
+tmin: 1835487300.0 # minimum time [s]
+tmax: 1843467255.0  # maximum time [s]
+emin: 0 # minimum energy [keV]
+emax: 5000 # maximum energy [keV]
+
+# Data I/O:
+write_unbinned_data: True # True of False
+unbinned_output: 'fits' # 'fits' or 'hdf5'
+
+# Data binning:
+time_bins: [1835487300.0,1843467255.0] # Takes int for bin size in seconds or array for bin edges (for non-uniform bins). 
+energy_bins: [100., 158.489, 251.189, 398.107, 630.957, 1000., 1584.89, 2511.89, 3981.07, 6309.57, 10000.] # Takes list. Needs to match response.
+phi_pix_size: 6.0 # binning of Compton scattering anlge [deg]
+nside: 8 # healpix binning of psi chi local
+scheme: 'ring' # healpix binning of psi chi local
+
+#----------#
