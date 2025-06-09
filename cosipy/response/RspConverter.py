@@ -84,7 +84,6 @@ class RspConverter():
         """
         Parameters
         ----------
-
          default_norm : str
              type of normalisation, if not specified in header;
              one of {powerlaw, Mono, Linear, Gaussian}
@@ -112,6 +111,7 @@ class RspConverter():
         self.default_emin = default_emin
         self.default_emax = default_emax
         self.alpha = alpha
+
 
     def convert_to_h5(self,
                       rsp_filename,
@@ -143,8 +143,7 @@ class RspConverter():
 
         Returns
         -------
-        name of new response file (will be same as input,
-          but with extension .h5 instead of .rsp.gz.
+        string : name of output file
 
         """
 
