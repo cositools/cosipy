@@ -218,9 +218,8 @@ tutorials:
           checksum: 9fda5a7b15a90358abc2b886979f9fef
         COSI-SMEX/cosipy_tutorials/galactic_diffuse_continuum/total_healpix_57_SA100_F98_example.gz:
           checksum: 82cbeb9a86d86637f19f31c762f379fc
-        COSI-SMEX/DC3/Data/Responses/ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse_nside8.area.good_chunks.h5.zip:
-          unzip: True
-          checksum: b8e1772c9bca3d0726f0c0956ccb0786
+        COSI-SMEX/develop/Data/Responses/ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5:
+          checksum: 7121f094be50e7bfe9b31e53015b0e85
         COSI-SMEX/DC3/Data/Responses/extended_source_response/extended_source_response_continuum_merged.h5.gz:
           unzip: True
           checksum: 92ed7e22b1dafce6b57611d5cdb6cf70
