@@ -106,6 +106,9 @@ class FullDetectorResponse(HealpixBase):
 
         new._axes = Axes.open(new._drm["AXES"])
 
+        if new._axes[0].label != "NuLambda":
+            raise RuntimeError("Full detector response must have NuLambda as its first dimension")
+
         new._unit = u.Unit(new._drm.attrs['UNIT'])
 
         # effective area for counts
