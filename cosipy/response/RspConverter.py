@@ -824,7 +824,7 @@ class RspConverter():
 
             f.write(f"StartStream {counts.size}\n")
 
-            # counts are printed one one line in FORTRAN order
+            # counts are printed on one line in FORTRAN order
             cts = np.ravel(counts, order='F')
             chunksize = self.bufsize//2 # shrink to allow for spaces
 
