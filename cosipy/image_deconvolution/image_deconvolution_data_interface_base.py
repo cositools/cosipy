@@ -38,7 +38,7 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
         It returns the product of the input histogram with the transonse matrix of the response function.
     - calc_bkg_model_product(key, dataspace_histogram)
         It returns the product of an input histogram with a background model with the given key.
-    - calc_likelihood(expectation)
+    - calc_log_likelihood(expectation)
         It returns the log-likelihood with the given histogram of expected counts.
 
     The basic idea of this class is to separate the data structure
@@ -152,7 +152,7 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
         raise NotImplementedError
     
     @abstractmethod
-    def calc_loglikelihood(self, expectation):
+    def calc_log_likelihood(self, expectation):
         """
         Calculate log-likelihood from given expected counts or model/expectation.
 
@@ -164,6 +164,6 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
         Returns
         -------
         float
-            Log-likelood
+            Log-likelihood
         """
         raise NotImplementedError

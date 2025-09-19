@@ -6,29 +6,25 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 import astropy.units as u
-from mpi4py import MPI
+
+try:
+    from mpi4py import MPI
+    mpi4py_imported = True
+except ModuleNotFoundError as e:
+    mpi4py_imported = False
+    mpi4py_imported_error = e
+
 import h5py
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
 from cosipy.response import FullDetectorResponse
 from cosipy.image_deconvolution import ImageDeconvolutionDataInterfaceBase
 
-# Define npix in NuLambda and PsiChi
-# TODO: information is contained in FullDetectorResponse 
-# and will be supported at a later release
-NUMROWS = 3072
-NUMCOLS = 3072
-MASTER = 0
-
-# Define data paths
-DRM_DIR = Path('/Users/penguin/Documents/Grad School/Research/COSI/COSIpy/docs/tutorials/data')
-DATA_DIR = Path('/Users/penguin/Documents/Grad School/Research/COSI/COSIpy/docs/tutorials/image_deconvolution/511keV/GalacticCDS')
-
 def load_response_matrix(comm, start_col, end_col, filename):
     '''
     Response matrix
     '''
-    with h5py.File(DRM_DIR / filename, "r", driver="mpio", comm=comm) as f1:
+    with h5py.File(filename, "r", driver="mpio", comm=comm) as f1:
         dataset = f1['hist/contents']
         R = dataset[1:-1, 1:-1, 1:-1, 1:-1, start_col+1:end_col+1]
 
@@ -67,7 +63,7 @@ def load_response_matrix_transpose(comm, start_row, end_row, filename):
     '''
     Response matrix tranpose
     '''
-    with h5py.File(DRM_DIR / filename, "r", driver="mpio", comm=comm) as f1:
+    with h5py.File(filename, "r", driver="mpio", comm=comm) as f1:
         dataset = f1['hist/contents']
         RT = dataset[start_row+1:end_row+1, 1:-1, 1:-1, 1:-1, 1:-1]
 
@@ -107,7 +103,10 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
     A subclass of ImageDeconvolutionDataInterfaceBase for the COSI data challenge 2.
     """
 
-    def __init__(self, event_filename, bkg_filename, drm_filename, name = None, comm = None):
+    def __init__(self, event_filename, bkg_filename, bkg_norm_label, drm_filename, name = None, comm = None):
+
+        if not mpi4py_imported:
+            raise RuntimeError(f"Can't run with MPI. Import error: {mpi4py_imported_error}")
 
         ImageDeconvolutionDataInterfaceBase.__init__(self, name)
 
@@ -124,7 +123,7 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
                 self.parallel = True
                 logger.info('Image Deconvolution set to run in parallel mode')
 
-        self._MPI_init(event_filename, bkg_filename, drm_filename, comm)
+        self._MPI_init(event_filename, bkg_filename, bkg_norm_label, drm_filename, comm)
         
         # None if using Galactic CDS, required if using local CDS
         self._coordsys_conv_matrix = None 
@@ -132,32 +131,40 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         # Calculate exposure map
         self._calc_exposure_map()
 
-    def _MPI_load_data(self, event_filename, bkg_filename, drm_filename, comm):
+    def _MPI_load_data(self, event_filename, bkg_filename, bkg_norm_label, drm_filename, comm):
 
         numtasks = self.numtasks
         taskid = self.taskid
 
         print(f'TaskID = {taskid}, Number of tasks = {numtasks}')
 
+        # Get number of NuLambda and PsiChi pixels
+        # DC2 PSR has underflow/overflow bins (so -2)
+        # Axes are NuLambda, Em, Ei, Phi, PsiChi
+        with h5py.File(drm_filename, "r", driver="mpio", comm=comm) as f1:
+            dataset = f1['hist/contents']
+            nrows = dataset.shape[0] - 2
+            ncols = dataset.shape[4] - 2
+
         # Calculate the indices in Rij that the process has to parse. My hunch is that calculating these scalars individually will be faster than the MPI send broadcast overhead.
-        self.averow = NUMROWS // numtasks
-        self.extra_rows = NUMROWS % numtasks
+        self.averow = nrows // numtasks
+        self.extra_rows = nrows % numtasks
         self.start_row = taskid * self.averow
-        self.end_row = (taskid + 1) * self.averow if taskid < (numtasks - 1) else NUMROWS
+        self.end_row = (taskid + 1) * self.averow if taskid < (numtasks - 1) else nrows
 
         # Calculate the indices in Rji, i.e., Rij transpose, that the process has to parse.
-        self.avecol = NUMCOLS // numtasks
-        self.extra_cols = NUMCOLS % numtasks
+        self.avecol = ncols // numtasks
+        self.extra_cols = ncols % numtasks
         self.start_col = taskid * self.avecol
-        self.end_col = (taskid + 1) * self.avecol if taskid < (numtasks - 1) else NUMCOLS
+        self.end_col = (taskid + 1) * self.avecol if taskid < (numtasks - 1) else ncols
 
         # Load event_binned_data
-        event = Histogram.open(DATA_DIR / event_filename)
+        event = Histogram.open(event_filename)
         self._event = event.project(['Em', 'Phi', 'PsiChi']).to_dense()
 
         # Load dict_bg_binned_data
-        bkg = Histogram.open(DATA_DIR / bkg_filename)
-        self._bkg_models = {"total": bkg.project(['Em', 'Phi', 'PsiChi']).to_dense()}
+        bkg = Histogram.open(bkg_filename)
+        self._bkg_models = {bkg_norm_label: bkg.project(['Em', 'Phi', 'PsiChi']).to_dense()}
 
         # Load response and response transpose
         self._image_response = load_response_matrix(comm, self.start_col, self.end_col, filename=drm_filename)
@@ -209,9 +216,9 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
             self._summed_bkg_models[key] = np.sum(bkg_model)
             self._bkg_models_slice[key] = bkg_model.slice[:, :, self.start_col:self.end_col]
         
-    def _MPI_init(self, event_filename, bkg_filename, drm_filename, comm):
+    def _MPI_init(self, event_filename, bkg_filename, bkg_norm_label, drm_filename, comm):
 
-        self._MPI_load_data(event_filename, bkg_filename, drm_filename, comm)
+        self._MPI_load_data(event_filename, bkg_filename, bkg_norm_label, drm_filename, comm)
 
         self._MPI_set_aux_data()
 
@@ -415,7 +422,7 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
 
         return np.tensordot(dataspace_histogram.contents, self.bkg_model(key).contents, axes = ([0,1,2,3], [0,1,2,3]))
 
-    def calc_loglikelihood(self, expectation):
+    def calc_log_likelihood(self, expectation):
         """
         Calculate log-likelihood from given expected counts or model/expectation.
 

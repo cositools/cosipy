@@ -41,7 +41,7 @@ class ContinuumEstimation:
         dr = detector_response
 
         # Scatt map:
-        scatt_map = sc_orientation.get_scatt_map(coord, nside = nside, coordsys = 'galactic')
+        scatt_map = sc_orientation.get_scatt_map(nside = nside, target_coord = coord, coordsys = 'galactic')
 
         # Calculate PSR:
         with FullDetectorResponse.open(dr) as response:

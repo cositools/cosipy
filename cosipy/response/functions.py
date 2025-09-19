@@ -4,7 +4,7 @@ from astropy.units import Quantity
 from astropy.coordinates import Galactic
 from scipy import integrate
 
-from histpy import Histogram, Axes, Axis, HealpixAxis
+from histpy import Histogram
 
 from threeML import Band, DiracDelta, Constant, Line, Quadratic, Cubic, Quartic, StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, PhAbs, Gaussian
 
@@ -35,6 +35,8 @@ def get_integrated_spectral_model(spectrum, energy_axis):
     over each energy bin, and returns the result as a Histogram object.
     """
 
+    from cosipy.threeml import Band_Eflux
+
     spectrum_unit = None
 
     for item in spectrum.parameters:
@@ -45,14 +47,16 @@ def get_integrated_spectral_model(spectrum, energy_axis):
     if spectrum_unit == None:
         if isinstance(spectrum, Constant):
             spectrum_unit = spectrum.k.unit
-        elif isinstance(spectrum, Line) or isinstance(spectrum, Quadratic) or isinstance(spectrum, Cubic) or isinstance(spectrum, Quartic):
+        elif isinstance(spectrum, (Line, Quadratic, Cubic, Quartic)):
             spectrum_unit = spectrum.a.unit
-        elif isinstance(spectrum, StepFunction) or isinstance(spectrum, StepFunctionUpper) or isinstance(spectrum, Cosine_Prior) or isinstance(spectrum, Uniform_prior) or isinstance(spectrum, DiracDelta): 
+        elif isinstance(spectrum, (StepFunction, StepFunctionUpper, Cosine_Prior, Uniform_prior, DiracDelta)): 
             spectrum_unit = spectrum.value.unit
         elif isinstance(spectrum, PhAbs):
             spectrum_unit = u.dimensionless_unscaled
         elif isinstance(spectrum, Gaussian):
             spectrum_unit = spectrum.F.unit / spectrum.sigma.unit 
+        elif isinstance(spectrum, Band_Eflux):
+            spectrum_unit = spectrum.K.unit / spectrum.a.unit
         else:
             try:
                 spectrum_unit = spectrum.K.unit
@@ -68,7 +72,7 @@ def get_integrated_spectral_model(spectrum, energy_axis):
                          for lo_lim,hi_lim
                          in zip(energy_axis.lower_bounds, energy_axis.upper_bounds)])
     
-    flux = Histogram(energy_axis, contents = flux)
+    flux = Histogram(energy_axis, contents = flux, copy_contents = False)
 
     return flux
 
@@ -101,13 +105,13 @@ def get_integrated_extended_model(extendedmodel, image_axis, energy_axis):
         raise ValueError
 
     integrated_flux = get_integrated_spectral_model(spectrum = extendedmodel.spectrum.main.shape, energy_axis = energy_axis)
-
+    
     npix = image_axis.npix
     coords = image_axis.pix2skycoord(np.arange(npix))
-
     normalized_map = extendedmodel.spatial_shape(coords.l.deg, coords.b.deg) / u.sr
 
-    flux_map = Histogram([image_axis, energy_axis], contents = np.tensordot(normalized_map, integrated_flux.contents, axes = 0))
+    flux_map = Histogram((image_axis, energy_axis),
+                         contents = np.tensordot(normalized_map, integrated_flux.contents, axes = 0),
+                         copy_contents = False)
 
     return flux_map
-    

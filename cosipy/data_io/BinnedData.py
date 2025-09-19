@@ -2,7 +2,7 @@
 import sys
 import numpy as np
 import h5py
-from histpy import Histogram, HealpixAxis, Axis
+from histpy import Histogram, HealpixAxis, Axis, Axes
 from scoords import SpacecraftFrame, Attitude
 from mhealpy import HealpixMap, HealpixBase
 import healpy as hp
@@ -95,7 +95,7 @@ class BinnedData(UnBinnedData):
                     scheme = self.scheme, coordsys = 'galactic', label='PsiChi')
             coords = SkyCoord(l=self.cosi_dataset['Chi galactic']*u.deg, 
                     b=self.cosi_dataset['Psi galactic']*u.deg, frame = 'galactic')
-        if psichi_binning == 'local':
+        elif psichi_binning == 'local':
             psichi_axis = HealpixAxis(nside = self.nside, 
                     scheme = self.scheme, coordsys = SpacecraftFrame(), label='PsiChi')
             coords = SkyCoord(lon=self.cosi_dataset['Chi local']*u.rad, 
@@ -103,11 +103,11 @@ class BinnedData(UnBinnedData):
                     frame = SpacecraftFrame())
 
         # Initialize histogram:
-        self.binned_data = Histogram([Axis(time_bin_edges*u.s, label='Time'), 
-            Axis(energy_bin_edges*u.keV, label='Em'), 
-            Axis(phi_bin_edges*u.deg, label='Phi'), 
-            psichi_axis], 
-            sparse=True)
+        axes = Axes([Axis(time_bin_edges*u.s, label='Time'), 
+                     Axis(energy_bin_edges*u.keV, label='Em'), 
+                     Axis(phi_bin_edges*u.deg, label='Phi'), 
+                     psichi_axis], copy_axes=False)
+        self.binned_data = Histogram(axes, sparse=True)
          
         # Fill histogram:
         if event_range == None:
@@ -133,7 +133,6 @@ class BinnedData(UnBinnedData):
         # Plot the binned data:
         if make_binning_plots == True:
             self.plot_binned_data(show_plots=show_plots)  
-            self.plot_psichi_map(show_plots=show_plots)
 
         return
 
@@ -244,7 +243,12 @@ class BinnedData(UnBinnedData):
         # Make plots:
         plot_list = [time_energy_plot,time_plot,energy_plot,phi_plot,psichi_plot]
         for each in plot_list:
-            self.binned_data.project(each["projection"]).plot()
+            if each["projection"] == "PsiChi":
+                coordsys = self.binned_data.axes['PsiChi'].coordsys
+                logger.info(f"plotting psichi map in {coordsys.name}...")
+                self.binned_data.project(each["projection"]).plot(coord = 'G', ax_kw = {'coord':'G'})
+            else: 
+                self.binned_data.project(each["projection"]).plot()
             plt.xlabel(each["xlabel"],fontsize=12)
             plt.ylabel(each["ylabel"], fontsize=12)
             plt.savefig(each["savefig"])
@@ -254,19 +258,29 @@ class BinnedData(UnBinnedData):
  
         return
 
-    def plot_psichi_map(self, show_plots=True):
+    def plot_psichi_map(self, binned_data=None, show_plots=True):
         
         """
         Plot psichi healpix map.
 
         Parameters
         ----------
+        binned_data : histpy:Histogram, optional
+            Name of binned histogram to use. 
         show_plots : bool, optional
             Option to show plot (default is True).
         """
 
-        logger.info("plotting psichi in Galactic coordinates...")
-        plot, ax = self.binned_data.project('PsiChi').plot(ax_kw = {'coord':'G'})
+        # Option to read in binned data from hdf5 file:
+        if binned_data:
+            self.load_binned_data_from_hdf5(binned_data)
+    
+        # Get psichi coordinate frame: 
+        coordsys = self.binned_data.axes['PsiChi'].coordsys
+        logger.info(f"plotting psichi map in {coordsys.name}...")
+ 
+        plot, ax = self.binned_data.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
+
         ax.get_figure().set_figwidth(4)
         ax.get_figure().set_figheight(3)
         plt.title("PsiChi Binning (counts)")

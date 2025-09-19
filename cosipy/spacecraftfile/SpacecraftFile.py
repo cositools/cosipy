@@ -22,7 +22,8 @@ class SpacecraftFile():
 
     def __init__(self, time, x_pointings = None, y_pointings = None, \
             z_pointings = None, earth_zenith = None, altitude = None,\
-            attitude = None, instrument = "COSI", frame = "galactic"):
+            attitude = None, livetime = None, instrument = "COSI", \
+            frame = "galactic"):
 
         """
         Handles the spacecraft orientation. Calculates the dwell time 
@@ -48,8 +49,12 @@ class SpacecraftFile():
         earth_zenith : astropy.coordinates.SkyCoord, optional
             The pointings (galactic system) of the Earth zenith (the 
             default is `None`, which implies no input for the earth pointings).
-	altitude : array, optional 
+	    altitude : array, optional 
             Altitude of the spacecraft in km.
+        livetime : array, optional 
+            Time in seconds the instrument is live for the corresponding 
+            energy bin (using left endpoints so that the last entry in 
+            the ori file is 0).
         attitude : numpy.ndarray, optional 
             The attitude of the spacecraft (the default is `None`, 
             which implies no input for the attitude of the spacecraft).
@@ -69,6 +74,10 @@ class SpacecraftFile():
         # Altitude
         if not isinstance(altitude, (type(None))):
             self._altitude = np.array(altitude)
+
+        # livetime
+        if not isinstance(livetime, (type(None))):
+            self.livetime = np.array(livetime)
 
         # x pointings
         if isinstance(x_pointings, (SkyCoord, type(None))):
@@ -131,19 +140,21 @@ class SpacecraftFile():
             The SpacecraftFile object.
         """
 
-        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5, 6, 7, 8),delimiter=' ', skiprows=1, comments=("#", "EN"))
+        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5, 6, 7, 8, 9),delimiter=' ', skiprows=1, comments=("#", "EN"))
         time_stamps = orientation_file[:, 0]
         axis_1 = orientation_file[:, [2, 1]]
         axis_2 = orientation_file[:, [4, 3]]
         axis_3 = orientation_file[:, [7, 6]]
         altitude = np.array(orientation_file[:, 5]) 
-        
+        livetime = np.array(orientation_file[:, 8])
+        livetime = livetime[:-1] # left end points, so remove last bin. 
+
         time = Time(time_stamps, format = "unix")
         xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
         zpointings = SkyCoord(l = axis_2[:,0]*u.deg, b = axis_2[:,1]*u.deg, frame = "galactic")
         earthpointings = SkyCoord(l = axis_3[:,0]*u.deg, b = axis_3[:,1]*u.deg, frame = "galactic")
         
-        return cls(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude)
+        return cls(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude, livetime=livetime)
 
     def get_time(self, time_array = None):
 
@@ -270,6 +281,7 @@ class SpacecraftFile():
             new_z_direction = self._z_direction[start_idx : stop_idx + 1]
             new_earth_direction = self._earth_direction[start_idx : stop_idx + 1]
             new_earth_altitude = self._altitude[start_idx : stop_idx + 1]
+            new_livetime = self.livetime[start_idx : stop_idx] 
 
         else:
             start_idx = self._load_time.searchsorted(start.value) - 1
@@ -296,6 +308,14 @@ class SpacecraftFile():
             new_earth_altitude = self._altitude[start_idx + 1 : stop_idx + 1]  
             new_earth_altitude = np.insert(new_earth_altitude, 0, starting_alt)
 
+            # SAA livetime:
+            if self.livetime[start_idx] == 0:
+                udpated_livetime = 0
+            else:
+                updated_livetime = new_times[1] - new_times[0]
+                
+            new_livetime = self.livetime[start_idx + 1 : stop_idx]
+            new_livetime = np.insert(new_livetime, 0, updated_livetime)
 
         if (stop.value % 1 != 0):
             stop_idx = self._load_time.searchsorted(stop.value) - 1
@@ -322,13 +342,21 @@ class SpacecraftFile():
             new_earth_altitude = new_earth_altitude[:-1]
             new_earth_altitude = np.append(new_earth_altitude, [stop_alt])
 
+            # SAA livetime:
+            if new_livetime[-1] == 0:
+                udpated_livetime = 0
+            else: 
+                updated_livetime = new_times[-1] - new_times[-2]
+            new_livetime = new_livetime[:-1]
+            new_livetime = np.append(new_livetime, updated_livetime)
+
         time = Time(new_times, format = "unix")
         xpointings = SkyCoord(l = new_x_direction[:,0]*u.deg, b = new_x_direction[:,1]*u.deg, frame = "galactic")
         zpointings = SkyCoord(l = new_z_direction[:,0]*u.deg, b = new_z_direction[:,1]*u.deg, frame = "galactic")
         earthpointings = SkyCoord(l = new_earth_direction[:,0]*u.deg, b = new_earth_direction[:,1]*u.deg, frame = "galactic")
         altitude = new_earth_altitude
-
-        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude =altitude)
+    
+        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude, livetime = new_livetime)
       
     def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
 
@@ -436,7 +464,7 @@ class SpacecraftFile():
         return self.src_path_skycoord
 
 
-    def get_dwell_map(self, response, src_path = None, save = False):
+    def get_dwell_map(self, response, src_path = None, save = False, pa_convention=None):
 
         """
         Generates the dwell time map for the source.
@@ -449,6 +477,8 @@ class SpacecraftFile():
             The movement of source in the detector frame (the default is `None`, which implies that the `src_path` will be read from the instance).
         save : bool, default=False
             Set True to save the dwell time map.
+        pa_convention : str, optional
+             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') 
 
         Returns
         -------
@@ -474,7 +504,7 @@ class SpacecraftFile():
         if path.shape[0]-1 != self.dts.shape[0]:
             raise ValueError("The dimensions of the dts or source coordinates are not correct. Please check your inputs.")
 
-        with FullDetectorResponse.open(self.response_file) as response:
+        with FullDetectorResponse.open(self.response_file, pa_convention=pa_convention) as response:
             self.dwell_map = HealpixMap(base = response,
                                         coordsys = SpacecraftFrame())
 
@@ -487,8 +517,8 @@ class SpacecraftFile():
 
         weighted_duration = weights * self.dts.to_value(u.second)[None]
 
-        pixels = pixels.flatten()
-        weighted_duration = weighted_duration.flatten()
+        pixels = pixels.ravel()
+        weighted_duration = weighted_duration.ravel()
 
         pixels_argsort = np.argsort(pixels)
 
@@ -513,8 +543,8 @@ class SpacecraftFile():
         return self.dwell_map
 
     def get_scatt_map(self,
-                       target_coord,
                        nside,
+                       target_coord=None,
                        scheme = 'ring',
                        coordsys = 'galactic',
                        r_earth = 6378.0,
@@ -528,7 +558,7 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        target_coord : astropy.coordinates.SkyCoord
+        target_coord : astropy.coordinates.SkyCoord, optional
             The coordinates of the target object. 
         nside : int
             The nside of the scatt map.
@@ -548,6 +578,10 @@ class SpacecraftFile():
             The spacecraft attitude map.
         """
         
+        # Check if target_coord is needed
+        if earth_occ and target_coord is None:
+            raise ValueError("target_coord is needed when earth_occ = True")
+
         # Get orientations
         timestamps = self.get_time()
         attitudes = self.get_attitude()
@@ -568,18 +602,20 @@ class SpacecraftFile():
         # Get max angle based on altitude:
         max_angle = np.pi - np.arcsin(r_earth/(r_earth + altitude))
         max_angle *= (180/np.pi) # angles in degree
-        
-        # Calculate angle between source direction and Earth zenith
-        # for each time stamp:
-        src_angle = target_coord.separation(earth_zenith)
-        
-        # Get pointings that are occulted by Earth:
-        earth_occ_index = src_angle.value >= max_angle
 
         # Define weights and set to 0 if blocked by Earth:
-        weight = np.diff(timestamps.gps)*u.s
-        if earth_occ == True:
-            weight[earth_occ_index[:-1]] = 0        
+        weight = self.livetime*u.s
+
+        if earth_occ:
+            # Calculate angle between source direction and Earth zenith
+            # for each time stamp:
+            src_angle = target_coord.separation(earth_zenith)
+
+            # Get pointings that are occulted by Earth:
+            earth_occ_index = src_angle.value >= max_angle
+
+            # Mask
+            weight[earth_occ_index[:-1]] = 0
         
         # Fill histogram:
         h_ori.fill(x, y, weight = weight)
@@ -587,7 +623,7 @@ class SpacecraftFile():
         return h_ori
 
 
-    def get_psr_rsp(self, response = None, dwell_map = None, dts = None):
+    def get_psr_rsp(self, response = None, dwell_map = None, dts = None, pa_convention=None):
 
         """
         Generates the point source response based on the response file and dwell time map.
@@ -620,6 +656,8 @@ class SpacecraftFile():
             The effective area of each energy bin.
         matrix : numpy.ndarray
             The energy dispersion matrix.
+        pa_convention : str, optional
+             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') 
         """
 
         if response == None:
@@ -637,7 +675,7 @@ class SpacecraftFile():
         else:
             self.dts = TimeDelta(dts*u.second)
 
-        with FullDetectorResponse.open(self.response_file) as response:
+        with FullDetectorResponse.open(self.response_file, pa_convention=pa_convention) as response:
 
             # get point source response
             self.psr = response.get_point_source_response(self.dwell_map)
@@ -657,7 +695,7 @@ class SpacecraftFile():
         self.matrix = np.float32(np.zeros((self.Ei_lo.size,self.Em_lo.size))) # initate the matrix
 
         logger.info("Getting the energy redistribution matrix ...")
-        for i in np.arange(self.Ei_lo.size):
+        for i in range(self.Ei_lo.size):
             new_raw = spectral_response[i,:]/spectral_response[i,:].sum()
             self.matrix[i,:] = new_raw
         self.matrix = self.matrix.T
@@ -752,7 +790,7 @@ class SpacecraftFile():
         f_chan = []
         n_chan = []
         matrix = []
-        for i in np.arange(len(self.Ei_lo)):
+        for i in range(len(self.Ei_lo)):
             energ_lo_temp = np.float32(self.Em_lo[i])
             energ_hi_temp = np.float32(self.Ei_hi[i])
 
@@ -763,7 +801,7 @@ class SpacecraftFile():
                 f_chan_temp = []
                 n_chan_temp = []
                 matrix_temp = []
-                for m in np.arange(n_grp_temp):
+                for m in range(n_grp_temp):
                     f_chan_temp += [subsets[m][0]]
                     n_chan_temp += [len(subsets[m])]
                 for m in nz_matrix_idx:
@@ -821,7 +859,7 @@ class SpacecraftFile():
         matrix_bintablehdu.header["TLMIN4"] = (0,"minimum value legally allowed in column 4")
 
         ## Create binary table HDU for EBOUNDS
-        channels = np.int16(np.arange(len(self.Em_lo)))
+        channels = np.arange(len(self.Em_lo), dtype=np.int16)
         e_min = np.float32(self.Em_lo)
         e_max = np.float32(self.Em_hi)
 
@@ -1068,7 +1106,7 @@ class SpacecraftFile():
 
         # Create a 2-d numpy array and store probability data into the redistribution matrix
         rmf_matrix = np.zeros((len(energy_low),len(channel_low))) # create an empty matrix
-        for i in np.arange(data.shape[0]): # i is the measured energy index, examine the matrix_ext.data rows by rows
+        for i in range(data.shape[0]): # i is the measured energy index, examine the matrix_ext.data rows by rows
             if data[i][5].sum() == 0: # if the sum of probabilities is zero, then skip since there is no data at all
                 pass
             else:
@@ -1079,7 +1117,7 @@ class SpacecraftFile():
                 indices = []
                 for k in f_chan:
                     channels = 0
-                    channels = np.arange(k,k + n_chann[np.argwhere(f_chan == k)]).tolist() # generate the cha
+                    channels = np.arange(k,k + n_chann[np.argwhere(f_chan == k)][0][0]).tolist() # generate the cha
                     indices += channels # fappend the channels togeter
                 indices = np.array(indices)
                 for m in indices:
@@ -1096,8 +1134,8 @@ class SpacecraftFile():
         #logger.info(bin_edges)
 
         self.probability = []
-        for i in np.arange(10):
-            for j in np.arange(10):
+        for i in range(10):
+            for j in range(10):
                 self.probability.append(rmf_matrix[i][j])
         #logger.info(type(probability))
 

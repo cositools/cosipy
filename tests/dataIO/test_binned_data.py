@@ -24,7 +24,7 @@ def test_binned_data(tmp_path):
     # Read in test file and select first 0.1 seconds to reduce number of photons:
     analysis.read_tra()
     analysis.tmax = 1835478000.1
-    analysis.select_data(output_name=tmp_path/"temp_unbinned")
+    analysis.select_data_time(output_name=tmp_path/"temp_unbinned")
     
     # Test default binning (which is in Galactic coordinates).
     # Use small number of bins to speed things up. 

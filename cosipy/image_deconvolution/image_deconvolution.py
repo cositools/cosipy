@@ -10,13 +10,14 @@ from .allskyimage import AllSkyImageModel
 
 from .RichardsonLucy import RichardsonLucy
 from .RichardsonLucySimple import RichardsonLucySimple
+from .MAP_RichardsonLucy import MAP_RichardsonLucy
 
 class ImageDeconvolution:
     """
     A class to reconstruct all-sky images from COSI data based on image deconvolution methods.
     """
     model_classes = {"AllSkyImage": AllSkyImageModel}
-    deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple}
+    deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple, "MAP_RL": MAP_RichardsonLucy}
 
     def __init__(self):
         self._dataset = None
@@ -118,14 +119,11 @@ class ImageDeconvolution:
         """
         return self._deconvolution.results
 
-    def initialize(self, parallel_computation = False, master_node = True):
+    def initialize(self):
         """
         Initialize an initial model and an image deconvolution algorithm.
         It is mandatory to execute this method before running the image deconvolution.
         """
-
-        self.parallel_computation = parallel_computation
-        self.master_node = master_node
 
         logger.info("#### Initialization Starts ####")
         
@@ -201,9 +199,7 @@ class ImageDeconvolution:
         self._deconvolution = self._deconvolution_class(initial_model = self.initial_model,     # Initialize object for relevant class
                                                         dataset = self.dataset, 
                                                         mask = self.mask, 
-                                                        parameter = algorithm_parameter,
-                                                        parallel = self.parallel_computation,
-                                                        MASTER = self.master_node)
+                                                        parameter = algorithm_parameter)
 
         logger.info("---- parameters ----")
         logger.info(parameter_deconvolution.dump()) 
@@ -220,6 +216,7 @@ class ImageDeconvolution:
         logger.info("#### Image Deconvolution Starts ####")
        
         logger.info(f"<< Initialization >>")
+
         self._deconvolution.initialization()
         
         stop_iteration = False
@@ -227,6 +224,10 @@ class ImageDeconvolution:
             if stop_iteration:
                 break
             stop_iteration = self._deconvolution.iteration()
+
+        self._finalize()
+
+    def _finalize(self):
 
         logger.info(f"<< Finalization >>")
         self._deconvolution.finalization()
@@ -247,3 +248,28 @@ class ImageDeconvolution:
             if data.model_axes != self.initial_model.axes:
                 return False
         return True
+
+class ParallelImageDeconvolution(ImageDeconvolution):
+    def __init__(self, comm):
+        """
+
+        Parameters
+        ----------
+        comm: MPI.COMM_WORLD
+        """
+
+        self._comm = comm
+
+        super().__init__()
+
+    @property
+    def is_master_node(self):
+        return self._comm.Get_rank() == 0
+
+    def _finalize(self):
+
+        # Run last steps --e.g. storing results--
+        # only in the master node
+
+        if self.is_master_node:
+            super()._finalize()

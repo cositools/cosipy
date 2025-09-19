@@ -30,5 +30,5 @@ def test_ImageDeconvolutionDataInterfaceBase():
     assert e_info.type is NotImplementedError
 
     with pytest.raises(RuntimeError) as e_info:
-        data.calc_loglikelihood(expectation = None)
+        data.calc_log_likelihood(expectation = None)
     assert e_info.type is NotImplementedError

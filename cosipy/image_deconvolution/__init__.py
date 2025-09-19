@@ -1,4 +1,4 @@
-from .image_deconvolution import ImageDeconvolution
+from .image_deconvolution import ImageDeconvolution, ParallelImageDeconvolution
 
 from .image_deconvolution_data_interface_base import ImageDeconvolutionDataInterfaceBase
 from .dataIF_COSI_DC2 import DataIF_COSI_DC2
@@ -10,6 +10,7 @@ from .allskyimage import AllSkyImageModel
 from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
 from .RichardsonLucy import RichardsonLucy
 from .RichardsonLucySimple import RichardsonLucySimple
+from .MAP_RichardsonLucy import MAP_RichardsonLucy 
 
 from .exposure_table import SpacecraftAttitudeExposureTable
 from .coordsys_conversion_matrix import CoordsysConversionMatrix

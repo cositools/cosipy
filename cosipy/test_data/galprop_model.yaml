@@ -1,0 +1,54 @@
+galprop_source (extended source):
+
+  GalpropHealpixModel:
+
+    K:
+
+      value: 1.0
+
+      desc: Normalization factor (unitless)
+
+      min_value: 0.0
+
+      max_value: 1000.0
+
+      unit: ''
+
+      is_normalization: true
+
+      delta: 0.01
+
+      free: true
+
+    extra_setup:
+
+      _fitsfile: ics_isotropic_healpix_54_0780000f.gz
+
+      _frame: galactic
+
+  spectrum:
+
+    main:
+
+      Constant:
+
+        k:
+
+          value: 0.0
+
+          desc: Constant value
+
+          min_value: null
+
+          max_value: null
+
+          unit: keV-1 s-1 cm-2
+
+          is_normalization: false
+
+          delta: 0.1
+
+          free: false
+
+      polarization: {}
+
