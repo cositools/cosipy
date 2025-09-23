@@ -333,7 +333,15 @@ class FastTSMap():
         end_fast_ts_fit = time.time()
         time_fast_ts_fit = end_fast_ts_fit - start_fast_ts_fit
         
-        return [pix, result[0], result[1], result[2], result[3], result[4], time_ei_cds_array, time_fit, time_fast_ts_fit]
+        
+        if len(result) == 5: # result = (ts, norm, norm_err, failed, iteration)
+            return [pix, result[0], result[1], result[2], result[3], result[4], time_ei_cds_array, time_fit, time_fast_ts_fit]
+        
+        elif len(result) == 4: # result = (ts, norm, norm_err, failed)
+            # if the norm is negative (an underfluctuation), result does not contain the iteration number. So I use -1 to denote the unphyscial iteration.
+            return [pix, result[0], result[1], result[2], result[3], -1, time_ei_cds_array, time_fit, time_fast_ts_fit]
+        else:
+            raise ValueError(f"Expected result length 4 or 5, got {len(result)} (result={result})")
     
     @staticmethod
     def zip_comp(*lists):
