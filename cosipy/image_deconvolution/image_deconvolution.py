@@ -4,6 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from yayc import Configurator
+from pathlib import Path
 
 from .allskyimage import AllSkyImageModel
 
@@ -26,9 +27,9 @@ class ImageDeconvolution:
         self._model_class = None
         self._deconvolution_class = None
 
-    def set_dataset(self, dataset):
+    def set_dataset(self, dataset: list):
         """
-        Set dataset
+        Set dataset as a list. 
 
         Parameters
         ----------
@@ -52,7 +53,7 @@ class ImageDeconvolution:
 
         self._mask = mask
 
-    def read_parameterfile(self, parameter_filepath):
+    def read_parameterfile(self, parameter_filepath: str | Path):
         """
         Read parameters from a yaml file.
 
@@ -61,7 +62,6 @@ class ImageDeconvolution:
         parameter_filepath : str or pathlib.Path
             Path of parameter file.
         """
-
         self._parameter = Configurator.open(parameter_filepath)
 
         logger.debug(f"parameter file for image deconvolution was set -> {parameter_filepath}")
@@ -129,7 +129,7 @@ class ImageDeconvolution:
         
         self.model_initialization()        
 
-        self.register_deconvolution_algorithm()        
+        self.register_deconvolution_algorithm()
 
         logger.info("#### Initialization Finished ####")
 
@@ -143,9 +143,9 @@ class ImageDeconvolution:
             whether the instantiation and initialization are successfully done.
         """
         # set self._model_class
-        model_name = self.parameter['model_definition']['class']
+        model_name = self.parameter['model_definition']['class']            # Options include "AllSkyImage", etc.
 
-        if not model_name in self.model_classes.keys():
+        if not model_name in self.model_classes.keys():                     # See model_classes dictionary declared above
             logger.error(f'The model class "{model_name}" does not exist!')
             raise ValueError
 
@@ -162,11 +162,11 @@ class ImageDeconvolution:
         # setting initial values
         logger.info("<< Setting initial values of the created model object >>")
         parameter_model_initialization = Configurator(self.parameter['model_definition']['initialization'])
-        self._initial_model.set_values_from_parameters(parameter_model_initialization)
+        self._initial_model.set_values_from_parameters(parameter_model_initialization)      # Initialize M vector and save contents to self._initial_model (which has inherited type Histogram)
 
         # applying a mask to the model if needed
         if self.mask is not None:
-            self._initial_model = self._initial_model.mask_pixels(self.mask, 0)
+            self._initial_model = self._initial_model.mask_pixels(mask=self.mask, fill_value=0)     # Use self.set_mask(mask) to set a mask
 
         # axes check
         if not self._check_model_response_consistency():
@@ -195,8 +195,8 @@ class ImageDeconvolution:
             logger.error(f'The algorithm "{algorithm_name}" does not exist!')
             raise ValueError
 
-        self._deconvolution_class = self.deconvolution_algorithm_classes[algorithm_name]
-        self._deconvolution = self._deconvolution_class(initial_model = self.initial_model, 
+        self._deconvolution_class = self.deconvolution_algorithm_classes[algorithm_name]        # Alias to class constructor
+        self._deconvolution = self._deconvolution_class(initial_model = self.initial_model,     # Initialize object for relevant class
                                                         dataset = self.dataset, 
                                                         mask = self.mask, 
                                                         parameter = algorithm_parameter)
@@ -216,6 +216,7 @@ class ImageDeconvolution:
         logger.info("#### Image Deconvolution Starts ####")
        
         logger.info(f"<< Initialization >>")
+
         self._deconvolution.initialization()
         
         stop_iteration = False
@@ -223,6 +224,10 @@ class ImageDeconvolution:
             if stop_iteration:
                 break
             stop_iteration = self._deconvolution.iteration()
+
+        self._finalize()
+
+    def _finalize(self):
 
         logger.info(f"<< Finalization >>")
         self._deconvolution.finalization()
@@ -243,3 +248,28 @@ class ImageDeconvolution:
             if data.model_axes != self.initial_model.axes:
                 return False
         return True
+
+class ParallelImageDeconvolution(ImageDeconvolution):
+    def __init__(self, comm):
+        """
+
+        Parameters
+        ----------
+        comm: MPI.COMM_WORLD
+        """
+
+        self._comm = comm
+
+        super().__init__()
+
+    @property
+    def is_master_node(self):
+        return self._comm.Get_rank() == 0
+
+    def _finalize(self):
+
+        # Run last steps --e.g. storing results--
+        # only in the master node
+
+        if self.is_master_node:
+            super()._finalize()

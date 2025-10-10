@@ -32,15 +32,15 @@ def main():
     p = argparse.ArgumentParser(description="Run one or all tutorials")
     p.add_argument("config", help="YAML config file")
     p.add_argument("--config_group", default='tutorials',
-                   help="Path withing the config file with the tutorials information")
+                   help="Path within the config file with the tutorials information")
     p.add_argument("-o","--output", nargs='?',
-                   help="Output directory. It will create subdirectories for each tutorials. "
+                   help="Output directory. It will create subdirectories for each tutorial. "
                         "If not empty, all files will be removed.")
     p.add_argument("--override", nargs='*',
                    help="Override config parameters. e.g. \"section:param_int = 2\" \"section:param_string = b\"")
     p.add_argument("--wasabi_mirror", nargs='?',
-                   help=("Path to local wasabi mirror. We will try to symlink existing file from there."
-                         "Otherwise they will be downloaded. If provided and the needed files do not exists, "
+                   help=("Path to local wasabi mirror. We will try to symlink existing files from there. "
+                         "Otherwise they will be downloaded. If provided and the needed files do not exist, "
                          "they will be cached here. Overrides path in config."))
     p.add_argument('--verify-wasabi-mirror', action='store_true', default=False,
                    help=('Check that all files in the wasabi mirror exist and have the correct checksum,'
@@ -114,7 +114,7 @@ def main():
 
         def verify_wasabi_files(tutorial):
             """
-            Cache all file for a given tutorial
+            Cache all files for a given tutorial
             """
             if 'wasabi_files' in config['tutorials'][tutorial]:
 
@@ -130,7 +130,7 @@ def main():
                         local_copy = unzip_output
 
                     if not local_copy.exists():
-                       print(colorama.Fore.RED + "FAILED   "+colorama.Style.RESET_ALL+f"{file} doesn't exists.")
+                       print(colorama.Fore.RED + "FAILED   "+colorama.Style.RESET_ALL+f"{file} doesn't exist.")
                     else:
                         local_checksum = get_md5_checksum(local_copy)
 
@@ -147,7 +147,7 @@ def main():
     # Cache files
     def cache_wasabi_files(tutorial):
         """
-        Cache all file for a given tutorial
+        Cache all files for a given tutorial
         """
         if 'wasabi_files' in config['tutorials'][tutorial]:
             for file, file_args in config['tutorials'][tutorial]['wasabi_files'].items():
@@ -199,7 +199,7 @@ def main():
                 source_file = config.absolute_path(file)
                 shutil.copyfile(source_file, wdir/source_file.name)
 
-        # Link wasabi files from cache is they exists
+        # Link wasabi files from cache if they exist
         if wasabi_mirror is not None:
             if 'wasabi_files' in config['tutorials'][tutorial]:
                 for file, file_args in config['tutorials'][tutorial]['wasabi_files'].items():
@@ -288,4 +288,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

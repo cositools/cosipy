@@ -32,7 +32,7 @@ for ipix_image in ipix_image_list:
                                                                            coordsys='galactic',
                                                                            nside_image=None,
                                                                            nside_scatt_map=None,
-                                                                           Earth_occ=True)
+                                                                           earth_occ=True)
     
     psr.write(f"{basename}{ipix_image:08}.h5",overwrite = True)
 

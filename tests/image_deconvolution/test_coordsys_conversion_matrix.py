@@ -28,7 +28,7 @@ def test_coordsys_conversion_matrix_scatt(tmp_path):
 
     full_detector_response = FullDetectorResponse.open(test_data.path / "test_full_detector_response.h5")
 
-    exposure_table = SpacecraftAttitudeExposureTable.from_fits(test_data.path / "image_deconvolution/exposure_table_test_nside1_ring.fits") 
+    exposure_table = SpacecraftAttitudeExposureTable.from_fits(test_data.path / "image_deconvolution/exposure_table_test_nside1_ring.fits")
 
     ccm = CoordsysConversionMatrix.spacecraft_attitude_binning_ccm(full_detector_response, exposure_table, use_averaged_pointing = False)
 

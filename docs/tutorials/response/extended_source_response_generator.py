@@ -22,7 +22,7 @@ orientation = SpacecraftFile.parse_from_file(orientation_path)
 extended_source_response = full_detector_response.get_extended_source_response(orientation,
                                                                                coordsys='galactic',
                                                                                nside_scatt_map=None,
-                                                                               Earth_occ=True)
+                                                                               earth_occ=True)
 
 # save the extended source response
 extended_source_response.write("extended_source_response_continuum.h5", overwrite = True)
