@@ -110,11 +110,10 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
                 desc : Normalization
                 initial value : 1.0
                 is_normalization : True
-                transformation : log10
-                min : 1e-30
-                max : 1e3
-                delta : 0.1
-                units: ph/cm2/s
+                min: 0.0 
+                max: 1e6
+                delta: 1.0
+                units:
         properties:
             dat:
                 desc: the data file to load
