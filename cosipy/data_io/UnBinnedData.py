@@ -215,7 +215,7 @@ class UnBinnedData(DataIO):
                         erg.pop()
                         phi.pop()
                         tt.pop()
-						CO_seq.pop()
+                        CO_seq.pop()
                         # Not all sims include ori info,
                         # so also need to check before pop:
                         if len(lonX) != 0:
