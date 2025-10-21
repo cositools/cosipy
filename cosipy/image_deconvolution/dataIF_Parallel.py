@@ -26,7 +26,7 @@ def load_response_matrix(comm, start_col, end_col, filename):
     '''
     with h5py.File(filename, "r", driver="mpio", comm=comm) as f1:
         dataset = f1['hist/contents']
-        R = dataset[1:-1, 1:-1, 1:-1, 1:-1, start_col+1:end_col+1]
+        R = dataset[:, :, :, :, start_col:end_col]
 
         hist_group = f1['hist']
         if 'unit' in hist_group.attrs:
@@ -65,7 +65,7 @@ def load_response_matrix_transpose(comm, start_row, end_row, filename):
     '''
     with h5py.File(filename, "r", driver="mpio", comm=comm) as f1:
         dataset = f1['hist/contents']
-        RT = dataset[start_row+1:end_row+1, 1:-1, 1:-1, 1:-1, 1:-1]
+        RT = dataset[start_row:end_row, :, :, :, :]
 
         hist_group = f1['hist']
         if 'unit' in hist_group.attrs:
@@ -139,7 +139,6 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         print(f'TaskID = {taskid}, Number of tasks = {numtasks}')
 
         # Get number of NuLambda and PsiChi pixels
-        # DC2 PSR has underflow/overflow bins (so -2)
         # Axes are NuLambda, Em, Ei, Phi, PsiChi
         with h5py.File(drm_filename, "r", driver="mpio", comm=comm) as f1:
             dataset = f1['hist/contents']
