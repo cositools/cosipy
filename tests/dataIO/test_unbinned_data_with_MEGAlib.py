@@ -51,7 +51,8 @@ def test_unbinned_data_with_MEGAlib(tmp_path):
     psi_loc_old = dict_old['Psi local'][:ntestsamples]
     chi_gal_old = dict_old['Chi galactic'][:ntestsamples]
     psi_gal_old = dict_old['Psi galactic'][:ntestsamples]
-
+    CO_seq_old = dict_old['Compton Seq'][:ntestsamples]
+    
     # For comparing chi_loc, psi_loc=0 values are arbitrary,
     # so we exclude them from the comparison.
     psi_zero_index = psi_loc_old == 0
@@ -78,12 +79,13 @@ def test_unbinned_data_with_MEGAlib(tmp_path):
     psi_loc_dict = {"old":psi_loc_old,"new":analysis.psi_loc_test,"name":"psi_loc","units":"rad"}
     chi_gal_dict = {"old":chi_gal_old[~chi_gal_bad_index],"new":analysis.chi_gal_test[~chi_gal_bad_index],"name":"chi_gal","units":"rad"}
     psi_gal_dict = {"old":psi_gal_old,"new":analysis.psi_gal_test,"name":"psi_gal","units":"rad"}
+    CO_seq_dict = {"old":CO_seq_old,"new":analysis.cosi_dataset["Compton Seq"],"name":"Compton Seq","units":""}
 
     # Make comparison:
     print("Comparing to MEGAlib calculation:")
     test_list = [energies_dict,time_dict,phi_dict,\
             dist_dict,lonX_dict,latX_dict,lonZ_dict,latZ_dict,lonY_dict,latY_dict,\
-            chi_loc_dict,psi_loc_dict,chi_gal_dict,psi_gal_dict]
+            chi_loc_dict,psi_loc_dict,chi_gal_dict,psi_gal_dict,CO_seq_dict]
     for each in test_list:
         diff = compare(each["old"],each["new"],each["name"],make_plots=False)
         thresh = 1e-10
