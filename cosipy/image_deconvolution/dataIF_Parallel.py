@@ -143,8 +143,8 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         # Axes are NuLambda, Em, Ei, Phi, PsiChi
         with h5py.File(drm_filename, "r", driver="mpio", comm=comm) as f1:
             dataset = f1['hist/contents']
-            nrows = dataset.shape[0] - 2
-            ncols = dataset.shape[4] - 2
+            nrows = dataset.shape[0]
+            ncols = dataset.shape[4]
 
         # Calculate the indices in Rij that the process has to parse. My hunch is that calculating these scalars individually will be faster than the MPI send broadcast overhead.
         self.averow = nrows // numtasks

@@ -25,8 +25,6 @@ from cosipy.image_deconvolution import ImageDeconvolution, DataIF_Parallel, Data
 
 # Define MPI variables
 MASTER = 0                      # Indicates master process
-DRM_DIR = Path('/Users/penguin/Documents/Grad School/Research/COSI/COSIpy/docs/tutorials/data')
-DATA_DIR = Path('/Users/penguin/Documents/Grad School/Research/COSI/COSIpy/docs/tutorials/image_deconvolution/511keV/GalacticCDS')
 
 def main():
     args = argparse.ArgumentParser(
