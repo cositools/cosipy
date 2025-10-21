@@ -185,3 +185,27 @@ def test_fast_ts_fit():
     assert ts_results[4] is False
 
     assert np.allclose(ts_results[5], 14)
+    
+    
+    # Unit test for negative norms
+    ts_results_neg_norm = FastTSMap.fast_ts_fit(hypothesis_coord = hypothesis_coord,
+                                                energy_channel = [1,4],
+                                                data_cds_array = FastTSMap.get_cds_array(src_bkg, [1,4]).flatten() - 1,
+                                                bkg_model_cds_array = FastTSMap.get_cds_array(bkg, [1,4]).flatten(),
+                                                orientation = ori,
+                                                response_path = response_path,
+                                                spectrum = spectrum,
+                                                cds_frame = "local",
+                                                ts_nside = 1,
+                                                ts_scheme = "RING")
+    
+    
+    assert np.allclose(ts_results_neg_norm[1], 0)
+
+    assert np.allclose(ts_results_neg_norm[2], 0)
+
+    assert np.allclose(ts_results_neg_norm[3], 2.0147790321522282e-05)
+
+    assert ts_results_neg_norm[4] is False
+
+    assert np.allclose(ts_results_neg_norm[5], -1)

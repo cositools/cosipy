@@ -174,10 +174,8 @@ class MOCTSMap(FastTSMap):
             pixidx_ = int(pixidx_)
 
             idx = np.where(results[:,0].astype(int) == pixidx_)[0]  # idx is the row idx of the result array where the first column equals to pixidx_
-            if idx.shape[0] != 1:
-                raise ValueError(f"Pixel with pixel index {pixidx_} has {idx.shape[0]} fits! ")
-            else:
-                m[pixidx_] = results[idx,1]
+            
+            m[pixidx_] = results[idx,1]
 
         return m
 
@@ -298,7 +296,7 @@ class MOCTSMap(FastTSMap):
  
         # decide the critical value
         if containment is not None:
-            critical = MOCTSMap.get_chi_critical_value(containment = 0.9)
+            critical = MOCTSMap.get_chi_critical_value(containment = containment)
             max_ts = np.max(moc_map[:])
         
         # get plotting canvas
