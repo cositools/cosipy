@@ -16,7 +16,6 @@ except ModuleNotFoundError as e:
 
 import h5py
 from histpy import Histogram, Axes, Axis, HealpixAxis
-import histpy
 
 from cosipy.response import FullDetectorResponse
 from cosipy.image_deconvolution import ImageDeconvolutionDataInterfaceBase
@@ -69,9 +68,9 @@ def load_response_matrix_transpose(comm, start_row, end_row, track_overflow_flag
     '''
     with h5py.File(filename, "r", driver="mpio", comm=comm) as f1:
         dataset = f1['hist/contents']
-        if track_overflow_flag:      # Histpy 1.x
+        if track_overflow_flag:     # Histpy 1.x
             RT = dataset[start_row+1:end_row+1, 1:-1, 1:-1, 1:-1, 1:-1]
-        else:                   # Histpy 2.x
+        else:                       # Histpy 2.x
             RT = dataset[start_row:end_row, :, :, :, :]
 
         hist_group = f1['hist']
