@@ -2,7 +2,7 @@
 # Data I/O:
 
 data_file: "511_thin_diskx10_3months.fits.gz" # full path
-ori_file: "20280301_3_month.ori"
+ori_file: "20280301_3_month_with_orbital_info.ori"
 unbinned_output: 'fits' # 'fits' or 'hdf5'
 time_bins: 0.5 # time bin size in seconds. Takes int or list of bin edges. 
 energy_bins: [509.,  513.] # Takes list. Needs to match response.
