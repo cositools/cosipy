@@ -1,4 +1,4 @@
-from histpy import Histogram, HealpixAxis
+from histpy import Histogram, HealpixAxis, Axes
 
 import astropy.units as u
 
@@ -30,16 +30,16 @@ class SpacecraftAttitudeMap(Histogram):
 
             
         """
-
-        super().__init__([HealpixAxis(nside = nside,
-                                      scheme = scheme,
-                                      coordsys = coordsys,
-                                      label = labels[0]), 
-                          HealpixAxis(nside = nside,
-                                      scheme = scheme,
-                                      coordsys = coordsys,
-                                      label = labels[1])],
+        axes = Axes([HealpixAxis(nside = nside,
+                                 scheme = scheme,
+                                 coordsys = coordsys,
+                                 label = labels[0]), 
+                     HealpixAxis(nside = nside,
+                                 scheme = scheme,
+                                 coordsys = coordsys,
+                                 label = labels[1])],
+                    copy_axes=False)
+        
+        super().__init__(axes,
                          sparse = True,
                          unit = u.s)    
-
-        

@@ -131,13 +131,13 @@ class FastTSMap():
         
         hist_axes_labels = hist.axes.labels
         cds_labels = ["PsiChi", "Phi"]
-        if not all([label in hist_axes_labels for label in cds_labels]):
+        if not all(label in hist_axes_labels for label in cds_labels):
             raise ValueError("The data doesn't contain the full Compton Data Space!")
             
         hist = hist.project(["Em", "PsiChi", "Phi"]) # make sure the first axis is the measured energy
         hist_cds_sliced = FastTSMap.slice_energy_channel(hist, energy_channel[0], energy_channel[1])   
         hist_cds = hist_cds_sliced.project(["PsiChi", "Phi"])
-        cds_array = np.array(hist_cds.to_dense()[:]).flatten()  # here [:] is equivalent to [:, :]
+        cds_array = np.array(hist_cds.to_dense()).ravel()
         del hist
         del hist_cds_sliced
         del hist_cds
@@ -171,18 +171,8 @@ class FastTSMap():
         # Notes from Israel: Inside it contains a single histogram with all the regular axes for a Compton Data Space (CDS) analysis, in galactic coordinates. Since there is no class yet to handle it, this is how to read in the HDF5 manually.
         
         with h5.File(response_path) as f:
-
             axes_group = f['hist/axes']
-            axes = []
-            for axis in axes_group.values():
-                # Get class. Backwards compatible with version
-                # with only Axis
-                axis_cls = Axis
-                if '__class__' in axis.attrs:
-                    class_module, class_name = axis.attrs['__class__']
-                    axis_cls = getattr(sys.modules[class_module], class_name)
-                axes += [axis_cls._open(axis)]
-        axes = Axes(axes)
+            axes = Axes.open(axes_group)
         
         # get the pixel number of the hypothesis coordinate
         map_temp = HealpixMap(base = axes[0])
@@ -283,7 +273,7 @@ class FastTSMap():
     def fast_ts_fit(hypothesis_coord, 
                     energy_channel, data_cds_array, bkg_model_cds_array, 
                     orientation, response_path, spectrum, cds_frame,
-                    ts_nside, ts_scheme):
+                    ts_nside, ts_scheme, pixel_idx = None):
 
         """
         Perform a TS fit on a single location at `hypothesis_coord`.
@@ -320,7 +310,10 @@ class FastTSMap():
         start_fast_ts_fit = time.time()
 
         # get the indices of the pixels to fit
-        pix = hp.ang2pix(nside = ts_nside, theta = hypothesis_coord.l.deg, phi = hypothesis_coord.b.deg, lonlat = True)
+        if pixel_idx is None:
+            pix = hp.ang2pix(nside = ts_nside, theta = hypothesis_coord.l.deg, phi = hypothesis_coord.b.deg, lonlat = True)
+        else:
+            pix = pixel_idx
         
         # get the expected counts in the flattened cds array
         start_ei_cds_array = time.time()
@@ -341,9 +334,55 @@ class FastTSMap():
         time_fast_ts_fit = end_fast_ts_fit - start_fast_ts_fit
         
         return [pix, result[0], result[1], result[2], result[3], result[4], time_ei_cds_array, time_fit, time_fast_ts_fit]
+    
+    @staticmethod
+    def zip_comp(*lists):
+    
+        """
+        Zip the lists in a way that it expands the lists will one element.
+        
+        list1 = [1, 2, 3, 4]
+        list2 = ["a"]
+        list3 = [11, 21, 31, 41]
+    
+        zip_comp will produce a tuple like this:
+        ([1, "a", 11],
+         [2, "a", 21], 
+         [3, "a", 31], 
+         [4, "a", 41])
+    
+        As you can see, it only allows lists with two length: 1 or the max length.
+    
+        Parameters
+        ----------
+        lists : list
+            The input lists
+    
+        Returns
+        -------
+        zip :
+            The zippped array. To expand, please use list(returned_object)
+        
+        """
+    
+        all_lengths = np.unique([len(i) for i in lists])
+        
+        if len(all_lengths) > 2:
+            raise ValueError(f"You have input lists with more than two lengths: {all_lengths}. Can't do zip comprehension!")
+        
+        
+        new_lists = []
+        for i in lists:
+            if len(i) == np.min(all_lengths):
+                new_lists.append(i*np.max(all_lengths))
+            else:
+                new_lists.append(i)
+    
+        return zip(*new_lists)
 
         
-    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None, ts_nside = None):
+    def parallel_ts_fit(self, hypothesis_coords, energy_channel, spectrum, ts_scheme = "RING", start_method = "fork", cpu_cores = None, ts_nside = None,
+                        pixel_idx = [None]):
         
         """
         Perform parallel computation on all the hypothesis coordinates.
@@ -363,7 +402,9 @@ class FastTSMap():
         cpu_cores : int, optional
             The number of cpu cores you wish to use for the parallel computation (the default is `None`, which implies using all the available number of cores -1 to perform the parallel computation).
         ts_nside : int, optional
-            The nside of the ts map. This must be given if the number of hypothesis_coords isn't equal to the number of pixels of the total ts map, which means that you fit only a portion of the total ts map. (the default is `None`, which means that you fit the full ts map). 
+            The nside of the ts map. This must be given if the number of hypothesis_coords isn't equal to the number of pixels of the total ts map, which means that you fit only a portion of the total ts map. (the default is `None`, which means that you fit the full ts map).
+        pixel_idx : list, optional
+            The pixel indices of the corresponding hypothesis_coords. This parameter is used to match the pixels and the ts values in a regional fit case. 
         
         Returns
         -------
@@ -376,8 +417,8 @@ class FastTSMap():
             ts_nside = hp.npix2nside(len(hypothesis_coords))
         
         # get the flattened data_cds_array
-        data_cds_array = FastTSMap.get_cds_array(self._data, energy_channel).flatten()
-        bkg_model_cds_array = FastTSMap.get_cds_array(self._bkg_model, energy_channel).flatten()
+        data_cds_array = FastTSMap.get_cds_array(self._data, energy_channel).ravel()
+        bkg_model_cds_array = FastTSMap.get_cds_array(self._bkg_model, energy_channel).ravel()
         
         if (data_cds_array[bkg_model_cds_array ==0]!=0).sum() != 0:
             #raise ValueError("You have data!=0 but bkg=0, check your inputs!")
@@ -399,12 +440,12 @@ class FastTSMap():
             cores = cpu_cores
             logger.info(f"You have total {total_cores} CPU cores, using {cores} CPU cores for parallel computation.")
 
-        start = time.time()
+        start = time.time() 
         multiprocessing.set_start_method(start_method, force = True)
         pool = multiprocessing.Pool(processes = cores)
-        results = pool.starmap(FastTSMap.fast_ts_fit, product(hypothesis_coords, [energy_channel], [data_cds_array], [bkg_model_cds_array], 
-                                                             [self._orientation], [self._response_path], [spectrum], [self._cds_frame], 
-                                                             [ts_nside], [ts_scheme]))
+        results = pool.starmap(FastTSMap.fast_ts_fit, FastTSMap.zip_comp(hypothesis_coords, [energy_channel], [data_cds_array], [bkg_model_cds_array], 
+                                                                         [self._orientation], [self._response_path], [spectrum], [self._cds_frame], 
+                                                                         [ts_nside], [ts_scheme], pixel_idx))
             
         pool.close()
         pool.join()
@@ -540,5 +581,3 @@ class FastTSMap():
         info = p.memory_full_info()
         memory = info.uss / 1024. / 1024
         logger.info('{} memory used: {} MB'.format(hint, memory))
-        
-    

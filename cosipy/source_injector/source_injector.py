@@ -6,7 +6,6 @@ from histpy import Histogram, Axis, Axes
 from cosipy.response import PointSourceResponse, ExtendedSourceResponse
 import sys
 from mhealpy import HealpixMap
-import copy
 
 class SourceInjector():
 
@@ -68,13 +67,14 @@ class SourceInjector():
 
             # get the expectation for the hypothesis coordinate (a point source)
             pix = coordinate_pix_number
-            psr = PointSourceResponse(axes[1:], f['hist/contents'][pix], unit = f['hist'].attrs['unit'])
+            psr = PointSourceResponse(axes[1:], f['hist/contents'][pix], unit = f['hist'].attrs['unit'],
+                                      copy_contents = False)
 
         return psr
 
 
     def inject_point_source(self, spectrum, coordinate, orientation = None, source_name = "point_source",
-                            make_spectrum_plot = False, data_save_path = None, project_axes = None):
+                            make_spectrum_plot = False, make_PsiChi_plot=False, data_save_path = None, project_axes = None):
 
         """
         Get the expected counts for a point source.
@@ -91,6 +91,8 @@ class SourceInjector():
             The name of the source (the default is `point_source`).
         make_spectrum_plot : bool, optional
             Set `True` to make the plot of the injected spectrum.
+        make_PsiChi_plot : bool, optional
+            Set `True` to make the plot of the PsiChi map (galactic).
         data_save_path : str or pathlib.Path, optional
             The path to save the injected data to a `.h5` file. This should include the file name. (the default is `None`, which means the injected data won't be saved.
         project_axes : list, optional
@@ -125,7 +127,12 @@ class SourceInjector():
         injected = psr.get_expectation(spectrum)
         # setting the Em and Ei scale to linear to match the simulated data
         # The linear scale of Em is the default for COSI data
-        injected.axes["Em"].axis_scale = "linear"
+        # Because Histograms can share Axis objects, we must copy the
+        # Axis before modifying it and then replace it in the Histogram's
+        # Axes object.
+        em_axis = injected.axes["Em"].copy()
+        em_axis.axis_scale = "linear"
+        injected.axes.set("Em", em_axis, copy=False)
 
         if project_axes is not None:
             injected = injected.project(project_axes)
@@ -137,7 +144,12 @@ class SourceInjector():
             ax.set_yscale("log")
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
-
+            
+        if make_PsiChi_plot :
+            plot, ax = injected.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
+            ax.get_figure().set_figwidth(4)
+            ax.get_figure().set_figheight(3)
+            
         if data_save_path is not None:
             injected.write(data_save_path)
 
@@ -172,6 +184,7 @@ class SourceInjector():
         data_save_path=None,
         project_axes=None,
         make_spectrum_plot=False,
+        make_PsiChi_plot=False 
     ):
         """
         Get the expected counts for an extended source.
@@ -184,6 +197,8 @@ class SourceInjector():
             The name of the source (the default is `extended_source`).
         make_spectrum_plot : bool, optional
             Set `True` to make the plot of the injected spectrum.
+        make_PsiChi_plot : bool, optional
+            Set `True` to make the plot of the PsiChi map (galactic).
         data_save_path : str or pathlib.Path, optional
             The path to save the injected data to a `.h5` file. This should include the file name. (the default is `None`, which means the injected data won't be saved.
         project_axes : list, optional
@@ -208,13 +223,18 @@ class SourceInjector():
             ax.set_yscale("log")
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
-
+            
+        if make_PsiChi_plot :
+            plot, ax = injected.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
+            ax.get_figure().set_figwidth(4)
+            ax.get_figure().set_figheight(3)
+            
         if data_save_path is not None:
             injected.write(data_save_path)
 
         return injected
 
-    def inject_model(self, model, orientation = None, make_spectrum_plot = False, data_save_path = None, project_axes = None):
+    def inject_model(self, model, orientation = None, make_spectrum_plot = False, make_PsiChi_plot = False ,data_save_path = None, project_axes = None):
 
         if self.response_frame == "spacecraftframe":
             if orientation == None:
@@ -257,7 +277,7 @@ class SourceInjector():
 
             injected_list = list(self.components.values())
 
-            injected_all = copy.deepcopy(injected_list[0])
+            injected_all = injected_list[0].copy()
 
             # add the rest of the injected sources
             for i in injected_list[1:]:
@@ -269,5 +289,10 @@ class SourceInjector():
             ax.set_yscale("log")
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
-
-            return injected_all
+            
+        if make_PsiChi_plot :
+            plot, ax = injected_all.project('PsiChi').plot(coord = 'G', ax_kw = {'coord':'G'})
+            ax.get_figure().set_figwidth(4)
+            ax.get_figure().set_figheight(3)
+            
+        return injected_all

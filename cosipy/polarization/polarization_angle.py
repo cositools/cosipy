@@ -94,8 +94,7 @@ class PolarizationAngle:
         pa_2 = Angle(np.arctan2(b, a), unit=u.rad)
 
         # Normalize the angle to be between 0 and pi
-        if pa_2 < 0:
-            pa_2 += Angle(np.pi, unit=u.rad)
+        pa_2 = np.where(pa_2 < 0, pa_2 + Angle(np.pi, unit=u.rad), pa_2)
 
         return PolarizationAngle(pa_2,
                                  self.skycoord,

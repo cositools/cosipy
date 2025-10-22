@@ -1,5 +1,4 @@
 import os
-import copy
 import numpy as np
 import astropy.units as u
 import astropy.io.fits as fits
@@ -21,24 +20,24 @@ class RichardsonLucy(RichardsonLucySimple):
     minimum_flux:
         value: 0.0
         unit: "cm-2 s-1 sr-1"
-    acceleration: 
+    acceleration:
         activate: True
         alpha_max: 10.0
     response_weighting:
-        activate: True 
+        activate: True
         index: 0.5
     smoothing:
-        activate: True 
-        FWHM: 
+        activate: True
+        FWHM:
             value: 2.0
             unit: "deg"
     stopping_criteria:
         statistics: "log-likelihood"
         threshold: 1e-2
     background_normalization_optimization:
-        activate: True 
+        activate: True
         range: {"albedo": [0.9, 1.1]}
-    save_results: 
+    save_results:
         activate: True
         directory: "/results"
         only_final_result: True
@@ -47,7 +46,7 @@ class RichardsonLucy(RichardsonLucySimple):
     def __init__(self, initial_model, dataset, mask, parameter):
 
         super().__init__(initial_model, dataset, mask, parameter)
-        
+
         # acceleration
         self.do_acceleration = parameter.get('acceleration:activate', False)
         if self.do_acceleration == True:
@@ -104,10 +103,10 @@ class RichardsonLucy(RichardsonLucySimple):
         - acceleration of RL algirithm: the normalization of delta map is increased as long as the updated image has no non-negative components.
         """
 
-        self.processed_delta_model = copy.deepcopy(self.delta_model)
+        self.processed_delta_model = self.delta_model.copy()
 
         if self.do_response_weighting:
-            self.processed_delta_model[:] *= self.response_weighting_filter
+            self.processed_delta_model *= self.response_weighting_filter
 
         if self.do_smoothing:
             self.processed_delta_model = self.processed_delta_model.smoothing(fwhm = self.smoothing_fwhm)
@@ -117,7 +116,7 @@ class RichardsonLucy(RichardsonLucySimple):
         else:
             self.alpha = 1.0
 
-        self.model = self.model + self.processed_delta_model * self.alpha
+        self.model += self.processed_delta_model * self.alpha
         self.model[:] = np.where(self.model.contents < self.minimum_flux, self.minimum_flux, self.model.contents)
 
         if self.mask is not None:
@@ -144,12 +143,12 @@ class RichardsonLucy(RichardsonLucySimple):
         """
         
         this_result = {"iteration": self.iteration_count, 
-                       "model": copy.deepcopy(self.model), 
-                       "delta_model": copy.deepcopy(self.delta_model),
-                       "processed_delta_model": copy.deepcopy(self.processed_delta_model),
-                       "background_normalization": copy.deepcopy(self.dict_bkg_norm),
+                       "model": self.model.copy(),
+                       "delta_model": self.delta_model,
+                       "processed_delta_model": self.processed_delta_model,
+                       "background_normalization": self.dict_bkg_norm.copy(),
                        "alpha": self.alpha, 
-                       "log-likelihood": copy.deepcopy(self.log_likelihood_list)}
+                       "log-likelihood": self.log_likelihood_list}
 
         # show intermediate results
         logger.info(f'  alpha: {this_result["alpha"]}')
@@ -182,7 +181,7 @@ class RichardsonLucy(RichardsonLucySimple):
             if log_likelihood - log_likelihood_before < 0:
 
                 logger.warning("The likelihood is not increased in this iteration. The image reconstruction may be unstable.")
-                return False 
+                return False
 
             elif log_likelihood - log_likelihood_before < self.stopping_criteria_threshold:
                 return True
@@ -197,19 +196,19 @@ class RichardsonLucy(RichardsonLucySimple):
             logger.info(f'Saving results in {self.save_results_directory}')
 
             counter_name = "iteration"
-               
+
             # model
-            histkey_filename = [("model", f"{self.save_results_directory}/model.hdf5"), 
+            histkey_filename = [("model", f"{self.save_results_directory}/model.hdf5"),
                                 ("delta_model", f"{self.save_results_directory}/delta_model.hdf5"),
                                 ("processed_delta_model", f"{self.save_results_directory}/processed_delta_model.hdf5")]
 
             for key, filename in histkey_filename:
 
-                self.save_histogram(filename = filename, 
+                self.save_histogram(filename = filename,
                                     counter_name = counter_name,
                                     histogram_key = key,
                                     only_final_result = self.save_only_final_result)
-            
+
             #fits
             fits_filename = f'{self.save_results_directory}/results.fits'
 

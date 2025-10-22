@@ -12,7 +12,7 @@ from cosipy import test_data
 
 analysis = UnBinnedData(test_data.path / 'polarization_data.yaml')
 data = analysis.get_dict_from_hdf5(test_data.path / 'polarization_data.hdf5')
-response_path = test_data.path / 'test_polarization_response_dense.h5'
+response_path = test_data.path / 'test_polarization_response.h5'
 sc_orientation = SpacecraftFile.parse_from_file(test_data.path / 'polarization_ori.ori')
 attitude = sc_orientation.get_attitude()[0]
 
@@ -45,9 +45,9 @@ def test_spacecraft_fit():
 
     polarization_fit_spacecraft = polarization_spacecraft.fit(show_plots=False)
 
-    assert np.allclose([polarization_fit_spacecraft['fraction'], polarization_fit_spacecraft['fraction uncertainty'], 
+    assert np.allclose([polarization_fit_spacecraft['fraction'], polarization_fit_spacecraft['fraction uncertainty'],
                         polarization_fit_spacecraft['angle'].angle.rad, polarization_fit_spacecraft['angle uncertainty'].rad],
-                        [13.73038868282377, 2.1295224814008353, 1.4851296518928818, 0.07562763316088744], atol=[1.0, 0.5, 1.0, 0.1])
+                       [0.8114804627334942, 0.8081587949263002, 1.5713378840593466, 0.5340212799099183], atol=[1.0, 0.5, 1.0, 0.1])
 
 def test_icrs_fit():
 
@@ -55,6 +55,6 @@ def test_icrs_fit():
 
     polarization_fit_icrs = polarization_icrs.fit(show_plots=False)
 
-    assert np.allclose([polarization_fit_icrs['fraction'], polarization_fit_icrs['fraction uncertainty'], 
+    assert np.allclose([polarization_fit_icrs['fraction'], polarization_fit_icrs['fraction uncertainty'],
                         polarization_fit_icrs['angle'].angle.rad, polarization_fit_icrs['angle uncertainty'].rad],
-                        [2.057120422245168, 0.6877456532374626, 1.4377475471600978, 0.13124860832618374], atol=[1.0, 0.5, 1.0, 0.1])
+                       [1.6268965437885632, 0.9763744515967512, 1.8111679143685155, 0.40112053082203614], atol=[1.0, 0.5, 1.0, 0.1])
