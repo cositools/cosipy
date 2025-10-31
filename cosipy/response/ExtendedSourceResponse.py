@@ -125,3 +125,17 @@ class ExtendedSourceResponse(Histogram):
             allsky_image_model = get_integrated_extended_model(source, image_axis = self.axes[0], energy_axis = self.axes[1]) 
         
         return self.get_expectation(allsky_image_model)
+
+    def __enter__(self):
+        """
+        Start a context manager
+        """
+
+        return self
+
+    def __exit__(self, type, value, traceback):
+        """
+        Exit a context manager
+        """
+
+        self.close()
