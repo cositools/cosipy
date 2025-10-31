@@ -125,7 +125,15 @@ class ExtendedSourceResponse(Histogram):
             allsky_image_model = get_integrated_extended_model(source, image_axis = self.axes[0], energy_axis = self.axes[1]) 
         
         return self.get_expectation(allsky_image_model)
+        
+    def close(self):
+        """
+        Close the HDF5 file containing the response
+        """
 
+        self._file.close()
+
+    
     def __enter__(self):
         """
         Start a context manager
