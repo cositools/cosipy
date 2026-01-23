@@ -146,7 +146,7 @@ bindata:
     args:
       - test_full_detector_response.h5
   unbinned_data_file:  unbinned_data_MEGAlib_calc.hdf5
-  sc_file: 20280301_2s.ori
+  sc_file: 20280301_2s.fits
   dt: 1
   tmin: null
   tmax: null
@@ -158,7 +158,7 @@ bindata:
 threemlfit:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
     grb_dc2_tutorial (point source): *grb_dc2_tutorial_source_model
-  sc_file: 20280301_2s.ori
+  sc_file: 20280301_2s.fits
   data:
     class: DataInterfaceTBD
     args:

@@ -1,16 +1,18 @@
 import numpy as np
 
-import pathlib
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
 import astropy.units as u
 from astropy.io import fits
+from astropy.table import QTable
 from astropy.time import Time, TimeDelta
 from astropy.coordinates import (
     SkyCoord,
     UnitSphericalRepresentation,
+    Angle
 )
 
 from mhealpy import HealpixMap
@@ -148,14 +150,147 @@ class SpacecraftFile():
 
         # altitude
         if altitude is not None:
-            self._altitude = np.array(altitude)
+            self._altitude = np.asarray(altitude)
 
         # livetime
         if livetime is not None:
-            self.livetime = np.array(livetime)
+            self.livetime = np.asarray(livetime)
 
         self.frame = frame
 
+    def write_fits(self, filename, overwrite=False, compress=False):
+        """
+        Write the contents of this object as a FITS file for later
+        retrieval. We use Astropy QTable functionality to create
+        the FITS file.
+
+        If compression is requested, the resulting file will have the
+        name {filename}.gz; the ".gz" should not be specfied as part
+        of the input.  (If it is, the file will be compressed
+        regardless of the setting of the compress flag.)
+
+        Parameters
+        ----------
+        filename : str or pathlib Path
+            The file path to the FITS file
+        overwrite : bool, optional
+            Overwrite the named file if it exists (default False)
+        compress : bool, optional
+            GZip-compress the FITS file (default False)
+
+        """
+
+        t = QTable()
+
+        t['TimeStamp'] = self._time.unix
+
+        # make sure the pointings are written in galactic coordinates,
+        # however they are stored internally.  The units of the
+        # lat/long angles are preserved in the file.
+
+        xc = self.x_pointings.transform_to('galactic')
+        xp = np.column_stack((Angle(xc.l), Angle(xc.b)))
+        t['XPointings'] = xp
+
+        zc = self.z_pointings.transform_to('galactic')
+        zp = np.column_stack((Angle(zc.l), Angle(zc.b)))
+        t['ZPointings'] = zp
+
+        ec = self.earth_zenith.transform_to('galactic')
+        ez = np.column_stack((Angle(ec.l), Angle(ec.b)))
+        t['EarthZenith'] = ez
+
+        if hasattr(self, '_altitude'):
+            t['Altitude'] = self._altitude
+
+        if hasattr(self, 'livetime'):
+            # add dummy to make sure livetime array length matches
+            # other array lengths for writing
+            t['LiveTime'] = np.concatenate((self.livetime, [0]))
+
+        filename = Path(filename)
+
+        if compress and filename.suffix != ".gz":
+            # FITS table writer will automatically compress if
+            # file name ends with .gz
+            filename = filename.parent / (filename.name + ".gz")
+
+        if filename.exists() and not overwrite:
+            raise RuntimeError(f"Not overwriting existing file '{filename}'")
+        else:
+            t.write(filename, format='fits', overwrite=True)
+
+    @classmethod
+    def open(cls, filename, frame='galactic'):
+
+        filename = Path(filename)
+
+        if filename.suffix == ".fits" or filename.suffixes[-2:] == [".fits", ".gz"]:
+            return cls.read_fits(filename, frame)
+        elif filename.suffix == ".ori":
+            return cls.parse_from_file(filename, frame)
+        else:
+            raise ValueError(
+                "Unsupported file format. Only .ori and .fits extensions are supported.")
+
+    @classmethod
+    def read_fits(cls, filename, frame):
+        """
+        Read orientation data from a FITS file and constructs a
+        SpacecraftFile object.  The FITS file is assumed to contain
+        an Astropy QTable produced by the write_fits() method.
+        Astropy supports .fits.gz natively, so this function
+        can read either compressed or uncompressed FITS.
+
+        Parameters
+        ----------
+        filename : str
+            The file path to the FITS file
+        frame : str, optional
+            Frame of returned SpacecraftFile object (default: "galactic",
+            which matches how the data is stored)
+
+        Returns
+        -------
+        cosipy.spacecraftfile.SpacecraftFile
+            The SpacecraftFile object
+
+        """
+
+        t = QTable.read(filename)
+
+        time_stamps = Time(t['TimeStamp'], format = "unix")
+
+        # pointings are assumed to be stored in the file in
+        # galactic # coordinates.
+        xp = t['XPointings']
+        xpointings = SkyCoord(l = xp[:,0], b = xp[:,1],
+                              frame = "galactic")
+        zp = t['ZPointings']
+        zpointings = SkyCoord(l = zp[:,0], b = zp[:,1],
+                              frame = "galactic")
+        ez = t['EarthZenith']
+        earthzenith = SkyCoord(l = ez[:,0], b = ez[:,1],
+                               frame = "galactic")
+
+        if 'Altitude' in t.colnames:
+            altitude = t['Altitude']
+        else:
+            altitude = None
+
+        if 'LiveTime' in t.colnames:
+            # left end points, so remove last bin.
+            livetime = t['LiveTime'][:-1]
+        else:
+            livetime = None
+
+        return cls(time_stamps,
+                   x_pointings = xpointings,
+                   z_pointings = zpointings,
+                   earth_zenith = earthzenith,
+                   altitude = altitude,
+                   livetime = livetime,
+                   frame = frame)
 
     @classmethod
     def parse_from_file(cls, file, frame='galactic'):
@@ -182,29 +317,32 @@ class SpacecraftFile():
                                       comments=("#", "EN"))
 
         time_stamps = orientation_file[:, 0]
-        axis_1 = orientation_file[:, [2, 1]]
-        axis_2 = orientation_file[:, [4, 3]]
-        axis_3 = orientation_file[:, [7, 6]]
-        altitude = np.array(orientation_file[:, 5])
+        xp = orientation_file[:, [2, 1]]
+        zp = orientation_file[:, [4, 3]]
+        ez = orientation_file[:, [7, 6]]
 
-        # left end points, so remove last bin.
-        livetime = np.array(orientation_file[:, 8])[:-1]
+        # copy to ensure contiguous array
+        altitude = orientation_file[:, 5].copy()
+
+        # left endpoints, so remove last bin
+        # copy to ensure contiguous array
+        livetime = orientation_file[:-1, 8].copy()
 
         time = Time(time_stamps, format = "unix")
 
         # pointings are assumd to be stored in the file in galactic
         # coordinates.
-        xpointings = SkyCoord(l = axis_1[:,0], b = axis_1[:,1],
+        xpointings = SkyCoord(l = xp[:,0], b = xp[:,1],
                               unit=u.deg, frame = "galactic")
-        zpointings = SkyCoord(l = axis_2[:,0], b = axis_2[:,1],
+        zpointings = SkyCoord(l = zp[:,0], b = zp[:,1],
                               unit=u.deg, frame = "galactic")
-        earthpointings = SkyCoord(l = axis_3[:,0], b = axis_3[:,1],
-                                  unit=u.deg, frame = "galactic")
+        earthzenith = SkyCoord(l = ez[:,0], b = ez[:,1],
+                               unit=u.deg, frame = "galactic")
 
         return cls(time,
                    x_pointings = xpointings,
                    z_pointings = zpointings,
-                   earth_zenith = earthpointings,
+                   earth_zenith = earthzenith,
                    altitude = altitude,
                    livetime = livetime,
                    frame = frame)
@@ -855,7 +993,7 @@ class SpacecraftFile():
 
         """
 
-        if isinstance(dwell_map, (str, pathlib.Path)):
+        if isinstance(dwell_map, (str, Path)):
             dwell_map = HealpixMap.read_map(dwell_map)
 
         if dts is None:

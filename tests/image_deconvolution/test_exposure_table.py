@@ -13,11 +13,12 @@ def test_scatt_exposure_table(tmp_path):
 
     nside = 1
 
-    ori = SpacecraftFile.parse_from_file(test_data.path / "20280301_first_10sec.ori")
+    ori = SpacecraftFile.open(test_data.path / "20280301_first_10sec.fits")
 
     assert SpacecraftAttitudeExposureTable.analyze_orientation(ori, nside=nside, start=None, stop=ori.get_time()[-1], min_livetime=0, min_num_pointings=1) == None
 
     assert SpacecraftAttitudeExposureTable.analyze_orientation(ori, nside=nside, start=ori.get_time()[0], stop=None, min_livetime=0, min_num_pointings=1) == None
+
 
     exposure_table = SpacecraftAttitudeExposureTable.from_orientation(ori, nside=nside, 
                                                                       start=ori.get_time()[0], stop=ori.get_time()[-1], 
@@ -32,20 +33,20 @@ def test_scatt_exposure_table(tmp_path):
                                                                                 min_livetime=0, min_num_pointings=1)
 
     exposure_table.save_as_fits(tmp_path / "exposure_table_test_nside1_ring.fits")
-    
+
     assert exposure_table == SpacecraftAttitudeExposureTable.from_fits(tmp_path / "exposure_table_test_nside1_ring.fits")
 
     map_pointing_zx = exposure_table.calc_pointing_trajectory_map()
 
     assert np.all(map_pointing_zx.contents == Histogram.open(test_data.path / "image_deconvolution/map_pointing_zx_test_nside1_ring.hdf5").contents)
 
-    # test_generating_histogram 
+    # test_generating_histogram
     full_detector_response = response.FullDetectorResponse.open(test_data.path / "test_full_detector_response.h5")
-    
+
     analysis = BinnedData(test_data.path / "inputs_crab.yaml")
-    
+
     analysis.cosi_dataset = analysis.get_dict_from_hdf5(test_data.path / "unbinned_data_MEGAlib_calc.hdf5")
-    
+
     # modify the following parameters for unit test
     analysis.energy_bins = full_detector_response.axes['Em'].edges.to(u.keV).value
     analysis.nside = full_detector_response.axes['PsiChi'].nside
@@ -55,10 +56,10 @@ def test_scatt_exposure_table(tmp_path):
     # NOTE: test_data.path / "unbinned_data_MEGAlib_calc.hdf5" is written in a old format!!!
     _ = analysis.cosi_dataset.pop('Xpointings')
     analysis.cosi_dataset['Xpointings (glon,glat)'] = _
-    
+
     _ = analysis.cosi_dataset.pop('Ypointings')
     analysis.cosi_dataset['Ypointings (glon,glat)'] = _
-    
+
     _ = analysis.cosi_dataset.pop('Zpointings')
     analysis.cosi_dataset['Zpointings (glon,glat)'] = _
 

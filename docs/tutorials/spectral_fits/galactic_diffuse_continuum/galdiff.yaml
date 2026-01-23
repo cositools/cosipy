@@ -4,7 +4,7 @@
 data_file: "Output/GalacticScan.inc1.id1.extracted.filtered.tra.gz"
 
 # Full path to ori file:
-ori_file: "/discover/nobackup/ckarwin/COSI/Data_Challenge/DC3/orientation_files/DC3_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.ori"
+ori_file: "/discover/nobackup/ckarwin/COSI/Data_Challenge/DC3/orientation_files/DC3_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.fits"
 
 # Full path to mass model (this needs to be moved to housekeeping_data_io.yaml)
 geo_file: "/discover/nobackup/ckarwin/COSI/Data_Challenge/DC3/mass_model/massmodel-cosi-dc3/COSISMEX.sim.geo.setup"

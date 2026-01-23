@@ -30,37 +30,37 @@ class UnBinnedData(DataIO):
 
     def read_tra(self, input_name=None, output_name=None, run_test=False, use_ori=False,
             event_min=None, event_max=None):
-        
+
         """Reads MEGAlib .tra (or .tra.gz) file and creates cosi datset.
-        
+
         Parameters
         ----------
 	    input_name : str, optional
-            Path of input file (default is None, in which case the 
+            Path of input file (default is None, in which case the
 	        input file name is taken from the yaml file).
         output_name : str, optional
-            Prefix of output file (default is None, in which case no 
-            output is written). 
-        run_test : bool, optional 
-            This is for unit testing only! Keep False unless 
-            comparing to MEGAlib calculations. 
+            Prefix of output file (default is None, in which case no
+            output is written).
+        run_test : bool, optional
+            This is for unit testing only! Keep False unless
+            comparing to MEGAlib calculations.
         use_ori : bool, optional
-            Option to get pointing information from the orientation 
-            file, based on event time-stamps (default is False, in 
-            which case the pointing information comes from the event 
-            file itself). Note: this is an option for now, but will 
-            later be the default. 
+            Option to get pointing information from the orientation
+            file, based on event time-stamps (default is False, in
+            which case the pointing information comes from the event
+            file itself). Note: this is an option for now, but will
+            later be the default.
         event_min : int, optional
-            Minimum event number to process (inclusive). All events 
-            below this will be skipped.        
+            Minimum event number to process (inclusive). All events
+            below this will be skipped.
         event_max : int, optional
-            Maximum event number to process (non-inclusive). All 
-            events at and above this will be skipped. 
-            
-            Note: event_min and event_max correspond to the total 
-            number of events in the file, which is not necessarily the 
-            same as the event ID number. The purpose of this is to 
-            allow the data to be read in chunks, in order to overcome 
+            Maximum event number to process (non-inclusive). All
+            events at and above this will be skipped.
+
+            Note: event_min and event_max correspond to the total
+            number of events in the file, which is not necessarily the
+            same as the event ID number. The purpose of this is to
+            allow the data to be read in chunks, in order to overcome
             memory limitations, depending on the user's system.
 
         Returns
@@ -80,24 +80,24 @@ class UnBinnedData(DataIO):
                         'Chi galactic':chi_gal,\
                         'Psi galactic':psi_gal,\
                         'CO seq':CO_seq}\
-            Arrays contain unbinned photon data. 
-        
+            Arrays contain unbinned photon data.
+
         Notes
         -----
-        The current code is only able to handle data with Compton 
-        events. It will need to be modified to handle single-site 
-        and pair events. 
+        The current code is only able to handle data with Compton
+        events. It will need to be modified to handle single-site
+        and pair events.
 
-        This method sets the instance attribute, cosi_dataset, 
-        but it does not explicitly return this.  
+        This method sets the instance attribute, cosi_dataset,
+        but it does not explicitly return this.
         """
         if input_name != None:
             self.data_file = input_name
-            
+
         start_time = time.time()
-				
+
         # Initialise empty lists:
-            
+
         # Total photon energy
         erg = []
         # Time tag in UNIX time
@@ -111,7 +111,7 @@ class UnBinnedData(DataIO):
         # Galactic latitude of Z direction of spacecraft
         latZ = []
         # Galactic longitude of Z direction of spacecraft
-        lonZ = [] 
+        lonZ = []
         # Compton scattering angle
         phi = []
         # Measured data space angle chi (azimuth direction; 0..360 deg)
@@ -130,25 +130,25 @@ class UnBinnedData(DataIO):
         # Compton seq
         CO_seq = []
 
-        
+
         # Define electron rest energy, which is used in calculation
         # of Compton scattering angle.
         c_E0 = 510.9989500015 # keV
 
         # This is for unit testing purposes only.
-        # Use same value as MEGAlib for direct comparison: 
+        # Use same value as MEGAlib for direct comparison:
         if run_test == True:
             c_E0 = 510.999
-    
+
         # Event tracker:
         new_event = 0
-        
+
         logger.info("Preparing to read file...")
 
         # Open .tra.gz file:
         if self.data_file.endswith(".gz"):
             f = gzip.open(self.data_file,"rt")
-            
+
             # Need to get number of lines for progress bar.
             # First try fast method for unix-based systems:
             try:
@@ -163,7 +163,7 @@ class UnBinnedData(DataIO):
                 g = gzip.open(self.data_file,"rt")
                 num_lines = sum(1 for line in g)
                 g.close()
-    
+
         # Open .tra file:
         elif self.data_file.endswith(".tra"):
             f = open(self.data_file,"r")
@@ -172,7 +172,7 @@ class UnBinnedData(DataIO):
                 proc=subprocess.Popen('wc -l < %s' %self.data_file, \
                         shell=True, stdout=subprocess.PIPE)
                 num_lines = float(proc.communicate()[0])
-                
+
             except:
                 logger.info("Initial attempt failed.")
                 logger.info("Using long method...")
@@ -180,27 +180,27 @@ class UnBinnedData(DataIO):
                 num_lines = sum(1 for line in g)
                 g.close()
 
-        else: 
+        else:
             logger.error("ERROR: Input data file must have '.tra' or '.gz' extenstion.")
             sys.exit()
-        
-        
+
+
         # Read tra file line by line:
         logger.info("Reading file...")
         N_events = 0 # number of events
         pbar = tqdm(total=num_lines) # start progress bar
         for line in f:
-         
+
             this_line = line.strip().split()
             pbar.update(1) # update progress bar
 
             # Make sure line isn't empty:
             if len(this_line) == 0:
                 continue
-            
+
             # New event:
             if this_line[0] == "SE":
-                
+
                 # Check if there was a problem with last event:
                 # Note: Currently only checking for two detector hits.
                 if new_event == 1:
@@ -227,21 +227,21 @@ class UnBinnedData(DataIO):
                 # reset event tracker:
                 new_event = 1
 
-            # Event type: 
+            # Event type:
             if this_line[0] == "ET":
                 # Check that we are looking at CO events
                 if this_line[1] == "CO":
                     et.append(this_line[1])
-                else: 
+                else:
                     raise ValueError(f"Error: Expected CO event, but got '{this_line[1]}'.")
-            
+
             # Count the number of events:
             if this_line[0] == "ID":
                 N_events += 1
-                
+
                 # track id:
                 this_id = this_line[1]
-            
+
             # Option to only parse a subset of events:
             if event_min != None:
                 if N_events < event_min:
@@ -252,64 +252,64 @@ class UnBinnedData(DataIO):
                     logger.info("Stopping here: only reading a subset of events")
                     break
 
-            # Total photon energy and Compton angle: 
+            # Total photon energy and Compton angle:
             if this_line[0] == "CE":
 
                 # Compute the total photon energy:
                 m_Eg = float(this_line[1]) # Energy of scattered gamma ray in keV
                 m_Ee = float(this_line[3]) # Energy of recoil electron in keV
                 this_erg = m_Eg + m_Ee
-                erg.append(this_erg) 
-             
+                erg.append(this_erg)
+
                 # Compute the Compton scatter angle due to the standard equation,
                 # i.e. neglect the movement of the electron,
                 # which would lead to a Doppler-broadening.
                 this_value = 1.0 - c_E0 * (1.0/m_Eg - 1.0/(m_Ee + m_Eg))
                 this_phi = np.arccos(this_value) # radians
                 phi.append(this_phi)
-                
+
             # Time tag in Unix time (seconds):
             if this_line[0] == "TI":
                 tt.append(float(this_line[1]))
-                
+
             # X axis of detector orientation in Galactic coordinates:
             if this_line[0] == "GX":
                 this_lonX = np.deg2rad(float(this_line[1])) # radians
                 this_latX = np.deg2rad(float(this_line[2])) # radians
                 lonX.append(this_lonX)
                 latX.append(this_latX)
-            
+
             # Z axis of detector orientation in Galactic coordinates:
             if this_line[0] == "GZ":
                 this_lonZ = np.deg2rad(float(this_line[1])) # radians
                 this_latZ = np.deg2rad(float(this_line[2])) # radians
                 lonZ.append(this_lonZ)
                 latZ.append(this_latZ)
-            
-            
+
+
             #number of interaction
             if this_line[0] == "SQ":
                 CO_seq.append(int(this_line[1]))
-            
-            # Interaction position information: 
+
+            # Interaction position information:
             if (this_line[0] == "CH"):
-                
+
                 # First interaction:
                 if this_line[1] == "0":
                     v1 = np.array((float(this_line[2]),\
                             float(this_line[3]),float(this_line[4])))
-                
+
                 # Second interaction:
                 if this_line[1] == "1":
                     v2 = np.array((float(this_line[2]),
                         float(this_line[3]), float(this_line[4])))
-                
+
                     # Compute position vector between first two interactions:
                     dg = v1 - v2
                     dg_x.append(dg[0])
                     dg_y.append(dg[1])
                     dg_z.append(dg[2])
-                    
+
                     # reset event
                     new_event = 0
 
@@ -335,8 +335,8 @@ class UnBinnedData(DataIO):
         dg_y = np.array(dg_y)
         dg_z = np.array(dg_z)
         CO_seq = np.array(CO_seq)
-        
-        # Check if the input data has pointing information, 
+
+        # Check if the input data has pointing information,
         # if not, set dummy values:
         if (use_ori == False) & (len(lonZ)==0):
              logger.warning("WARNING: No pointing information in input data and no ori file.")
@@ -354,22 +354,22 @@ class UnBinnedData(DataIO):
             lonZ = self.zl_interp(tt)
             latZ = self.zb_interp(tt)
 
-        # Convert dg vector from 3D cartesian coordinates 
-        # to spherical polar coordinates, and then extract distance 
+        # Convert dg vector from 3D cartesian coordinates
+        # to spherical polar coordinates, and then extract distance
         # b/n first two interactions (in cm), psi (rad), and chi (rad).
         # Note: the resulting angles are latitude/longitude (or elevation/azimuthal).
         conv = astro_co.cartesian_to_spherical(dg_x, dg_y, dg_z)
-        dist = conv[0].value 
-        psi_loc = conv[1].value 
+        dist = conv[0].value
+        psi_loc = conv[1].value
         chi_loc = conv[2].value
 
         # Calculate chi_gal and psi_gal from x,y,z coordinates of events:
-         
+
         xcoords = SkyCoord(lonX*u.rad, latX*u.rad, frame = 'galactic')
         zcoords = SkyCoord(lonZ*u.rad, latZ*u.rad, frame = 'galactic')
         attitude = Attitude.from_axes(x=xcoords, z=zcoords, frame = 'galactic')
         c = SkyCoord(dg_x, dg_y, dg_z, \
-            representation_type='cartesian', frame = SpacecraftFrame(attitude = attitude))   
+            representation_type='cartesian', frame = SpacecraftFrame(attitude = attitude))
         c_rotated = c.transform_to('galactic')
         chi_gal = np.array(c_rotated.l.deg)
         psi_gal = np.array(c_rotated.b.deg)
@@ -386,11 +386,11 @@ class UnBinnedData(DataIO):
                             np.rad2deg(lonZ),np.rad2deg(latZ))
         lonY = np.deg2rad(lonlatY[0])
         latY = np.deg2rad(lonlatY[1])
-    
+
         # Rotate psi_loc to colatitude, measured from positive z direction.
         # This is requred for mhealpy input.
-        psi_loc = (np.pi/2.0) - psi_loc 
-        
+        psi_loc = (np.pi/2.0) - psi_loc
+
         # Define test values for psi and chi local;
         # this is only for comparing to MEGAlib:
         self.psi_loc_test = psi_loc
@@ -400,16 +400,16 @@ class UnBinnedData(DataIO):
         # First need to convert to radians:
         chi_gal_rad = np.array(c_rotated.l.rad)
         psi_gal_rad = np.array(c_rotated.b.rad)
-        
-        # Rotate psi_gal_rad to colatitude, measured from positive 
+
+        # Rotate psi_gal_rad to colatitude, measured from positive
         # z direction:
         psi_gal_rad = (np.pi/2.0) - psi_gal_rad
         self.psi_gal_test = psi_gal_rad
-        
-        # Rotate chi_gal_test by pi, defined with respect to 
+
+        # Rotate chi_gal_test by pi, defined with respect to
         # the negative x-axis:
         self.chi_gal_test = chi_gal_rad - np.pi
-        
+
         # Make observation dictionary
         logger.info("Making dictionary...")
         cosi_dataset = {'Energies':erg,
@@ -424,7 +424,7 @@ class UnBinnedData(DataIO):
                         'Chi galactic':chi_gal,
                         'Psi galactic':psi_gal,
                        'Compton Seq':CO_seq}
-                
+
         #For simulation the timetags are shuffle so we need to sort it by ascending order
         # Build sorting index
         logger.info("Sorting the dictionary by ascending TimeTags")        
@@ -439,22 +439,22 @@ class UnBinnedData(DataIO):
         # Option to write unbinned data to file (either fits or hdf5):
         if output_name != None:
             logger.info("Saving file...")
-            self.write_unbinned_output(output_name) 
-        
+            self.write_unbinned_output(output_name)
+
         # Get processing time:
         end_time = time.time()
         processing_time = end_time - start_time
         logger.info("total processing time [s]: " + str(processing_time))
-        
-        return 
+
+        return
 
     def instrument_pointing(self):
 
         """Get pointing information from ori file.
-        
-        Initializes interpolated functions for lonx, latx, lonz, latz 
+
+        Initializes interpolated functions for lonx, latx, lonz, latz
         in radians.
-        
+
         Returns
         -------
         xl_interp : scipy:interpolate:interp1d
@@ -464,12 +464,12 @@ class UnBinnedData(DataIO):
 
         Note
         ----
-            This method sets the instance attributes, 
+            This method sets the instance attributes,
             but it does not explicitly return them.
         """
 
         # Get ori info:
-        ori = SpacecraftFile.parse_from_file(self.ori_file)
+        ori = SpacecraftFile.open(self.ori_file)
         time_tags = ori.get_time().to_value(format="unix")
         x_pointings = ori.x_pointings
         z_pointings = ori.z_pointings
@@ -479,13 +479,13 @@ class UnBinnedData(DataIO):
         self.xb_interp = interpolate.interp1d(time_tags, x_pointings.b.rad, kind='linear')
         self.zl_interp = interpolate.interp1d(time_tags, z_pointings.l.rad, kind='linear')
         self.zb_interp = interpolate.interp1d(time_tags, z_pointings.b.rad, kind='linear')
-        
-        return 
+
+        return
 
     def construct_scy(self, scx_l, scx_b, scz_l, scz_b):
-    
+
         """Construct y-coordinate of instrument pointing given x and z directions.
-        
+
         Parameters
         ----------
         scx_l : float
@@ -508,39 +508,39 @@ class UnBinnedData(DataIO):
         ----
             Here, z is the optical axis.
         """
-        
+
         x = self.polar2cart(scx_l, scx_b)
         z = self.polar2cart(scz_l, scz_b)
-    
+
         return self.cart2polar(np.cross(z,x,axis=0))
 
     def polar2cart(self, ra, dec):
-    
-        """Coordinate transformation of ra/dec (lon/lat) [phi/theta] 
+
+        """Coordinate transformation of ra/dec (lon/lat) [phi/theta]
         polar/spherical coordinates into cartesian coordinates.
 
         Parameters
         ----------
         ra : float
-            Right ascension in degrees. 
+            Right ascension in degrees.
         dec: float
-            Declination in degrees. 
-        
+            Declination in degrees.
+
         Returns
         -------
         array
             x, y, and z cartesian coordinates in radians.
         """
-        
+
         x = np.cos(np.deg2rad(ra)) * np.cos(np.deg2rad(dec))
         y = np.sin(np.deg2rad(ra)) * np.cos(np.deg2rad(dec))
         z = np.sin(np.deg2rad(dec))
-    
+
         return np.array([x,y,z])
 
     def cart2polar(self, vector):
-    
-        """Coordinate transformation of cartesian x/y/z values into 
+
+        """Coordinate transformation of cartesian x/y/z values into
         spherical (deg).
 
         Parameters
@@ -553,22 +553,22 @@ class UnBinnedData(DataIO):
         ra : float
             Right ascension in degrees.
         dec : float
-            Declination in degrees. 
+            Declination in degrees.
         """
-        
-        ra = np.arctan2(vector[1],vector[0]) 
+
+        ra = np.arctan2(vector[1],vector[0])
         dec = np.arcsin(vector[2])
-    
+
         return np.rad2deg(ra), np.rad2deg(dec)
 
     def write_unbinned_output(self, output_name):
 
         """Writes unbinned data file to either fits or hdf5.
-        
+
         Parameters
         ----------
-        output_name : str 
-            Name of output file. Only include prefix (not file type). 
+        output_name : str
+            Name of output file. Only include prefix (not file type).
         """
 
         # Data units:
@@ -577,13 +577,13 @@ class UnBinnedData(DataIO):
         if len(self.cosi_dataset.keys())==11:
             units=['keV','s','rad','rad',
                     'rad','rad','rad','rad','cm','deg','deg']
-            
+
         # New DC4 structure of the data
         else:
              units=['keV','s','rad','rad',
                     'rad','rad','rad','rad','cm','deg','deg','']
-            
-        # For fits output: 
+
+        # For fits output:
         if self.unbinned_output == 'fits':
             table = Table(list(self.cosi_dataset.values()),\
                     names=list(self.cosi_dataset.keys()), \
@@ -596,14 +596,14 @@ class UnBinnedData(DataIO):
         if self.unbinned_output == 'hdf5':
             with h5py.File('%s.hdf5' %output_name, 'w') as hf:
                 for each in list(self.cosi_dataset.keys()):
-                    dset = hf.create_dataset(each, data=self.cosi_dataset[each], compression='gzip')        
-    
+                    dset = hf.create_dataset(each, data=self.cosi_dataset[each], compression='gzip')
+
         return
 
     def get_dict_from_fits(self, input_fits):
 
         """Constructs dictionary from input fits file.
-        
+
         Parameters
         ----------
         input_fits : str
@@ -617,16 +617,16 @@ class UnBinnedData(DataIO):
 
         # Initialize dictionary:
         this_dict = {}
-        
+
         # Fill dictionary from input fits file:
         hdu = fits.open(input_fits,memmap=True)
         cols = hdu[1].columns
         data = hdu[1].data
         for i in range(0,len(cols)):
-            
+
             this_key = cols[i].name
             this_dict[this_key] = data[this_key]
-            
+
             # Clear unused memory:
             gc.collect()
 
@@ -635,11 +635,11 @@ class UnBinnedData(DataIO):
     def get_dict_from_hdf5(self, input_hdf5):
 
         """Constructs dictionary from input hdf5 file
-        
+
         Parameters
         ----------
         input_hdf5 : str
-            Name of input hdf5 file. 
+            Name of input hdf5 file.
 
         Returns
         -------
@@ -661,11 +661,11 @@ class UnBinnedData(DataIO):
     def get_dict(self, input_file):
 
         """Constructs dictionary from input file.
-        
+
         Parameters
         ----------
         input_file : str
-            Name of input file. 
+            Name of input file.
 
         Returns
         -------
@@ -682,17 +682,17 @@ class UnBinnedData(DataIO):
 
     def select_data_time(self, output_name=None, unbinned_data=None):
 
-        """Applies time cuts to unbinnned data dictionary. 
-        
+        """Applies time cuts to unbinnned data dictionary.
+
         Parameters
         ----------
         unbinned_data : str, optional
             Name of unbinned dictionary file.
         output_name : str, optional
-            Prefix of output file (default is None, in which case no 
+            Prefix of output file (default is None, in which case no
             file is saved).
         """
-        
+
         logger.info("Making data selections...")
 
         # Option to read in unbinned data file:
@@ -702,7 +702,7 @@ class UnBinnedData(DataIO):
         # Get time cut index:
         time_array = self.cosi_dataset["TimeTags"]
         time_cut_index = (time_array >= self.tmin) & (time_array < self.tmax)
-    
+
         # Apply cuts to dictionary:
         for key in self.cosi_dataset:
 
@@ -717,8 +717,8 @@ class UnBinnedData(DataIO):
 
     def select_data_energy(self, emin, emax, output_name=None, unbinned_data=None):
 
-        """Applies energy cuts to unbinnned data dictionary. 
-        
+        """Applies energy cuts to unbinnned data dictionary.
+
         Parameters
         ----------
         emin : float or int
@@ -728,10 +728,10 @@ class UnBinnedData(DataIO):
         unbinned_data : str, optional
             Name of unbinned dictionary file.
         output_name : str, optional
-            Prefix of output file (default is None, in which case no 
+            Prefix of output file (default is None, in which case no
             file is saved).
         """
-        
+
         logger.info("Making data selections on photon energy...")
 
         # Option to read in unbinned data file:
@@ -741,7 +741,7 @@ class UnBinnedData(DataIO):
         # Get energy cut index:
         energy_array = self.cosi_dataset["Energies"]
         energy_cut_index = (energy_array >= emin) & (energy_array < emax)
-    
+
         # Apply cuts to dictionary:
         for key in self.cosi_dataset:
 
@@ -756,8 +756,8 @@ class UnBinnedData(DataIO):
 
     def select_data_COseq(self, seqmin, seqmax, output_name=None, unbinned_data=None):
 
-        """Applies CO sequence cuts [seqmin,seqmax) to unbinnned data dictionary. 
-        
+        """Applies CO sequence cuts [seqmin,seqmax) to unbinnned data dictionary.
+
         Parameters
         ----------
         seqmin :  int
@@ -767,10 +767,10 @@ class UnBinnedData(DataIO):
         unbinned_data : str, optional
             Name of unbinned dictionary file.
         output_name : str, optional
-            Prefix of output file (default is None, in which case no 
+            Prefix of output file (default is None, in which case no
             file is saved).
         """
-        
+
         logger.info("Making data selections on Compton Sequence...")
 
         # Option to read in unbinned data file:
@@ -780,7 +780,7 @@ class UnBinnedData(DataIO):
         # Get energy cut index:
         COseq_array = self.cosi_dataset["Compton Seq"]
         COseq_cut_index = (COseq_array >= seqmin) & (COseq_array < seqmax)
-    
+
         # Apply cuts to dictionary:
         for key in self.cosi_dataset:
 
@@ -794,11 +794,11 @@ class UnBinnedData(DataIO):
         return
 
 
-        
+
     def combine_unbinned_data(self, input_files, output_name=None):
 
         """Combines input unbinned data files.
-        
+
         Parameters
         ----------
         input_files : list
@@ -812,7 +812,7 @@ class UnBinnedData(DataIO):
         for each in input_files:
 
             logger.info("adding %s..." % each)
-    
+
             # Read dict from hdf5 or fits:
             this_dict = self.get_dict(each)
 
@@ -820,13 +820,13 @@ class UnBinnedData(DataIO):
             if counter == 0:
                 for key in this_dict:
                     self.cosi_dataset[key] = this_dict[key]
-            
+
             if counter > 0:
                 for key in this_dict:
                     self.cosi_dataset[key] = np.concatenate((self.cosi_dataset[key],this_dict[key]))
-                    
+
             counter =+ 1
-            
+
             # Clear unused memory:
             gc.collect()
 
@@ -837,7 +837,7 @@ class UnBinnedData(DataIO):
         return
 
     def find_bad_intervals(self, times, values, bad_value=0.0):
-        
+
         """Finds intervals where livetime is 0.0.
 
         Parameters
@@ -845,21 +845,21 @@ class UnBinnedData(DataIO):
         times : array
             Array of times from ori file.
         values : array
-            Array of livetimes from ori file.        
+            Array of livetimes from ori file.
         bad_value : float or int
-            The value that defines a bad time interval. It must match 
-            exactly the value in the ori file, including the 
-            type (float or int). Default is 0.0. 
+            The value that defines a bad time interval. It must match
+            exactly the value in the ori file, including the
+            type (float or int). Default is 0.0.
 
         Returns
         -------
         bad_intervals : list of tuples
             List of bad time intervals.
         """
-        
+
         bad_intervals = []
         start = None
-    
+
         for i in range(len(times)-1):
             if values[i] == bad_value:
                 if start is None:
@@ -868,14 +868,14 @@ class UnBinnedData(DataIO):
                 if start is not None:
                     bad_intervals.append((start.value, times[i].value))
                     start = None
-    
+
         if start is not None:
             bad_intervals.append((start.value, times[-1].value))
-    
+
         return bad_intervals
 
     def filter_good_data(self, times, bad_intervals):
-    
+
         """Removes entries that fall within bad intervals.
 
         Parameters
@@ -884,13 +884,13 @@ class UnBinnedData(DataIO):
             Array of photon event times.
         bad_intervals : list
             List of bad intervals defined by livetime = 0.0.
-       
+
         Returns
         -------
         filtered_index : list
-            List of indices of good events. 
+            List of indices of good events.
         """
-        
+
         filtered_index = []
 
         # Get indices for good times.
@@ -910,7 +910,7 @@ class UnBinnedData(DataIO):
         unbinned_data : str, optional
             Name of unbinned dictionary file.
         output_name : str, optional
-            Prefix of output file (default is None, in which case no 
+            Prefix of output file (default is None, in which case no
             file is saved).
         """
 
@@ -919,8 +919,8 @@ class UnBinnedData(DataIO):
             self.cosi_dataset = self.get_dict(unbinned_data)
 
         # Get ori info:
-        ori = SpacecraftFile.parse_from_file(self.ori_file)
-        
+        ori = SpacecraftFile.open(self.ori_file)
+
         # Get bad time intervals:
         bti = self.find_bad_intervals(ori._time, ori.livetime)
 
