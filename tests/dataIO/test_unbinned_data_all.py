@@ -98,13 +98,75 @@ def test_unbinned_data_all(tmp_path):
     analysis.select_data_COseq(3,4,unbinned_data=tmp_path/"test_h5.hdf5")
     assert np.amax(analysis.cosi_dataset['Compton Seq']) < 4
     assert np.amin(analysis.cosi_dataset['Compton Seq']) >= 3
-    
-    # Test reading tra with no pointing info:
-    analysis.data_file = os.path.join(test_data.path,\
-            "GalacticScan.inc1.id1.crab10sec.extracted.testsample.nopointinginfo.tra.gz")
-    analysis.read_tra()
 
     # Test SAA cut:
     analysis.cut_SAA_events(unbinned_data=tmp_path/"test_h5.hdf5")
 
     return
+
+def test_unbinned_data_nopointings(tmp_path):
+
+    from scoords import Attitude
+    from astropy.coordinates import SkyCoord
+    import astropy.units as u
+    
+    # Load file with dataIO class.
+    # Note: this is the first 10 seconds of the crab sim from mini-DC2.
+    yaml = os.path.join(test_data.path,"inputs_crab.yaml")
+    analysis = UnBinnedData(yaml)
+    analysis.data_file = os.path.join(test_data.path,
+                                      "GalacticScan.inc1.id1.crab10sec.extracted.testsample.nopointinginfo.tra.gz")
+    analysis.ori_file = os.path.join(test_data.path,analysis.ori_file)
+
+
+    # Read tra file, getting pointing info from ori file.
+    analysis.unbinned_output = "hdf5"
+    analysis.read_tra(use_ori=True)
+    xpointings_ori = analysis.cosi_dataset['Xpointings (glon,glat)']
+    ypointings_ori = analysis.cosi_dataset['Ypointings (glon,glat)']
+    zpointings_ori = analysis.cosi_dataset['Zpointings (glon,glat)']
+
+    # Test reading tra with no pointing info and external orientation file
+    analysis.read_tra(sc_orientation=analysis.ori_file)
+    xpointings_tra = analysis.cosi_dataset['Xpointings (glon,glat)']
+    ypointings_tra = analysis.cosi_dataset['Ypointings (glon,glat)']
+    zpointings_tra = analysis.cosi_dataset['Zpointings (glon,glat)']
+    
+    # Compare:
+    xpointings_diff = np.absolute(xpointings_ori - xpointings_tra)
+    ypointings_diff = np.absolute(ypointings_ori - ypointings_tra)
+    zpointings_diff = np.absolute(zpointings_ori - zpointings_tra)
+    
+    # We'll use a tolerance of 1e-3 radians,
+    # which is 0.057 degrees (3.44 arcminutes).
+    # Note: This is an acceptable tolerance for an ori file with
+    # a 1s cadence, but it may need to be adjusted for longer intervals. 
+    check_x = xpointings_diff[xpointings_diff > 1e-3] 
+    check_y = ypointings_diff[ypointings_diff > 1e-3]
+    check_z = zpointings_diff[zpointings_diff > 1e-3]
+    assert len(check_x) == 0
+    assert len(check_y) == 0
+    assert len(check_z) == 0
+
+    # Test reading tra with no pointing info and an arbitrary Attitude
+    att = Attitude.from_axes(SkyCoord(l=0,b=0,unit=u.deg,frame="galactic"),
+                             SkyCoord(l=0,b=90,unit=u.deg,frame="galactic"),
+                             frame="galactic")
+    analysis.read_tra(sc_orientation=att)
+
+    att = Attitude.from_axes(SkyCoord(l=[0],b=[0],unit=u.deg,frame="galactic"),
+                             SkyCoord(l=[0],b=[90],unit=u.deg,frame="galactic"),
+                             frame="galactic")
+    analysis.read_tra(sc_orientation=att)
+
+    with pytest.raises(ValueError):
+        att = Attitude.from_axes(SkyCoord(l=[0,0],b=[0,90],unit=u.deg,frame="galactic"),
+                                 SkyCoord(l=[0,0],b=[90,45],unit=u.deg,frame="galactic"),
+                                 frame="galactic")
+        analysis.read_tra(sc_orientation=att)
+            
+    # Test reading tra with no pointing info and no other info
+    with pytest.raises(ValueError):
+        analysis.data_file = os.path.join(test_data.path,
+            "GalacticScan.inc1.id1.crab10sec.extracted.testsample.nopointinginfo.tra.gz")
+        analysis.read_tra()
