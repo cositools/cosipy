@@ -472,7 +472,7 @@ class UnBinnedData(DataIO):
             but it does not explicitly return them.
         """
 
-        # Get ori info:
+        # Get orientation info
         ori = SpacecraftFile.open(self.ori_file)
         time_tags = ori.get_time().to_value(format="unix")
         x_pointings = ori.x_pointings
@@ -544,8 +544,7 @@ class UnBinnedData(DataIO):
 
     def cart2polar(self, vector):
 
-        """
-        Coordinate transformation of cartesian x/y/z values into
+        """Coordinate transformation of cartesian x/y/z values into
         spherical (rad).
 
         Parameters
@@ -559,6 +558,7 @@ class UnBinnedData(DataIO):
             Right ascension in radians.
         dec : float
             Declination in radians.
+
         """
 
         x, y, z = vector
@@ -904,10 +904,10 @@ class UnBinnedData(DataIO):
         if unbinned_data:
             self.cosi_dataset = self.get_dict(unbinned_data)
 
-        # Get ori info:
+        # Get orientation info
         ori = SpacecraftFile.open(self.ori_file)
 
-        # Get bad time intervals:
+        # Get bad time intervals
         bti = self.find_bad_intervals(ori._time, ori.livetime)
 
         # Get indices for good photons
