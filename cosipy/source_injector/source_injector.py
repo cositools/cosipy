@@ -4,10 +4,12 @@ from cosipy.response import (
     PointSourceResponse,
     ExtendedSourceResponse
 )
+import logging
+logger = logging.getLogger(__name__)
 
 class SourceInjector():
 
-    def __init__(self, response_path, response_frame = "spacecraftframe"):
+    def __init__(self, response_path, response_frame="spacecraftframe", pa_convention=None):
         """
         `SourceInjector` convolve response, source model(s) and
         orientation to produce a mocked simulated data. The data can
@@ -22,16 +24,22 @@ class SourceInjector():
             response. It only accepts `spacecraftframe` or
             "galactic". (the default is `spacecraftframe`, which means
             the CDS is in the detector frame.)
+        pa_convention : str, optional
+            Polarization angle convention for polarization-enabled
+            detector-frame responses. Must be one of ('RelativeX',
+            'RelativeY', 'RelativeZ') when the response includes a
+            `Pol` axis and `response_frame="spacecraftframe"`.
 
         """
 
-        self.response_path =  response_path
+        self.response_path = response_path
 
         if response_frame == "spacecraftframe" or response_frame == "galactic":
             self.response_frame = response_frame
         else:
             raise ValueError("The response frame can only be `spacecraftframe` or `galactic`!")
 
+        self.pa_convention = pa_convention
 
     @staticmethod
     def get_psr_in_galactic(coordinate, response_path):
@@ -60,12 +68,13 @@ class SourceInjector():
 
 
     def inject_point_source(self, spectrum, coordinate,
-                            orientation = None,
-                            source_name = "point_source",
-                            make_spectrum_plot = False,
+                            orientation=None,
+                            source_name="point_source",
+                            make_spectrum_plot=False,
                             make_PsiChi_plot=False,
-                            data_save_path = None,
-                            project_axes = None):
+                            data_save_path=None,
+                            project_axes=None,
+                            polarization=None):
         """
         Get the expected counts for a point source.
 
@@ -94,6 +103,11 @@ class SourceInjector():
             The axes to project before saving the data file (the
             default is `None`, which means the data won't be
             projected).
+        polarization : astromodels.core.polarization.LinearPolarization, optional
+            The polarization model (angle and degree). The angle is
+            assumed to have the same convention as the point source
+            response. If the response does not include a `Pol` axis,
+            the injector will fall back to an unpolarized expectation.
 
         Returns
         -------
@@ -112,24 +126,40 @@ class SourceInjector():
                                 "be provided to compute the "
                                 "expected counts.")
 
-            with FullDetectorResponse.open(self.response_path) as response:
+            # If the response includes a polarization axis, FullDetectorResponse requires an explicit polarization-angle convention.
+            if self.pa_convention is None:
+                response = FullDetectorResponse.open(self.response_path)
+            else:
+                response = FullDetectorResponse.open(self.response_path, pa_convention=self.pa_convention)
+
+            with response as response:
 
                 scatt_map = orientation.get_scatt_map(response.nside * 2,
-                                                      target_coord = coordinate,
-                                                      earth_occ = True)
+                                                      target_coord=coordinate,
+                                                      earth_occ=True)
 
                 psr = response.get_point_source_response(coord=coordinate,
                                                          scatt_map=scatt_map)
 
-        else: # self.response_frame == "galactic":
+        else:  # self.response_frame == "galactic":
 
             # get the point source response in galactic frame
-            psr = SourceInjector.get_psr_in_galactic(coordinate = coordinate,
-                                                     response_path = self.response_path)
+            psr = SourceInjector.get_psr_in_galactic(coordinate=coordinate,
+                                                     response_path=self.response_path)
 
-        injected = psr.get_expectation(spectrum)
+        # Convolve response with spectrum (If the response does not include a polarization axis (`Pol`), fall back to unpolarized expectation.)
+        polarization_to_use = polarization
+        if polarization is not None and 'Pol' not in psr.axes.labels:
+            raise RuntimeError(
+                "Polarization was specified, but the response has no 'Pol' axis. "
+                "Use a polarization-capable response to inject a polarized source."
+            )
 
-        # Set the Em and Ei scale to linear to match the simulated
+
+
+        injected = psr.get_expectation(spectrum, polarization=polarization_to_use)
+
+        # Set the Em (and Ei) scale to linear to match the simulated
         # data. The linear scale of Em is the default for COSI data.
         # Because Histograms can share Axis objects, we must copy the
         # Axis before modifying it and then replace it in the
@@ -143,8 +173,8 @@ class SourceInjector():
             injected = injected.project(project_axes)
 
         if make_spectrum_plot:
-            ax, plot = injected.project("Em").draw(label = "Injected point source",
-                                                   color = "green")
+            ax, plot = injected.project("Em").draw(label="Injected point source",
+                                                   color="green")
             ax.legend(fontsize=12, loc="upper right", frameon=True)
             ax.set_xscale("log")
             ax.set_yscale("log")
@@ -152,8 +182,8 @@ class SourceInjector():
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
         if make_PsiChi_plot:
-            plot, ax = injected.project('PsiChi').plot(coord = 'G',
-                                                       ax_kw = {'coord':'G'})
+            plot, ax = injected.project('PsiChi').plot(coord='G',
+                                                       ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
 
@@ -161,6 +191,7 @@ class SourceInjector():
             injected.write(data_save_path)
 
         return injected
+
 
     @staticmethod
     def get_esr(source_model, response_path):
@@ -184,6 +215,7 @@ class SourceInjector():
             return ExtendedSourceResponse.open(response_path)
         except Exception as e:
             raise RuntimeError(f"Error loading Extended Source Response: {e}")
+
 
     def inject_extended_source(self, source_model,
                                source_name="extended_source",
@@ -237,8 +269,8 @@ class SourceInjector():
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
         if make_PsiChi_plot:
-            plot, ax = injected.project('PsiChi').plot(coord = 'G',
-                                                       ax_kw = {'coord':'G'})
+            plot, ax = injected.project('PsiChi').plot(coord='G',
+                                                       ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
 
@@ -247,12 +279,14 @@ class SourceInjector():
 
         return injected
 
+
     def inject_model(self, model,
-                     orientation = None,
-                     make_spectrum_plot = False,
-                     make_PsiChi_plot = False,
-                     data_save_path = None,
-                     project_axes = None):
+                     orientation=None,
+                     make_spectrum_plot=False,
+                     make_PsiChi_plot=False,
+                     data_save_path=None,
+                     project_axes=None,
+                     polarization=None):
         """
         Build an injected source by combining all the sources in a
         model.  Each injected source is stored by name in a dictionary
@@ -281,6 +315,11 @@ class SourceInjector():
             The axes to project before saving the data file (the
             default is `None`, which means the data won't be
             projected).
+        polarization : astromodels.core.polarization.LinearPolarization, optional
+            A single polarization hypothesis applied to all injected
+            point sources. If a given point source response does not
+            include a `Pol` axis, the injector will fall back to an
+            unpolarized expectation for that source.
 
         Returns
         -------
@@ -306,11 +345,12 @@ class SourceInjector():
         # iterate through all point sources
         for name, source in point_sources.items():
 
-            injected = self.inject_point_source(spectrum = source.spectrum.main.shape,
-                                                coordinate = source.position.sky_coord,
-                                                orientation = orientation,
-                                                source_name = name,
-                                                project_axes = project_axes)
+            injected = self.inject_point_source(spectrum=source.spectrum.main.shape,
+                                                coordinate=source.position.sky_coord,
+                                                orientation=orientation,
+                                                source_name=name,
+                                                project_axes=project_axes,
+                                                polarization=polarization)
 
             # set to log scale manually. This inconsistency is from
             # the detector response module
@@ -326,9 +366,9 @@ class SourceInjector():
         # iterate through all extended sources
         for name, source in extended_sources.items():
 
-            injected = self.inject_extended_source(source_model = source,
-                                                   source_name = name,
-                                                   project_axes = project_axes)
+            injected = self.inject_extended_source(source_model=source,
+                                                   source_name=name,
+                                                   project_axes=project_axes)
             self.components[name] = injected
 
         # combine all the sources
@@ -352,8 +392,8 @@ class SourceInjector():
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
         if make_PsiChi_plot:
-            plot, ax = injected_all.project('PsiChi').plot(coord = 'G',
-                                                           ax_kw = {'coord':'G'})
+            plot, ax = injected_all.project('PsiChi').plot(coord='G',
+                                                           ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
 
