@@ -436,23 +436,20 @@ class RspConverter():
 
         """
 
-        ewidth = axes['Ei'].widths
-
         norm = hdr["norm"]
 
         # If we have one single bin, treat the Gaussian normalization
         # like the mono one.  Also check that the Gaussian spectrum is
         # fully contained in that bin
-        if norm == "Gaussian" and len(ewidth) == 1:
+        if norm == "Gaussian" and axes['Ei'].nbins == 1:
 
             from scipy.special import erf
 
             Gauss_mean = hdr["norm_params"][0]
+            Gauss_sdev = hdr["norm_params"][1]
 
-            edges = axes['Ei'].edges
-            gauss_int = \
-                0.5 * (1 + erf( (edges[0] - Gauss_mean)/(4*np.sqrt(2)) ) ) + \
-                0.5 * (1 + erf( (edges[1] - Gauss_mean)/(4*np.sqrt(2)) ) )
+            edges = axes['Ei'].edges.value
+            gauss_int = np.diff(0.5 * (1 + erf( (edges - Gauss_mean)/(Gauss_sdev * np.sqrt(2)) ) ) )
 
             assert gauss_int == 1, "The gaussian spectrum is not fully contained in this single bin!"
 
@@ -470,7 +467,16 @@ class RspConverter():
                 if not self.quiet:
                     logger.info(f"normalization: linear with energy range [{emin}-{emax}]")
 
-                nperchannel_norm = ewidth / (emax - emin)
+                e_lo = axes['Ei'].lower_bounds.value
+                e_hi = axes['Ei'].upper_bounds.value
+
+                e_lo = np.minimum(emax, e_lo)
+                e_hi = np.minimum(emax, e_hi)
+
+                e_lo = np.maximum(emin, e_lo)
+                e_hi = np.maximum(emin, e_hi)
+
+                nperchannel_norm = (e_hi - e_lo) / (emax - emin)
 
             case "Mono" :
                 if not self.quiet:
@@ -484,7 +490,6 @@ class RspConverter():
                 if not self.quiet:
                     logger.info(f"normalization: powerlaw with index {alpha} with energy range [{emin}-{emax}]keV")
 
-                # From powerlaw
                 e_lo = axes['Ei'].lower_bounds.value
                 e_hi = axes['Ei'].upper_bounds.value
 
@@ -507,8 +512,16 @@ class RspConverter():
         # We assume all FISBEL pixels have the same area.
         nperchannel = nperchannel_norm * hdr["nevents_sim"] / axes["NuLambda"].nbins
 
+        zero_weights = (nperchannel == 0.)
+
+        if np.any(zero_weights):
+            logger.warning("Spectral normalization gives zero incident photons in some Ei bins; "
+                           "eff_area correction for those bins will be set to zero!")
+
         # Area
-        eff_area = hdr["area_sim"] / nperchannel
+        eff_area = np.zeros(len(nperchannel))
+        eff_area[~zero_weights] = hdr["area_sim"] / nperchannel[~zero_weights]
+
         return eff_area
 
 

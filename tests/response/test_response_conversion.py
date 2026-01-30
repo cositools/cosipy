@@ -1,5 +1,7 @@
+import numpy as np
+
 from cosipy import test_data
-7
+
 from cosipy.response import FullDetectorResponse, RspConverter
 
 rspgz_response_path = test_data.path / "test_full_detector_response.rsp.gz"
@@ -54,7 +56,7 @@ def test_default_norms(tmp_path):
 
     c = RspConverter(bufsize = 100000,
                      norm = "Linear",
-                     norm_params = [50, 1000])
+                     norm_params = [50, 10000])
 
     c.convert_to_h5(rspgz_nonorm_response_path,
                     h5_filename = tmp_h5_filename,
@@ -62,7 +64,7 @@ def test_default_norms(tmp_path):
 
     fdr = FullDetectorResponse.open(tmp_h5_filename)
     norm_info = fdr.headers["SP"]
-    assert norm_info == "Linear 50 1000"
+    assert norm_info == "Linear 50 10000"
     fdr.close()
 
     c = RspConverter(bufsize = 100000,
@@ -79,7 +81,7 @@ def test_default_norms(tmp_path):
 
     c = RspConverter(bufsize = 100000,
                      norm = "powerlaw",
-                     norm_params = [50, 1000, 0.9])
+                     norm_params = [50, 10000, 0.9])
 
     c.convert_to_h5(rspgz_nonorm_response_path,
                     h5_filename = tmp_h5_filename,
@@ -87,12 +89,12 @@ def test_default_norms(tmp_path):
 
     fdr = FullDetectorResponse.open(tmp_h5_filename)
     norm_info = fdr.headers["SP"]
-    assert norm_info == "powerlaw 50 1000 0.9"
+    assert norm_info == "powerlaw 50 10000 0.9"
     fdr.close()
 
     c = RspConverter(bufsize = 100000,
                      norm = "powerlaw",
-                     norm_params = [50, 1000, 1])
+                     norm_params = [50, 10000, 1])
 
     c.convert_to_h5(rspgz_nonorm_response_path,
                     h5_filename = tmp_h5_filename,
@@ -100,7 +102,24 @@ def test_default_norms(tmp_path):
 
     fdr = FullDetectorResponse.open(tmp_h5_filename)
     norm_info = fdr.headers["SP"]
-    assert norm_info == "powerlaw 50 1000 1.0"
+    assert norm_info == "powerlaw 50 10000 1.0"
+    fdr.close()
+
+    c = RspConverter(bufsize = 100000,
+                     norm = "powerlaw",
+                     norm_params = [500, 1000, 1])
+
+    c.convert_to_h5(rspgz_nonorm_response_path,
+                    h5_filename = tmp_h5_filename,
+                    overwrite = True)
+
+    fdr = FullDetectorResponse.open(tmp_h5_filename)
+    norm_info = fdr.headers["SP"]
+    assert norm_info == "powerlaw 500 1000 1.0"
+
+    # bins with no defined spectral normalization should
+    # have their eff_area set to zero, not -inf or NaN
+    assert all(np.isfinite(fdr.eff_area_correction))
     fdr.close()
 
     # cannot test Gaussian norm because it can only be used on
