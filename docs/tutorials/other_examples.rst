@@ -11,3 +11,5 @@ Other examples
    Good time intervals <event_selection/GTI.ipynb>
 
    Extended source injector <source_injector/Extended_source_injector.ipynb>
+
+   Bayesian fit <spectral_fits/continuum_fit/grb/SpectralFit_GRB_Bayesian.ipynb>

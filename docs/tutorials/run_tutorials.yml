@@ -77,7 +77,9 @@ tutorials:
           checksum: d2c03731b6f7fbfed0baa630c6f7fdbc
 
     spectral_fit_grb:
-      notebook: spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb
+      notebook: 
+        - spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb
+        - spectral_fits/continuum_fit/grb/SpectralFit_GRB_Bayesian.ipynb
       ancillary_files:
         - spectral_fits/continuum_fit/grb/background.yaml
         - spectral_fits/continuum_fit/grb/grb.yaml
