@@ -19,13 +19,16 @@ from tqdm.autonotebook import tqdm
 
 class RspConverter():
     """
-    Converter between response files stored in .rsp.gz format and
+    Converter between response files stored in .rsp format and
     optimized HDF5 format on disk.
 
-    Use method convert_to_h5() to convert a .rsp.gz file to .h5.
+    Use method convert_to_h5() to convert a .rsp file to .h5.
 
     Use method convert_to_rsp() to convert a FullDetectorResponse
-    (backed by an .h5 file) to .rsp.gz.
+    (backed by an .h5 file) to .rsp.
+
+    To read and write compressed .rsp files, add ".gz" to the end of
+    the .rsp filename.
 
     """
 
@@ -107,6 +110,33 @@ class RspConverter():
             self.norm = norm
             self.norm_params = norm_params
 
+    @staticmethod
+    def _open_rsp(rsp_filename, mode):
+        """
+        Open an .rsp file with or without .gz extension.  If .gz,
+        use gzip to open; otherwise, open as a regular file.
+        The resulting file object can be used in a context manager.
+
+        Parameters
+        ----------
+        rsp_filename : Path or string
+          name of file
+        mode : str
+          mode in which to open file
+
+        Returns
+        -------
+        open file or gzip stream object
+
+        """
+
+        rsp_path = Path(rsp_filename)
+
+        if rsp_path.suffix == ".gz":
+            return gzip.open(rsp_filename, mode)
+        else:
+            return open(rsp_filename, mode)
+
     def convert_to_h5(self,
                       rsp_filename,
                       h5_filename = None,
@@ -115,13 +145,13 @@ class RspConverter():
                       elt_type = None):
 
         """
-        Given a response file in .rsp.gz format, read it
+        Given a response file in .rsp format, read it
         and write it out as an HDF5 file
 
         Parameters
         ----------
         rsp_filename: string
-           name of input file (must end with .rsp.gz)
+           name of input file (must end with .rsp or .rsp.gz)
         h5_filename : string (optional)
            name of output file (should end with .h5); if not
            specified, use base name of rsp_filename with .h5 extension
@@ -142,19 +172,26 @@ class RspConverter():
         """
 
         if h5_filename is None:
-            h5_filename = str(rsp_filename).replace(".rsp.gz", ".h5")
+            rsp_path = Path(rsp_filename)
+
+            # strip any .rsp and .gz from end of path and add .h5
+            h5_path = rsp_path.parent / rsp_path.stem
+            while h5_path.suffix in {".rsp", "gz"}:
+                h5_path = h5_path.with_suffix("")
+
+            h5_filename = h5_path.parent / (h5_path.stem + ".h5")
 
         if Path(h5_filename).exists() and not overwrite:
             raise RuntimeError(f"Not overwriting existing HDF5 file {h5_filename}")
 
-        if elt_type is None:
-            elt_type = self._get_min_elt_type(rsp_filename)
-
         # read all info from the .rsp file
-        with gzip.open(rsp_filename, "rt") as f:
+        with self._open_rsp(rsp_filename, "rt") as f:
 
             axes, hdr = self._read_response_header(f)
             eff_area = self._get_eff_area_correction(axes, hdr)
+
+            if elt_type is None:
+                elt_type = self._get_min_elt_type(rsp_filename)
 
             nbins = hdr["nbins"]
             counts = self._read_counts(f, axes, nbins, elt_type)
@@ -193,7 +230,7 @@ class RspConverter():
 
         Parameters
         ----------
-        rsp_file : file handle to open .rsp.gz file
+        rsp_file : file handle to open .rsp file
 
         Returns
         -------
@@ -363,9 +400,10 @@ class RspConverter():
 
         match norm:
             case 'Mono':
-                if len(params) > 0:
-                    raise ValueError(f"Mono normalization takes zero params; {len(params)} given")
-                params = ()
+                if len(params) > 1:
+                    raise ValueError(f"Mono normalization takes a most one param; {len(params)} given")
+                # emono if given, else dummy value
+                params = () if len(params) == 0 else ( int(params[0]), )
 
             case 'Linear':
                 if len(params) != 2:
@@ -436,57 +474,59 @@ class RspConverter():
 
         """
 
-        ewidth = axes['Ei'].widths
+        def gauss_int(x, mu, sigma):
+            from scipy.special import erf
+            z = (x - mu)/(sigma * np.sqrt(2))
+            return 0.5*(1 + erf(z))
 
         norm = hdr["norm"]
+        params = hdr["norm_params"]
 
-        # If we have one single bin, treat the Gaussian normalization
-        # like the mono one.  Also check that the Gaussian spectrum is
-        # fully contained in that bin
-        if norm == "Gaussian" and len(ewidth) == 1:
-
-            from scipy.special import erf
-
-            Gauss_mean = hdr["norm_params"][0]
-
-            edges = axes['Ei'].edges
-            gauss_int = \
-                0.5 * (1 + erf( (edges[0] - Gauss_mean)/(4*np.sqrt(2)) ) ) + \
-                0.5 * (1 + erf( (edges[1] - Gauss_mean)/(4*np.sqrt(2)) ) )
-
-            assert gauss_int == 1, "The gaussian spectrum is not fully contained in this single bin!"
-
-            if not self.quiet:
-                logger.info("Only one bin so we will use the Mono normalisation")
-
-            norm = "Mono"
+        ei_axis = axes['Ei']
+        e_lo = ei_axis.lower_bounds.value
+        e_hi = ei_axis.upper_bounds.value
 
         match norm:
 
             case "Linear":
-
-                emin, emax = hdr["norm_params"]
+                emin, emax = params
 
                 if not self.quiet:
                     logger.info(f"normalization: linear with energy range [{emin}-{emax}]")
 
-                nperchannel_norm = ewidth / (emax - emin)
+                e_lo = np.minimum(emax, e_lo)
+                e_hi = np.minimum(emax, e_hi)
+
+                e_lo = np.maximum(emin, e_lo)
+                e_hi = np.maximum(emin, e_hi)
+
+                nperchannel_norm = (e_hi - e_lo) / (emax - emin)
 
             case "Mono" :
                 if not self.quiet:
                     logger.info("normalization: mono")
 
-                nperchannel_norm = np.array([1.])
+                if params == ():
+                    if ei_axis.nbins > 1:
+                        raise ValueError("Cannot specify Mono norm without energy for Ei axis with multiple bins")
+                    else:
+                        # all energy is in the single bin
+                        nperchannel_norm = np.array([1.])
+
+                        # fill in a header value so we don't write "None"
+                        hdr["norm_params"] = (ei_axis.centers[0],)
+                else:
+                    emono = params[0]
+
+                    # set just the Ei bin containing the mono energy to 1
+                    nperchannel_norm = np.zeros(ei_axis.nbins)
+                    nperchannel_norm[(e_lo <= emono) & (e_hi >= emono)] = 1.
 
             case "powerlaw":
-                emin, emax, alpha = hdr["norm_params"]
+                emin, emax, alpha = params
 
                 if not self.quiet:
                     logger.info(f"normalization: powerlaw with index {alpha} with energy range [{emin}-{emax}]keV")
-
-                # From powerlaw
-                e_lo = axes['Ei'].lower_bounds.value
-                e_hi = axes['Ei'].upper_bounds.value
 
                 e_lo = np.minimum(emax, e_lo)
                 e_hi = np.minimum(emax, e_hi)
@@ -501,14 +541,35 @@ class RspConverter():
                     nperchannel_norm = (e_hi**a - e_lo**a) / (emax**a - emin**a)
 
             case "Gaussian" :
-                raise NotImplementedError("Gaussian normalization for multiple bins not yet implemented")
+                mean, sdev, cutoff = params
+
+                emin = mean - cutoff * sdev
+                emax = mean + cutoff * sdev
+
+                logger.info(f"normalization: Gaussian with energy range [{emin}-{emax}]keV")
+
+                e_lo = np.minimum(emax, e_lo)
+                e_hi = np.minimum(emax, e_hi)
+
+                e_lo = np.maximum(emin, e_lo)
+                e_hi = np.maximum(emin, e_hi)
+
+                nperchannel_norm = (gauss_int(e_hi, mean, sdev) - gauss_int(e_lo, mean, sdev)) / (emax - emin)
 
         # If Nulambda is full-sky, its nbins will be 1, so division is a no-op.
         # We assume all FISBEL pixels have the same area.
         nperchannel = nperchannel_norm * hdr["nevents_sim"] / axes["NuLambda"].nbins
 
+        zero_weights = (nperchannel == 0.)
+
+        if np.any(zero_weights):
+            logger.warning("Spectral normalization gives zero incident photons in some Ei bins; "
+                           "eff_area correction for those bins will be set to zero!")
+
         # Area
-        eff_area = hdr["area_sim"] / nperchannel
+        eff_area = np.zeros(len(nperchannel))
+        eff_area[~zero_weights] = hdr["area_sim"] / nperchannel[~zero_weights]
+
         return eff_area
 
 
@@ -661,14 +722,18 @@ class RspConverter():
 
         """
 
-        with gzip.open(rsp_filename, "rt") as rsp_file:
+        with self._open_rsp(rsp_filename, "rt") as rsp_file:
 
+            nbins = None
             for line in rsp_file:
                 # consume the file header
                 line = line.split()
                 if len(line) > 0 and line[0] == "StartStream":
                     nbins = int(line[1])
                     break
+
+            if nbins is None:
+                ValueError("Could not find start of data in .rsp file")
 
             tq = tqdm(total=nbins,
                       desc="Getting type for counts",
@@ -714,7 +779,7 @@ class RspConverter():
         Parameters
         ----------
         rsp_file : file handle
-           open .rsp.gz file
+           open .rsp file
         nbins : int
            number of bins to read from file
         axes : Axes object
@@ -813,7 +878,7 @@ class RspConverter():
                        overwrite = False):
         """
         Convert a FullDetectorResponse object backed by an HDF5 file
-        into a textual .rsp.gz response.  We reuse the header
+        into a textual .rsp or .rsp.gz response.  We reuse the header
         information stored in the HDF5 file, along with its axes and
         counts.
 
@@ -822,14 +887,15 @@ class RspConverter():
         fullDetectorResponse : FullDetectorResponse
            object to be converted
         rsp_filename : string
-           path to write .rsp.gz file (should end with .rsp.gz)
+           path to write .rsp file; if extension is .rsp.gz, the file
+           will be gzipped.
         overwrite : bool
            if true, overwrite existing response if it exists
 
         """
 
         if Path(rsp_filename).exists() and not overwrite:
-            raise RuntimeError(f"Not overwriting existing .rsp.gz file {rsp_filename}")
+            raise RuntimeError(f"Not overwriting existing file {rsp_filename}")
 
         # reorder axes if needed to match the expected order for an .rsp file
         axes = fullDetectorResponse._axes
@@ -849,7 +915,7 @@ class RspConverter():
 
     def _write_rsp(self, headers, axes, counts, rsp_filename):
         """
-        Write an .rsp.gz file with all necessary info.
+        Write an .rsp file with all necessary info.
 
         Parameters
         ----------
@@ -860,7 +926,8 @@ class RspConverter():
         counts :
           counts of Histogram
         rsp_filename :
-           name of response file to write (should be .rsp.gz).
+           path to write .rsp file; if extension is .rsp.gz, the file
+           will be gzipped.
 
         """
 
@@ -869,7 +936,7 @@ class RspConverter():
         for desc in RspConverter.axis_name_map:
             axis_names[RspConverter.axis_name_map[desc]] = desc
 
-        with gzip.open(rsp_filename, "wt") as f:
+        with self._open_rsp(rsp_filename, "wt") as f:
 
             f.write("# computed reduced response\n")
 

@@ -100,7 +100,7 @@ class PointSourceResponse(Histogram):
         if flux is None:
             energy_axis = self.photon_energy_axis
             flux = get_integrated_spectral_model(spectrum, energy_axis)
-
+            
         expectation = np.tensordot(contents, flux.contents, axes=(0, 0))
 
         # if self is sparse, expectation will be a SparseArray with
@@ -110,6 +110,6 @@ class PointSourceResponse(Histogram):
                          copy_contents = False)
 
         if not hist.unit == u.dimensionless_unscaled:
-            raise RuntimeError("Expectation should be dimensionless, but has units of " + str(hist.unit) + ".")
-
+            raise RuntimeError(f"Expectation should be dimensionless, but has units of {(hist.unit)}.")
+        
         return hist

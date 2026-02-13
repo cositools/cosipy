@@ -3,7 +3,7 @@ import os
 import subprocess
 from pathlib import Path
 from cosipy.util import fetch_wasabi_file
-from cosipy import COSILike, BinnedData
+from cosipy import BinnedData
 #
 indir=str("./")
 #

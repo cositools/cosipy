@@ -576,15 +576,13 @@ class UnBinnedData(DataIO):
             Name of output file. Only include prefix (not file type).
         """
 
+
         # Units for new DC4 structure of the data
         units = (u.keV, u.s,   u.rad, u.rad,
                  u.rad, u.rad, u.rad, u.rad,
                  u.cm,  u.deg, u.deg,
                  u.dimensionless_unscaled)
 
-        # Old UnBinned data structure did not have the last field
-        # (CO_seq); this special case should be removed for DC4.
-        units = units[:len(self.cosi_dataset.keys())]
 
         if self.unbinned_output == 'fits':
             # For fits output

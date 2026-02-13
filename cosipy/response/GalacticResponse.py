@@ -30,7 +30,7 @@ class GalacticResponse(HealpixBase):
         pass
 
     @classmethod
-    def open(cls, filename):
+    def open(cls, filename, dtype=None):
         """
         Load a galactic-frame response from a specified path.  The
         response is stored as a standard Histogram; we selectively
@@ -42,8 +42,12 @@ class GalacticResponse(HealpixBase):
         ----------
         filename : string or Path
           file containing response
+        dtype : numpy dtype or None
+          Dtype of values to be returned when accessing response
+          contents. If None, use the type stored in the file
 
         """
+
         import h5py as h5
 
         filename = Path(filename)
@@ -69,15 +73,10 @@ class GalacticResponse(HealpixBase):
 
         new._contents = new._file['hist/contents']
 
-        # NB: old galactic response files were stored as histograms
-        # with overflow tracking on.  Make sure we handle that
-        # when reading them!
-        new._has_overflow = (new._contents.shape != new._axes.shape)
-
         # dummy effective area correction; "counts" in Histogram
         # have already had the effective area correction applied.
-        new._eff_area = np.ones(new._axes["Ei"].nbins,
-                                dtype=new._contents.dtype)
+        dtype = new._contents.dtype if dtype is None else dtype
+        new._eff_area = np.ones(new._axes["Ei"].nbins, dtype=dtype)
 
         return new
 
@@ -126,7 +125,7 @@ class GalacticResponse(HealpixBase):
         :py:class:`numpy.dtype`
         """
 
-        return self._contents.dtype
+        return self._eff_area.dtype
 
     @property
     def unit(self):
@@ -172,7 +171,7 @@ class GalacticResponse(HealpixBase):
         if not isinstance(pix, (int, np.integer)):
             raise IndexError("Pixel index must be an integer")
 
-        data = self._contents[pix]
+        data = self._contents[pix].astype(self.dtype, copy=False)
 
         return DetectorResponse(self._rest_axes,
                                 contents = data,
@@ -189,7 +188,7 @@ class GalacticResponse(HealpixBase):
 
         """
 
-        data = np.array(self._contents)
+        data = np.array(self._contents, dtype=self.dtype)
 
         return DetectorResponse(self._axes,
                                 contents = data,
@@ -260,7 +259,7 @@ class GalacticResponse(HealpixBase):
         idx += [all_slice] * (self._rest_axes.ndim - em_dim - 1)
         idx = tuple(idx)
 
-        return self._contents[idx]
+        return self._contents[idx].astype(self.dtype, copy=False)
 
     def get_point_source_response(self, source):
 

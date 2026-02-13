@@ -35,7 +35,7 @@ setup(name='cosipy',
                           'yayc',
                           'awscli',
                           'boto3',
-                          'scipy<=1.13.0'],
+                          'scipy>=1.15.3'],
       description = "High-level analysis for the COSI telescope data",
       entry_points={"console_scripts":[
           "cosi-response = cosipy.response.FullDetectorResponse:cosi_response",

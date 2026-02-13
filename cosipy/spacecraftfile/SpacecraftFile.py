@@ -36,7 +36,6 @@ class SpacecraftFile():
                  altitude = None,
                  livetime = None,
                  frame = "galactic"):
-
         """
         Handles the spacecraft orientation. Calculates the dwell time
         map and point source response over a certain orientation
@@ -148,18 +147,18 @@ class SpacecraftFile():
 
         # altitude
         if altitude is not None:
-            self._altitude = np.array(altitude)
+            self._altitude = np.asarray(altitude)
 
         # livetime
         if livetime is not None:
-            self.livetime = np.array(livetime)
+            self.livetime = np.asarray(livetime)
 
         self.frame = frame
+        self._cache_earth_occ = False
 
 
     @classmethod
     def parse_from_file(cls, file, frame='galactic'):
-
         """
         Parses timestamps, axis positions from file and returns to __init__.
 
@@ -210,7 +209,6 @@ class SpacecraftFile():
                    frame = frame)
 
     def get_time(self):
-
         """
         Return the array of pointing times as a astropy.Time object.
 
@@ -223,7 +221,6 @@ class SpacecraftFile():
         return self._time
 
     def get_time_delta(self):
-
         """
         Return an array of the differences between neighbouring time points.
 
@@ -238,7 +235,6 @@ class SpacecraftFile():
         return time_delta
 
     def get_altitude(self):
-
         """
         Return the array of Earth altitude.
 
@@ -251,29 +247,15 @@ class SpacecraftFile():
         return self._altitude
 
     def get_attitude(self):
-
-        return self._attitude
-
-    @staticmethod
-    def _cart_to_polar(v):
         """
-        Convert Cartesian 3D unit direction vectors to polar coordinates.
-
-        Parameters
-        ----------
-        v : np.ndarray(float) [N x 3]
-          array of N 3D unit vectors
+        Return an array of the attitudes assumed at each time point.
 
         Returns
         -------
-        lon, colat : np.ndarray(float) [N]
-          longitude and co-latitude corresponding to v in radians
-
+        Attitude array
         """
 
-        lon   = np.arctan2(v[:,1], v[:,0])
-        colat = np.arccos(v[:,2])
-        return (lon, colat)
+        return self._attitude
 
     def source_interval(self, start, stop):
 
@@ -499,8 +481,114 @@ class SpacecraftFile():
                               altitude = new_altitude,
                               livetime = new_livetime)
 
-    def get_target_in_sc_frame(self, target_coord):
+    def _get_earth_occ(self, src_vec):
+        """
+        For each time point in the SpacecraftFile, determine whether
+        a given source would be occluded by the earth.
 
+        We can cache some source-independent parts of the computation
+        to speed up repeated calls to this function.  Use the class
+        property cache_earth_occ() to control whether caching is
+        enabled.
+
+        Parameters
+        ----------
+        src_vec : 3D Cartesian vector
+          source direction, assumed to be in frame of orientation data
+
+        Returns
+        -------
+        array of bool, True for each time point where source is
+        occluded
+
+        """
+
+        if hasattr(self, "_min_angle_cos"):
+            # values for occultation testing have been cached
+            min_angle_cos = self._min_angle_cos
+            ez_cart = self._ez_cart
+        else:
+            r_earth = 6378.0 # earth radius in km
+
+            # sine of angle between lines through satellite (1) normal
+            # to earth and (2) tangent to earth
+            sin_earth_angle = r_earth / (r_earth + self._altitude)
+
+            # cosine of maximum unoccluded angle for source w/r to
+            # satellite's earth zenith; that is,
+            #
+            #   cos(pi - asin(sin_earth_angle))
+            #
+            # Simplify this calculation to avoid arcsin/cos.
+            min_angle_cos = -np.sqrt(1 - sin_earth_angle**2)
+            ez_cart = self.earth_zenith.cartesian.xyz.value
+
+            if self._cache_earth_occ:
+                # cache intermediates in case we need to use them
+                # repeatedly.
+                self._min_angle_cos = min_angle_cos
+                self._ez_cart = ez_cart
+
+        # get time points at which source is occluded by Earth.
+        is_occluded = (src_vec @ ez_cart <= min_angle_cos)
+
+        return is_occluded
+
+    """
+    Caching for source-independent parts of earth occultation
+    calculation, to make it go faster for each new source.
+    """
+
+    @property
+    def cache_earth_occ(self):
+        return self._cache_earth_occ
+
+    @cache_earth_occ.setter
+    def cache_earth_occ(self, value):
+        if value is False:
+            # delete any cached data if present
+            if hasattr(self, "_min_angle_cos"):
+                del self._min_angle_cos
+                del self._ez_cart
+
+        self._cache_earth_occ = value
+
+    def get_source_visibility(self, source, earth_occ = True):
+        """
+        Get the source's visibility to the detector in all time bins.
+        Visibility is determined by the spacecraft's livetime (for,
+        e.g., SAA passage) and, if requested, by earth occultation of
+        the source.
+
+        Parameters
+        ----------
+        source : SkyCoord or Cartesian 3-vector (ndarray)
+           Location of the source
+        earth_occ : bool, optional
+           If true, visibility is limited by earth occultation
+
+        Returns
+        -------
+        An ndarray of float, with visible time in each bin.
+
+        """
+
+        if earth_occ:
+            if isinstance(source, SkyCoord):
+                source.transform_to(self.frame)
+                source = source.cartesian.xyz.value
+
+            # get pointings that are occluded by Earth
+            is_occluded = self._get_earth_occ(source)
+
+            # zero out weights of time bins corresponding to occluded
+            # pointings.  Assume occlusion at start of bin holds for
+            # entire bin.
+            return np.where(is_occluded[:-1], 0, self.livetime)
+        else:
+            return self.livetime
+
+    def get_target_in_sc_frame(self, target_coord):
         """
         Convert a target coordinate in an inertial frame to the path of
         the source in the spacecraft frame.  The target coordinate may
@@ -510,7 +598,9 @@ class SpacecraftFile():
         Parameters
         ----------
         target_coord : astropy.coordinates.SkyCoord or Cartesian 3-vector
-            The coordinates of the target object.
+            The coordinates of the target object.  If a 3-vector, assumed
+            to be in coordinate frame of orientation data
+
         Returns
         -------
         astropy.coordinates.SkyCoord or pair of np.ndarrays
@@ -523,6 +613,7 @@ class SpacecraftFile():
         useSkyCoord = isinstance(target_coord, SkyCoord)
 
         if useSkyCoord:
+            target_coord = target_coord.transform_to(self.frame)
             target_coord = target_coord.cartesian.xyz.value
 
         src_path_cartesian = np.dot(self._attitude.rot.inv().as_matrix(),
@@ -542,6 +633,218 @@ class SpacecraftFile():
             # return raw longitude and co-latitude in radians
             return lon, colat
 
+    def get_exposure(self, base, theta, phi=None,
+                     lonlat=False, interp=True,
+                     source=None, dtype=np.float64):
+        """
+        Compute the set of exposed HEALPix pixels relative to a
+        HealpixBase arising from a sequence of spacecraft-frame
+        directions with durations as specified in this SpacecraftFile.
+
+        If theta is a SkyCoord, it specifies the full direction.
+        Else, theta and phi specify the direction as angles.  If
+        lonlat = True, theta and phi are longitude and latitude in
+        degrees; else, theta and phi are co-latitude and longitude in
+        radians.
+
+        Parameters
+        ----------
+        base : HealpixBase
+           HEALPix grid used to discretize exposure
+        theta : np.ndarray or SkyCoord
+           if phi is None, a vector SkyCoord
+           if phi is not none, a vector of angles
+        phi : np.ndarray, optional
+           a vector of angles
+        interp : bool, optional
+           If True, interpolate the weights onto the HEALPix grid;
+           else, just map to nearest bin. (Default: interpolate)
+        source : 3-vector or SkyCoord, optional
+           Source location; if None, do not consider earth
+           occultation when computing exposure
+        dtype : numpy datatype, optional
+           Type of returned exposure weights (default: double)
+
+        Returns
+        -------
+        pixels : np.ndarray (int)
+          all HEALPix pixels in the grid with nonzero exposure weight
+        exposures: np.ndarray (dtype)
+          exposure weight for each pixel
+
+        """
+
+        earth_occ = source is not None
+        duration = self.get_source_visibility(source, earth_occ)
+
+        if len(duration) + 1 != len(theta):
+            raise ValueError("Source path must have length equal to # times in SpacecraftFile")
+
+        # remove the last src location. Effectively a 0th-order
+        # interpolation
+        theta = theta[:-1]
+        if phi is not None:
+            phi = phi[:-1]
+
+        if interp:
+            pixels, weights = base.get_interp_weights(theta=theta,
+                                                      phi=phi,
+                                                      lonlat=lonlat)
+            weighted_duration = weights * duration[None]
+        else:
+            # do not interpolate
+            pixels = base.ang2pix(theta=theta,
+                                  phi=phi,
+                                  lonlat=lonlat)
+            weighted_duration = duration
+
+        unique_pixels, unique_weights = \
+            self._sparse_sum_duplicates(pixels.ravel(),
+                                        weighted_duration.ravel(),
+                                        dtype=dtype)
+
+        return unique_pixels, unique_weights
+
+    def get_dwell_map(self, base, src_path, interp = True):
+        """
+        Generate a dwell-time map from a source's time-weighted
+        path in local coordinates.  Interpolate the path's time
+        weights onto the HEALPix grid defined by an instrument
+        response's NuLambda axis.
+
+        Parameters
+        ----------
+        base : HealpixBase
+            Definition of HEALPix grid for map
+        src_path : astropy.coordinates.SkyCoord
+            Movement of source in detector frame
+        interp : bool, optional
+             If True, interpolate the weights onto the HEALPix grid;
+             else, just map to nearest bin. (Default: interpolate)
+
+        Returns
+        -------
+        mhealpy.containers.healpix_map.HealpixMap
+            The dwell time map.
+
+        """
+
+        # check if the target source path is astropy.Skycoord object
+        if type(src_path) != SkyCoord:
+            raise TypeError("The coordinates of the source movement in "
+                            "the Spacecraft frame must be a SkyCoord object")
+
+        pixels, weights = self.get_exposure(base, src_path, interp=interp)
+
+        dwell_map = HealpixMap(base = base,
+                               unit = u.second,
+                               coordsys = SpacecraftFrame())
+
+        map_data = dwell_map.data
+        map_data[pixels] = weights
+
+        return dwell_map
+
+    def get_scatt_map(self,
+                      nside,
+                      target_coord = None,
+                      earth_occ = True,
+                      angle_nbins = None):
+        """
+        Bin the spacecraft attitude history into a list of discretized
+        attitudes with associated time weights.  Discretization is
+        performed on the rotation-vector representation of the
+        attitude; the supplied nside parameter describes a HEALPix
+        grid that discretizes the rotvec's direction, while a multiple
+        of nside defines the number of bins to discretize its angle.
+
+        If a target coordinate is provided and earth_occ is True,
+        attitudes for which the view of the target is occluded by
+        the earth are excluded.
+
+        Parameters
+        ----------
+        nside : int
+            The nside of the scatt map.
+        target_coord : astropy.coordinates.SkyCoord, optional
+            The coordinates of the target object.
+        earth_occ : bool, optional
+            Option to include Earth occultation in scatt map calculation.
+            Default is True.
+        angle_nbins : int (optional)
+            Number of bins used for the rotvec's angle. If none
+            specified, default is 8*nside
+
+        Returns
+        -------
+        cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
+            The spacecraft attitude map.
+
+        """
+
+        source = target_coord
+
+        # compute time that the source is visible per time bin
+        duration = self.get_source_visibility(source, earth_occ)
+
+        # Convert attitudes from points to time bins.  We use the
+        # attitude at the start of the bin as the representative value
+        # for the whole bin.
+        attitude = self._attitude[:-1]
+
+        # remove time bins in which the source was invisible
+        attitude = attitude[duration > 0.]
+        duration = duration[duration > 0.]
+
+        # Get orientations as rotation vectors (center dir, angle around center)
+
+        rot_vecs   = attitude.as_rotvec()
+        rot_angles = np.linalg.norm(rot_vecs, axis=-1)
+        rot_dirs   = rot_vecs / rot_angles[:,None]
+
+        # discretize rotvecs for input Attitudes
+
+        dir_axis = HealpixAxis(nside=nside, coordsys=self.frame)
+
+        if angle_nbins is None:
+            angle_nbins = 8*nside
+
+        angle_axis = Axis(np.linspace(0., 2*np.pi, num=angle_nbins+1), unit=u.rad)
+
+        r_lon, r_colat = self._cart_to_polar(rot_dirs.value)
+
+        dir_bins = dir_axis.find_bin(theta=r_colat,
+                                     phi=r_lon)
+        angle_bins = angle_axis.find_bin(rot_angles)
+
+        # compute list of unique rotvec bins occurring in input,
+        # along with mapping from time to rotvec bin
+        shape = (dir_axis.nbins, angle_axis.nbins)
+
+        att_bins = np.ravel_multi_index((dir_bins, angle_bins),
+                                        shape)
+
+        # compute the set of unique attitude bins, along with
+        # the total weight of each, eliminating any bins
+        # with zero weight
+        unique_bins, duration = \
+            self._sparse_sum_duplicates(att_bins, duration)
+
+        # construct discretized attitudes from the representative
+        # rotation vector for each unique bin
+        (unique_dirs, unique_angles) = np.unravel_index(unique_bins,
+                                                        shape)
+        v = dir_axis.pix2vec(unique_dirs)
+
+        angle_centers = angle_axis.centers
+        binned_attitudes = \
+            Attitude.from_rotvec(np.column_stack(v) *
+                                 angle_centers[unique_angles][:,None],
+                                 frame = self.frame)
+
+        duration = u.Quantity(duration, unit=u.s, copy=False)
+        return SpacecraftAttitudeMap(binned_attitudes, duration,
+                                     source = source if earth_occ else None)
 
     @staticmethod
     def _sparse_sum_duplicates(indices, weights=None, dtype=None):
@@ -584,231 +887,26 @@ class SpacecraftFile():
 
         return unique_indices, idx_weights
 
-    def get_exposure(self, base, theta, phi=None,
-                     lonlat=False, interp=True):
+    @staticmethod
+    def _cart_to_polar(v):
         """
-        Compute the set of exposed HEALPix pixels relative to a
-        HealpixBase arising from a sequence of spacecraft-frame
-        directions with durations as specified in this SpacecraftFile.
-
-        If theta is a SkyCoord, it specifies the full direction.
-        Else, theta and phi specify the direction as angles.  If
-        lonlat = True, theta and phi are longitude and latitude in
-        degrees; else, theta and phi are co-latitude and longitude in
-        radians.
+        Convert Cartesian 3D unit direction vectors to polar coordinates.
 
         Parameters
         ----------
-        base : HealpixBase
-           HEALPix grid used to discretize exposure
-        theta : np.ndarray or SkyCoord
-           if phi is None, a vector SkyCoord
-           if phi is not none, a vector of angles
-        colat: np.ndarray, optional
-           a vector of angles
-        interp : bool, optional
-             If True, interpolate the weights onto the HEALPix grid;
-             else, just map to nearest bin. (Default: interpolate)
+        v : np.ndarray(float) [N x 3]
+          array of N 3D unit vectors
 
         Returns
         -------
-        pixels : np.ndarray (int)
-          all HEALPix pixels in the grid with nonzero exposure time
-        exposures: np.ndarray (float)
-          exposure time for each pixel
+        lon, colat : np.ndarray(float) [N]
+          longitude and co-latitude corresponding to v in radians
 
         """
 
-        duration = self._raw_time_delta
-
-        if len(duration) + 1 != len(theta):
-            raise ValueError("Source path must have length equal to # times in SpacecraftFile")
-
-        # remove the last src location. Effectively a 0th-order
-        # interpolation
-        theta = theta[:-1]
-        if phi is not None:
-            phi = phi[:-1]
-
-        if interp:
-            pixels, weights = base.get_interp_weights(theta=theta,
-                                                      phi=phi,
-                                                      lonlat=lonlat)
-            weighted_duration = weights * duration[None]
-        else:
-            # do not interpolate
-            pixels = base.ang2pix(theta=theta,
-                                  phi=phi,
-                                  lonlat=lonlat)
-            weighted_duration = duration
-
-        unique_pixels, unique_weights = \
-            self._sparse_sum_duplicates(pixels.ravel(),
-                                        weighted_duration.ravel(),
-                                        dtype=np.float32)
-
-        return unique_pixels, unique_weights
-
-    def get_dwell_map(self, base, src_path, interp = True):
-
-        """
-        Generate a dwell-time map from a source's time-weighted
-        path in local coordinates.  Interpolate the path's time
-        weights onto the HEALPix grid defined by an instrument
-        response's NuLambda axis.
-
-        Parameters
-        ----------
-        base : HealpixBase
-            Definition of HEALPix grid for map
-        src_path : astropy.coordinates.SkyCoord
-            Movement of source in detector frame
-        interp : bool, optional
-             If True, interpolate the weights onto the HEALPix grid;
-             else, just map to nearest bin. (Default: interpolate)
-
-        Returns
-        -------
-        mhealpy.containers.healpix_map.HealpixMap
-            The dwell time map.
-
-        """
-
-        # check if the target source path is astropy.Skycoord object
-        if type(src_path) != SkyCoord:
-            raise TypeError("The coordinates of the source movement in "
-                            "the Spacecraft frame must be a SkyCoord object")
-
-        pixels, weights = self.get_exposure(base, src_path, interp=interp)
-
-        dwell_map = HealpixMap(base = base,
-                               unit = u.second,
-                               coordsys = SpacecraftFrame())
-
-        map_data = dwell_map.data
-        map_data[pixels] = weights
-
-        return dwell_map
-
-
-    def get_scatt_map(self,
-                      nside,
-                      target_coord = None,
-                      earth_occ = True,
-                      angle_nbins = None):
-
-        """
-        Bin the spacecraft attitude history into a list of discretized
-        attitudes with associated time weights.  Discretization is
-        performed on the rotation-vector representation of the
-        attitude; the supplied nside parameter describes a HEALPix
-        grid that discretizes the rotvec's direction, while a multiple
-        of nside defines the number of bins to discretize its angle.
-
-        If a target coordinate is provided and earth_occ is True,
-        attitudes for which the view of the target is occluded by
-        the earth are excluded.
-
-        Parameters
-        ----------
-        nside : int
-            The nside of the scatt map.
-        target_coord : astropy.coordinates.SkyCoord, optional
-            The coordinates of the target object.
-        earth_occ : bool, optional
-            Option to include Earth occultation in scatt map calculation.
-            Default is True.
-        angle_nbins : int (optional)
-            Number of bins used for the rotvec's angle. If none
-            specified, default is 8*nside
-
-        Returns
-        -------
-        cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
-            The spacecraft attitude map.
-
-        """
-
-        source = target_coord
-
-        if earth_occ:
-
-            # earth radius
-            r_earth = 6378.0
-
-            # Need a source location to compute earth occultation
-            if source is None:
-                raise ValueError("target_coord is needed when earth_occ is True")
-
-            # calculate angle between source direction and Earth zenith
-            # for each time stamp
-            src_angle = source.separation(self.earth_zenith)
-
-            # get max angle based on altitude
-            max_angle = np.pi - np.arcsin(r_earth/(r_earth + self._altitude))
-
-            # get pointings that are occluded by Earth
-            is_occluded = src_angle.rad >= max_angle
-
-            # zero out weights of time bins corresponding to occluded pointings
-            time_weights = np.where(is_occluded[:-1], 0, self.livetime)
-
-        else:
-            source = None # w/o occultation, result is not dependent on source
-            time_weights = self.livetime
-
-        # Get orientations as rotation vectors (center dir, angle around center)
-
-        rot_vecs   = self._attitude[:-1].as_rotvec()
-        rot_angles = np.linalg.norm(rot_vecs, axis=-1)
-        rot_dirs   = rot_vecs / rot_angles[:,None]
-
-        # discretize rotvecs for input Attitudes
-
-        dir_axis = HealpixAxis(nside=nside, coordsys=self.frame)
-
-        if angle_nbins is None:
-            angle_nbins = 8*nside
-
-        angle_axis = Axis(np.linspace(0., 2*np.pi, num=angle_nbins+1), unit=u.rad)
-
-        r_lon, r_colat = self._cart_to_polar(rot_dirs.value)
-
-        dir_bins = dir_axis.find_bin(theta=r_colat,
-                                     phi=r_lon)
-        angle_bins = angle_axis.find_bin(rot_angles)
-
-        # compute list of unique rotvec bins occurring in input,
-        # along with mapping from time to rotvec bin
-        shape = (dir_axis.nbins, angle_axis.nbins)
-
-        att_bins = np.ravel_multi_index((dir_bins, angle_bins),
-                                        shape)
-
-        # compute an Attitude for each unique rotvec bin
-
-        unique_atts, time_to_att_map = np.unique(att_bins,
-                                                 return_inverse=True)
-        (unique_dirs, unique_angles) = np.unravel_index(unique_atts,
-                                                        shape)
-        v = dir_axis.pix2vec(unique_dirs)
-
-        binned_attitudes = Attitude.from_rotvec(np.column_stack(v) *
-                                                angle_axis.centers[unique_angles][:,None],
-                                                frame = self.frame)
-
-        # sum weights for all attitudes mapping to each bin
-        binned_weights = np.zeros(len(unique_atts))
-        np.add.at(binned_weights, time_to_att_map, time_weights)
-
-        # remove any attitudes with zero weight
-        binned_attitudes = binned_attitudes[binned_weights > 0]
-        binned_weights   = binned_weights[binned_weights > 0]
-
-        return SpacecraftAttitudeMap(binned_attitudes,
-                                     u.Quantity(binned_weights, unit=u.s, copy=False),
-                                     source = source)
-
+        lon   = np.arctan2(v[:,1], v[:,0])
+        colat = np.arccos(v[:,2])
+        return (lon, colat)
 
     def get_psr_rsp(self, response_file, dwell_map, dts = None, pa_convention = None):
 

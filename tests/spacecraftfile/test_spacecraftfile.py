@@ -113,6 +113,13 @@ def test_get_target_in_sc_frame():
                        np.array([46.733430, 46.687559, 46.641664, 46.595745, 46.549801, 46.503833,
                                  46.457841, 46.411825, 46.365785, 46.319722, 46.273634]))
 
+    # make sure we get right result regardless of source inertial frame
+    target_coord_icrs = target_coord.transform_to("icrs")
+
+    path_in_sc_icrs = ori.get_target_in_sc_frame(target_coord_icrs)
+
+    assert np.allclose(path_in_sc.lon.deg, path_in_sc_icrs.lon.deg)
+    assert np.allclose(path_in_sc.lat.deg, path_in_sc_icrs.lat.deg)
 
 def test_get_dwell_map():
 
@@ -146,17 +153,44 @@ def test_get_dwell_map():
 
 def test_get_scatt_map():
 
-    response_path =test_data.path / "test_full_detector_response.h5"
+    response_path = test_data.path / "test_full_detector_response.h5"
     ori_path = test_data.path / "20280301_first_10sec.ori"
     ori = SpacecraftFile.parse_from_file(ori_path)
 
     target_name = "Crab"
     target_coord = SkyCoord(l=184.5551, b = -05.7877, unit = (u.deg, u.deg), frame = "galactic")
 
-    # test without earth occultation, as Crab is entirely occluded;
-    # TODO: use a better .ori file for testing
-    scatt_map = ori.get_scatt_map(nside=16, earth_occ=False)
+    # With this orientation file, Crab is entirely occluded, so
+    # scatt map is empty!  But the code should still work.
+    scatt_map = ori.get_scatt_map(target_coord=target_coord,
+                                  nside=16, earth_occ=True)
     ax_map = scatt_map.get_axes_map(nside=16)
+
+    # This orientation file does not occlude the Crab.
+    ori_path = test_data.path / "DC3-3mo-arbitrary-10s.ori"
+    ori = SpacecraftFile.parse_from_file(ori_path)
+    scatt_map = ori.get_scatt_map(target_coord=target_coord,
+                                  nside=16, earth_occ=True)
+    ax_map = scatt_map.get_axes_map(nside=16)
+
+    ori.cache_earth_occ = True
+    assert ori.cache_earth_occ
+
+    scatt_map2 = ori.get_scatt_map(target_coord=target_coord,
+                                   nside=16, earth_occ=True)
+    assert np.all(scatt_map2.attitudes.as_quat() == \
+                  scatt_map.attitudes.as_quat()) and \
+            np.all(scatt_map2.weights == scatt_map.weights)
+
+    ori.cache_earth_occ = False
+    assert not ori.cache_earth_occ
+
+    scatt_map3 = ori.get_scatt_map(target_coord=target_coord,
+                                   nside=16, earth_occ=True)
+    assert np.all(scatt_map3.attitudes.as_quat() == \
+                  scatt_map.attitudes.as_quat()) and \
+            np.all(scatt_map3.weights == scatt_map.weights)
+
 
 def test_get_psr_rsp():
 
