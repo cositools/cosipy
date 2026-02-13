@@ -1,7 +1,10 @@
 import numpy as np
 
-from threeML import PluginPrototype
+import astropy.units as u
+
 from astromodels import Parameter
+
+from threeML import PluginPrototype
 
 from cosipy.response import (
     FullDetectorResponse,
@@ -12,8 +15,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 class COSILike(PluginPrototype):
-    """
-    COSI 3ML plugin.
+    """COSI 3ML plugin.
 
     Parameters
     ----------
@@ -36,11 +38,11 @@ class COSILike(PluginPrototype):
     nuisance_param : astromodels.core.parameter.Parameter, optional
         Background parameter
     coordsys : str, optional
-        Coordinate system ('galactic' or 'spacecraftframe') to perform
-        fit in, which should match coordinate system of data and
-        background. This only needs to be specified if the binned data
-        and background do not have a coordinate system attached to
-        them
+        Coordinate system (name of an inertial frame, such as
+        'galactic', or 'spacecraftframe') to perform fit in, which
+        should match coordinate system of data and background. This
+        only needs to be specified if the binned data and background
+        do not have a coordinate system attached to them
     precomputed_psr_file : str, optional
         Full path to precomputed point source response in Galactic
         coordinates
@@ -48,13 +50,34 @@ class COSILike(PluginPrototype):
         Option to include Earth occultation in fit (default is True).
 
     """
-    def __init__(self, name, dr, data, bkg, sc_orientation, 
+    def __init__(self, name, dr, data, bkg, sc_orientation,
                  nuisance_param = None,
                  coordsys = None,
                  precomputed_psr_file = None,
                  earth_occ=True,
                  **kwargs):
-        
+
+        def prepare_binned(data, cds_order):
+            """Given a Histogram describing binned data/model, convert it to a
+            bare array.  Make sure it is dense, lacks units, and
+            contains only CDS axes in the order specified.
+
+            """
+
+            # we *must* project before densifying, as some
+            # data sets are too big to densify otherwise
+            if tuple(data.axes.labels) != tuple(cds_order):
+                data = data.project(cds_order)
+
+            data = data.todense() if data.is_sparse else data
+
+            data = data.contents
+
+            if isinstance(data, u.Quantity):
+                data = data.value
+
+            return data
+
         # create the hash for the nuisance parameters. We have none for now.
         self._nuisance_parameters = {}
 
@@ -63,29 +86,25 @@ class COSILike(PluginPrototype):
 
         # User inputs needed to compute the likelihood
         self._name = name
-
+        self._dr = FullDetectorResponse.open(dr)
         self._sc_orientation = sc_orientation
         self.earth_occ = earth_occ
 
-        # Full detector response for point sources
-        self._dr = FullDetectorResponse.open(dr)
-        
-        # Precomputed image response for extended
-        # sources
-        if precomputed_psr_file is not None:
+        # Option to use precomputed point source response.
+        # Note: this still needs to be implemented in a
+        # consistent way for point srcs and extended srcs.
+        self.precomputed_psr_file = precomputed_psr_file
+        if self.precomputed_psr_file is not None:
             logger.info("... loading the pre-computed image response ...")
-            self.image_response = ExtendedSourceResponse.open(precomputed_psr_file)
+            self.image_response = ExtendedSourceResponse.open(self.precomputed_psr_file)
             logger.info("--> done")
 
-        if data.is_sparse:
-            self._data = data.contents.todense()
-        else:
-            self._data = data.contents.value
-            
-        if bkg.is_sparse:
-            self._bkg = bkg.contents.todense()
-        else:
-            self._bkg = bkg.contents.value
+        cds_order = tuple(self._dr.axes.labels[-3:])
+        if not all(ax in ("Em", "Phi", "PsiChi") for ax in cds_order):
+            raise ValueError("Response CDS axes must be Em/Phi/PsiChi")
+
+        self._data = prepare_binned(data, cds_order)
+        self._bkg  = prepare_binned(bkg, cds_order)
 
         try:
             data_frame = data.axes["PsiChi"].coordsys.name
@@ -96,7 +115,7 @@ class COSILike(PluginPrototype):
                 self._coordsys = data_frame
         except:
             if coordsys is None:
-                raise RuntimeError("There is no coordinate system attached to the binned data. One must be provided by specifiying coordsys='galactic' or 'spacecraftframe'.")
+                raise RuntimeError("There is no coordinate system attached to the binned data. One must be provided by specifying either 'spacecraftframe' or an inertial frame for the coordsys argument.")
             else:
                 self._coordsys = coordsys
 
@@ -110,7 +129,7 @@ class COSILike(PluginPrototype):
             self._nuisance_parameters[self._bkg_par.name] = self._bkg_par
         else:
             raise RuntimeError("Nuisance parameter must be astromodels.core.parameter.Parameter object")
-        
+
         # Temporary fix to only print log-likelihood warning once max per fit
         self._printed_warning = False
 
@@ -127,7 +146,7 @@ class COSILike(PluginPrototype):
         JointLikelihood object.
 
         """
-        
+
         point_sources = model.point_sources
         extended_sources = model.extended_sources
 
@@ -137,21 +156,21 @@ class COSILike(PluginPrototype):
         # used only for point sources internally
         self._source_location = {}
         self._psr = {}
-        
+
         for name in point_sources:
             self._source_location[name] = None
             self._psr[name] = None
             self._expected_counts[name] = None
-            
+
         for name in extended_sources:
              self._expected_counts[name] = None
-        
+
         self._model = model
-        
+
     def compute_expectation(self, model):
         """
         Compute the total expected counts of the model
-        
+
         Parameters
         ----------
         model : astromodels.core.model.Model
@@ -162,21 +181,30 @@ class COSILike(PluginPrototype):
         signal : total expected counts
         """
 
+        def get_point_source_coords(source):
+            """
+            Extract the sky position of a point source.  Get the coordinate
+            values in a generic way so that we aren't dependent on
+            whether the position was stored in galactic or ICRS.
+            """
+            pos = source.position
+            return tuple(p.value for p in pos.parameters.values())
+
         signal = None
 
         # Get expectation for extended sources
         for name, source in model.extended_sources.items():
             # Set spectrum
             # Note: the spectral parameters are updated internally by 3ML
-            # during the likelihood scan. 
+            # during the likelihood scan.
 
             # Get expectation using precomputed psr in Galactic coordinates
             total_expectation = \
                 self.image_response.get_expectation_from_astromodel(source)
-            
+
             # Save expected counts for each source,
             # in order to enable easy plotting after likelihood scan
-            self._expected_counts[name] = total_expectation.copy()
+            self._expected_counts[name] = total_expectation
 
             # extract expectation from source as raw numpy array
             if total_expectation.is_sparse:
@@ -185,43 +213,43 @@ class COSILike(PluginPrototype):
                 total_expectation = total_expectation.contents.value
             else:
                 total_expectation = total_expectation.contents
-                            
+
             # Add source to signal
             if signal is None:
-                signal = total_expectation
+                signal = total_expectation.copy()
             else:
                 signal += total_expectation
-                
+
         # Get expectation for point sources
         for name, source in model.point_sources.items():
+            src_coords = get_point_source_coords(source)
 
-            # source location changed
-            if source.position.sky_coord != self._source_location[name]:
+            if src_coords != self._source_location[name]: # source loc changed
                 logger.info(f"... Re-calculating the point source response of {name} ...")
+
+                self._source_location[name] = src_coords
+
                 coord = source.position.sky_coord
-                self._source_location[name] = coord.copy()
-                
+
                 if self._coordsys == 'spacecraftframe':
                     dwell_time_map = self._get_dwell_time_map(coord)
                     self._psr[name] = self._dr.get_point_source_response(exposure_map=dwell_time_map)
-                elif self._coordsys == 'galactic':
+                else:
+                    coord = coord.transform_to(self._coordsys)
                     scatt_map = self._get_scatt_map(coord)
                     self._psr[name] = self._dr.get_point_source_response(coord=coord, scatt_map=scatt_map)
-                else:
-                    raise RuntimeError("Unknown coordinate system")
-                
+
                 logger.info(f"--> done (source name : {name})")
-                
+
             # Convolve with spectrum
             # See also the Detector Response and Source Injector tutorials
             spectrum = source.spectrum.main.shape
             total_expectation = self._psr[name].get_expectation(spectrum)
-            total_expectation.project(('Em', 'Phi', 'PsiChi'))
-            
+
             # Save expected counts for each source,
             # in order to enable easy plotting after likelihood scan
-            self._expected_counts[name] = total_expectation.copy()
-            
+            self._expected_counts[name] = total_expectation
+
             # extract expectation from source as raw numpy array
             if total_expectation.is_sparse:
                 total_expectation = total_expectation.contents.todense()
@@ -229,20 +257,20 @@ class COSILike(PluginPrototype):
                 total_expectation = total_expectation.contents.value
             else:
                 total_expectation = total_expectation.contents
-                
+
             # Add source to signal
             if signal is None:
-                signal = total_expectation
+                signal = total_expectation.copy()
             else:
                 signal += total_expectation
 
         return signal
-        
-                
+
+
     def get_log_like(self):
         """
         Calculate the log-likelihood.
-        
+
         Returns
         ----------
         log_like : float
@@ -252,31 +280,31 @@ class COSILike(PluginPrototype):
         if self._model is None:
             raise ValueError("Must set model before computing likelihood!")
 
-        signal = self.compute_expectation(self._model)
-        
+        expectation = self.compute_expectation(self._model)
+
         if self._fit_nuisance_params:
             # Compute expectation including free background parameter
             nv = self._nuisance_parameters[self._bkg_par.name].value
-            expectation = signal + nv * self._bkg
+            expectation += nv * self._bkg
         else:
             # Compute expectation without background parameter
-            expectation = signal + self._bkg
+            expectation += self._bkg
 
         # avoid -infinite log-likelihood (occurs when expected counts
         # = 0 but data != 0)
         expectation += 1e-12
-        
+
         if not self._printed_warning:
             # This 1e-12 should be defined as a parameter in the near
             # future (HY)
             logger.warning("Adding 1e-12 to each bin of the expectation to avoid log-likelihood = -inf.")
             self._printed_warning = True
-                
+
         # Compute the log-likelihood:
         log_like = np.nansum(self._data * np.log(expectation) - expectation)
-        
+
         return log_like
-    
+
     def inner_fit(self):
         """
         Required for 3ML fit.
@@ -286,38 +314,38 @@ class COSILike(PluginPrototype):
         in fact, it is called on every iteration, so the nuisance
         params are treated as "just another parameter" to optimize.
         """
-        
+
         return self.get_log_like()
-    
+
     def _get_dwell_time_map(self, coord):
         """
         Get the dwell time map of the source in the inertial (spacecraft)
         frame.
-        
+
         Parameters
         ----------
         coord : astropy.coordinates.SkyCoord
             Coordinates of the target source
-        
+
         Returns
         -------
         dwell_time_map : mhealpy.containers.healpix_map.HealpixMap
             Dwell time map
 
         """
-        
+
         src_path = self._sc_orientation.get_target_in_sc_frame(coord)
         dwell_time_map = \
             self._sc_orientation.get_dwell_map(base = self._dr,
                                                src_path = src_path)
-        
+
         return dwell_time_map
-    
+
     def _get_scatt_map(self, coord):
         """
         Get the spacecraft attitude map of the source in the inertial
         (spacecraft) frame.
-        
+
         Parameters
         ----------
         coord : astropy.coordinates.SkyCoord
@@ -328,24 +356,24 @@ class COSILike(PluginPrototype):
         scatt_map : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
 
         """
-        
+
         scatt_map = \
             self._sc_orientation.get_scatt_map(nside = self._dr.nside * 2,
                                                target_coord = coord,
                                                earth_occ = self.earth_occ)
-        
+
         return scatt_map
-    
+
     def set_inner_minimization(self, flag: bool):
         """
         Turn on the minimization of the internal COSI (nuisance) parameters.
-        
+
         Parameters
         ----------
         flag : bool
             Turns on and off the minimization of the internal parameters
         """
-        
+
         self._fit_nuisance_params: bool = bool(flag)
 
         for parameter in self._nuisance_parameters:

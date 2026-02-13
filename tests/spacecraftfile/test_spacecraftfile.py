@@ -113,6 +113,13 @@ def test_get_target_in_sc_frame():
                        np.array([46.733430, 46.687559, 46.641664, 46.595745, 46.549801, 46.503833,
                                  46.457841, 46.411825, 46.365785, 46.319722, 46.273634]))
 
+    # make sure we get right result regardless of source inertial frame
+    target_coord_icrs = target_coord.transform_to("icrs")
+
+    path_in_sc_icrs = ori.get_target_in_sc_frame(target_coord_icrs)
+
+    assert np.allclose(path_in_sc.lon.deg, path_in_sc_icrs.lon.deg)
+    assert np.allclose(path_in_sc.lat.deg, path_in_sc_icrs.lat.deg)
 
 def test_get_dwell_map():
 

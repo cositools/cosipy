@@ -311,7 +311,15 @@ class FastTSMap():
         data_cds_array, bkg_model_cds_array, psr_cache = \
             self._prepare_inputs(energy_channel, spectrum, max_cache_size)
 
-        hypothesis_coords = self._get_hypothesis_coords(nside)
+        if self._cds_frame == Frame.LOCAL:
+            # compute possible source dirs in same frame
+            # we will use to translate them to local-frame paths
+            hyp_frame = self._orientation.frame
+        else: # galactic frame
+            hyp_frame = "galactic"
+
+        hypothesis_coords = self._get_hypothesis_coords(nside,
+                                                        coordsys=hyp_frame)
 
         results = [
             self._fit_one_direction(source,

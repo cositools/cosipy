@@ -24,6 +24,14 @@ bkg_par = Parameter("background_cosi",                                         #
                     delta=0.05,                                                # initial step used by fitting engine
                     desc="Background parameter for cosi")
 
+# second copy for testing with ICRS source
+bkg_par_icrs = Parameter("background_cosi_icrs",                                    # background parameter
+                         1,                                                         # initial value of parameter
+                         min_value=0,                                               # minimum value of parameter
+                         max_value=50,                                              # maximum value of parameter
+                         delta=0.05,                                                # initial step used by fitting engine
+                         desc="Background parameter for cosi")
+
 l = 50
 b = -45
 
@@ -45,12 +53,19 @@ spectrum.xp.unit = xp.unit
 spectrum.K.unit = K.unit
 spectrum.piv.unit = piv.unit
 
+# source in galactic frame
 source = PointSource("source",                     # Name of source (arbitrary, but needs to be unique)
                      l = l,                        # Longitude (deg)
                      b = b,                        # Latitude (deg)
                      spectral_shape = spectrum)    # Spectral model
 
-model = Model(source)
+# same source, but specified in ICRS
+c = SkyCoord(l = l, b = b, unit=u.deg, frame = "galactic")
+c_icrs = c.transform_to("icrs")
+source_icrs = PointSource("source_icrs",
+                          ra  = c_icrs.ra.deg,
+                          dec = c_icrs.dec.deg,
+                          spectral_shape = spectrum)    # Spectral model
 
 def test_point_source_spectral_fit():
 
@@ -63,9 +78,12 @@ def test_point_source_spectral_fit():
 
     plugins = DataList(cosi)
 
+    model = Model(source)
+
     like = JointLikelihood(model, plugins, verbose = False)
 
-    like.fit(compute_covariance = False) # avoid sampling-related threeML crashes
+    # avoid output- and sampling-related threeML crashes
+    like.fit(quiet=True, compute_covariance = False)
 
     sp = source.spectrum.main.Band
 
@@ -76,6 +94,35 @@ def test_point_source_spectral_fit():
     assert np.allclose([cosi.get_log_like()],
                        [213.14242014103897],
                        atol=[1.0])
+
+    # verify that the result is the same regardless of how we specify the source position
+
+    cosi_icrs = COSILike("cosi",                                                       # COSI 3ML plugin
+                         dr = dr,                                                       # detector response
+                         data = data.binned_data.project('Em', 'Phi', 'PsiChi'),        # data (source+background)
+                         bkg = background.binned_data.project('Em', 'Phi', 'PsiChi'),   # background model
+                         sc_orientation = sc_orientation,                               # spacecraft orientation
+                         nuisance_param = bkg_par_icrs)                                 # background parameter
+
+    plugins = DataList(cosi_icrs)
+
+    model = Model(source_icrs)
+
+    like = JointLikelihood(model, plugins, verbose = False)
+
+    # avoid output- and sampling-related threeML crashes
+    like.fit(quiet=True, compute_covariance = False)
+
+    sp_icrs = source_icrs.spectrum.main.Band
+
+    # make sure result does not change (much -- bkg_par changes more than the rest)
+    assert np.allclose([sp.K.value, sp.alpha.value, sp.beta.value, sp.xp.value, bkg_par.value],
+                       [sp_icrs.K.value, sp_icrs.alpha.value, sp_icrs.beta.value, sp_icrs.xp.value, bkg_par_icrs.value],
+                       atol=[1e-8, 1e-8, 1e-8, 1e-8, 1e-3])
+
+    assert np.allclose([cosi.get_log_like()],
+                       [cosi_icrs.get_log_like()])
+
 
     # Test scatt map method:
     coord = SkyCoord(l=184.56*u.deg,b=-5.78*u.deg,frame="galactic")

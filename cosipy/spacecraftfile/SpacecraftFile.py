@@ -523,6 +523,7 @@ class SpacecraftFile():
         useSkyCoord = isinstance(target_coord, SkyCoord)
 
         if useSkyCoord:
+            target_coord = target_coord.transform_to(self.frame)
             target_coord = target_coord.cartesian.xyz.value
 
         src_path_cartesian = np.dot(self._attitude.rot.inv().as_matrix(),

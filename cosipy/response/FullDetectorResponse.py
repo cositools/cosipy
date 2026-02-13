@@ -67,7 +67,7 @@ class FullDetectorResponse(HealpixBase):
             return cls._open_h5(filename, dtype, pa_convention, cache_size)
         else:
             raise ValueError(
-                "Unsupported file format. Only .h5 and .rsp.gz extensions are supported.")
+                "Unsupported file format. Only .h5 extension is supported.")
 
     @classmethod
     def _open_h5(cls, filename, dtype=None, pa_convention=None, cache_size=None):
@@ -433,7 +433,7 @@ class FullDetectorResponse(HealpixBase):
         -------
         :py:class:`PointSourceResponse` or tuple of same
             Inertial-frame point-source response for each source
-            coordinate; tuple if more than one coordinate provided
+            coordinate
 
         """
 
@@ -571,8 +571,8 @@ class FullDetectorResponse(HealpixBase):
                 # map each local-frame PsiChi pixel dir to its nearest HEALPix
                 # pixel. TODO: this could be interpolated to map each dir to
                 # multiple pixels + weights
-                loc_psichi_pixels = sf_psichi_axis.find_bin(theta = loc_psichi_colat,
-                                                            phi   = loc_psichi_lon)
+                loc_psichi_pixels = psr_axes['PsiChi'].find_bin(theta = loc_psichi_colat,
+                                                                phi   = loc_psichi_lon)
 
                 if has_pol:
 
