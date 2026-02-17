@@ -16,7 +16,7 @@ analysis.get_binned_data(unbinned_data = test_data.path / 'polarization_data.hdf
 binned_data = analysis.binned_data
 
 response_path = test_data.path / 'test_polarization_response.h5'
-sc_orientation = SpacecraftFile.parse_from_file(test_data.path / 'polarization_ori.ori')
+sc_orientation = SpacecraftFile.open(test_data.path / 'polarization_ori.fits')
 attitude = sc_orientation.get_attitude()[0]
 
 a = 10. * u.keV
@@ -66,9 +66,9 @@ def test_spacecraft_fit():
                         polarization_fit_spacecraft['fraction uncertainty'],
                         polarization_fit_spacecraft['angle'].angle.rad,
                         polarization_fit_spacecraft['angle uncertainty'].rad],
-                       [0.8114804627334942, 0.8081587949263002,
-                        1.5713378840593466, 0.5340212799099183],
-                       atol=[1.0, 0.5, 1.0, 0.1])
+                       [0.8248301194006322, 0.7889544546660269,
+                        1.5645814961205469, 0.5143016570410734],
+                       atol=[0.2, 0.1, 0.2, 0.1])
 
     # ASAD from binned data
     polarization_spacecraft = PolarizationASAD(source_direction,
@@ -86,7 +86,7 @@ def test_spacecraft_fit():
                         polarization_fit_spacecraft['angle uncertainty'].rad],
                        [0.9452187271167997, 0.9328483275998886,
                         1.993361180746714, 0.6416512077658346],
-                       atol=[1.0, 0.5, 1.0, 0.1])
+                       atol=[0.2, 0.1, 0.2, 0.1])
 
 def test_icrs_fit():
 
@@ -103,9 +103,9 @@ def test_icrs_fit():
                         polarization_fit_icrs['fraction uncertainty'],
                         polarization_fit_icrs['angle'].angle.rad,
                         polarization_fit_icrs['angle uncertainty'].rad],
-                       [1.6268965437885632, 0.9763744515967512,
-                        1.8111679143685155, 0.40112053082203614],
-                       atol=[1.0, 0.5, 1.0, 0.1])
+                       [1.496745801986812, 0.8751758133432178,
+                        1.84399578798795, 0.3812557749920544],
+                       atol=[0.2, 0.1, 0.2, 0.1])
 
     # ASAD from binned data
     polarization_icrs = PolarizationASAD(source_direction.transform_to('galactic'),
@@ -122,4 +122,4 @@ def test_icrs_fit():
                         polarization_fit_icrs['angle uncertainty'].rad],
                        [2.02118419504387, 0.7661035298627569,
                         1.6238519333293382, 0.22647693546905168],
-                       atol=[1.0, 0.5, 1.0, 0.1])
+                       atol=[0.2, 0.1, 0.2, 0.1])

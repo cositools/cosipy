@@ -14,8 +14,8 @@ def test_inject_point_source():
 
     # defind the response and orientation
     response_path = test_data.path / "test_full_detector_response.h5"
-    orientation_path = test_data.path / "20280301_2s.ori"
-    ori = SpacecraftFile.parse_from_file(orientation_path)
+    orientation_path = test_data.path / "20280301_2s.fits"
+    ori = SpacecraftFile.open(orientation_path)
 
     # powerlaw model
     index = -2.2
@@ -289,8 +289,8 @@ def test_inject_model():
 
     # Define the response
     response_path = test_data.path / "test_precomputed_response.h5"
-    orientation_path = test_data.path / "20280301_2s.ori"
-    ori = SpacecraftFile.parse_from_file(orientation_path)
+    orientation_path = test_data.path / "20280301_2s.fits"
+    ori = SpacecraftFile.open(orientation_path)
 
     K = 17 / u.cm / u.cm / u.s / u.keV
     piv = 1 * u.keV

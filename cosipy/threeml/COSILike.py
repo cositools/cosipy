@@ -10,6 +10,12 @@ from cosipy.response import (
     FullDetectorResponse,
     ExtendedSourceResponse
 )
+from cosipy.polarization.conventions import (
+    IAUPolarizationConvention,
+    MEGAlibRelativeX,
+    MEGAlibRelativeY,
+    MEGAlibRelativeZ
+)
 
 import logging
 logger = logging.getLogger(__name__)
@@ -48,6 +54,10 @@ class COSILike(PluginPrototype):
         coordinates
     earth_occ : bool, optional
         Option to include Earth occultation in fit (default is True).
+    response_pa_convention : str, optional
+        Polarization reference convention of response ('RelativeX',
+        'RelativeY', or 'RelativeZ'). Required if response contains
+        polarization angle axis
 
     """
     def __init__(self, name, dr, data, bkg, sc_orientation,
@@ -55,6 +65,7 @@ class COSILike(PluginPrototype):
                  coordsys = None,
                  precomputed_psr_file = None,
                  earth_occ=True,
+                 response_pa_convention=None,
                  **kwargs):
 
         def prepare_binned(data, cds_order):
@@ -86,7 +97,7 @@ class COSILike(PluginPrototype):
 
         # User inputs needed to compute the likelihood
         self._name = name
-        self._dr = FullDetectorResponse.open(dr)
+        self._dr = FullDetectorResponse.open(dr, pa_convention=response_pa_convention)
         self._sc_orientation = sc_orientation
         self.earth_occ = earth_occ
 
@@ -110,7 +121,7 @@ class COSILike(PluginPrototype):
             data_frame = data.axes["PsiChi"].coordsys.name
             bkg_frame  = bkg.axes["PsiChi"].coordsys.name
             if data_frame != bkg_frame:
-                raise RuntimeError(f"Data is binned in {data_frame}, while background is binned in {bkg_frame}. Coordinates systems must match." )
+                raise RuntimeError(f"Data is binned in {data_frame}, while background is binned in {bkg_frame}. Coordinate systems must match." )
             else:
                 self._coordsys = data_frame
         except:
@@ -129,6 +140,25 @@ class COSILike(PluginPrototype):
             self._nuisance_parameters[self._bkg_par.name] = self._bkg_par
         else:
             raise RuntimeError("Nuisance parameter must be astromodels.core.parameter.Parameter object")
+
+        if 'Pol' in self._dr.axes.labels:
+            self._response_pa_convention = response_pa_convention
+            if self._coordsys == 'spacecraftframe':
+                att = self._sc_orientation.get_attitude()[0]
+                if self._response_pa_convention == 'RelativeX':
+                    self._pa_convention = MEGAlibRelativeX(attitude=att)
+                elif self._response_pa_convention == 'RelativeY':
+                    self._pa_convention = MEGAlibRelativeY(attitude=att)
+                elif self._response_pa_convention == 'RelativeZ':
+                    self._pa_convention = MEGAlibRelativeZ(attitude=att)
+                else:
+                    raise RuntimeError("Response convention must be 'RelativeX', 'RelativeY', or 'RelativeZ'")
+            elif self._coordsys == 'galactic':
+                self._pa_convention = IAUPolarizationConvention()
+            else:
+                raise RuntimeError("Unknown coordinate system")
+        else:
+            self._response_pa_convention = None
 
         # Temporary fix to only print log-likelihood warning once max per fit
         self._printed_warning = False
@@ -243,8 +273,35 @@ class COSILike(PluginPrototype):
 
             # Convolve with spectrum
             # See also the Detector Response and Source Injector tutorials
-            spectrum = source.spectrum.main.shape
-            total_expectation = self._psr[name].get_expectation(spectrum)
+            if hasattr(source.spectrum, 'main'):
+
+                spectrum = source.spectrum.main.shape
+                total_expectation = self._psr[name].get_expectation(spectrum)
+
+            else:
+
+                component_counter = 0
+
+                for item in source.spectrum.to_dict():
+
+                    spectrum = getattr(source.spectrum, item).shape
+
+                    if not 'Pol' in self._dr.axes.labels:
+                        this_expectation = self._psr[name].get_expectation(spectrum)
+                    else:
+                        if self._coordsys == 'spacecraftframe':
+                            this_expectation = self._psr[name].get_expectation(spectrum, source.components[item].polarization)
+                        elif self._coordsys == 'galactic':
+                            this_expectation = self._psr[name].get_expectation(spectrum, source.components[item].polarization)
+                        else:
+                            raise RuntimeError("Unknown coordinate system")
+
+                    if component_counter == 0:
+                        total_expectation = this_expectation
+                    else:
+                        total_expectation += this_expectation
+
+                    component_counter += 1
 
             # Save expected counts for each source,
             # in order to enable easy plotting after likelihood scan
@@ -265,7 +322,6 @@ class COSILike(PluginPrototype):
                 signal += total_expectation
 
         return signal
-
 
     def get_log_like(self):
         """

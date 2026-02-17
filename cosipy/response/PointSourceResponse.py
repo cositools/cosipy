@@ -88,10 +88,11 @@ class PointSourceResponse(Histogram):
 
             # unpolarized weights
             weights = np.full(pol_axis.nbins, (1. - polarization_level) / pol_axis.nbins)
-
+            
             # add polarized weights
             polarization_bin_index = pol_axis.find_bin(polarization_angle * u.deg)
             weights[polarization_bin_index] += polarization_level
+            weights *= self.axes['Pol'].nbins
 
             contents = np.tensordot(weights, self.contents, axes=(0, self.axes.label_to_index('Pol')))
 

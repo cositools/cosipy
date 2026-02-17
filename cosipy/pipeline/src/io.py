@@ -41,7 +41,7 @@ def load_ori(ori_path):
     ori: cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile
         The SpacecraftFile Object.
     """
-    ori = SpacecraftFile.parse_from_file(ori_path)
+    ori = SpacecraftFile.open(ori_path)
     return ori
 
 

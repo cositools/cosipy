@@ -123,6 +123,7 @@ class UnBinnedData(DataIO):
         if self.data_file.endswith(".tra.gz"):
             # Need to get number of lines for progress bar.  First try
             # fast method for unix-based systems
+
             try:
                 proc=subprocess.Popen(f'gunzip -c {self.data_file} | wc -l',
                                       shell=True, stdout=subprocess.PIPE)
@@ -149,6 +150,7 @@ class UnBinnedData(DataIO):
 
             # If fast method fails, use long method, which should work
             # in all cases
+
             except:
                 logger.info("Initial attempt failed.")
                 logger.info("Using long method...")
@@ -188,7 +190,6 @@ class UnBinnedData(DataIO):
 
             this_line = line.lstrip()
             match this_line[:2]: # will be "" for empty line
-
                 case "SE": # New event marker
 
                     # Previous event was read but is not valid.
@@ -471,8 +472,8 @@ class UnBinnedData(DataIO):
             but it does not explicitly return them.
         """
 
-        # Get ori info:
-        ori = SpacecraftFile.parse_from_file(ori_file)
+        # Get orientation info
+        ori = SpacecraftFile.open(self.ori_file)
         time_tags = ori.get_time().to_value(format="unix")
         x_pointings = ori.x_pointings
         z_pointings = ori.z_pointings
@@ -482,7 +483,6 @@ class UnBinnedData(DataIO):
         self.xb_interp = interpolate.interp1d(time_tags, x_pointings.b.rad, kind='linear')
         self.zl_interp = interpolate.interp1d(time_tags, z_pointings.l.rad, kind='linear')
         self.zb_interp = interpolate.interp1d(time_tags, z_pointings.b.rad, kind='linear')
-
 
     def construct_scy(self, scx_l, scx_b, scz_l, scz_b):
 
@@ -558,6 +558,7 @@ class UnBinnedData(DataIO):
             Right ascension in radians.
         dec : float
             Declination in radians.
+
         """
 
         x, y, z = vector
@@ -576,13 +577,15 @@ class UnBinnedData(DataIO):
             Name of output file. Only include prefix (not file type).
         """
 
-
         # Units for new DC4 structure of the data
         units = (u.keV, u.s,   u.rad, u.rad,
                  u.rad, u.rad, u.rad, u.rad,
                  u.cm,  u.deg, u.deg,
                  u.dimensionless_unscaled)
 
+        # Old UnBinned data structure did not have the last field
+        # (CO_seq); this special case should be removed for DC4.
+        units = units[:len(self.cosi_dataset.keys())]
 
         if self.unbinned_output == 'fits':
             # For fits output
@@ -595,7 +598,6 @@ class UnBinnedData(DataIO):
             with h5py.File(f'{output_name}.hdf5', 'w') as hf:
                 for each in self.cosi_dataset.keys():
                     hf.create_dataset(each, data=self.cosi_dataset[each], compression='gzip')
-
 
     def get_dict_from_fits(self, input_fits):
 
@@ -903,7 +905,7 @@ class UnBinnedData(DataIO):
             self.cosi_dataset = self.get_dict(unbinned_data)
 
         # Get orientation info
-        ori = SpacecraftFile.parse_from_file(self.ori_file)
+        ori = SpacecraftFile.open(self.ori_file)
 
         # Get bad time intervals
         bti = self.find_bad_intervals(ori._time, ori.livetime)

@@ -31,8 +31,8 @@ def cosi_bindata(argv=None):
             """),
         description=textwrap.dedent(
             """
-            Bins an unbinned dataset matching the given response matrix 
-            and within the time interval of the given orientation file. 
+            Bins an unbinned dataset matching the given response matrix
+            and within the time interval of the given orientation file.
             Uses the given time bin size (dt) and coordinate system (either "local" or "galactic").
             Optionally, applies a time selection tmin-tmax to the data before binning.
             Data, response and orientation files paths in the config file should be relative to the config file.
@@ -97,7 +97,7 @@ def cosi_bindata(argv=None):
     ori_path=config.absolute_path(config["sc_file"])
 
     # Time info
-    ori = SpacecraftFile.parse_from_file(ori_path)
+    ori = SpacecraftFile.open(ori_path)
     ori_time=ori.get_time()
     tmin=config.get("tmin")
     tmax=config.get("tmax")

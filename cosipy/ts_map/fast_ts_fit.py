@@ -400,6 +400,9 @@ class FastTSMap():
         if save_plot:
             fig.savefig(Path(save_dir)/save_name, dpi = dpi)
 
+        plt.show()
+        plt.close(fig)
+
     @staticmethod
     def get_chi_critical_value(containment = 0.90):
         """

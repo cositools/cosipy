@@ -19,8 +19,8 @@ def test_ts_fit():
     bkg_path = test_data.path / "ts_map_bkg.h5"
     response_path = test_data.path / "test_full_detector_response.h5"
 
-    orientation_path = test_data.path / "20280301_2s.ori"
-    ori = SpacecraftFile.parse_from_file(orientation_path)
+    orientation_path = test_data.path / "20280301_2s.fits"
+    ori = SpacecraftFile.open(orientation_path)
 
     src_bkg = Histogram.open(src_bkg_path).project(['Em', 'PsiChi', 'Phi'])
     bkg = Histogram.open(bkg_path).project(['Em', 'PsiChi', 'Phi'])
@@ -105,8 +105,8 @@ def test_moc_ts_fit():
     bkg_path = test_data.path / "ts_map_bkg.h5"
     response_path = test_data.path / "test_full_detector_response.h5"
 
-    orientation_path = test_data.path / "20280301_2s.ori"
-    ori = SpacecraftFile.parse_from_file(orientation_path)
+    orientation_path = test_data.path / "20280301_2s.fits"
+    ori = SpacecraftFile.open(orientation_path)
 
     src_bkg = Histogram.open(src_bkg_path).project(['Em', 'PsiChi', 'Phi'])
     bkg = Histogram.open(bkg_path).project(['Em', 'PsiChi', 'Phi'])

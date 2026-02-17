@@ -325,3 +325,6 @@ class MOCTSMap(FastTSMap):
 
         if save_plot:
             fig.savefig(Path(save_dir)/save_name, dpi = dpi)
+
+        plt.show()
+        plt.close(fig)

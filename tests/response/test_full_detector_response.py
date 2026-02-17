@@ -12,7 +12,7 @@ from cosipy.response import FullDetectorResponse
 from cosipy.spacecraftfile import SpacecraftFile
 
 response_path = test_data.path / "test_full_detector_response.h5"
-orientation_path = test_data.path / "20280301_first_10sec.ori"
+orientation_path = test_data.path / "20280301_first_10sec.fits"
 
 def test_open():
 
@@ -86,7 +86,7 @@ def test_get_interp_response():
 
 def test_get_point_source_response():
 
-    orientation = SpacecraftFile.parse_from_file(orientation_path)
+    orientation = SpacecraftFile.open(orientation_path)
     coord = SkyCoord(l=0,b=0,unit=u.deg,frame="galactic")
 
     with FullDetectorResponse.open(response_path) as response:
@@ -110,7 +110,7 @@ def test_get_point_source_response():
                                                  scatt_map=scatt_map)
 def test_get_extended_source_response():
 
-    orientation = SpacecraftFile.parse_from_file(orientation_path)
+    orientation = SpacecraftFile.open(orientation_path)
 
     with FullDetectorResponse.open(response_path) as response:
 
@@ -129,7 +129,7 @@ def test_get_extended_source_response():
 
 def test_merge_psr_to_extended_source_response(tmp_path):
 
-    orientation = SpacecraftFile.parse_from_file(orientation_path)
+    orientation = SpacecraftFile.open(orientation_path)
 
     with FullDetectorResponse.open(response_path) as response:
 
