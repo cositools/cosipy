@@ -58,9 +58,7 @@ class ContinuumEstimation:
             plt.title("Cumulative Distribution")
             plt.xlabel("Pixel")
             plt.ylabel("Fraction of Counts")
-            plt.savefig("cumdist.png")
             plt.show()
-            plt.close()
 
         return sorted_indices[arm_mask]
 
