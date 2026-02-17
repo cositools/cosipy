@@ -5,7 +5,6 @@ from cosipy import test_data
 
 def test_continuum_background_estimation():
 
-
     instance = ContinuumEstimation()
 
     # Test main method:
@@ -14,4 +13,7 @@ def test_continuum_background_estimation():
     psr_file = test_data.path / "test_precomputed_response.h5"
     psr = DetectorResponse.open(psr_file)
 
-    instance.continuum_bg_estimation(data_file, data_yaml, psr, e_loop=(1,2), s_loop=(1,2))
+    # the PSR is too big for the data binning, so grab a subset of it in Em/Phi that
+    # does not consist of all zeros
+    psr = psr.slice[{"Em": slice(2,4), "Phi": slice(2,4)}]
+    instance.continuum_bg_estimation(data_file, data_yaml, psr, e_loop=(0,2), s_loop=(0,2), make_plots=True)
