@@ -20,7 +20,10 @@ from cosipy.pipeline.src.plotting import *
 from pathlib import Path
 
 from astromodels.core.model_parser import ModelParser
-
+from histpy import Histogram
+from mhealpy import HealpixMap,HealpixBase
+from cosipy import FastTSMap
+from astropy.coordinates import SkyCoord
 
 def cosi_bindata(argv=None):
     # Parse arguments from commandline
@@ -31,8 +34,8 @@ def cosi_bindata(argv=None):
             """),
         description=textwrap.dedent(
             """
-            Bins an unbinned dataset matching the given response matrix
-            and within the time interval of the given orientation file.
+            Bins an unbinned dataset matching the given response matrix 
+            and within the time interval of the given orientation file. 
             Uses the given time bin size (dt) and coordinate system (either "local" or "galactic").
             Optionally, applies a time selection tmin-tmax to the data before binning.
             Data, response and orientation files paths in the config file should be relative to the config file.
@@ -97,8 +100,8 @@ def cosi_bindata(argv=None):
     ori_path=config.absolute_path(config["sc_file"])
 
     # Time info
-    ori = SpacecraftHistory.open(ori_path)
-    ori_time=ori.obstime
+    ori = SpacecraftFile.parse_from_file(ori_path)
+    ori_time=ori.get_time()
     tmin=config.get("tmin")
     tmax=config.get("tmax")
     if  config.get("tmin")==None:
@@ -149,13 +152,7 @@ if __name__ == "__main__":
 
 
 
-
-
-
-
-
-
-def cosi_threemlfit(argv=None):
+def  cosi_threemlfit(argv=None):
     # Parse arguments from commandline
     apar = argparse.ArgumentParser(
         usage=textwrap.dedent(
@@ -214,7 +211,7 @@ def cosi_threemlfit(argv=None):
 
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
-    result_name="results.h5" if not args.suffix else str("results_"+args.suffix+".h5")
+    result_name="results.fits" if not args.suffix else str("results_"+args.suffix+".fits")
     plot_name="raw_spectrum.pdf" if not args.suffix else str("raw_spectrum_"+args.suffix+".pdf")
 
     # Parse model
@@ -242,28 +239,21 @@ def cosi_threemlfit(argv=None):
 
         tstart = Time(tstart, format='unix')
         tstop = Time(tstop, format='unix')
-        tfrac = (tstop - tstart).to_value('s')*0.5
 
         sliced_data=tslice_binned_data(binned_data, tstart, tstop)
         binned_data=sliced_data
-        bk_sliced_data = tslice_binned_data(bk_binned_data, tstart - tfrac, tstop + tfrac)
+        bk_sliced_data = tslice_binned_data(bk_binned_data, tstart - 100, tstop + 100)
         bk_binned_data=bk_sliced_data
-
-    tmin_sou = Time(binned_data.axes['Time'].edges.min(), format='unix')
-    tmax_sou = Time(binned_data.axes['Time'].edges.max(), format='unix')
-    tmin_bk = Time(bk_binned_data.axes['Time'].edges.min(), format='unix')
-    tmax_bk = Time(bk_binned_data.axes['Time'].edges.max(), format='unix')
-    ori_sliced_sou = ori.select_interval(tmin_sou, tmax_sou)
-    ori_sliced_bk = ori.select_interval(tmin_bk, tmax_bk)
-
+        ori_sliced = ori.source_interval(tstart, tstop)
+        ori=ori_sliced
 
     # Calculation
-    results, cts_exp = get_fit_results(binned_data, bk_binned_data, resp_path, ori_sliced_sou, ori_sliced_bk, model)
+    results, cts_exp = get_fit_results(binned_data, bk_binned_data, resp_path, ori, "cosi_bkg", model)
 
 
     # Results
     results.display()
-    results.write_to(odir/result_name, overwrite=args.overwrite, as_hdf=True)
+    results.write_to(odir/result_name, overwrite=args.overwrite)
 
     print("Median and errors:")
     fitted_par_err = get_fit_par(results)
@@ -282,3 +272,125 @@ def cosi_threemlfit(argv=None):
 
 if __name__ == "__main__":
     cosi_threemlfit()
+
+def  cosi_tsdetect(argv=None):
+    # Parse arguments from commandline
+    apar = argparse.ArgumentParser(
+        usage=textwrap.dedent(
+            """
+            %(prog)s [--help] --config /path/to/config/file <command> [<options>]
+            """),
+        description=textwrap.dedent(
+            """
+            TBD
+            """),
+        formatter_class=argparse.RawTextHelpFormatter)
+
+    apar.add_argument('--config',
+                      help="Path to .yaml file listing all the parameters.See example in test_data.",
+                      required=True)
+    apar.add_argument("--config_group", default='tsdetect',
+                      help="Path within the config file with the tutorials information")
+    apar.add_argument("--override", nargs='*',
+                      help="Override config parameters. e.g. \"section:param_int = 2\" \"section:param_string = b\"")
+    apar.add_argument("--tstart", type = float,
+                      help="Start time of the signal (unix seconds)")
+    apar.add_argument("--tstop", type=float,
+                      help="Stop time of the signal (unix seconds)")
+    apar.add_argument('-o','--output-dir',
+                      help="Output directory. Current working directory by default")
+    apar.add_argument('--suffix',
+                      help="Optional suffix to be added in the names of the output files")
+    apar.add_argument('--log-level', default='info',
+                      help='Set the logging level (debug, info, warning, error, critical)')
+    apar.add_argument('--overwrite', action='store_true', default=False,
+                      help='Overwrite outputs. Otherwise, if a file with the same name already exists, it will throw an error.')
+
+    args = apar.parse_args(argv)
+
+    # Logger
+    logger.setLevel(level=args.log_level.upper())
+
+    # config file
+    full_config = Configurator.open(args.config)
+    config = Configurator(full_config[args.config_group])
+    config.config_path = full_config.config_path
+
+    # General overrides
+    if args.override is not None:
+        config.override(*args.override)
+
+    # Other specific convenience overrides
+    if args.tstart:
+        config["cuts:kwargs:tstart"] = args.tstart
+
+    if args.tstop:
+        config["cuts:kwargs:tstop"] = args.tstop
+
+    # Default output
+    odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
+    result_name="results.dat" if not args.suffix else str("results_"+args.suffix+".fits")
+    plot_name="raw_spectrum.pdf" if not args.suffix else str("raw_spectrum_"+args.suffix+".pdf")
+
+    #Setup of the tsmap search
+    nside_search=config.get('nside')
+    iterative=config.get('iterative')
+
+
+    # Parse template spectrum
+    model = ModelParser(model_dict = config['model']).get_model()
+    spectrum=model.template.spectrum.main.Powerlaw
+
+    # Parse input files from config file
+    data_path = config.absolute_path(config["data:args"][0])
+    bk_data_path = config.absolute_path(config["background:args"][0])
+    resp_path = config.absolute_path(config["response:args"][0])
+    ori = load_ori(config.absolute_path(config["sc_file"]))
+    
+    # Slice time
+    tstart = config.get("cuts:kwargs:tstart")
+    tstop = config.get("cuts:kwargs:tstop")
+
+    tstart = Time(tstart, format='unix')
+    tstop = Time(tstop, format='unix')
+    delta = tstop - tstart
+    delta = delta.to_value('s')
+    print(delta)
+    
+    ori_sliced = ori.source_interval(tstart, tstop)
+    ori=ori_sliced
+
+    bkg_full=Histogram.open(bk_data_path)
+    bkg_times = bkg_full.axes['Time'].edges.value
+    bkg_full_duration = np.ptp(bkg_times)  # max - min
+    bkg_model = bkg_full.project(['Em', 'Phi', 'PsiChi'])
+    bkg_model /= bkg_full_duration / delta
+    del bkg_full
+
+    data_full=Histogram.open(data_path)
+    sliced_data=tslice_binned_data(data_full, tstart, tstop)
+    binned_data=sliced_data.project(['Em', 'Phi','PsiChi'])
+
+    # Calculation
+
+    if iterative==False:
+
+        ts = FastTSMap(data=binned_data, bkg_model=bkg_model, orientation=ori,
+                   response_path=resp_path, cds_frame="local")
+
+        ts_results = ts.fit(nside=nside_search, energy_channel=[2, 3],
+                        spectrum=spectrum, cpu_cores=8)
+
+        max_ts=np.max(ts_results)
+        highest_idx = ts_results.argmax()
+        m = HealpixMap(nside=nside_search, scheme="nested", coordsys="galactic")
+        max_coo = m.pix2skycoord(highest_idx)
+
+    # Results and plot
+        print(max_coo)
+        print(max_ts)
+
+        ts.plot_ts(ts_results, containment=0.9,  skycoord = grbdc3_coo, save_plot=True)
+
+if __name__ == "__main__":
+    cosi_tsdetect()
