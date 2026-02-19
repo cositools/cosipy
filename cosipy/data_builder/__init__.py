@@ -1,1 +1,1 @@
-from .Time_series_builder import TimeSeriesBuilderCOSI
+from .Time_series_builder import from_cosi_data
