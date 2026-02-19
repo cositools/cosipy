@@ -31,8 +31,8 @@ def cosi_bindata(argv=None):
             """),
         description=textwrap.dedent(
             """
-            Bins an unbinned dataset matching the given response matrix
-            and within the time interval of the given orientation file.
+            Bins an unbinned dataset matching the given response matrix 
+            and within the time interval of the given orientation file. 
             Uses the given time bin size (dt) and coordinate system (either "local" or "galactic").
             Optionally, applies a time selection tmin-tmax to the data before binning.
             Data, response and orientation files paths in the config file should be relative to the config file.
@@ -148,14 +148,7 @@ if __name__ == "__main__":
     cosi_bindata()
 
 
-
-
-
-
-
-
-
-def cosi_threemlfit(argv=None):
+def  cosi_threemlfit(argv=None):
     # Parse arguments from commandline
     apar = argparse.ArgumentParser(
         usage=textwrap.dedent(
@@ -275,3 +268,4 @@ def cosi_threemlfit(argv=None):
 
 if __name__ == "__main__":
     cosi_threemlfit()
+
