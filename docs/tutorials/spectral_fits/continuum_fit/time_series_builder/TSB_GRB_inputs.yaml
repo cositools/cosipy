@@ -1,0 +1,16 @@
+#----------#
+# Data I/O:
+
+# data files available on the COSI Sharepoint: https://drive.google.com/drive/folders/1UdLfuLp9Fyk4dNussn1wt7WEOsTWrlQ6
+data_file: "albedo_photons_3months_unbinned_data.fits.gz" #"GalacticScan.inc1.id1.crab2hr.extracted.tra.gz" # full path
+ori_file: "../wasabi_files/20280301_3_month.ori" # full path
+unbinned_output: 'fits' # 'fits' or 'hdf5'
+time_bins: 1 # time bin size in seconds. Takes int, float, or list of bin edges.
+energy_bins: [  100.   ,   158.489,   251.189,   398.107,   630.957,  1000.   ,
+        1584.89 ,  2511.89 ,  3981.07 ,  6309.57 , 10000.   ] #[1500., 1550., 1600., 1650., 1700., 1750., 1800., 1850., 1900., 1950., 2000.] #[100.,  200.,  500., 1000., 2000., 5000.] # Takes list. Needs to match response.
+phi_pix_size: 3 # binning of Compton scattering anlge [deg]
+nside: 16 # healpix binning of psi chi local
+scheme: 'ring' # healpix binning of psi chi local
+tmin: 1842597210.0 # Min time cut in seconds.
+tmax: 1842597650.0 # Max time cut in seconds.
+#----------#
