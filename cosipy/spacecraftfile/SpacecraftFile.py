@@ -311,12 +311,16 @@ class SpacecraftFile():
 
         if 'Altitude' in t.colnames:
             altitude = t['Altitude']
+            if isinstance(altitude, u.Quantity):
+                altitude = altitude.value
         else:
             altitude = None
 
         if 'LiveTime' in t.colnames:
             # left end points, so remove last bin.
             livetime = t['LiveTime'][:-1]
+            if isinstance(livetime, u.Quantity):
+                livetime = livetime.value
         else:
             livetime = None
 
