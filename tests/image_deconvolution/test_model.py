@@ -1,6 +1,7 @@
 import pytest
 import astropy.units as u
 import numpy as np
+import healpy as hp
 from astromodels import Gaussian, Gaussian_on_sphere, ExtendedSource
 from histpy import Histogram
 
@@ -24,6 +25,9 @@ def test_allskyimage():
 
     model.set_values_from_parameters(parameter)
 
+    # check total_flux
+    assert len(model.total_flux()) == 1 and np.isclose(model.total_flux()[0], hp.nside2pixarea(1) * hp.nside2npix(1) * u.Unit("s-1 cm-2"))
+    
     # instatiation from parameter
     parameter = {"nside": 1,
                  "energy_edges": {"value": [100.,  200.],
@@ -33,7 +37,7 @@ def test_allskyimage():
                  "unit": "cm-2 s-1 sr-1"}
 
     model = AllSkyImageModel.instantiate_from_parameters(parameter)
-    
+
     # smoothing
     model.smoothing(fwhm = 10.0 * u.deg)
     model.smoothing(sigma = 10.0 * u.deg)

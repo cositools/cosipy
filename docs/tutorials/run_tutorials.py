@@ -51,6 +51,8 @@ def main():
                     help='Set the logging level (debug, info, warning, error, critical)')
     p.add_argument('--dry', action='store_true', default=False,
                    help='Perform the setup, fetching and checks, but do not execute the notebooks')
+    p.add_argument('--list', action='store_true', default=False,
+                   help='List available tutorial option and corresponding noteboooks, and then exit')
     args = p.parse_args()
 
     # Logger
@@ -87,6 +89,11 @@ def main():
     file_handler = logging.FileHandler(output_dir / "run.log", mode='a')
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
     logger.addHandler(file_handler)
+
+    if args.list:
+        for label,content in config['tutorials'].items():
+            print(f"{label}: {content['notebook']}")
+        exit()
 
     logger.info(f"Config:\n{config.dump()}")
 

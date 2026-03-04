@@ -11,6 +11,7 @@ from histpy import Histogram
 from .RichardsonLucySimple import RichardsonLucySimple
 
 from .prior_tsv import PriorTSV
+from .prior_entropy import PriorEntropy
 
 class MAP_RichardsonLucy(RichardsonLucySimple):
     """
@@ -52,7 +53,7 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
             value: 1.0
     """
 
-    prior_classes = {"TSV": PriorTSV}
+    prior_classes = {"TSV": PriorTSV, "entropy": PriorEntropy}
 
     def __init__(self, initial_model, dataset, mask, parameter):
 
@@ -74,8 +75,8 @@ class MAP_RichardsonLucy(RichardsonLucySimple):
             if prior_name == 'gamma':
                 continue
 
-            coefficient = parameter['prior'][prior_name]['coefficient']
-            self.priors[prior_name] = self.prior_classes[prior_name](coefficient, initial_model)
+            this_prior_parameter = parameter['prior'][prior_name]
+            self.priors[prior_name] = self.prior_classes[prior_name](this_prior_parameter, initial_model)
 
         # stopping criteria
         self.stopping_criteria_statistics = parameter.get('stopping_criteria:statistics', "log-posterior")

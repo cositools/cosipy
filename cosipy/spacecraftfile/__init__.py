@@ -1,2 +1,2 @@
 from .SpacecraftFile import SpacecraftFile
-from .scatt_map import SpacecraftAttitudeMap
+from .scatt_map import SpacecraftAttitudeMap, SpacecraftAxisMap

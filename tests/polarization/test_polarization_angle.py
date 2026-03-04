@@ -19,6 +19,21 @@ def test_pa_transformation():
     
     assert np.isclose(pa2.angle, 56*u.deg)
 
+    # exercise support for vectorized transform_to()
+    pa = PolarizationAngle([20*u.deg], source_direction, convention = 'IAU')
+
+    pa2 = pa.transform_to(StereographicConvention(attitude = Attitude.identity()))
+
+    assert np.isclose(pa2.angle[0], 56*u.deg)
+
+    pa = PolarizationAngle([20*u.deg, 30*u.deg], source_direction, convention = 'IAU')
+
+    pa2 = pa.transform_to(StereographicConvention(attitude = Attitude.identity()))
+
+    assert np.allclose(pa2.angle, [56*u.deg, 66*u.deg])
+
+    pa = PolarizationAngle(20*u.deg, source_direction, convention = 'IAU')
+    
     pa2 = pa.transform_to('RelativeZ', attitude = Attitude.identity())
 
     assert np.isclose(pa2.angle, 110*u.deg)
@@ -43,6 +58,19 @@ def test_from_scattering_direction():
 
     assert np.isclose(pa.angle.deg, -134.186)
 
+    # exercise support for vectorized from_scattering_direction()
+    psichi = SkyCoord(lat=[np.pi/8], lon=[np.pi/6], unit=u.rad, frame=SpacecraftFrame(attitude = Attitude.identity()))
+    pa = PolarizationAngle.from_scattering_direction(psichi, source_direction.transform_to(SpacecraftFrame(attitude = Attitude.identity())), MEGAlibRelativeX(attitude = Attitude.identity()))
+
+    assert np.isclose(pa.angle.deg[0], -134.186)
+
+    psichi = SkyCoord(lat=[np.pi/8,np.pi/4], lon=[np.pi/6,np.pi/3], unit=u.rad, frame=SpacecraftFrame(attitude = Attitude.identity()))
+    pa = PolarizationAngle.from_scattering_direction(psichi, source_direction.transform_to(SpacecraftFrame(attitude = Attitude.identity())), MEGAlibRelativeX(attitude = Attitude.identity()))
+
+    assert np.allclose(pa.angle.deg, [-134.186,-167.253])
+
+    psichi = SkyCoord(lat=np.pi/8, lon=np.pi/6, unit=u.rad, frame=SpacecraftFrame(attitude = Attitude.identity()))
+        
     pa2 = PolarizationAngle.from_scattering_direction(psichi.transform_to('galactic'), source_direction.transform_to('galactic'), IAUPolarizationConvention())
 
     assert np.isclose(pa2.angle.deg, 80.349)

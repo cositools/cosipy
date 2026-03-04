@@ -41,7 +41,7 @@ class ContinuumEstimation:
         dr = detector_response
 
         # Scatt map:
-        scatt_map = sc_orientation.get_scatt_map(nside = nside, target_coord = coord, coordsys = 'galactic')
+        scatt_map = sc_orientation.get_scatt_map(nside = nside, target_coord = coord)
 
         # Calculate PSR:
         with FullDetectorResponse.open(dr) as response:
@@ -327,7 +327,7 @@ class ContinuumEstimation:
                     plt.close()
 
                     # Plot masked response:
-                    m_dummy[sorted_indices[arm_mask]] = 0
+                    m_dummy[sorted_indices[arm_mask]] = 0 * m_dummy.unit
                     plot,ax = m_dummy.plot('mollview')
                     plt.title("Masked Response")
                     plt.show()

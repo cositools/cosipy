@@ -14,9 +14,8 @@ installation issues with dependencies (`threeML <https://github.com/threeML/thre
 
 Install with pip::
   
-  pip install --use-pep517 cosipy
+  pip install cosipy
 
-Note: ``--use-pep517`` is a temporary workaround to install `astromodels with new setuptools versions <https://github.com/threeML/astromodels/issues/209>`_. 
 
 Note: The tutorials, examples, and other documentation are not shipped with the PyPi (pip) release —only the embedded docstrings. You can see this information in the `main repository <https://github.com/cositools/cosipy>`_  ("docs" folder).
 
@@ -38,7 +37,7 @@ Do the following (preferably inside a conda environment)::
 
     git clone git@github.com:cositools/cosipy.git
     cd cosipy
-    pip install --use-pep517 -e .
+    pip install -e .
 
 The flag ``-e`` (``--editable``) allows you to make changes and try them without
 having to run ``pip`` again.

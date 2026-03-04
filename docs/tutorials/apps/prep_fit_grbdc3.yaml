@@ -1,0 +1,181 @@
+threeml_source_models:
+  grbdc3 (point source): &grbdc3_source_model
+      position:
+
+        l:
+
+          value: 177.42
+
+          desc: Galactic longitude
+
+          min_value: 0.0
+
+          max_value: 360.0
+
+          unit: deg
+
+          is_normalization: false
+
+          delta: 17.742
+
+          free: false
+
+        b:
+
+          value: -9.41
+
+          desc: Galactic latitude
+
+          min_value: -90.0
+
+          max_value: 90.0
+
+          unit: deg
+
+          is_normalization: false
+
+          delta: 0.9410000000000001
+
+          free: false
+
+        equinox: J2000
+
+      spectrum:
+
+        main:
+
+          Band:
+
+            K:
+
+              value: 0.1
+
+              desc: Differential flux at the pivot energy
+
+              min_value: 1.0e-10
+
+              max_value: 1
+
+              unit: keV-1 s-1 cm-2
+
+              is_normalization: true
+
+              delta: 1.0e-05
+
+              free: true
+
+            alpha:
+
+              value: -1.0
+
+              desc: low-energy photon index
+
+              min_value: -1.5
+
+              max_value: 3.0
+
+              unit: ''
+
+              is_normalization: false
+
+              delta: 0.1
+
+              free: true
+
+            xp:
+
+              value: 300.0000000000001
+
+              desc: peak in the x * x * N (nuFnu if x is a energy)
+
+              min_value: 10.0
+
+              max_value: null
+
+              unit: keV
+
+              is_normalization: false
+
+              delta: 50.0
+
+              free: true
+
+            beta:
+
+              value: -2.0
+
+              desc: high-energy photon index
+
+              min_value: -5.0
+
+              max_value: -1.6
+
+              unit: ''
+
+              is_normalization: false
+
+              delta: 0.2
+
+              free: true
+
+            piv:
+
+              value: 500.0
+
+              desc: pivot energy
+
+              min_value: 100
+
+              max_value: 1000
+
+              unit: keV
+
+              is_normalization: false
+
+              delta: 10.0
+
+              free: false
+
+          polarization: {}
+
+
+bindata:
+  response:
+    class: ExpectationInterfaceTBD
+    args:
+      - ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5
+  unbinned_data_file: galbk_grbdc3.fits
+  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
+  dt: 1
+  tmin: 1836496300.0
+  tmax: 1836496388.1
+  coo_sys: "local" 
+
+
+   
+threemlfit:
+  model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
+    grbdc3 (point source): *grbdc3_source_model
+  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
+  data:
+    class: DataInterfaceTBD
+    args:
+      - tsel_binned_data_local_galbk_grbdc3.hdf5
+    kwargs:
+      input_yaml: bin_galbk_grbdc3.yaml
+  background: # This is a list of background component
+    class: ExpectationInterfaceTBD
+    args:
+      - tsel_binned_data_local_galbk.hdf5
+    kwargs:
+      input_yaml: bin_galbk.yaml
+  response:
+    class: ExpectationInterfaceTBD
+    args:
+      - ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5
+  cuts:
+    class: EventCutInterfaceTBD
+    args:
+    kwargs:
+      tstart: null
+      tstop: null

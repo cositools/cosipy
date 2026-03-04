@@ -53,7 +53,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Pre-computing a response in galactic coordinates for all-sky
   - Fitting an extended source
     
-8. Image deconvolution `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/image_deconvolution/511keV/GalacticCDS/511keV-Galactic-ImageDeconvolution.ipynb>`_
+8. Image deconvolution `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/image_deconvolution/511keV-Galactic-ImageDeconvolution.ipynb>`_
   - Explain the RL algorithm. Reference the previous example. Explain the difference with a TS map.
   - Fitting the 511 diffuse emission.
   - Analyze data in the Compton data space with galactic coordinates.
@@ -85,7 +85,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    Fitting the spectrum of a GRB <spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb>
    Fitting the spectrum of the Crab <spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>
    Extended source model fitting <spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>
-   Image deconvolution <image_deconvolution/511keV/ScAttBinning/511keV-ScAtt-ImageDeconvolution.ipynb>
+   Image deconvolution <image_deconvolution/511keV-ScAtt-ImageDeconvolution.ipynb>
    Source injector <source_injector/Point_source_injector.ipynb>
    Continuum Background Estimation <background_estimation/continuum_estimation/BG_estimation_example.ipynb>
    Line background estimation <background_estimation/line_background/line_background_estimation_example_notebook.ipynb>

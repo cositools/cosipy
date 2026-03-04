@@ -171,3 +171,9 @@ class AllSkyImageModel(ModelBase):
             allskyimage_new[:,i] = hp.smoothing(self[:,i].value, fwhm = fwhm.to('rad').value) * self.unit
 
         return allskyimage_new
+
+    def total_flux(self):
+        """
+        Calculate the total flux at each energy bin.
+        """
+        return np.sum(self, axis = 0) * self.axes['lb'].pixarea()

@@ -12,7 +12,7 @@ from cosipy.response import FullDetectorResponse
 from cosipy.spacecraftfile import SpacecraftFile
 
 response_path = test_data.path / "test_full_detector_response.h5"
-orientation_path = test_data.path / "20280301_first_10sec.ori"
+orientation_path = test_data.path / "20280301_first_10sec.fits"
 
 def test_open():
 
@@ -24,10 +24,8 @@ def test_open():
 
         assert response.shape == tuple(response.axes.nbins)
 
-        assert response.eff_area.dtype == np.float32
-        assert len(response.eff_area) == response.axes['Ei'].nbins
-
-        assert response.counts.shape == response.shape
+        assert response.eff_area_correction.dtype == np.float32
+        assert len(response.eff_area_correction) == response.axes['Ei'].nbins
 
         assert arr_eq(response.axes.labels,
                       ['NuLambda', 'Ei', 'Em', 'Phi', 'PsiChi'])
@@ -43,7 +41,7 @@ def test_get_item():
 
     with FullDetectorResponse.open(response_path) as response:
 
-        drm = response.get_pixel(0, weight=1.0)
+        drm = response[0]
 
         assert drm.ndim == 4
 
@@ -52,13 +50,24 @@ def test_get_item():
 
         assert drm.unit.is_equivalent('m2')
 
-        drmu = response.get_pixel(0, weight=1.0 * u.s)
+    with FullDetectorResponse.open(response_path, dtype=np.float32, cache_size = 100) as response:
 
-        assert drmu.unit.is_equivalent('m2 s')
-                
-        drm2 = response[0] # shorthand for get_pixel with unit weight
+        drm = response[0]
 
-        assert drm == drm2
+def test_get_counts():
+
+    with FullDetectorResponse.open(response_path) as response:
+
+        data = response.get_counts(2)
+
+        assert data.shape == tuple(response.axes.nbins[1:])
+
+        data = response.get_counts(2, em_slice = slice(2,3))
+
+        assert data.shape == (response.axes.nbins[1],
+                              1,
+                              response.axes.nbins[3],
+                              response.axes.nbins[4])
 
 def test_get_interp_response():
 
@@ -75,9 +84,33 @@ def test_get_interp_response():
 
         assert drm.unit.is_equivalent('m2')
 
+def test_get_point_source_response():
+
+    orientation = SpacecraftFile.open(orientation_path)
+    coord = SkyCoord(l=0,b=0,unit=u.deg,frame="galactic")
+
+    with FullDetectorResponse.open(response_path) as response:
+
+        # test call with dwell_map
+        src_path = orientation.get_target_in_sc_frame(coord)
+        exp_map = orientation.get_dwell_map(response, src_path)
+
+        psr = response.get_point_source_response(exposure_map = exp_map)
+
+        # test call with source + scatt_map
+        scatt_map = orientation.get_scatt_map(nside=16,
+                                              target_coord=coord)
+
+        psr = response.get_point_source_response(coord=coord,
+                                                 scatt_map=scatt_map)
+
+        # test stripping extra dimensions from SkyCoord
+        coord = SkyCoord(l=[0],b=[0],unit=u.deg,frame="galactic")
+        psr = response.get_point_source_response(coord=coord,
+                                                 scatt_map=scatt_map)
 def test_get_extended_source_response():
 
-    orientation = SpacecraftFile.parse_from_file(orientation_path)
+    orientation = SpacecraftFile.open(orientation_path)
 
     with FullDetectorResponse.open(response_path) as response:
 
@@ -96,7 +129,7 @@ def test_get_extended_source_response():
 
 def test_merge_psr_to_extended_source_response(tmp_path):
 
-    orientation = SpacecraftFile.parse_from_file(orientation_path)
+    orientation = SpacecraftFile.open(orientation_path)
 
     with FullDetectorResponse.open(response_path) as response:
 

@@ -2,7 +2,7 @@
 # Data I/O:
 
 data_file: "abc" # full path
-ori_file: 'data3/ori.ori'
+ori_file: 'data3/ori.fits'
 unbinned_output: 'hdf5' # 'fits' or 'hdf5'
 time_bins: 1 # time bin size in seconds. Takes int or list of bin edges. 
 energy_bins: [10., 5000.] # Takes list. Needs to match response.

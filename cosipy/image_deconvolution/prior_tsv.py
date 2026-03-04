@@ -13,8 +13,8 @@ class PriorTSV(PriorBase):
 
     Parameters
     ----------
-    coefficient : float
-        Scaling coefficient for the TSV prior.
+    parameter: dict
+        parameters for the TSV prior.
     model : AllSkyImageModel
         All-sky image model to which the prior will be applied.
 
@@ -33,9 +33,9 @@ class PriorTSV(PriorBase):
 
     usable_model_classes = [AllSkyImageModel]
 
-    def __init__(self, coefficient, model):
+    def __init__(self, parameter, model):
 
-        super().__init__(coefficient, model)
+        super().__init__(parameter, model)
 
         if self.model_class == AllSkyImageModel:
 
@@ -86,7 +86,7 @@ class PriorTSV(PriorBase):
         Returns
         -------
         numpy.ndarray
-            Gradient of the log prior, with the same units as the model.
+            Gradient of the log prior, in units inverse to the model.
         """
         if self.model_class == AllSkyImageModel:
 

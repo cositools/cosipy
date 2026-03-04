@@ -8,14 +8,14 @@ import numpy as np
 import astropy.units as u
 from histpy import Histogram
 import pytest
-from astromodels import ExtendedSource, Powerlaw, Gaussian_on_sphere
+from astromodels import Model, PointSource, ExtendedSource, Powerlaw, Gaussian_on_sphere
 
 def test_inject_point_source():
 
     # defind the response and orientation
     response_path = test_data.path / "test_full_detector_response.h5"
-    orientation_path = test_data.path / "20280301_2s.ori"
-    ori = SpacecraftFile.parse_from_file(orientation_path)
+    orientation_path = test_data.path / "20280301_2s.fits"
+    ori = SpacecraftFile.open(orientation_path)
 
     # powerlaw model
     index = -2.2
@@ -45,9 +45,9 @@ def test_inject_point_source():
     assert isinstance(results, u.quantity.Quantity) == True
 
     assert np.allclose(results.value,
-                       [5.42040095e-01, 1.12762256e+00, 8.78432091e-01, 4.49743480e-01,
-                        2.14891073e-01, 1.01092299e-01, 4.78008233e-02, 1.51891001e-02,
-                        2.69585032e-03, 1.16440753e-04])
+                       [5.18769386e-01, 1.07545259e+00, 8.66760819e-01, 4.54548331e-01,
+                        2.18439534e-01, 1.03093234e-01, 4.93963707e-02, 1.64003979e-02,
+                        3.07634751e-03, 1.44128663e-04])
 
 
 def test_inject_point_source_galactic():
@@ -207,7 +207,7 @@ def test_inject_extended_source():
     hist = injected.project("Em").to_dense().contents
 
     assert isinstance(hist, u.quantity.Quantity) == True
-    assert np.sum(hist[:].value) > 0  # ensure there is some non-zero expectation
+    assert np.sum(hist.value) > 0  # ensure there is some non-zero expectation
 
 
 def test_inject_extended_source_saving():
@@ -285,6 +285,60 @@ def test_get_esr_error():
         SourceInjector.get_esr(model, response_path)
 
 
+def test_inject_model():
 
+    # Define the response
+    response_path = test_data.path / "test_precomputed_response.h5"
+    orientation_path = test_data.path / "20280301_2s.fits"
+    ori = SpacecraftFile.open(orientation_path)
 
-    
+    K = 17 / u.cm / u.cm / u.s / u.keV
+    piv = 1 * u.keV
+
+    spectral = Powerlaw()
+    spectral.index.value = -2.2
+    spectral.K.value = K.value
+    spectral.piv.value = piv.value
+    spectral.K.unit = K.unit
+    spectral.piv.unit = piv.unit
+
+    # Define the coordinate of the point source
+    source_coord = SkyCoord(l = 50, b = -45, frame = "galactic", unit = "deg")
+
+    c_icrs = source_coord.transform_to('icrs')
+    model_point = PointSource("test_point",
+                              ra = c_icrs.ra.deg,
+                              dec = c_icrs.dec.deg,
+                              spectral_shape = spectral)
+
+    # Define a spatial model (Gaussian_on_sphere) + spectral model (Powerlaw)
+    spatial = Gaussian_on_sphere()
+    spatial.lon0.value = 50.0
+    spatial.lat0.value = -45.0
+    spatial.sigma.value = 2.0
+
+    model_ext = ExtendedSource(
+        "test_extended",
+        spatial_shape=spatial,
+        spectral_shape=spectral
+    )
+
+    model = Model(model_point, model_ext)
+
+    # Define an injector by the response
+    injector = SourceInjector(response_path=response_path,
+                              response_frame="galactic")
+
+    file_path = Path("./combined_rsp.h5")
+
+    # Get the data of the injected source
+    injected = injector.inject_model(model,
+                                     data_save_path=file_path)
+
+    hist = Histogram.open(file_path)
+    os.remove(file_path)
+
+    hist = injected.project("Em").contents
+
+    assert isinstance(hist, u.quantity.Quantity)
+    assert np.sum(hist.value) > 0  # ensure there is some non-zero expectation

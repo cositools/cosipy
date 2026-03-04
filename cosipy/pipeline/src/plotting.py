@@ -9,8 +9,21 @@ import matplotlib.pyplot as plt
 ##### PLOTTING
 def get_ene(data):
     """
-    computes the central energy and the half-width of each bin
+    Computes the central energy and the half-width of each energy bin of a dataset
     (for plotting purposes)
+
+
+    Parameters
+    ----------
+    data : histpy:Histogram
+        The dataset to be plotted.
+
+    Returns
+    -------
+    ene : numpy:array
+        The central energy value of each bin.
+    e_ene: numpy:array
+        The half-width of each energy bin.
     """
     #
     binned_energy_edges = data.axes['Em'].edges.value
@@ -28,9 +41,20 @@ def get_ene(data):
 
 def get_counts_ene(data):
     """
-    Projects the counts of the 5D histogram onto the E axis
-    Computes Poissonian Error for energy bins
-    (for plotting purposes)
+    Computes the counts and poissonian errors for each energy bin of dataset
+    (for plotting purposes).
+
+    Parameters
+    ----------
+    data : histpy:Histogram
+        The dataset to be plotted.
+
+    Returns
+    -------
+    cts : numpy:array
+        The counts in each energy bin.
+    e_cts: numpy:array
+        The poissonian error for the counts in each energy bin.
     """
     cts = data.project('Em').todense().contents
     e_cts = np.sqrt(cts)
@@ -39,20 +63,45 @@ def get_counts_ene(data):
 
 def get_fit_residuals(cts, e_cts, cts_exp):
     """
-    computes the residuals of a fit
-    Args:
-        cts: np.array. counts
-        e_cts:np.array. count errors
-        cts_exp:np.array. expected counts
-    (for plotting purposes)
-    """
+     Computes the residuals, in terms of Chi-squared, of a fit.
+     (for plotting purposes).
+
+     Parameters
+     ----------
+     cts : numpy:array
+        The counts in each energy bin.
+     e_cts : numpy:array
+        The poissonian errors for the counts in each energy bins.
+     cts_exp : numpy:array
+        The counts predicted in each energy bin by the fitted model.
+
+     Returns
+     -------
+     resid : numpy:array
+        The fit residuals in each energy bin: (data-model)/error
+     e_resid: numpy:array
+        The errors of the residuals.
+     """
+    #
     resid = (cts - cts_exp) / e_cts
     e_resid = np.abs((e_cts / cts) * resid)
     return (resid, e_resid)
 
 
 def plot_fit(sou, cts_exp, figname):
-    # Save a plot of the current fit.
+    """
+     Save a plot of the fit and fit residuals.
+     (for plotting purposes).
+
+     Parameters
+     ----------
+     sou : histpy:Histogram
+        The dataset to be plotted.
+     cts_exp : numpy:array
+        The counts predicted in each energy bin by the fitted model.
+     figname : str
+        The name of the figure to be saved.
+    """
     #
     ene, e_ene = get_ene(sou)
     cts, e_cts = get_counts_ene(sou)
@@ -84,6 +133,7 @@ def plot_fit(sou, cts_exp, figname):
     ax[1].set_ylabel("Obs-Model/Err")
     ax[1].set_xlabel("Energy (keV)")
     #
-    # plt.show()
     plt.savefig(figname)
+    # plt.show()
+    plt.close(fig)
     return ()

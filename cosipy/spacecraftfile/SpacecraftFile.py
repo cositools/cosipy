@@ -1,18 +1,27 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import astropy.units as u
-from astropy.io import fits
-from astropy.time import Time, TimeDelta
-from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
-from mhealpy import HealpixMap
+
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
-from matplotlib import cm, colors
-from scipy import interpolate
+
+import astropy.units as u
+from astropy.io import fits
+from astropy.table import QTable
+from astropy.time import Time, TimeDelta
+from astropy.coordinates import (
+    SkyCoord,
+    UnitSphericalRepresentation,
+    Angle
+)
+
+from mhealpy import HealpixMap
 
 from scoords import Attitude, SpacecraftFrame
-from cosipy.response import FullDetectorResponse
 
+from histpy import Axis, HealpixAxis
+
+from cosipy.response import FullDetectorResponse
 from .scatt_map import SpacecraftAttitudeMap
 
 import logging
@@ -20,151 +29,365 @@ logger = logging.getLogger(__name__)
 
 class SpacecraftFile():
 
-    def __init__(self, time, x_pointings = None, y_pointings = None, \
-            z_pointings = None, earth_zenith = None, altitude = None,\
-            attitude = None, livetime = None, instrument = "COSI", \
-            frame = "galactic"):
+    file_version = "20260130" # change if FITS on-disk format changes
 
+    def __init__(self, time,
+                 x_pointings = None,
+                 y_pointings = None,
+                 z_pointings = None,
+                 attitudes = None,
+                 earth_zenith = None,
+                 altitude = None,
+                 livetime = None,
+                 frame = "galactic"):
         """
-        Handles the spacecraft orientation. Calculates the dwell time 
-        map and point source response over a certain orientation period. 
-        Exports the point source response as RMF and ARF files that can be read by XSPEC.
-        
+        Handles the spacecraft orientation. Calculates the dwell time
+        map and point source response over a certain orientation
+        period.  Exports the point source response as RMF and ARF
+        files that can be read by XSPEC.
+
+        Input must contain either pointings on at least two axes or a
+        set of Attitudes for each time point; at most one of these is
+        permitted to avoid inconsistency.  All input pointings and
+        Attitudes will be stored in the specified frame.
+
+        If the input pointings for provided axes are not orthogonal
+        directions, they are stored as-is, but the Attitude class will
+        compute an orthogonal approximation to them that is used
+        internally for all operations.
+
         Parameters
         ----------
         Time : astropy.time.Time
-            The time stamps for each pointings. Note this is NOT the time duration.
+            The time stamps for each pointings. Note this is NOT the
+            time duration.
         x_pointings : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the x axis of the local 
-            coordinate system attached to the spacecraft (the default 
+            The pointings of the x axis of the local
+            coordinate system attached to the spacecraft (the default
             is `None`, which implies no input for the x pointings).
         y_pointings : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the y axis of the local 
-            coordinate system attached to the spacecraft (the default 
+            The pointings of the y axis of the local
+            coordinate system attached to the spacecraft (the default
             is `None`, which implies no input for the y pointings).
         z_pointings : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the z axis of the local 
-            coordinate system attached to the spacecraft (the default 
+            The pointings of the z axis of the local
+            coordinate system attached to the spacecraft (the default
             is `None`, which implies no input for the z pointings).
-        earth_zenith : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the Earth zenith (the 
-            default is `None`, which implies no input for the earth pointings).
-	    altitude : array, optional 
+        attitudes : array, optional
+            Attitudes corresponding to the pointings at each time point.
+          earth_zenith : astropy.coordinates.SkyCoord, optional
+            The pointings of the Earth zenith (the default is `None`,
+            which implies no input for the earth pointings).
+        altitude : array, optional
             Altitude of the spacecraft in km.
-        livetime : array, optional 
-            Time in seconds the instrument is live for the corresponding 
-            energy bin (using left endpoints so that the last entry in 
+        livetime : array, optional
+            Time in seconds the instrument is live for the corresponding
+            energy bin (using left endpoints so that the last entry in
             the ori file is 0).
-        attitude : numpy.ndarray, optional 
-            The attitude of the spacecraft (the default is `None`, 
-            which implies no input for the attitude of the spacecraft).
-        instrument : str, optional
-            The instrument name (the default is "COSI").
         frame : str, optional
-            The frame on which the analysis will be based (the default is "galactic").
+            Coordinate frame for stored pointing directions and
+            Attitudes (default: "galactic")
+
         """
 
         # check if the inputs are valid
+
         # Time
         if isinstance(time, Time):
             self._time = time
+            self._raw_time = self._time.to_value(format = "unix")
+            self._raw_time_delta = np.diff(self._raw_time)
         else:
             raise TypeError("The time should be a astropy.time.Time object")
 
-        # Altitude
-        if not isinstance(altitude, (type(None))):
-            self._altitude = np.array(altitude)
-
-        # livetime
-        if not isinstance(livetime, (type(None))):
-            self.livetime = np.array(livetime)
-
         # x pointings
-        if isinstance(x_pointings, (SkyCoord, type(None))):
-            self.x_pointings = x_pointings
-        else:
-            raise TypeError("The x_pointing should be a NoneType or SkyCoord object!")
+        if not isinstance(x_pointings, (SkyCoord, type(None))):
+            raise TypeError("The x_pointings should be a SkyCoord object or None!")
 
         # y pointings
-        if isinstance(y_pointings, (SkyCoord, type(None))):
-            self.y_pointings = y_pointings
-        else:
-            raise TypeError("The y_pointing should be a NoneType or SkyCoord object!")
+        if not isinstance(y_pointings, (SkyCoord, type(None))):
+            raise TypeError("The y_pointings should be a SkyCoord object or None!")
 
         # z pointings
-        if isinstance(z_pointings, (SkyCoord, type(None))):
-            self.z_pointings = z_pointings
-        else:
-            raise TypeError("The z_pointing should be a NoneType or SkyCoord object!")
-	    
-	    # earth pointings
-        if isinstance(earth_zenith, (SkyCoord, type(None))):
-            self.earth_zenith = earth_zenith
-        else:
-            raise TypeError("The earth_zenith should be a NoneType or SkyCoord object!")    
+        if not isinstance(z_pointings, (SkyCoord, type(None))):
+            raise TypeError("The z_pointings should be a SkyCoord object or None!")
 
-        # check if the x, y and z pointings are all None (no inputs). If all None, tt will try to read from attitude parameter
-        if self.x_pointings is None and self.y_pointings is None and self.z_pointings is None:
-            if attitude != None:
-                if type(attitude) is Attitude:
-                    self.attitude = attitude
-                else:
-                    raise TypeError("The attitude must be `scoords.attitude.Attitude` object")
-            else:
-                raise ValueError("Please input the pointings of as least two axes or attitude!")
+        # attitudes
+        if not isinstance(attitudes, (Attitude, type(None))):
+            raise TypeError("attitudes should be an Attitude object or None!")
 
+        n_axes = sum(x is not None for x in (x_pointings, y_pointings, z_pointings))
+
+        if attitudes is None:
+
+            if n_axes < 2:
+                raise ValueError("SpacecraftFile requires pointings for at least two axes")
+
+            self.x_pointings = None if x_pointings is None else x_pointings.transform_to(frame)
+            self.y_pointings = None if y_pointings is None else y_pointings.transform_to(frame)
+            self.z_pointings = None if z_pointings is None else z_pointings.transform_to(frame)
+
+            self._attitude = Attitude.from_axes(x = x_pointings,
+                                                y = y_pointings,
+                                                z = z_pointings,
+                                                frame = frame)
         else:
-            self.attitude = None  # if you have the inputs of x, y and z pointings, the attitude will be overwritten by a None value regardless of the input for the attitude variable.
 
-        self._load_time = self._time.to_value(format = "unix")  # this is not necessary, but just to make sure evething works fine...
-        self._x_direction = np.array([x_pointings.l.deg, x_pointings.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
-        self._z_direction = np.array([z_pointings.l.deg, z_pointings.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
-        self._earth_direction = np.array([earth_zenith.l.deg, earth_zenith.b.deg]).T  # this is not necessary, but just to make sure evething works fine...
-      
+            if n_axes > 0:
+                raise ValueError("Cannot specify both attitudes and per-axis pointings")
+
+            self._attitude = attitudes.transform_to(frame)
+
+            pointings = self._attitude.as_axes()
+            self.x_pointings = pointings[0]
+            self.y_pointings = pointings[1]
+            self.z_pointings = pointings[2]
+
+        # earth pointings
+        if isinstance(earth_zenith, SkyCoord):
+            self.earth_zenith = earth_zenith.transform_to(frame)
+        elif earth_zenith is not None:
+            raise TypeError("The earth_zeniths should be a SkyCoord object or None!")
+
+        # altitude
+        if altitude is not None:
+            self._altitude = np.asarray(altitude)
+
+        # livetime
+        if livetime is not None:
+            self.livetime = np.asarray(livetime)
+
         self.frame = frame
-                       
-    @classmethod
-    def parse_from_file(cls, file):
+        self._cache_earth_occ = False
 
+    def write_fits(self, filename, overwrite=False, compress=False):
         """
-        Parses timestamps, axis positions from file and returns to __init__.
+        Write the contents of this object as a FITS file for later
+        retrieval. We use Astropy QTable functionality to create
+        the FITS file.
+
+        If compression is requested, the resulting file will have the
+        name {filename}.gz; the ".gz" should not be specfied as part
+        of the input.  (If it is, the file will be compressed
+        regardless of the setting of the compress flag.)
 
         Parameters
         ----------
-        file : str
-            The file path of the pointings.
+        filename : str or pathlib Path
+            The file path to the FITS file
+        overwrite : bool, optional
+            Overwrite the named file if it exists (default False)
+        compress : bool, optional
+            GZip-compress the FITS file (default False)
+
+        """
+
+        t = QTable()
+
+        t['TimeStamp'] = self._time.unix
+
+        # make sure the pointings are written in galactic coordinates,
+        # however they are stored internally.  The units of the
+        # lat/long angles are preserved in the file.
+
+        xc = self.x_pointings.transform_to('galactic')
+        xp = np.column_stack((Angle(xc.l), Angle(xc.b)))
+        t['XPointings'] = xp
+
+        zc = self.z_pointings.transform_to('galactic')
+        zp = np.column_stack((Angle(zc.l), Angle(zc.b)))
+        t['ZPointings'] = zp
+
+        ec = self.earth_zenith.transform_to('galactic')
+        ez = np.column_stack((Angle(ec.l), Angle(ec.b)))
+        t['EarthZenith'] = ez
+
+        if hasattr(self, '_altitude'):
+            t['Altitude'] = self._altitude
+
+        if hasattr(self, 'livetime'):
+            # add dummy to make sure livetime array length matches
+            # other array lengths for writing
+            t['LiveTime'] = np.concatenate((self.livetime, [0]))
+
+        # ensure the VERSION card ends up in the table's hdu header
+        t.meta["VERSION"] = self.file_version
+
+        filename = Path(filename)
+
+        if compress and filename.suffix != ".gz":
+            # FITS table writer will automatically compress if
+            # file name ends with .gz
+            filename = filename.parent / (filename.name + ".gz")
+
+        if filename.exists() and not overwrite:
+            raise RuntimeError(f"Not overwriting existing file '{filename}'")
+        else:
+            t.write(filename, format='fits', overwrite=True)
+
+            # reopen the FITS file to add the VERSION card
+            # to the PRIMARY header in hdu 0 as well. HEASARC
+            # requires the version in all hdus in the file.
+            with fits.open(filename, mode="update") as hdul:
+                hdul[0].header["VERSION"] = self.file_version
+
+    @classmethod
+    def open(cls, filename, frame='galactic'):
+        """
+        Read orientation data from file and construct a
+        SpacecraftFile object.  Dispatch to the appropriate
+        reader based on file extension.
+
+        Parameters
+        ----------
+        filename : str
+            The file path to the FITS file
+        frame : str, optional
+            Frame of returned SpacecraftFile object (default:
+            galactic)
 
         Returns
         -------
         cosipy.spacecraftfile.SpacecraftFile
-            The SpacecraftFile object.
-        """
-
-        orientation_file = np.loadtxt(file, usecols=(1, 2, 3, 4, 5, 6, 7, 8, 9),delimiter=' ', skiprows=1, comments=("#", "EN"))
-        time_stamps = orientation_file[:, 0]
-        axis_1 = orientation_file[:, [2, 1]]
-        axis_2 = orientation_file[:, [4, 3]]
-        axis_3 = orientation_file[:, [7, 6]]
-        altitude = np.array(orientation_file[:, 5]) 
-        livetime = np.array(orientation_file[:, 8])
-        livetime = livetime[:-1] # left end points, so remove last bin. 
-
-        time = Time(time_stamps, format = "unix")
-        xpointings = SkyCoord(l = axis_1[:,0]*u.deg, b = axis_1[:,1]*u.deg, frame = "galactic")
-        zpointings = SkyCoord(l = axis_2[:,0]*u.deg, b = axis_2[:,1]*u.deg, frame = "galactic")
-        earthpointings = SkyCoord(l = axis_3[:,0]*u.deg, b = axis_3[:,1]*u.deg, frame = "galactic")
-        
-        return cls(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude, livetime=livetime)
-
-    def get_time(self, time_array = None):
+            The SpacecraftFile object
 
         """
-        Return the array pf pointing times as a astropy.Time object.
+
+        filename = Path(filename)
+
+        if filename.suffix == ".fits" or filename.suffixes[-2:] == [".fits", ".gz"]:
+            return cls._open_fits(filename, frame)
+        elif filename.suffix == ".ori":
+            return cls._open_ori(filename, frame)
+        else:
+            raise ValueError(
+                "Unsupported file format. Only .ori and .fits/.fits.gz extensions are supported.")
+
+    @classmethod
+    def _open_fits(cls, filename, frame):
+        """
+        Read orientation data from a FITS file and construct a
+        SpacecraftFile object.  The FITS file is assumed to contain
+        an Astropy QTable produced by the write_fits() method.
+        Astropy supports .fits.gz natively, so this function
+        can read either compressed or uncompressed FITS.
 
         Parameters
         ----------
-        time_array : numpy.ndarray, optional
-            The time array (the default is `None`, which implies the time array will be taken from the instance).
+        filename : str
+            The file path to the FITS file
+        frame : str
+            Frame of returned SpacecraftFile object
+
+        Returns
+        -------
+        cosipy.spacecraftfile.SpacecraftFile
+            The SpacecraftFile object
+
+        """
+
+        t = QTable.read(filename)
+
+        # make sure we have version info, and that we support this version
+        if "VERSION" not in t.meta:
+            raise ValueError("FITS orientation file has no version info")
+        elif t.meta["VERSION"] > SpacecraftFile.file_version:
+            raise ValueError(f"FITS orientation file has version {t.meta['VERSION']} "
+                             f"which exceeds max supported version {SpacecraftFile.file_version}")
+
+        time_stamps = Time(t['TimeStamp'], format = "unix")
+
+        # pointings are assumed to be stored in the file in
+        # galactic # coordinates.
+        xp = t['XPointings']
+        xpointings = SkyCoord(l = xp[:,0], b = xp[:,1],
+                              frame = "galactic")
+        zp = t['ZPointings']
+        zpointings = SkyCoord(l = zp[:,0], b = zp[:,1],
+                              frame = "galactic")
+        ez = t['EarthZenith']
+        earthzenith = SkyCoord(l = ez[:,0], b = ez[:,1],
+                               frame = "galactic")
+
+        if 'Altitude' in t.colnames:
+            altitude = t['Altitude']
+        else:
+            altitude = None
+
+        if 'LiveTime' in t.colnames:
+            # left end points, so remove last bin.
+            livetime = t['LiveTime'][:-1]
+        else:
+            livetime = None
+
+        return cls(time_stamps,
+                   x_pointings = xpointings,
+                   z_pointings = zpointings,
+                   earth_zenith = earthzenith,
+                   altitude = altitude,
+                   livetime = livetime,
+                   frame = frame)
+
+    @classmethod
+    def _open_ori(cls, file, frame):
+
+        """
+        Read orientation data from an .ori file and construct a
+        SpacecraftFile object.
+
+        Parameters
+        ----------
+        filename : str
+            The file path to the FITS file
+        frame : str
+            Frame of returned SpacecraftFile object
+
+        Returns
+        -------
+        cosipy.spacecraftfile.SpacecraftFile
+            The SpacecraftFile object
+
+        """
+
+        orientation_file = np.loadtxt(file,
+                                      usecols=(1, 2, 3, 4, 5, 6, 7, 8, 9),
+                                      delimiter=' ', skiprows=1,
+                                      comments=("#", "EN"))
+
+        time_stamps = orientation_file[:, 0]
+        xp = orientation_file[:, [2, 1]]
+        zp = orientation_file[:, [4, 3]]
+        ez = orientation_file[:, [7, 6]]
+
+        # copy to ensure contiguous array
+        altitude = orientation_file[:, 5].copy()
+
+        # left endpoints, so remove last bin
+        # copy to ensure contiguous array
+        livetime = orientation_file[:-1, 8].copy()
+
+        time = Time(time_stamps, format = "unix")
+
+        # pointings are assumd to be stored in the file in galactic
+        # coordinates.
+        xpointings = SkyCoord(l = xp[:,0], b = xp[:,1],
+                              unit=u.deg, frame = "galactic")
+        zpointings = SkyCoord(l = zp[:,0], b = zp[:,1],
+                              unit=u.deg, frame = "galactic")
+        earthzenith = SkyCoord(l = ez[:,0], b = ez[:,1],
+                               unit=u.deg, frame = "galactic")
+
+        return cls(time,
+                   x_pointings = xpointings,
+                   z_pointings = zpointings,
+                   earth_zenith = earthzenith,
+                   altitude = altitude,
+                   livetime = livetime,
+                   frame = frame)
+
+    def get_time(self):
+        """
+        Return the array of pointing times as a astropy.Time object.
 
         Returns
         -------
@@ -172,86 +395,56 @@ class SpacecraftFile():
             The time stamps of the orientation.
         """
 
-        if time_array == None:
-            self._time = Time(self._load_time, format = "unix")
-        else:
-            self._time = Time(time_array, format = "unix")
-
         return self._time
 
-    def get_altitude(self):
+    def get_time_delta(self):
+        """
+        Return an array of the differences between neighbouring time points.
 
+        Returns
+        -------
+        time_delta : astropy.time.TimeDelta
+            The differences between the neighbouring time stamps.
+        """
+
+        time_delta = TimeDelta(self._raw_time_delta, format="sec")
+
+        return time_delta
+
+    def get_altitude(self):
         """
         Return the array of Earth altitude.
-
-        
 
         Returns
         -------
         numpy array
             the Earth altitude.
-        """   
+        """
 
         return self._altitude
 
-    def get_time_delta(self, time_array = None):
-
+    def get_attitude(self):
         """
-        Return an array of the time period between neighbouring time points.
-
-        Parameters
-        ----------
-        time_array : numpy.ndarray, optional
-           The time delta array (the default is `None`, which implies the time array will be taken from the instance).
+        Return an array of the attitudes assumed at each time point.
 
         Returns
         -------
-        time_delta : astropy.time.Time
-            The time difference between the neighbouring time stamps.
+        Attitude array
         """
 
-        if time_array == None:
-            self._time_delta = np.diff(self._load_time)
-        else:
-            self._time_delta = np.diff(time_array)
-
-        time_delta = TimeDelta(self._time_delta * u.second)
-
-        return time_delta
-
-    def interpolate_direction(self, trigger, idx, direction):
-
-        """
-        Linearly interpolates position at a given time between two timestamps.
-
-        Parameters
-        ----------
-        trigger : astropy.time.Time
-            The time of the event.
-        idx : int
-            The closest index in the pointing to the trigger time.
-        direction : numpy.ndarray
-            The pointing axis (x,z).
-
-        Returns
-        -------
-        numpy.ndarray
-            The interpolated positions.
-        """
-
-        new_direction_lat = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 1])
-        if (direction[idx, 0] > direction[idx + 1, 0]):
-            new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], [direction[idx, 0], 360 + direction[idx + 1, 0]])
-            new_direction_long = new_direction_long - 360
-        else:
-            new_direction_long = np.interp(trigger.value, self._load_time[idx : idx + 2], direction[idx : idx + 2, 0])
-
-        return np.array([new_direction_long, new_direction_lat])
+        return self._attitude
 
     def source_interval(self, start, stop):
 
         """
-        Returns the SpacecraftFile file class object for the source interval.
+        Return a new SpacecraftFile object including only attitude
+        information from this object in the time range [start, stop].
+
+        start and stop must be within the range of the full object's
+        times; if they exceed this range, they are trimmed to it. If
+        start and stop fall between times present in the original
+        object, the attitudes and other position information at these
+        times are interpolated.
 
         Parameters
         ----------
@@ -263,367 +456,636 @@ class SpacecraftFile():
         Returns
         -------
         cosipy.spacecraft.SpacecraftFile
+
         """
 
-        if(start.format != 'unix' or stop.format != 'unix'):
-            start = Time(start.unix, format='unix')
-            stop = Time(stop.unix, format='unix')
+        def interp_scalar(t, x1, x2):
+            """
+            Interpolate two scalar quantities
 
-        if(start > stop):
+            Parameters
+            ----------
+            t : float in [0, 1]
+              interpolation fraction
+            x1 : float
+              1st value
+            x2 : float
+              2nd value
+
+            Returns
+            -------
+            float: interpolated value
+
+            """
+
+            return (1 - t) * x1 + t * x2
+
+        def interp_direction(t, d1, d2):
+            """
+            Compute a direction that linearly interpolates between
+            directions d1 and d2 using SLERP.
+
+            The two directions are assumed to have the same frame,
+            which is also used for the interpolated result.
+
+            Parameters
+            ----------
+            t : float in [0, 1]
+              interpolation fraction
+            d1 : SkyCoord
+              1st direction
+            d2 : ndarray
+              2nd direction
+
+            Returns
+            -------
+            SkyCoord: interpolated direction
+
+            """
+
+            if d1 == d2:
+                return d1
+
+            v1 = d1.cartesian.xyz.value
+            v2 = d2.cartesian.xyz.value
+
+            # angle between v1, v2
+            theta = np.arccos(np.dot(v1, v2))
+
+            # SLERP interpolated vector
+            den = np.sin(theta)
+            vi = (np.sin((1-t)*theta) * v1 + np.sin(t*theta) * v2) / den
+
+            dvi = SkyCoord(*vi, representation_type='cartesian')
+
+            # make output representation actually (unit) spherical
+            usr = UnitSphericalRepresentation(lon=dvi.spherical.lon,
+                                              lat=dvi.spherical.lat)
+
+            di = SkyCoord(usr,
+                          representation_type=UnitSphericalRepresentation,
+                          frame=d1.frame)
+
+            return di
+
+        def interp_attitude(t, att1, att2):
+            """
+            Compute an Attitude that linearly interpolates between
+            att1 and att2 using SLERP on their quaternion
+            representations.
+
+            The two Attitudes are assumed to have the same frame,
+            which is also used for the interpolated result.
+
+            Parameters
+            ----------
+            t : float in [0, 1]
+              interpolation fraction
+            att1 : Attitude
+            att2 : Attitude
+
+            Returns
+            -------
+            Attitude : interpolated attitude
+
+            """
+
+            if att1 == att2:
+                return att1
+
+            p1 = att1.as_quat()
+            p2 = att2.as_quat()
+
+            # angle between quaternions p1, p2 (xyzw order)
+            theta = 2 * np.arccos(np.dot(p1, p2))
+
+            # SLERP interpolated quaternion
+            den = np.sin(theta)
+            pi = (np.sin((1-t)*theta) * p1 + np.sin(t*theta) * p2)/den
+
+            return Attitude.from_quat(pi, frame = att1.frame)
+
+
+        # trim times to within range of input orientations
+        start = max(start, self._time[0])
+        stop  = min(stop,  self._time[-1])
+
+        if start > stop:
             raise ValueError("start time cannot be after stop time.")
 
-        stop_idx = self._load_time.searchsorted(stop.value)
+        start_time = start.to_value(format='unix')
+        stop_time  = stop.to_value(format='unix')
 
-        if (start.value % 1 == 0):
-            start_idx = self._load_time.searchsorted(start.value)
-            new_times = self._load_time[start_idx : stop_idx + 1]
-            new_x_direction = self._x_direction[start_idx : stop_idx + 1]
-            new_z_direction = self._z_direction[start_idx : stop_idx + 1]
-            new_earth_direction = self._earth_direction[start_idx : stop_idx + 1]
-            new_earth_altitude = self._altitude[start_idx : stop_idx + 1]
-            new_livetime = self.livetime[start_idx : stop_idx] 
+        # Find smallest range of indices that contain range [start_time,
+        # stop_ime]. Range will always have size >= 2 unless
+        # start_time == stop_time and start_time falls exactly
+        # on a time point.
+        start_idx = self._raw_time.searchsorted(start_time, side='right') - 1
+        stop_idx  = self._raw_time.searchsorted(stop_time,  side='left')
 
-        else:
-            start_idx = self._load_time.searchsorted(start.value) - 1
+        new_raw_time     = self._raw_time[start_idx : stop_idx + 1]
+        new_attitude     = self._attitude[start_idx : stop_idx + 1]
+        new_earth_zenith = self.earth_zenith[start_idx : stop_idx + 1]
+        new_altitude     = self._altitude[start_idx : stop_idx + 1]
+        new_livetime     = self.livetime[start_idx : stop_idx]
 
-            x_direction_start = self.interpolate_direction(start, start_idx, self._x_direction)
-            z_direction_start = self.interpolate_direction(start, start_idx, self._z_direction)
-            earth_direction_start = self.interpolate_direction(start, start_idx, self._earth_direction)
+        if start_time > self._raw_time[start_idx] or stop_time < self._raw_time[stop_idx]:
 
-            new_times = self._load_time[start_idx + 1 : stop_idx + 1]
-            new_times = np.insert(new_times, 0, start.value)
+            # need to modify first and/or last entries -- make a copy
+            new_raw_time     = new_raw_time.copy()
+            new_attitude     = new_attitude.copy()
+            new_earth_zenith = new_earth_zenith.copy()
+            new_altitude     = new_altitude.copy()
 
-            new_x_direction = self._x_direction[start_idx + 1 : stop_idx + 1]
-            new_x_direction = np.insert(new_x_direction, 0, x_direction_start, axis = 0)
+            if start_time > self._raw_time[start_idx]:
 
-            new_z_direction = self._z_direction[start_idx + 1 : stop_idx + 1]
-            new_z_direction = np.insert(new_z_direction, 0, z_direction_start, axis = 0)
-	    
-            new_earth_direction = self._earth_direction[start_idx + 1 : stop_idx + 1]
-            new_earth_direction = np.insert(new_earth_direction, 0, earth_direction_start, axis = 0)
+                new_raw_time[0] = start_time
 
-            # Use linear interpolation to get starting altitude at desired time. 
-            f = interpolate.interp1d(self._time.value, self._altitude, kind="linear")
-            starting_alt = f(start.value)
-            new_earth_altitude = self._altitude[start_idx + 1 : stop_idx + 1]  
-            new_earth_altitude = np.insert(new_earth_altitude, 0, starting_alt)
+                start_frac = \
+                    (start_time - self._raw_time[start_idx]) / \
+                    (self._raw_time[start_idx + 1] - self._raw_time[start_idx])
 
-            # SAA livetime:
-            if self.livetime[start_idx] == 0:
-                udpated_livetime = 0
-            else:
-                updated_livetime = new_times[1] - new_times[0]
-                
-            new_livetime = self.livetime[start_idx + 1 : stop_idx]
-            new_livetime = np.insert(new_livetime, 0, updated_livetime)
+                new_attitude[0] = interp_attitude(start_frac,
+                                                  self._attitude[start_idx],
+                                                  self._attitude[start_idx + 1])
 
-        if (stop.value % 1 != 0):
-            stop_idx = self._load_time.searchsorted(stop.value) - 1
+                # inputs are SkyCoords; result should be too
+                new_earth_zenith[0] = interp_direction(start_frac,
+                                                       self.earth_zenith[start_idx],
+                                                       self.earth_zenith[start_idx + 1])
 
-            x_direction_stop = self.interpolate_direction(stop, stop_idx, self._x_direction)
-            z_direction_stop = self.interpolate_direction(stop, stop_idx, self._z_direction)
-            earth_direction_stop = self.interpolate_direction(stop, stop_idx, self._earth_direction)
+                new_altitude[0] = interp_scalar(start_frac,
+                                                self._altitude[start_idx],
+                                                self._altitude[start_idx + 1])
 
-            new_times = np.delete(new_times, -1)
-            new_times = np.append(new_times, stop.value)
+            if stop_time < self._raw_time[stop_idx]:
 
-            new_x_direction = new_x_direction[:-1]
-            new_x_direction = np.append(new_x_direction, [x_direction_stop], axis = 0)
+                new_raw_time[-1] = stop_time
 
-            new_z_direction = new_z_direction[:-1]
-            new_z_direction = np.append(new_z_direction, [z_direction_stop], axis = 0)
-            
-            new_earth_direction = new_earth_direction[:-1]
-            new_earth_direction = np.append(new_earth_direction, [earth_direction_stop], axis = 0)
-            
-            # Use linear interpolation to get starting altitude at desired time.
-            f = interpolate.interp1d(self._time.value, self._altitude, kind="linear")
-            stop_alt = f(stop.value)
-            new_earth_altitude = new_earth_altitude[:-1]
-            new_earth_altitude = np.append(new_earth_altitude, [stop_alt])
+                stop_frac = \
+                    (stop_time - self._raw_time[stop_idx - 1]) / \
+                    (self._raw_time[stop_idx] - self._raw_time[stop_idx - 1])
 
-            # SAA livetime:
-            if new_livetime[-1] == 0:
-                udpated_livetime = 0
-            else: 
-                updated_livetime = new_times[-1] - new_times[-2]
-            new_livetime = new_livetime[:-1]
-            new_livetime = np.append(new_livetime, updated_livetime)
+                new_attitude[-1] = interp_attitude(stop_frac,
+                                                   self._attitude[stop_idx - 1],
+                                                   self._attitude[stop_idx])
 
-        time = Time(new_times, format = "unix")
-        xpointings = SkyCoord(l = new_x_direction[:,0]*u.deg, b = new_x_direction[:,1]*u.deg, frame = "galactic")
-        zpointings = SkyCoord(l = new_z_direction[:,0]*u.deg, b = new_z_direction[:,1]*u.deg, frame = "galactic")
-        earthpointings = SkyCoord(l = new_earth_direction[:,0]*u.deg, b = new_earth_direction[:,1]*u.deg, frame = "galactic")
-        altitude = new_earth_altitude
-    
-        return self.__class__(time, x_pointings = xpointings, z_pointings = zpointings, earth_zenith = earthpointings, altitude = altitude, livetime = new_livetime)
-      
-    def get_attitude(self, x_pointings = None, y_pointings = None, z_pointings = None):
+                # inputs are SkyCoords; result should be too
+                new_earth_zenith[-1] = interp_direction(stop_frac,
+                                                        self.earth_zenith[stop_idx - 1],
+                                                        self.earth_zenith[stop_idx])
 
+                new_altitude[-1] = interp_scalar(stop_frac,
+                                                 self._altitude[stop_idx - 1],
+                                                 self._altitude[stop_idx])
+
+            # SAA livetime
+            new_livetime = new_livetime.copy()
+
+            new_livetime[0] = \
+                0 if self.livetime[start_idx] == 0 \
+                else new_raw_time[1] - new_raw_time[0]
+
+            new_livetime[-1] = \
+                0 if self.livetime[stop_idx - 1] == 0 \
+                else new_raw_time[-1] - new_raw_time[-2]
+
+        new_time = Time(new_raw_time, format = "unix")
+
+        return self.__class__(new_time,
+                              attitudes = new_attitude,
+                              earth_zenith = new_earth_zenith,
+                              altitude = new_altitude,
+                              livetime = new_livetime)
+
+    def _get_earth_occ(self, src_vec):
         """
-        Converts the x, y and z pointings to the attitude of the telescope.
+        For each time point in the SpacecraftFile, determine whether
+        a given source would be occluded by the earth.
+
+        We can cache some source-independent parts of the computation
+        to speed up repeated calls to this function.  Use the class
+        property cache_earth_occ() to control whether caching is
+        enabled.
 
         Parameters
         ----------
-        x_pointings : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the x axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies that the x pointings will be taken from the instance).
-        y_pointings : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the y axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies that the y pointings will be taken from the instance).
-        z_pointings : astropy.coordinates.SkyCoord, optional
-            The pointings (galactic system) of the z axis of the local coordinate system attached to the spacecraft (the default is `None`, which implies that the z pointings will be taken from the instance).
+        src_vec : 3D Cartesian vector
+          source direction, assumed to be in frame of orientation data
 
         Returns
         -------
-        scoords.attitude.Attitude
-            The attitude of the spacecraft.
-        """
-        if self.attitude is None:
-            # the attitude is None, we will calculate from the x, y and z pointings
-            if x_pointings is not None:
-                self.x_pointings = x_pointings
-            if y_pointings is not None:
-                self.y_pointings = y_pointings
-            if z_pointings is not None:
-                self.z_pointings = z_pointings
-
-            list_ = [self.x_pointings, self.y_pointings, self.z_pointings]
-            coord_list_of_path = [x for x in list_ if x!=None]  # check how many pointings the user input
-
-            # Check if the user input pointings from at least two axes
-            if len(coord_list_of_path) <= 1:
-                raise ValueError("You must input pointings of at least two axes")
-
-            # Check if the inputs are SkyCoord objects
-            for i in coord_list_of_path:
-                if type(i) != SkyCoord:
-                    raise ValueError("The coordiates must be a SkyCoord object")
-
-            self.attitude = Attitude.from_axes(x=self.x_pointings,
-                                               y=self.y_pointings,
-                                               z=self.z_pointings,
-                                               frame = self.frame)
-
-        return self.attitude
-
-    def get_target_in_sc_frame(self, target_name, target_coord, attitude = None, quiet = False, save = False):
+        array of bool, True for each time point where source is
+        occluded
 
         """
-        Convert the x, y and z pointings of the spacescraft axes to the path of the source in the spacecraft frame.
-        Specify the pointings of at least two axes.
+
+        if hasattr(self, "_min_angle_cos"):
+            # values for occultation testing have been cached
+            min_angle_cos = self._min_angle_cos
+            ez_cart = self._ez_cart
+        else:
+            r_earth = 6378.0 # earth radius in km
+
+            # sine of angle between lines through satellite (1) normal
+            # to earth and (2) tangent to earth
+            sin_earth_angle = r_earth / (r_earth + self._altitude)
+
+            # cosine of maximum unoccluded angle for source w/r to
+            # satellite's earth zenith; that is,
+            #
+            #   cos(pi - asin(sin_earth_angle))
+            #
+            # Simplify this calculation to avoid arcsin/cos.
+            min_angle_cos = -np.sqrt(1 - sin_earth_angle**2)
+            ez_cart = self.earth_zenith.cartesian.xyz.value
+
+            if self._cache_earth_occ:
+                # cache intermediates in case we need to use them
+                # repeatedly.
+                self._min_angle_cos = min_angle_cos
+                self._ez_cart = ez_cart
+
+        # get time points at which source is occluded by Earth.
+        is_occluded = (src_vec @ ez_cart <= min_angle_cos)
+
+        return is_occluded
+
+    """
+    Caching for source-independent parts of earth occultation
+    calculation, to make it go faster for each new source.
+    """
+
+    @property
+    def cache_earth_occ(self):
+        return self._cache_earth_occ
+
+    @cache_earth_occ.setter
+    def cache_earth_occ(self, value):
+        if value is False:
+            # delete any cached data if present
+            if hasattr(self, "_min_angle_cos"):
+                del self._min_angle_cos
+                del self._ez_cart
+
+        self._cache_earth_occ = value
+
+    def get_source_visibility(self, source, earth_occ = True):
+        """
+        Get the source's visibility to the detector in all time bins.
+        Visibility is determined by the spacecraft's livetime (for,
+        e.g., SAA passage) and, if requested, by earth occultation of
+        the source.
 
         Parameters
         ----------
-        target_name : str
-            The name of the target object.
-        target_coord : astropy.coordinates.SkyCoord
-            The coordinates of the target object.
-        attitude: scoords.Attitude, optional
-            The attitude of the spacecraft (the default is `None`, which implies the attitude will be taken from the instance).
-        quiet : bool, default=False
-            Setting `True` to stop printing the messages.
-        save : bool, default=False
-            Setting `True` to save the target coordinates in the spacecraft frame.
+        source : SkyCoord or Cartesian 3-vector (ndarray)
+           Location of the source
+        earth_occ : bool, optional
+           If true, visibility is limited by earth occultation
 
         Returns
         -------
-        astropy.coordinates.SkyCoord
-            The target coordinates in the spacecraft frame.
+        An ndarray of float, with visible time in each bin.
+
         """
 
-        if attitude != None:
-            self.attitude = attitude
+        if earth_occ:
+            if isinstance(source, SkyCoord):
+                source.transform_to(self.frame)
+                source = source.cartesian.xyz.value
+
+            # get pointings that are occluded by Earth
+            is_occluded = self._get_earth_occ(source)
+
+            # zero out weights of time bins corresponding to occluded
+            # pointings.  Assume occlusion at start of bin holds for
+            # entire bin.
+            return np.where(is_occluded[:-1], 0, self.livetime)
         else:
-            self.attitude = self.get_attitude()
+            return self.livetime
 
-        self.target_name = target_name
-        if quiet == False:
-            logger.info("Now converting to the Spacecraft frame...")
-        self.src_path_cartesian = SkyCoord(np.dot(self.attitude.rot.inv().as_matrix(), target_coord.cartesian.xyz.value),
-                                           representation_type = 'cartesian',
-                                           frame = SpacecraftFrame())
-
-        # The conversion above is in Cartesian frame, so we have to convert them to the spherical one.
-
-        self.src_path_spherical = cartesian_to_spherical(self.src_path_cartesian.x,
-                                                         self.src_path_cartesian.y,
-                                                         self.src_path_cartesian.z)
-        if quiet == False:
-            logger.info(f"Conversion completed!")
-
-        # generate the numpy array of l and b to save to a npy file
-        l = np.array(self.src_path_spherical[2].deg)  # note that 0 is Quanty, 1 is latitude and 2 is longitude and they are in rad not deg
-        b = np.array(self.src_path_spherical[1].deg)
-        self.src_path_lb = np.stack((l,b), axis=-1)
-
-        if save == True:
-            np.save(self.target_name+"_source_path_in_SC_frame", self.src_path_lb)
-
-        # convert to SkyCoord objects to get the output object of this method
-        self.src_path_skycoord = SkyCoord(self.src_path_lb[:,0], self.src_path_lb[:,1], unit = "deg", frame = SpacecraftFrame())
-
-        return self.src_path_skycoord
-
-
-    def get_dwell_map(self, response, src_path = None, save = False, pa_convention=None):
-
+    def get_target_in_sc_frame(self, target_coord):
         """
-        Generates the dwell time map for the source.
+        Convert a target coordinate in an inertial frame to the path of
+        the source in the spacecraft frame.  The target coordinate may
+        be provided either as a SkyCoord or as a Cartesian 3-vector,
+        which determines the type of the output.
 
         Parameters
         ----------
-        response : str or pathlib.Path
-            The path to the response file.
-        src_path : astropy.coordinates.SkyCoord, optional
-            The movement of source in the detector frame (the default is `None`, which implies that the `src_path` will be read from the instance).
-        save : bool, default=False
-            Set True to save the dwell time map.
-        pa_convention : str, optional
-             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') 
+        target_coord : astropy.coordinates.SkyCoord or Cartesian 3-vector
+            The coordinates of the target object.  If a 3-vector, assumed
+            to be in coordinate frame of orientation data
+
+        Returns
+        -------
+        astropy.coordinates.SkyCoord or pair of np.ndarrays
+            The target coordinates in the spacecraft frame.  If input
+            was a SkyCoord, output is a vector SkyCoord; otherwise, it
+            is a pair (longitude, co-latitude) in radians.
+
+        """
+
+        useSkyCoord = isinstance(target_coord, SkyCoord)
+
+        if useSkyCoord:
+            target_coord = target_coord.transform_to(self.frame)
+            target_coord = target_coord.cartesian.xyz.value
+
+        src_path_cartesian = np.dot(self._attitude.rot.inv().as_matrix(),
+                                    target_coord)
+
+        # convert to spherical lon, colat in radians
+        lon, colat = self._cart_to_polar(src_path_cartesian)
+
+        if useSkyCoord:
+            # SpacecraftFrame takes lon, lat arguments
+            src_path_skycoord = SkyCoord(lon = lon, lat = np.pi/2 - colat,
+                                         unit = u.rad,
+                                         frame = SpacecraftFrame())
+
+            return src_path_skycoord
+        else:
+            # return raw longitude and co-latitude in radians
+            return lon, colat
+
+    def get_exposure(self, base, theta, phi=None,
+                     lonlat=False, interp=True,
+                     source=None, dtype=np.float64):
+        """
+        Compute the set of exposed HEALPix pixels relative to a
+        HealpixBase arising from a sequence of spacecraft-frame
+        directions with durations as specified in this SpacecraftFile.
+
+        If theta is a SkyCoord, it specifies the full direction.
+        Else, theta and phi specify the direction as angles.  If
+        lonlat = True, theta and phi are longitude and latitude in
+        degrees; else, theta and phi are co-latitude and longitude in
+        radians.
+
+        Parameters
+        ----------
+        base : HealpixBase
+           HEALPix grid used to discretize exposure
+        theta : np.ndarray or SkyCoord
+           if phi is None, a vector SkyCoord
+           if phi is not none, a vector of angles
+        phi : np.ndarray, optional
+           a vector of angles
+        interp : bool, optional
+           If True, interpolate the weights onto the HEALPix grid;
+           else, just map to nearest bin. (Default: interpolate)
+        source : 3-vector or SkyCoord, optional
+           Source location; if None, do not consider earth
+           occultation when computing exposure
+        dtype : numpy datatype, optional
+           Type of returned exposure weights (default: double)
+
+        Returns
+        -------
+        pixels : np.ndarray (int)
+          all HEALPix pixels in the grid with nonzero exposure weight
+        exposures: np.ndarray (dtype)
+          exposure weight for each pixel
+
+        """
+
+        earth_occ = source is not None
+        duration = self.get_source_visibility(source, earth_occ)
+
+        if len(duration) + 1 != len(theta):
+            raise ValueError("Source path must have length equal to # times in SpacecraftFile")
+
+        # remove the last src location. Effectively a 0th-order
+        # interpolation
+        theta = theta[:-1]
+        if phi is not None:
+            phi = phi[:-1]
+
+        if interp:
+            pixels, weights = base.get_interp_weights(theta=theta,
+                                                      phi=phi,
+                                                      lonlat=lonlat)
+            weighted_duration = weights * duration[None]
+        else:
+            # do not interpolate
+            pixels = base.ang2pix(theta=theta,
+                                  phi=phi,
+                                  lonlat=lonlat)
+            weighted_duration = duration
+
+        unique_pixels, unique_weights = \
+            self._sparse_sum_duplicates(pixels.ravel(),
+                                        weighted_duration.ravel(),
+                                        dtype=dtype)
+
+        return unique_pixels, unique_weights
+
+    def get_dwell_map(self, base, src_path, interp = True):
+        """
+        Generate a dwell-time map from a source's time-weighted
+        path in local coordinates.  Interpolate the path's time
+        weights onto the HEALPix grid defined by an instrument
+        response's NuLambda axis.
+
+        Parameters
+        ----------
+        base : HealpixBase
+            Definition of HEALPix grid for map
+        src_path : astropy.coordinates.SkyCoord
+            Movement of source in detector frame
+        interp : bool, optional
+             If True, interpolate the weights onto the HEALPix grid;
+             else, just map to nearest bin. (Default: interpolate)
 
         Returns
         -------
         mhealpy.containers.healpix_map.HealpixMap
             The dwell time map.
+
         """
 
-        # Define the response
-        self.response_file = response
-
-        # Define the dts
-        self.dts = self.get_time_delta()
-        
-        # define the target source path in the SC frame
-        if src_path is None:
-            path = self.src_path_skycoord
-        else:
-            path = src_path
         # check if the target source path is astropy.Skycoord object
-        if type(path) != SkyCoord:
-            raise TypeError("The coordinates of the source movement in the Spacecraft frame must be a SkyCoord object")
+        if type(src_path) != SkyCoord:
+            raise TypeError("The coordinates of the source movement in "
+                            "the Spacecraft frame must be a SkyCoord object")
 
-        if path.shape[0]-1 != self.dts.shape[0]:
-            raise ValueError("The dimensions of the dts or source coordinates are not correct. Please check your inputs.")
+        pixels, weights = self.get_exposure(base, src_path, interp=interp)
 
-        with FullDetectorResponse.open(self.response_file, pa_convention=pa_convention) as response:
-            self.dwell_map = HealpixMap(base = response,
-                                        coordsys = SpacecraftFrame())
+        dwell_map = HealpixMap(base = base,
+                               unit = u.second,
+                               coordsys = SpacecraftFrame())
 
-        # Get the unique pixels to weight, and sum all the correspondint weights first, so
-        # each pixels needs to be called only once.
-        # Based on https://stackoverflow.com/questions/23268605/grouping-indices-of-unique-elements-in-numpy
-        
-        # remove the last value. Effectively a 0th order interpolations
-        pixels, weights = self.dwell_map.get_interp_weights(theta = self.src_path_skycoord[:-1])  
+        map_data = dwell_map.data
+        map_data[pixels] = weights
 
-        weighted_duration = weights * self.dts.to_value(u.second)[None]
-
-        pixels = pixels.ravel()
-        weighted_duration = weighted_duration.ravel()
-
-        pixels_argsort = np.argsort(pixels)
-
-        pixels = pixels[pixels_argsort]
-        weighted_duration = weighted_duration[pixels_argsort]
-
-        first_unique = np.concatenate(([True], pixels[1:] != pixels[:-1]))
-        
-        pixel_unique = pixels[first_unique]
-
-        splits =  np.nonzero(first_unique)[0][1:]
-        pixel_durations = [np.sum(weighted_duration[start:stop]) for start,stop in zip(np.append(0,splits), np.append(splits, pixels.size))]
-        
-        for pix, dur in zip(pixel_unique, pixel_durations):
-            self.dwell_map[pix] += dur
-
-        self.dwell_map.to(u.second, update = False, copy = False)
-            
-        if save == True:
-            self.dwell_map.write_map(self.target_name + "_DwellMap.fits", overwrite = True)
-
-        return self.dwell_map
+        return dwell_map
 
     def get_scatt_map(self,
-                       nside,
-                       target_coord=None,
-                       scheme = 'ring',
-                       coordsys = 'galactic',
-                       r_earth = 6378.0,
-                       earth_occ = True
-                       ):
-
+                      nside,
+                      target_coord = None,
+                      earth_occ = True,
+                      angle_nbins = None):
         """
-        Bin the spacecraft attitude history into a 4D histogram that 
-        contains the accumulated time the axes of the spacecraft where 
-        looking at a given direction. 
+        Bin the spacecraft attitude history into a list of discretized
+        attitudes with associated time weights.  Discretization is
+        performed on the rotation-vector representation of the
+        attitude; the supplied nside parameter describes a HEALPix
+        grid that discretizes the rotvec's direction, while a multiple
+        of nside defines the number of bins to discretize its angle.
+
+        If a target coordinate is provided and earth_occ is True,
+        attitudes for which the view of the target is occluded by
+        the earth are excluded.
 
         Parameters
         ----------
-        target_coord : astropy.coordinates.SkyCoord, optional
-            The coordinates of the target object. 
         nside : int
             The nside of the scatt map.
-        scheme : str, optional
-            The scheme of the scatt map (the default is "ring")
-        coordsys : str, optional
-            The coordinate system used in the scatt map (the default is "galactic).
-        r_earth : float, optional
-            Earth radius in km (default is 6378 km).
+        target_coord : astropy.coordinates.SkyCoord, optional
+            The coordinates of the target object.
         earth_occ : bool, optional
             Option to include Earth occultation in scatt map calculation.
-            Default is True. 
+            Default is True.
+        angle_nbins : int (optional)
+            Number of bins used for the rotvec's angle. If none
+            specified, default is 8*nside
 
         Returns
         -------
-        h_ori : cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
+        cosipy.spacecraftfile.scatt_map.SpacecraftAttitudeMap
             The spacecraft attitude map.
+
         """
-        
-        # Check if target_coord is needed
-        if earth_occ and target_coord is None:
-            raise ValueError("target_coord is needed when earth_occ = True")
 
-        # Get orientations
-        timestamps = self.get_time()
-        attitudes = self.get_attitude()
+        source = target_coord
 
-        # Altitude at each point in the orbit:
-        altitude = self._altitude
+        # compute time that the source is visible per time bin
+        duration = self.get_source_visibility(source, earth_occ)
 
-        # Earth zenith at each point in the orbit:
-        earth_zenith = self.earth_zenith
+        # Convert attitudes from points to time bins.  We use the
+        # attitude at the start of the bin as the representative value
+        # for the whole bin.
+        attitude = self._attitude[:-1]
 
-        # Fill (only 2 axes needed to fully define the orientation)
-        h_ori = SpacecraftAttitudeMap(nside = nside,
-                                      scheme = scheme,
-                                      coordsys = coordsys)
-        
-        x,y,z = attitudes[:-1].as_axes()
-       
-        # Get max angle based on altitude:
-        max_angle = np.pi - np.arcsin(r_earth/(r_earth + altitude))
-        max_angle *= (180/np.pi) # angles in degree
+        # remove time bins in which the source was invisible
+        attitude = attitude[duration > 0.]
+        duration = duration[duration > 0.]
 
-        # Define weights and set to 0 if blocked by Earth:
-        weight = self.livetime*u.s
+        # Get orientations as rotation vectors (center dir, angle around center)
 
-        if earth_occ:
-            # Calculate angle between source direction and Earth zenith
-            # for each time stamp:
-            src_angle = target_coord.separation(earth_zenith)
+        rot_vecs   = attitude.as_rotvec()
+        rot_angles = np.linalg.norm(rot_vecs, axis=-1)
+        rot_dirs   = rot_vecs / rot_angles[:,None]
 
-            # Get pointings that are occulted by Earth:
-            earth_occ_index = src_angle.value >= max_angle
+        # discretize rotvecs for input Attitudes
 
-            # Mask
-            weight[earth_occ_index[:-1]] = 0
-        
-        # Fill histogram:
-        h_ori.fill(x, y, weight = weight)
+        dir_axis = HealpixAxis(nside=nside, coordsys=self.frame)
 
-        return h_ori
+        if angle_nbins is None:
+            angle_nbins = 8*nside
 
+        angle_axis = Axis(np.linspace(0., 2*np.pi, num=angle_nbins+1), unit=u.rad)
 
-    def get_psr_rsp(self, response = None, dwell_map = None, dts = None, pa_convention=None):
+        r_lon, r_colat = self._cart_to_polar(rot_dirs.value)
+
+        dir_bins = dir_axis.find_bin(theta=r_colat,
+                                     phi=r_lon)
+        angle_bins = angle_axis.find_bin(rot_angles)
+
+        # compute list of unique rotvec bins occurring in input,
+        # along with mapping from time to rotvec bin
+        shape = (dir_axis.nbins, angle_axis.nbins)
+
+        att_bins = np.ravel_multi_index((dir_bins, angle_bins),
+                                        shape)
+
+        # compute the set of unique attitude bins, along with
+        # the total weight of each, eliminating any bins
+        # with zero weight
+        unique_bins, duration = \
+            self._sparse_sum_duplicates(att_bins, duration)
+
+        # construct discretized attitudes from the representative
+        # rotation vector for each unique bin
+        (unique_dirs, unique_angles) = np.unravel_index(unique_bins,
+                                                        shape)
+        v = dir_axis.pix2vec(unique_dirs)
+
+        angle_centers = angle_axis.centers
+        binned_attitudes = \
+            Attitude.from_rotvec(np.column_stack(v) *
+                                 angle_centers[unique_angles][:,None],
+                                 frame = self.frame)
+
+        duration = u.Quantity(duration, unit=u.s, copy=False)
+        return SpacecraftAttitudeMap(binned_attitudes, duration,
+                                     source = source if earth_occ else None)
+
+    @staticmethod
+    def _sparse_sum_duplicates(indices, weights=None, dtype=None):
+        """
+        Given an array of indices, possibly with duplicates, and an
+        optional array of weights per index (defaults to all ones if
+        None), return a sorted array of the unique values in indices
+        and, for each, the sum of the weights for each unique index.
+
+        If input weights are provided, only unique indices with
+        nonzero weights are returned.
+
+        Parameters
+        ----------
+        indices : array of int
+        weights : array of int or float type
+        dtype : data type (optional)
+           Type of returned weights.  If None, type is int if weights
+           not given, or float64 if they are.
+
+        Returns
+        -------
+          - unique_indices : array of int
+             sorted unique indices in input
+          - idx_weights : array of type as described above
+             sum of weights for each unique index in input
+
+        """
+
+        if weights is None:
+            unique_indices, idx_weights = np.unique(indices,
+                                                    return_counts=True)
+        else:
+            sp_weights = np.bincount(indices, weights)
+            unique_indices = np.flatnonzero(sp_weights)
+            idx_weights = sp_weights[unique_indices]
+
+        if dtype is not None:
+            idx_weights = idx_weights.astype(dtype, copy=False)
+
+        return unique_indices, idx_weights
+
+    @staticmethod
+    def _cart_to_polar(v):
+        """
+        Convert Cartesian 3D unit direction vectors to polar coordinates.
+
+        Parameters
+        ----------
+        v : np.ndarray(float) [N x 3]
+          array of N 3D unit vectors
+
+        Returns
+        -------
+        lon, colat : np.ndarray(float) [N]
+          longitude and co-latitude corresponding to v in radians
+
+        """
+
+        lon   = np.arctan2(v[:,1], v[:,0])
+        colat = np.arccos(v[:,2])
+        return (lon, colat)
+
+    def get_psr_rsp(self, response_file, dwell_map, dts = None, pa_convention = None):
 
         """
         Generates the point source response based on the response file and dwell time map.
@@ -631,12 +1093,19 @@ class SpacecraftFile():
 
         Parameters
         ----------
-        :response : str or pathlib.Path, optional
-            The response for the observation (the defaul is `None`, which implies that the `response` will be read from the instance).
-        dwell_map : str, optional
-            The time dwell map for the source, you can load saved dwell time map using this parameter if you've saved it before (the defaul is `None`, which implies that the `dwell_map` will be read from the instance).
-        dts : numpy.ndarray or str, optional
-            The elapsed time for each pointing. It must has the same size as the pointings. If you have saved this array, you can load it using this parameter (the defaul is `None`, which implies that the `dts` will be read from the instance).
+        :response_file : str or pathlib.Path
+            The response file for the observation
+        dwell_map : HealpixMap object or str.pathlib.Path
+            The time dwell map for the source, or the name of a file
+            from which to load it
+        dts : numpy.ndarray, optional
+           The elapsed time for each pointing. It must has the same size
+           as the pointings. If you have saved this array, you can pass
+           it using this parameter (the defaul is `None`, which implies
+           that the `dts` will be read from the instance).
+        pa_convention : str, optional
+           Polarization convention of response ('RelativeX',
+           'RelativeY', or 'RelativeZ')
 
         Returns
         -------
@@ -657,67 +1126,59 @@ class SpacecraftFile():
         matrix : numpy.ndarray
             The energy dispersion matrix.
         pa_convention : str, optional
-             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ') 
+             Polarization convention of response ('RelativeX', 'RelativeY', or 'RelativeZ')
+
         """
 
-        if response == None:
-            pass # will use the response defined in the previous steps
-        else:
-            self.response_file = response
+        if isinstance(dwell_map, (str, Path)):
+            dwell_map = HealpixMap.read_map(dwell_map)
 
-        if dwell_map is None:  # must use is None, or it throws error!
-            pass # will use the dwelltime map calculated in the previous steps
+        if dts is None:
+            dts = self.get_time_delta()
         else:
-            self.dwell_map = HealpixMap.read_map(dwell_map)
+            dts = TimeDelta(dts*u.second)
 
-        if dts == None:
-            self.dts = self.get_time_delta()
-        else:
-            self.dts = TimeDelta(dts*u.second)
-
-        with FullDetectorResponse.open(self.response_file, pa_convention=pa_convention) as response:
+        with FullDetectorResponse.open(response_file, pa_convention=pa_convention) as response:
 
             # get point source response
-            self.psr = response.get_point_source_response(self.dwell_map)
+            psr = response.get_point_source_response(dwell_map)
 
-            self.Ei_edges = np.array(response.axes['Ei'].edges)
-            self.Ei_lo = np.float32(self.Ei_edges[:-1])  # use float32 to match the requirement of the data type
-            self.Ei_hi = np.float32(self.Ei_edges[1:])
+            Ei_edges = np.array(response.axes['Ei'].edges)
+            self.Ei_lo = np.float32(Ei_edges[:-1])  # use float32 to match the requirement of the data type
+            self.Ei_hi = np.float32(Ei_edges[1:])
 
-            self.Em_edges = np.array(response.axes['Em'].edges)
-            self.Em_lo = np.float32(self.Em_edges[:-1])
-            self.Em_hi = np.float32(self.Em_edges[1:])
+            Em_edges = np.array(response.axes['Em'].edges)
+            self.Em_lo = np.float32(Em_edges[:-1])
+            self.Em_hi = np.float32(Em_edges[1:])
 
          # get the effective area and matrix
         logger.info("Getting the effective area ...")
-        self.areas = np.float32(np.array(self.psr.project('Ei').to_dense().contents))/self.dts.to_value(u.second).sum()
-        spectral_response = np.float32(np.array(self.psr.project(['Ei','Em']).to_dense().contents))
-        self.matrix = np.float32(np.zeros((self.Ei_lo.size,self.Em_lo.size))) # initate the matrix
+        self.areas = np.float32(np.array(psr.project('Ei').to_dense().contents))/dts.to_value(u.second).sum()
+        spectral_response = np.float32(np.array(psr.project(['Ei','Em']).to_dense().contents))
+        self.matrix = np.float32(np.zeros((self.Ei_lo.size, self.Em_lo.size))) # initialize matrix
 
         logger.info("Getting the energy redistribution matrix ...")
         for i in range(self.Ei_lo.size):
-            new_raw = spectral_response[i,:]/spectral_response[i,:].sum()
+            new_raw = spectral_response[i,:] / spectral_response[i,:].sum()
             self.matrix[i,:] = new_raw
         self.matrix = self.matrix.T
 
-        return self.Ei_edges, self.Ei_lo, self.Ei_hi, self.Em_edges, self.Em_lo, self.Em_hi, self.areas, self.matrix
+        return Ei_edges, self.Ei_lo, self.Ei_hi, Em_edges, self.Em_lo, self.Em_hi, self.areas, self.matrix
 
 
-    def get_arf(self, out_name = None):
+    def get_arf(self, out_name):
 
         """
         Converts the point source response to an arf file that can be read by XSPEC.
 
         Parameters
         ----------
-        out_name: str, optional
-            The name of the arf file to save. (the default is `None`, which implies that the saving name will be the target name of the instance).
+        out_name: str
+            The name of the arf file to save.
+
         """
 
-        if out_name == None:
-            self.out_name = self.target_name
-        else:
-            self.out_name = out_name
+        self.out_name = out_name
 
         # blow write the arf file
         copyright_string="  FITS (Flexible Image Transport System) format is defined in 'Astronomy and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H "
@@ -728,50 +1189,46 @@ class SpacecraftFile():
         primaryhdu.header["COMMENT"] = copyright_string # add comments
         primaryhdu.header # print headers and their values
 
-        col1_energ_lo = fits.Column(name="ENERG_LO", format="E",unit = "keV", array=self.Em_lo)
-        col2_energ_hi = fits.Column(name="ENERG_HI", format="E",unit = "keV", array=self.Em_hi)
-        col3_specresp = fits.Column(name="SPECRESP", format="E",unit = "cm**2", array=self.areas)
+        col1_energ_lo = fits.Column(name="ENERG_LO", format="E", unit = "keV", array=self.Em_lo)
+        col2_energ_hi = fits.Column(name="ENERG_HI", format="E", unit = "keV", array=self.Em_hi)
+        col3_specresp = fits.Column(name="SPECRESP", format="E", unit = "cm**2", array=self.areas)
         cols = fits.ColDefs([col1_energ_lo, col2_energ_hi, col3_specresp]) # create a ColDefs (column-definitions) object for all columns
         specresp_bintablehdu = fits.BinTableHDU.from_columns(cols) # create a binary table HDU object
 
-        specresp_bintablehdu.header.comments["TTYPE1"] =  "label for field   1"
-        specresp_bintablehdu.header.comments["TFORM1"] =  "data format of field: 4-byte REAL"
-        specresp_bintablehdu.header.comments["TUNIT1"] =  "physical unit of field"
-        specresp_bintablehdu.header.comments["TTYPE2"] =  "label for field   2"
-        specresp_bintablehdu.header.comments["TFORM2"] =  "data format of field: 4-byte REAL"
-        specresp_bintablehdu.header.comments["TUNIT2"] =  "physical unit of field"
-        specresp_bintablehdu.header.comments["TTYPE3"] =  "label for field   3"
-        specresp_bintablehdu.header.comments["TFORM3"] =  "data format of field: 4-byte REAL"
-        specresp_bintablehdu.header.comments["TUNIT3"] =  "physical unit of field"
+        specresp_bintablehdu.header.comments["TTYPE1"] = "label for field   1"
+        specresp_bintablehdu.header.comments["TFORM1"] = "data format of field: 4-byte REAL"
+        specresp_bintablehdu.header.comments["TUNIT1"] = "physical unit of field"
+        specresp_bintablehdu.header.comments["TTYPE2"] = "label for field   2"
+        specresp_bintablehdu.header.comments["TFORM2"] = "data format of field: 4-byte REAL"
+        specresp_bintablehdu.header.comments["TUNIT2"] = "physical unit of field"
+        specresp_bintablehdu.header.comments["TTYPE3"] = "label for field   3"
+        specresp_bintablehdu.header.comments["TFORM3"] = "data format of field: 4-byte REAL"
+        specresp_bintablehdu.header.comments["TUNIT3"] = "physical unit of field"
 
-        specresp_bintablehdu.header["EXTNAME"] = ("SPECRESP","name of this binary table extension")
+        specresp_bintablehdu.header["EXTNAME"]  = ("SPECRESP","name of this binary table extension")
         specresp_bintablehdu.header["TELESCOP"] = ("COSI","mission/satellite name")
         specresp_bintablehdu.header["INSTRUME"] = ("COSI","instrument/detector name")
-        specresp_bintablehdu.header["FILTER"] = ("NONE","filter in use")
+        specresp_bintablehdu.header["FILTER"]   = ("NONE","filter in use")
         specresp_bintablehdu.header["HDUCLAS1"] = ("RESPONSE","dataset relates to spectral response")
         specresp_bintablehdu.header["HDUCLAS2"] = ("SPECRESP","extension contains an ARF")
-        specresp_bintablehdu.header["HDUVERS"] = ("1.1.0","version of format")
+        specresp_bintablehdu.header["HDUVERS"]  = ("1.1.0","version of format")
 
         new_arfhdus = fits.HDUList([primaryhdu, specresp_bintablehdu])
-        new_arfhdus.writeto(f'{self.out_name}.arf', overwrite=True)
+        new_arfhdus.writeto(f'{out_name}.arf', overwrite=True)
 
-        return
 
-    def get_rmf(self, out_name = None):
+    def get_rmf(self, out_name):
 
         """
         Converts the point source response to an rmf file that can be read by XSPEC.
 
         Parameters
         ----------
-        out_name: str, optional
-            The name of the arf file to save. (the default is None, which implies that the saving name will be the target name of the instance).
+        out_name: str
+            The name of the arf file to save.
         """
 
-        if out_name == None:
-            self.out_name = self.target_name
-        else:
-            self.out_name = out_name
+        self.out_name = out_name
 
         # blow write the arf file
         copyright_string="  FITS (Flexible Image Transport System) format is defined in 'Astronomy and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H "
@@ -846,17 +1303,17 @@ class SpacecraftFile():
         matrix_bintablehdu.header.comments["TTYPE6"] = "label for field   6"
         matrix_bintablehdu.header.comments["TFORM6"] = "data format of field: variable length array"
 
-        matrix_bintablehdu.header["EXTNAME"] = ("MATRIX","name of this binary table extension")
+        matrix_bintablehdu.header["EXTNAME" ] = ("MATRIX","name of this binary table extension")
         matrix_bintablehdu.header["TELESCOP"] = ("COSI","mission/satellite name")
         matrix_bintablehdu.header["INSTRUME"] = ("COSI","instrument/detector name")
-        matrix_bintablehdu.header["FILTER"] = ("NONE","filter in use")
+        matrix_bintablehdu.header["FILTER"]   = ("NONE","filter in use")
         matrix_bintablehdu.header["CHANTYPE"] = ("PI","total number of detector channels")
         matrix_bintablehdu.header["DETCHANS"] = (len(self.Em_lo),"total number of detector channels")
         matrix_bintablehdu.header["HDUCLASS"] = ("OGIP","format conforms to OGIP standard")
         matrix_bintablehdu.header["HDUCLAS1"] = ("RESPONSE","dataset relates to spectral response")
         matrix_bintablehdu.header["HDUCLAS2"] = ("RSP_MATRIX","dataset is a spectral response matrix")
-        matrix_bintablehdu.header["HDUVERS"] = ("1.3.0","version of format")
-        matrix_bintablehdu.header["TLMIN4"] = (0,"minimum value legally allowed in column 4")
+        matrix_bintablehdu.header["HDUVERS"]  = ("1.3.0","version of format")
+        matrix_bintablehdu.header["TLMIN4"]   = (0,"minimum value legally allowed in column 4")
 
         ## Create binary table HDU for EBOUNDS
         channels = np.arange(len(self.Em_lo), dtype=np.int16)
@@ -878,21 +1335,20 @@ class SpacecraftFile():
         ebounds_bintablehdu.header.comments["TFORM3"] = "data format of field: 4-byte REAL"
         ebounds_bintablehdu.header.comments["TUNIT3"] = "physical unit of field"
 
-        ebounds_bintablehdu.header["EXTNAME"] = ("EBOUNDS","name of this binary table extension")
+        ebounds_bintablehdu.header["EXTNAME"]  = ("EBOUNDS","name of this binary table extension")
         ebounds_bintablehdu.header["TELESCOP"] = ("COSI","mission/satellite")
         ebounds_bintablehdu.header["INSTRUME"] = ("COSI","nstrument/detector name")
-        ebounds_bintablehdu.header["FILTER"] = ("NONE","filter in use")
+        ebounds_bintablehdu.header["FILTER"]   = ("NONE","filter in use")
         ebounds_bintablehdu.header["CHANTYPE"] = ("PI","channel type (PHA or PI)")
         ebounds_bintablehdu.header["DETCHANS"] = (len(self.Em_lo),"total number of detector channels")
         ebounds_bintablehdu.header["HDUCLASS"] = ("OGIP","format conforms to OGIP standard")
         ebounds_bintablehdu.header["HDUCLAS1"] = ("RESPONSE","dataset relates to spectral response")
         ebounds_bintablehdu.header["HDUCLAS2"] = ("EBOUNDS","dataset is a spectral response matrix")
-        ebounds_bintablehdu.header["HDUVERS"] = ("1.2.0","version of format")
+        ebounds_bintablehdu.header["HDUVERS"]  = ("1.2.0","version of format")
 
         new_rmfhdus = fits.HDUList([primaryhdu, matrix_bintablehdu,ebounds_bintablehdu])
-        new_rmfhdus.writeto(f'{self.out_name}.rmf', overwrite=True)
+        new_rmfhdus.writeto(f'{out_name}.rmf', overwrite=True)
 
-        return
 
     def get_pha(self, src_counts, errors, rmf_file = None, arf_file = None, bkg_file = None, exposure_time = None, dts = None, telescope="COSI", instrument="COSI"):
 
@@ -921,38 +1377,21 @@ class SpacecraftFile():
             The instrument name (the default is "COSI").
         """
 
-        self.src_counts = src_counts
-        self.errors = errors
+        if rmf_file is None:
+            rmf_file = f'{self.out_name}.rmf'
 
-        if bkg_file != None:
-            self.bkg_file = bkg_file
-        else:
-            self.bkg_file = "None"
-        
-        self.bkg_file = bkg_file
+        if arf_file is None:
+            arf_file = f'{self.out_name}.arf'
 
-        if rmf_file != None:
-            self.rmf_file = rmf_file
-        else:
-            self.rmf_file = f'{self.out_name}.rmf'
+        if dts is not None:
+            dts = self.__str_or_array(dts) # FIXME: function does not exist???
+            exposure_time = dts.sum()
 
-        if arf_file != None:
-            self.arf_file = arf_file
-        else:
-            self.arf_file = f'{self.out_name}.arf'
-
-        if exposure_time != None:
-            self.exposure_time = exposure_time
-        if dts != None:
-            self.dts = self.__str_or_array(dts)
-            self.exposure_time = self.dts.sum()
-        self.telescope = telescope
-        self.instrument = instrument
-        self.channel_number = len(self.src_counts)
+        channel_number = len(src_counts)
 
         # define other hardcoded inputs
         copyright_string="  FITS (Flexible Image Transport System) format is defined in 'Astronomy and Astrophysics', volume 376, page 359; bibcode: 2001A&A...376..359H "
-        channels = np.arange(self.channel_number)
+        channels = np.arange(channel_number)
 
         # Create PrimaryHDU
         primaryhdu = fits.PrimaryHDU() # create an empty primary HDU
@@ -964,8 +1403,8 @@ class SpacecraftFile():
 
         # Create binary table HDU
         a1 = np.array(channels,dtype="int32") # I guess I need to convert the dtype to match the format J
-        a2 = np.array(self.src_counts,dtype="int64")  # int32 is not enough for counts
-        a3 = np.array(self.errors,dtype="int64") # int32 is not enough for errors
+        a2 = np.array(src_counts,dtype="int64")  # int32 is not enough for counts
+        a3 = np.array(errors,dtype="int64") # int32 is not enough for errors
         col1 = fits.Column(name="CHANNEL", format="J", array=a1)
         col2 = fits.Column(name="COUNTS", format="K", array=a2,unit="count")
         col3 = fits.Column(name="STAT_ERR", format="K", array=a3,unit="count")
@@ -981,17 +1420,17 @@ class SpacecraftFile():
 
 
         bintablehdu.header["EXTNAME"] = ("SPECTRUM","name of this binary table extension")
-        bintablehdu.header["TELESCOP"] = (self.telescope,"telescope/mission name")
-        bintablehdu.header["INSTRUME"] = (self.instrument,"instrument/detector name")
+        bintablehdu.header["TELESCOP"] = (telescope,"telescope/mission name")
+        bintablehdu.header["INSTRUME"] = (instrument,"instrument/detector name")
         bintablehdu.header["FILTER"] = ("NONE","filter type if any")
-        bintablehdu.header["EXPOSURE"] = (self.exposure_time,"integration time in seconds")
-        bintablehdu.header["BACKFILE"] = (self.bkg_file,"background filename")
+        bintablehdu.header["EXPOSURE"] = (exposure_time,"integration time in seconds")
+        bintablehdu.header["BACKFILE"] = (bkg_file,"background filename")
         bintablehdu.header["BACKSCAL"] = (1,"background scaling factor")
         bintablehdu.header["CORRFILE"] = ("NONE","associated correction filename")
         bintablehdu.header["CORRSCAL"] = (1,"correction file scaling factor")
         bintablehdu.header["CORRSCAL"] = (1,"correction file scaling factor")
-        bintablehdu.header["RESPFILE"] = (self.rmf_file,"associated rmf filename")
-        bintablehdu.header["ANCRFILE"] = (self.arf_file,"associated arf filename")
+        bintablehdu.header["RESPFILE"] = (rmf_file,"associated rmf filename")
+        bintablehdu.header["ANCRFILE"] = (arf_file,"associated arf filename")
         bintablehdu.header["AREASCAL"] = (1,"area scaling factor")
         bintablehdu.header["STAT_ERR"] = (0,"statistical error specified if any")
         bintablehdu.header["SYS_ERR"] = (0,"systematic error specified if any")
@@ -1002,12 +1441,10 @@ class SpacecraftFile():
         bintablehdu.header["HDUVERS"] = ("1.2.1","version of format")
         bintablehdu.header["POISSERR"] = (False,"Poissonian errors to be assumed, T as True")
         bintablehdu.header["CHANTYPE"] = ("PI","channel type (PHA or PI)")
-        bintablehdu.header["DETCHANS"] = (self.channel_number,"total number of detector channels")
+        bintablehdu.header["DETCHANS"] = (channel_number,"total number of detector channels")
 
         new_phahdus = fits.HDUList([primaryhdu, bintablehdu])
         new_phahdus.writeto(f'{self.out_name}.pha', overwrite=True)
-
-        return
 
 
     def plot_arf(self, file_name = None, save_name = None, dpi = 300):
@@ -1025,22 +1462,16 @@ class SpacecraftFile():
             The dpi of the saved image (the default is 300).
         """
 
-        if file_name != None:
-            self.file_name = file_name
-        else:
-            self.file_name = f'{self.out_name}.arf'
+        if file_name is None:
+            file_name = f'{self.out_name}.arf'
 
-        if save_name != None:
-            self.save_name = save_name
-        else:
-            self.save_name = self.out_name
+        if save_name is None:
+            save_name = self.out_name
 
-        self.dpi = dpi
-
-        self.arf = fits.open(self.file_name) # read file
+        arf = fits.open(file_name) # read file
 
         # SPECRESP HDU
-        self.specresp_hdu = self.arf["SPECRESP"]
+        self.specresp_hdu = arf["SPECRESP"]
 
         self.areas = np.array(self.specresp_hdu.data["SPECRESP"])
         self.Em_lo = np.array(self.specresp_hdu.data["ENERG_LO"])
@@ -1056,11 +1487,9 @@ class SpacecraftFile():
         ax.set_xlabel("Energy[$keV$]")
         ax.set_ylabel(r"Effective area [$cm^2$]")
         ax.set_xscale("log")
-        fig.savefig(f"Effective_area_for_{self.save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=self.dpi)
-        #fig.show()
-
-        return
-
+        fig.savefig(f"Effective_area_for_{save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=dpi)
+        plt.show()
+        plt.close(fig)
 
     def plot_rmf(self, file_name = None, save_name = None, dpi = 300):
 
@@ -1077,28 +1506,22 @@ class SpacecraftFile():
             The dpi of the saved image (the default is 300).
         """
 
-        if file_name != None:
-            self.file_name = file_name
-        else:
-            self.file_name = f'{self.out_name}.rmf'
+        if file_name is None:
+            file_name = f'{self.out_name}.rmf'
 
-        if save_name != None:
-            self.save_name = save_name
-        else:
-            self.save_name = self.out_name
-
-        self.dpi = dpi
+        if save_name is None:
+            save_name = self.out_name
 
         # Read rmf file
-        self.rmf = fits.open(self.file_name) # read file
+        rmf = fits.open(file_name) # read file
 
         # Read the ENOUNDS information
-        ebounds_ext = self.rmf["EBOUNDS"]
+        ebounds_ext = rmf["EBOUNDS"]
         channel_low = ebounds_ext.data["E_MIN"] # energy bin lower edges for channels (channels are just incident energy bins)
         channel_high = ebounds_ext.data["E_MAX"] # energy bin higher edges for channels (channels are just incident energy bins)
 
         # Read the MATRIX extension
-        matrix_ext = self.rmf['MATRIX']
+        matrix_ext = rmf['MATRIX']
         #logger.info(repr(matrix_hdu.header[:60]))
         energy_low = matrix_ext.data["ENERG_LO"] # energy bin lower edges for measured energies
         energy_high = matrix_ext.data["ENERG_HI"] # energy bin higher edges for measured energies
@@ -1148,7 +1571,4 @@ class SpacecraftFile():
         #plt.xlim([70,10000])
         #plt.ylim([70,10000])
         plt.colorbar(norm=LogNorm())
-        plt.savefig(f"Redistribution_matrix_for_{self.save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=300)
-        #plt.show()
-
-        return
+        plt.savefig(f"Redistribution_matrix_for_{save_name}.png", bbox_inches = "tight", pad_inches=0.1, dpi=dpi)

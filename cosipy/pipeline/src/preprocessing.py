@@ -1,25 +1,69 @@
 from cosipy.pipeline.src.io import load_binned_data
 from astropy.time import Time
-
+from astropy.io.misc import yaml
+from cosipy.response import FullDetectorResponse
+from cosipy import BinnedData
 
 import numpy as np
 
-def tslice_binned_data(data,tmin,tmax):
-    """Slice a binned dataset in time"""
-    idx_tmin = np.where(data.axes['Time'].edges.value >= tmin.value)[0][0]
-    idx_tmax_all = np.where(data.axes['Time'].edges.value <= tmax.value)
-    y = len(idx_tmax_all[0]) - 1
-    idx_tmax = np.where(data.axes['Time'].edges.value <= tmax.value)[0][y]
-    tsliced_data = data.slice[{'Time': slice(idx_tmin, idx_tmax)}]
-    return tsliced_data
 
-
-
-def tslice_ori(ori,tmin,tmax):
+def write_yaml(udata_path, ori_path, resp_path, dt, tmin, tmax, bin_yaml_path):
     """
-    Slices time for the orientation file
+    Write a .yaml file that contains the information to bin a dataset according to a response file.
+
+    Parameters
+    ----------
+    udata_path : str
+        Path to the unbinned data file to use. Input file is either
+        .fits or .hdf5.
+    ori_path : str
+        Path to the orientation file.
+    resp_path : str
+        Path to the response file.
+    dt :  float
+        Lengths of the time bins (s).
+    tmin:  float
+        Minimum of time axis.
+    tmax:   float
+        Maximum of the time axis.
+    bin_yaml_path: str
+        Path to .yaml file to write.
+
     """
-    #ori_min = Time(tmin,format = 'unix')
-    #ori_max = Time(tmax,format = 'unix')
-    tsliced_ori = ori.source_interval(tmin, tmax)
-    return tsliced_ori
+
+    with FullDetectorResponse.open(resp_path) as response:
+        bin_dict = {
+            "data_file": udata_path,
+            "ori_file": ori_path,
+            "unbinned_output": udata_path[-4:],
+            "time_bins": dt,
+            "energy_bins": list(response.axes["Em"].edges.value),
+            "phi_pix_size": int(180 / (response.axes["Phi"].nbins)),
+            "nside": response.nside,
+            "scheme": response.scheme,
+            "tmin": tmin,
+            "tmax": tmax
+        }
+        with open(bin_yaml_path, 'w') as outfile:
+            yaml.dump(bin_dict, outfile, default_flow_style=False, sort_keys=False)
+    return ()
+
+
+def get_binned_data(yaml_path, udata_path, bdata_name, psichi_coo):
+    """
+    Creates a binned dataset from a .yaml file and an unbinned data file.
+
+    Parameters
+    ----------
+    yaml_path : str
+        Path to the .yaml file that contains the binning information.
+    udata_path : str
+        Path to the unbinned data file to use. Input file is either .fits or .hdf5.
+    bdata_name: str
+        Name of the binned dataset
+    """
+    data = BinnedData(yaml_path)
+    data.get_binned_data(unbinned_data=udata_path, output_name=bdata_name, psichi_binning=psichi_coo,
+                         make_binning_plots=False)
+    return ()
+

@@ -8,16 +8,16 @@ def test_PriorBase():
     
     # no class is allowered
     with pytest.raises(TypeError) as e_info:
-        coefficient = 10
+        parameter = {'coefficient': 10}
         test_model = np.zeros(2)
-        prior = PriorBase(coefficient, test_model)
+        prior = PriorBase(parameter, test_model)
     
     # As a test, np.ndarray is added
     PriorBase.usable_model_classes.append(np.ndarray)
 
-    coefficient = 10
+    parameter = {'coefficient': 10}
     test_model = np.zeros(2)
-    prior = PriorBase(coefficient, test_model)
+    prior = PriorBase(parameter, test_model)
     
     # other function tests
     with pytest.raises(RuntimeError) as e_info:

@@ -9,8 +9,8 @@ class PriorBase:
 
     Parameters
     ----------
-    coefficient : float
-        Scaling coefficient for the prior probability.
+    parameter : dict
+        parameters for the prior probability.
     model : object of a subclass of :py:class:`cosipy.image_deconvolution.ModelBase`
         Model object to which the prior will be applied.
 
@@ -26,12 +26,14 @@ class PriorBase:
 
     usable_model_classes = []
 
-    def __init__(self, coefficient, model):
+    def __init__(self, parameter, model):
 
         if not self.is_calculable(model):
             raise TypeError
+
+        self.parameter = parameter
         
-        self.coefficient = coefficient
+        self.coefficient = self.parameter['coefficient']
 
         self.model_class = type(model) 
 
