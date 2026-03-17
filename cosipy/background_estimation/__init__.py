@@ -1,3 +1,4 @@
 from .LineBackgroundEstimation import LineBackgroundEstimation
 from .ContinuumEstimation import ContinuumEstimation
+from .TransientBackgroundEstimation import TransientBackgroundEstimation
 from .free_norm_threeml_binned_bkg import *

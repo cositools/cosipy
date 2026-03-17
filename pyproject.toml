@@ -11,7 +11,7 @@ authors = [
 description = "High-level analysis for the COSI telescope data"
 requires-python = ">=3.12"
 dependencies = [
-                  "histpy>=2.0.5",
+                  "histpy>=2.0.6",
                   "h5py",
                   "hdf5plugin",
                   "mhealpy>=0.3.7",
