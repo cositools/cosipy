@@ -268,9 +268,10 @@ class PolarizationASAD():
             # source is in inertial frame
             scattering_dirs = psichi_axis.pix2skycoord(pix).transform_to('icrs')
 
-        # sparse contents has no unit
-        assert binned_data.is_sparse
-        weights = binned_data.project('PsiChi').todense().contents
+        if binned_data.project('PsiChi').unit.physical_type == 'dimensionless':
+             raise RuntimeError("PsiChi axis needs units")
+        else:
+            weights = binned_data.project('PsiChi').todense().contents
 
         return scattering_dirs, weights
 
