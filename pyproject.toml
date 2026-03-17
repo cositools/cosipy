@@ -39,6 +39,7 @@ Homepage = "https://github.com/cositools/cosipy"
 cosi-response = "cosipy.response.FullDetectorResponse:cosi_response"
 cosi-threemlfit = "cosipy.pipeline.task.task:cosi_threemlfit"
 cosi-bindata = "cosipy.pipeline.task.task:cosi_bindata"
+cosi-tsdetect= "cosipy.pipeline.task.task:cosi_tsdetect"
 
 [tool.setuptools.packages.find]
 include = ["cosipy", "cosipy.*"]
