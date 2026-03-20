@@ -1,7 +1,15 @@
 import logging
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    # Guard preventing circulat import
+    from cosipy import SpacecraftHistory
+
 logger = logging.getLogger(__name__)
 
 import numpy as np
+import astropy.units as u
+from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astropy.io import fits
 
@@ -170,6 +178,58 @@ class GoodTimeInterval():
 
         infile.close()
         return cls(tstart_list, tstop_list)
+
+    @classmethod
+    def from_pointing_cut(cls,
+                          target_coord : SkyCoord,
+                          sc_history : 'SpacecraftHistory',
+                          max_offaxis : u.Quantity,
+                          earth_occ : bool = False):
+        """
+        Build a GTI where a fixed sky position is within a maximum off-axis angle of the spacecraft boresight.
+
+        Parameters
+        ----------
+        target_coord : astropy.coordinates.SkyCoord
+            Fixed target (source) position.
+        sc_history : cosipy.spacecraftfile.SpacecraftHistory
+            Spacecraft pointinghistory to evaluate (.ori file).
+        max_offaxis : astropy.units.Quantity
+            Maximum allowed off-axis angle (FOV).
+        earth_occ : bool, optional
+            If True, exclude time bins in which the target is occulted
+            by the Earth. Default is False.
+
+        Returns
+        -------
+        GoodTimeInterval
+            GTI containing time ranges that satisfy the pointing cut.
+        """
+
+        source_sc = sc_history.get_target_in_sc_frame(target_coord)
+
+        colatitude = np.pi/2 - source_sc.lat.to_value(u.rad)
+
+        in_fov = colatitude[:-1] <= max_offaxis.to_value(u.rad)
+
+        if earth_occ:
+            occulted = sc_history.get_earth_occ(target_coord)
+            in_fov = in_fov & (~occulted[:-1])
+
+        if not np.any(in_fov):
+            empty_time = Time([],
+                              format=sc_history.intervals_tstart.format,
+                              scale=sc_history.intervals_tstart.scale)
+            return cls(empty_time, empty_time.copy())
+
+        edges = np.flatnonzero(
+            np.diff(np.concatenate(([False], in_fov, [False])))
+        )
+        start_idx = edges[::2]
+        stop_idx = edges[1::2] - 1
+
+        return cls(sc_history.intervals_tstart[start_idx],
+                   sc_history.intervals_tstop[stop_idx])
 
     @classmethod
     def intersection(cls, *gti_list):
