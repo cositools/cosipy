@@ -14,7 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def compute_mdp(n, source_direction, spectrum, model, background, bkg_parameter, 
-				fix_bkg, sc_orientation, response_file, response_pa_convention, 
+				sc_orientation, response_file, response_pa_convention, 
 				response_frame='spacecraftframe', confidence=99):
 	"""
 	Calculates the minimum detectable polarization using the maximum 
@@ -33,8 +33,6 @@ def compute_mdp(n, source_direction, spectrum, model, background, bkg_parameter,
 		Background model.
 	bkg_parameter : :py:class:`astromodels.core.parameter.Parameter`
 		Background parameter.
-	fix_bkg : bool
-		Whether to fix background parameter.
 	sc_orientation : :py:class:`cosipy.spacecraftfile.spacecraft_file.SpacecraftHistory`
 		Spacecraft history.
 	response_file : :py:class:`pathlib.PosixPath`
@@ -101,7 +99,6 @@ def compute_mdp(n, source_direction, spectrum, model, background, bkg_parameter,
 										  background)
 
 		mdp_cosi.bkg_parameter[bkg_parameter.name] = bkg_parameter
-		mdp_cosi.bkg_parameter[bkg_parameter.name].fix = fix_bkg
 
 		mdp_plugins = DataList(mdp_cosi)
 
