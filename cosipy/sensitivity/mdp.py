@@ -13,9 +13,8 @@ from histpy import Histogram
 import logging
 logger = logging.getLogger(__name__)
 
-def compute_mdp(n, source_direction, spectrum, model, background, bkg_parameter, 
-				sc_orientation, response_file, response_pa_convention, 
-				response_frame='spacecraftframe', confidence=99):
+def compute_mdp(n, model, background, bkg_parameter, sc_orientation, response_file, 
+				response_pa_convention, response_frame='spacecraftframe', confidence=99):
 	"""
 	Calculates the minimum detectable polarization using the maximum 
 	likelihood method.
@@ -23,10 +22,6 @@ def compute_mdp(n, source_direction, spectrum, model, background, bkg_parameter,
 	Parameters:
 	n : int
 		Number of simulations.
-	source_direction : :py:class:`astropy.coordinates.SkyCoord`
-		Source direction.
-	spectrum : :py:class:`threeML.Model`
-		Source spectrum.
 	model : :py:class:`astromodels.core.model.Model`
 		Source model.
 	background : :py:class:`cosipy.background_estimation`
@@ -47,6 +42,11 @@ def compute_mdp(n, source_direction, spectrum, model, background, bkg_parameter,
 
 	if len(model.source.spectrum.to_dict()) > 1:
 		raise RuntimeError('Model cannot contain more than one source.')
+
+	source_direction = model.source.position.sky_coord
+
+	for key in model.source.spectrum.to_dict().keys():
+		spectrum = model.source._components[key].shape
 
 	degrees = []
 	failed_fits = 0

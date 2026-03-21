@@ -128,6 +128,6 @@ def test_mdp():
 							  unit=u.Hz,
 							  free=False)
 
-	mdp = compute_mdp(20, source_direction, spectrum, model_mdp, bkg, bkg_parameter, sc_orientation, response_file, 'RelativeZ')
+	mdp = compute_mdp(20, model_mdp, bkg, bkg_parameter, sc_orientation, response_file, 'RelativeZ')
 
 	assert np.allclose([mdp], [20.], atol=[10.])
