@@ -20,13 +20,16 @@ from histpy import Histogram, Axes, Axis, HealpixAxis
 from cosipy.response import FullDetectorResponse
 from cosipy.image_deconvolution import ImageDeconvolutionDataInterfaceBase
 
-def load_response_matrix(comm, start_col, end_col, filename):
+def load_response_matrix(comm, start_col, end_col, track_overflow_flag, filename):
     '''
     Response matrix
     '''
     with h5py.File(filename, "r", driver="mpio", comm=comm) as f1:
         dataset = f1['hist/contents']
-        R = dataset[1:-1, 1:-1, 1:-1, 1:-1, start_col+1:end_col+1]
+        if track_overflow_flag:     # Histpy 1.x default
+            R = dataset[1:-1, 1:-1, 1:-1, 1:-1, start_col+1:end_col+1]
+        else:                       # Histpy 2.x default
+            R = dataset[:, :, :, :, start_col:end_col]
 
         hist_group = f1['hist']
         if 'unit' in hist_group.attrs:
@@ -59,13 +62,16 @@ def load_response_matrix(comm, start_col, end_col, filename):
 
     return Histogram(axes, contents = R, unit = unit)
 
-def load_response_matrix_transpose(comm, start_row, end_row, filename):
+def load_response_matrix_transpose(comm, start_row, end_row, track_overflow_flag, filename):
     '''
     Response matrix tranpose
     '''
     with h5py.File(filename, "r", driver="mpio", comm=comm) as f1:
         dataset = f1['hist/contents']
-        RT = dataset[start_row+1:end_row+1, 1:-1, 1:-1, 1:-1, 1:-1]
+        if track_overflow_flag:     # Histpy 1.x
+            RT = dataset[start_row+1:end_row+1, 1:-1, 1:-1, 1:-1, 1:-1]
+        else:                       # Histpy 2.x
+            RT = dataset[start_row:end_row, :, :, :, :]
 
         hist_group = f1['hist']
         if 'unit' in hist_group.attrs:
@@ -139,12 +145,20 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         print(f'TaskID = {taskid}, Number of tasks = {numtasks}')
 
         # Get number of NuLambda and PsiChi pixels
-        # DC2 PSR has underflow/overflow bins (so -2)
         # Axes are NuLambda, Em, Ei, Phi, PsiChi
         with h5py.File(drm_filename, "r", driver="mpio", comm=comm) as f1:
             dataset = f1['hist/contents']
-            nrows = dataset.shape[0] - 2
-            ncols = dataset.shape[4] - 2
+
+            # Check if track_overflow is set to True (histpy 1.x default) or False (histpy 2.x default)
+            axes = Axes.open(f1['hist/axes'])
+            track_overflow_flag = True if (axes[0].nbins + 2 == dataset.shape[0]) else False
+
+            if track_overflow_flag:     # Histpy 1.x default
+                nrows = dataset.shape[0] - 2
+                ncols = dataset.shape[4] - 2
+            else:                       # Histpy 2.x default
+                nrows = dataset.shape[0]
+                ncols = dataset.shape[4]
 
         # Calculate the indices in Rij that the process has to parse. My hunch is that calculating these scalars individually will be faster than the MPI send broadcast overhead.
         self.averow = nrows // numtasks
@@ -167,8 +181,8 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         self._bkg_models = {bkg_norm_label: bkg.project(['Em', 'Phi', 'PsiChi']).to_dense()}
 
         # Load response and response transpose
-        self._image_response = load_response_matrix(comm, self.start_col, self.end_col, filename=drm_filename)
-        self._image_response_T = load_response_matrix_transpose(comm, self.start_row, self.end_row, filename=drm_filename)
+        self._image_response = load_response_matrix(comm, self.start_col, self.end_col, track_overflow_flag, filename=drm_filename)
+        self._image_response_T = load_response_matrix_transpose(comm, self.start_row, self.end_row, track_overflow_flag, filename=drm_filename)
 
         self.col_size = 1       # TODO: This can change for more sophisticated model space contents
         self.row_size = np.prod(self.event.contents.shape[:-1])
