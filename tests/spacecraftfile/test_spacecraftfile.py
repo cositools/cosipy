@@ -5,6 +5,8 @@ from astropy.coordinates import SkyCoord
 from astropy.io import fits
 from astropy.time import Time
 
+from mhealpy import HealpixBase
+
 from cosipy import test_data
 from cosipy import SpacecraftHistory
 
@@ -184,6 +186,27 @@ def test_interp_location():
     assert np.allclose(loc,
                        ori.location[1].cartesian.xyz.to_value(u.km))
 
+
+def test_get_exposure():
+    ori_path = test_data.path / "20280301_first_10sec.fits"
+    ori = SpacecraftHistory.open(ori_path)
+
+    target_coord = SkyCoord(l=184.5551, b = -05.7877,
+                            unit = u.deg, frame = "galactic")
+
+    b = HealpixBase(nside=1)
+    pix, weights = ori.get_exposure(target_coord, b,
+                                    interp = True, earth_occ = False)
+
+    assert np.array_equal(pix, [0, 1, 2, 3])
+    assert np.allclose(weights,
+                       [1.89505713, 7.61558445, 0.24467921, 0.24467921] * u.s)
+
+    pix, weights = ori.get_exposure(target_coord, b,
+                                    interp = False, earth_occ = False)
+
+    assert np.array_equal(pix, [1])
+    assert np.allclose(weights, [10.] * u.s)
 
 def test_get_dwell_map():
 

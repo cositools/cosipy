@@ -5,19 +5,24 @@ logger = logging.getLogger(__name__)
 
 from yayc import Configurator
 from pathlib import Path
+from typing import Union
 
-from .allskyimage import AllSkyImageModel
+from .data_interfaces.data_interface_collection import DataInterfaceCollection
 
-from .RichardsonLucy import RichardsonLucy
-from .RichardsonLucySimple import RichardsonLucySimple
-from .MAP_RichardsonLucy import MAP_RichardsonLucy
+from .models.allskyimage import AllSkyImageModel
+
+from .algorithms.RichardsonLucyBasic import RichardsonLucyBasic
+from .algorithms.RichardsonLucy import RichardsonLucy
+from .algorithms.RichardsonLucyAdvanced import RichardsonLucyAdvanced 
+from .algorithms.MAP_RichardsonLucy import MAP_RichardsonLucy
 
 class ImageDeconvolution:
     """
     A class to reconstruct all-sky images from COSI data based on image deconvolution methods.
     """
     model_classes = {"AllSkyImage": AllSkyImageModel}
-    deconvolution_algorithm_classes = {"RL": RichardsonLucy, "RLsimple": RichardsonLucySimple, "MAP_RL": MAP_RichardsonLucy}
+    deconvolution_algorithm_classes = {"RLbasic": RichardsonLucyBasic, "RL": RichardsonLucy,
+                                       "RLadvanced": RichardsonLucyAdvanced, "MAP_RL": MAP_RichardsonLucy}
 
     def __init__(self):
         self._dataset = None
@@ -27,17 +32,19 @@ class ImageDeconvolution:
         self._model_class = None
         self._deconvolution_class = None
 
-    def set_dataset(self, dataset: list):
+    def set_dataset(self, dataset: Union[list,DataInterfaceCollection]):
         """
         Set dataset as a list. 
 
         Parameters
         ----------
-        dataset : list of :py:class:`cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase` or its subclass
+        dataset : DataInterfaceCollection or list of :py:class:`cosipy.image_deconvolution.ImageDeconvolutionDataInterfaceBase`
             Each component contaning an event histogram, a background model, a response matrix, and a coordsys_conversion_matrix.
         """
-
-        self._dataset = dataset
+        if isinstance(dataset, list):
+            self._dataset = DataInterfaceCollection(dataset)
+        else:
+            self._dataset = dataset
         
         logger.debug(f"dataset for image deconvolution was set -> {self._dataset}")
 
@@ -62,6 +69,7 @@ class ImageDeconvolution:
         parameter_filepath : str or pathlib.Path
             Path of parameter file.
         """
+
         self._parameter = Configurator.open(parameter_filepath)
 
         logger.debug(f"parameter file for image deconvolution was set -> {parameter_filepath}")
@@ -71,6 +79,7 @@ class ImageDeconvolution:
         """
         Return the dataset.
         """
+
         return self._dataset
 
     @property
@@ -78,6 +87,7 @@ class ImageDeconvolution:
         """
         Return the registered parameter.
         """
+
         return self._parameter
 
     def override_parameter(self, *args):
@@ -91,8 +101,9 @@ class ImageDeconvolution:
 
         Examples
         --------
-        >>> image_deconvolution.override_parameter("deconvolution:parameter_RL:iteration = 30")
+        >>> image_deconvolution.override_parameter("deconvolution:parameter:iteration_max = 30")
         """
+
         self._parameter.override(args)
 
     @property
@@ -100,6 +111,7 @@ class ImageDeconvolution:
         """
         Return the initial model.
         """
+
         if self._initial_model is None:
             logger.warning("Need to initialize model in the image_deconvolution instance!")
 
@@ -110,6 +122,7 @@ class ImageDeconvolution:
         """
         Return the mask.
         """
+
         return self._mask
 
     @property
@@ -117,6 +130,7 @@ class ImageDeconvolution:
         """
         Return the results.
         """
+
         return self._deconvolution.results
 
     def initialize(self):
@@ -142,12 +156,18 @@ class ImageDeconvolution:
         bool 
             whether the instantiation and initialization are successfully done.
         """
+
         # set self._model_class
         model_name = self.parameter['model_definition']['class']            # Options include "AllSkyImage", etc.
 
-        if not model_name in self.model_classes.keys():                     # See model_classes dictionary declared above
-            logger.error(f'The model class "{model_name}" does not exist!')
-            raise ValueError
+        if model_name not in self.model_classes.keys():                     # See model_classes dictionary declared above
+            available_models = ', '.join(self.model_classes.keys())
+            error_msg = (
+                f'Unknown model class "{model_name}". '
+                f'Available models: {available_models}'
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         self._model_class = self.model_classes[model_name]
 
@@ -156,7 +176,6 @@ class ImageDeconvolution:
         parameter_model_property = Configurator(self.parameter['model_definition']['property'])
         self._initial_model = self._model_class.instantiate_from_parameters(parameter_model_property)
 
-        logger.info("---- parameters ----")
         logger.info(parameter_model_property.dump())
 
         # setting initial values
@@ -173,7 +192,6 @@ class ImageDeconvolution:
             logger.error("The model axes mismatches with the reponse in the dataset!")
             raise ValueError
 
-        logger.info("---- parameters ----")
         logger.info(parameter_model_initialization.dump())
 
     def register_deconvolution_algorithm(self):
@@ -185,15 +203,21 @@ class ImageDeconvolution:
         bool 
             whether the deconvolution algorithm is successfully registered.
         """
+
         logger.info("<< Registering the deconvolution algorithm >>")
         parameter_deconvolution = Configurator(self.parameter['deconvolution'])
 
         algorithm_name = parameter_deconvolution['algorithm']
         algorithm_parameter = Configurator(parameter_deconvolution['parameter'])
 
-        if not algorithm_name in self.deconvolution_algorithm_classes.keys():
-            logger.error(f'The algorithm "{algorithm_name}" does not exist!')
-            raise ValueError
+        if algorithm_name not in self.deconvolution_algorithm_classes.keys():
+            available_algorithms = ', '.join(self.deconvolution_algorithm_classes.keys())
+            error_msg = (
+                f'Unknown deconvolution algorithm "{algorithm_name}". '
+                f'Available algorithms: {available_algorithms}'
+            )
+            logger.error(error_msg)
+            raise ValueError(error_msg)
 
         self._deconvolution_class = self.deconvolution_algorithm_classes[algorithm_name]        # Alias to class constructor
         self._deconvolution = self._deconvolution_class(initial_model = self.initial_model,     # Initialize object for relevant class
@@ -201,7 +225,6 @@ class ImageDeconvolution:
                                                         mask = self.mask, 
                                                         parameter = algorithm_parameter)
 
-        logger.info("---- parameters ----")
         logger.info(parameter_deconvolution.dump()) 
 
     def run_deconvolution(self):
@@ -213,6 +236,7 @@ class ImageDeconvolution:
         list
             List containing results (reconstructed image, likelihood etc) at each iteration. 
         """
+
         logger.info("#### Image Deconvolution Starts ####")
        
         logger.info(f"<< Initialization >>")

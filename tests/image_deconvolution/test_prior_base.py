@@ -1,29 +1,25 @@
 import pytest
 import numpy as np
 
-from cosipy.image_deconvolution.prior_base import PriorBase
+from cosipy.image_deconvolution.algorithms.prior_base import PriorBase
+
 
 def test_PriorBase():
+
     PriorBase.__abstractmethods__ = set()
-    
-    # no class is allowered
-    with pytest.raises(TypeError) as e_info:
-        parameter = {'coefficient': 10}
-        test_model = np.zeros(2)
-        prior = PriorBase(parameter, test_model)
-    
-    # As a test, np.ndarray is added
+
+    # Instantiation should fail when model class is not in usable_model_classes
+    with pytest.raises(TypeError):
+        PriorBase({'coefficient': 10}, np.zeros(2))
+
+    # Allow np.ndarray for testing
     PriorBase.usable_model_classes.append(np.ndarray)
 
-    parameter = {'coefficient': 10}
-    test_model = np.zeros(2)
-    prior = PriorBase(parameter, test_model)
-    
-    # other function tests
-    with pytest.raises(RuntimeError) as e_info:
-        prior.log_prior(test_model)
-    assert e_info.type is NotImplementedError
+    prior = PriorBase({'coefficient': 10}, np.zeros(2))
 
-    with pytest.raises(RuntimeError) as e_info:
-        prior.grad_log_prior(test_model)
-    assert e_info.type is NotImplementedError
+    # Abstract methods should raise NotImplementedError
+    with pytest.raises(NotImplementedError):
+        prior.log_prior(np.zeros(2))
+
+    with pytest.raises(NotImplementedError):
+        prior.grad_log_prior(np.zeros(2))

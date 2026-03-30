@@ -3,18 +3,19 @@ import numpy as np
 
 from .prior_base import PriorBase
 
-from .allskyimage import AllSkyImageModel
+from ..models.allskyimage import AllSkyImageModel
 
 class PriorTSV(PriorBase):
     """
     Total Squared Variation (TSV) prior for all-sky image models.
 
-    This prior implements a smoothness constraint by penalizing differences between neighboring pixels.
+    This prior implements a smoothness constraint by penalizing squared
+    differences between neighboring pixels.
 
     Parameters
     ----------
-    parameter: dict
-        parameters for the TSV prior.
+    parameter : dict
+        Parameters for the TSV prior.
     model : AllSkyImageModel
         All-sky image model to which the prior will be applied.
 
@@ -23,12 +24,43 @@ class PriorTSV(PriorBase):
     usable_model_classes : list
         List containing AllSkyImageModel as the only compatible model class.
     neighbour_pixel_index : numpy.ndarray
-        Array of shape (8, npix) containing indices of neighboring pixels.
-        Some pixels have only 7 neighboring pixels. In this case, healpy returns -1
-        as the index of a neighboring pixel, but it can cause calculation errors in
-        this code. So, such a pixel index is replaced with its own pixel index.
+        Array of shape (-1, npix) containing indices of neighboring pixels.
+        For the case of HealPix, some pixels have only 7 neighboring pixels. 
+        In this case, healpy returns -1 as the index of a neighboring pixel, 
+        but it can cause calculation errors in this code. So, such a pixel 
+        index is replaced with its own pixel index.
     num_neighbour_pixels : numpy.ndarray
         Array of shape (npix,) containing the number of valid neighbors for each pixel.
+
+    Notes
+    -----
+    **Mathematical definition**
+
+    The log TSV prior is defined as:
+
+    .. math::
+
+        \\log P_{\\mathrm{TSV}}(\\lambda) =
+        -c_{\\mathrm{TSV}} \\sum_{i} \\sum_{j \\in \\sigma(i)} (\\lambda_i - \\lambda_j)^2
+
+    where :math:`\\lambda_i` is the flux in pixel :math:`i`,
+    :math:`\\sigma(i)` is the set of neighboring pixels of pixel :math:`i`,
+    and :math:`c_{\mathrm{TSV}}` is the regularization coefficient (``coefficient`` in YAML).
+
+    The gradient with respect to :math:`\\lambda_i` is:
+
+    .. math::
+
+        \\frac{\\partial \\log P_{\\mathrm{TSV}}}{\\partial \\lambda_i} =
+        -4c_{\\mathrm{TSV}} \\sum_{j \\in \\sigma(i)} (\\lambda_i - \\lambda_j)
+
+    **YAML parameter block**
+
+    .. code-block:: yaml
+
+        prior:
+            TSV:
+                coefficient: 1.0e+6   # regularization strength lambda (dimensionless)
     """
 
     usable_model_classes = [AllSkyImageModel]
@@ -67,6 +99,7 @@ class PriorTSV(PriorBase):
         float
             The logarithm of the TSV prior probability.
         """
+
         if self.model_class == AllSkyImageModel:
 
             diff = (model[:] - model[self.neighbour_pixel_index]).value
@@ -88,6 +121,7 @@ class PriorTSV(PriorBase):
         numpy.ndarray
             Gradient of the log prior, in units inverse to the model.
         """
+
         if self.model_class == AllSkyImageModel:
 
             diff = (model[:] - model[self.neighbour_pixel_index]).value

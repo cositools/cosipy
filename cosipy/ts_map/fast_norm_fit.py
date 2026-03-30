@@ -16,8 +16,8 @@ class FastNormFit:
 
         TS(N) = 2 \\sum_i \\left( \\frac{\\log P(d_i; b_i+N e_i)}{\\log P(d_i; b_i)} \\right)
 
-    where :math:`P(d; \lambda)` is the Poisson probability of
-    obtaining :math:`d` count where :math:`\lambda` is expected on
+    where :math:`P(d; \\lambda)` is the Poisson probability of
+    obtaining :math:`d` count where :math:`\\lambda` is expected on
     average; :math:`b` is the estimated number of background counts;
     :math:`N` is the normalization; and :math:`e` is the expected
     excess -i.e. signal- per normalization unit -i.e. the number of
@@ -37,7 +37,7 @@ class FastNormFit:
     .. note::
 
         Because of the Poisson probability, :math:`TS(N)` is only
-        well-defined for :math:`N \geq 1`. By default,
+        well-defined for :math:`N \\geq 1`. By default,
         underfluctuations are set to :math:`TS(N=0) = 0`. For cases
         when there is benefit in letting the normalization float to
         negative values, you can use `allow_negative`, but in that

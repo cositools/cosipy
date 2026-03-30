@@ -9,7 +9,8 @@ from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic
 from scoords import Attitude, SpacecraftFrame
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
-from .dataIF_COSI_DC2 import tensordot_sparse
+from ..data_interfaces.utils import tensordot_sparse
+from ..constants import EARTH_RADIUS_KM
 
 class CoordsysConversionMatrix(Histogram):
     """
@@ -32,7 +33,7 @@ class CoordsysConversionMatrix(Histogram):
         return new
 
     @classmethod
-    def from_exposure_table(cls, exposure_table, full_detector_response, nside_model = None, scheme_model = 'ring', use_averaged_pointing = False, earth_occ = True, r_earth = 6378.0):
+    def from_exposure_table(cls, exposure_table, full_detector_response, nside_model = None, scheme_model = 'ring', use_averaged_pointing = False, earth_occ = True, r_earth = EARTH_RADIUS_KM):
         """
         Calculate a ccm from a given exposure_table.
 
@@ -54,7 +55,7 @@ class CoordsysConversionMatrix(Histogram):
             In the latter case, the conversion matrix is more accurate but it takes a long time to calculate it.
         earth_occ: bool, default True
             If it is True, the earth occultation is considered.
-        r_earth : float, default 6378.0
+        r_earth : float, default EARTH_RADIUS_KM
             Earth's radius in kilometers.
 
         Returns
@@ -147,7 +148,7 @@ class CoordsysConversionMatrix(Histogram):
         return coordsys_conv_matrix
 
     @classmethod
-    def _calc_exposure_time_map(cls, nside_model, num_pointings, earth_zenith, altitude, livetime, is_nest_model = False, earth_occ = True, r_earth = 6378.0):
+    def _calc_exposure_time_map(cls, nside_model, num_pointings, earth_zenith, altitude, livetime, is_nest_model, earth_occ, r_earth):
         """
         Calculate exposure time map considering Earth occultation.
 
@@ -169,11 +170,11 @@ class CoordsysConversionMatrix(Histogram):
             Array of spacecraft altitudes in kilometers for each pointing.
         livetime : numpy.ndarray
             Array of livetimes in seconds for each pointing.
-        is_nest_model : bool, default False
+        is_nest_model : bool
             If True, use nested HEALPix pixel ordering scheme. If False, use ring ordering.
-        earth_occ: bool, default True
+        earth_occ: bool
             If it is True, the earth occultation is considered.
-        r_earth : float, default 6378.0
+        r_earth : float
             Earth's radius in kilometers.
 
         Returns
@@ -184,6 +185,7 @@ class CoordsysConversionMatrix(Histogram):
             exposure time in seconds for pointing i and pixel j that is within the
             Earth occultation region.
         """
+
         npix_model = hp.nside2npix(nside_model)
 
         exposure_time_map = np.zeros((num_pointings, npix_model))
@@ -240,6 +242,7 @@ class CoordsysConversionMatrix(Histogram):
             Exposure map with axes ["ScAtt", "lb", "Ei"] representing the effective area x time
             for each attitude bin, sky pixel, and energy bin.
         """
+
         effective_area = full_detector_response.to_dr().project(['NuLambda', 'Ei'])
 
         exposure_map_contents = tensordot_sparse(self.contents, self.unit,

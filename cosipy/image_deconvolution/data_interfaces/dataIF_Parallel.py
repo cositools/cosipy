@@ -18,7 +18,8 @@ import h5py
 from histpy import Histogram, Axes, Axis, HealpixAxis
 
 from cosipy.response import FullDetectorResponse
-from cosipy.image_deconvolution import ImageDeconvolutionDataInterfaceBase
+from .image_deconvolution_data_interface_base import ImageDeconvolutionDataInterfaceBase
+from ..constants import NUMERICAL_ZERO
 
 def load_response_matrix(comm, start_col, end_col, filename):
     '''
@@ -255,33 +256,47 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
 
         logger.info("Finished...")
 
-    def calc_expectation(self, model, dict_bkg_norm = None, almost_zero = 1e-12):
+    def _allgatherv_slice(self, expectation_slice):
         """
-        Calculate expected counts from a given model.
+        Gather expectation slices from all MPI processes into a full Histogram.
 
         Parameters
         ----------
-        model : :py:class:`cosipy.image_deconvolution.AllSkyImageModel`
-            Model map
-        dict_bkg_norm : dict, default None
-            background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}
-        almost_zero : float, default 1e-12
-            In order to avoid zero components in extended count histogram, a tiny offset is introduced.
-            It should be small enough not to effect statistics.
+        expectation_slice : Histogram
+            Local slice computed by this process.
 
         Returns
         -------
-        :py:class:`histpy.Histogram`
-            Expected count histogram
-
-        Notes
-        -----
-        This method should be implemented in a more general class, for example, extended source response class in the future.
+        Histogram
+            Full expectation over all processes (serial: same as input).
         """
-        # Currenly (2024-01-12) this method can work for both local coordinate CDS and in galactic coordinate CDS.
-        # This is just because in DC2 the rotate response for galactic coordinate CDS does not have an axis for time/scatt binning.
-        # However it is likely that it will have such an axis in the future in order to consider background variability depending on time and pointign direction etc.
-        # Then, the implementation here will not work. Thus, keep in mind that we need to modify it once the response format is fixed.
+        if not self.parallel:
+            return expectation_slice
+
+        all_sizes    = [(self.averow) * self.row_size] * (self.numtasks - 1) \
+                     + [(self.averow + self.extra_rows) * self.row_size]
+        displacements = np.insert(np.cumsum(all_sizes), 0, 0)[:-1]
+        total_size    = int(np.sum(all_sizes))
+
+        recvbuf = np.empty(total_size, dtype=np.float64)
+        self._comm.Allgatherv(expectation_slice.contents.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])
+
+        epsilon = np.concatenate([recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape(expectation_slice.contents.shape[:-1] + (-1,)) for i in range(self.numtasks)], axis=-1)
+
+        return Histogram(self.event.axes, contents=epsilon, unit=self.event.unit)
+
+    def calc_source_expectation(self, model):
+        """
+        Calculate expected counts from the source model only.
+
+        Parameters
+        ----------
+        model : AllSkyImageModel
+
+        Returns
+        -------
+        histpy.Histogram
+        """
 
         expectation_slice = Histogram(self._data_axes_slice)
         
@@ -298,40 +313,29 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
             expectation_slice[:] = np.tensordot( map_rotated, self._image_response.contents, axes = ([1,2], [0,1]))
             # [Time/ScAtt, NuLambda, Ei] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Em, Phi, PsiChi]
 
-        if dict_bkg_norm is not None: 
-            for key in self.keys_bkg_models():
-                expectation_slice += self.bkg_model_slice(key) * dict_bkg_norm[key]
+        expectation_slice += NUMERICAL_ZERO 
 
-        expectation_slice += almost_zero
+        return self._allgatherv_slice(expectation_slice)
 
-        # Parallel
-        if self.parallel:
-            '''
-            Synchronization Barrier 1
-            '''
+    def calc_bkg_expectation(self, dict_bkg_norm):
+        """
+        Calculate expected counts from background models only.
 
-            # Calculate all_sizes and displacements
-            all_sizes = [(self.averow) * self.row_size] * (self.numtasks-1) + [(self.averow + self.extra_rows) * self.row_size]
-            displacements = np.insert(np.cumsum(all_sizes), 0, 0)[0:-1]
+        Parameters
+        ----------
+        dict_bkg_norm : dict
 
-            # Create a buffer to receive the gathered data 
-            total_size = int(np.sum(all_sizes))
-            recvbuf = np.empty(total_size, dtype=np.float64)      # Receive buffer
+        Returns
+        -------
+        histpy.Histogram
+        """
 
-            # Gather all arrays into recvbuf
-            self._comm.Allgatherv(expectation_slice.contents.flatten(), [recvbuf, all_sizes, displacements, MPI.DOUBLE])   # For multiple MPI processes, full = [slice1, ... sliceN]
-
-            # Reshape the received buffer back into the original 3D array shape
-            epsilon = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape(expectation_slice.contents.shape[:-1] + (-1,)) for i in range(self.numtasks) ], axis=-1)
-
-            # Add to list that manages multiple datasets
-            expectation = Histogram(self.event.axes, contents=epsilon, unit=self.event.unit)
+        expectation_slice = Histogram(self._data_axes_slice)
         
-        # Serial
-        else:
-            expectation = expectation_slice     # If single process, then full = slice
+        for key in self.keys_bkg_models():
+            expectation_slice += self.bkg_model_slice(key) * dict_bkg_norm[key]
 
-        return expectation
+        return self._allgatherv_slice(expectation_slice)
 
     def calc_T_product(self, dataspace_histogram):
         """

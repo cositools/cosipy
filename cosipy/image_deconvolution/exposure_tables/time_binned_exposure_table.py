@@ -43,6 +43,7 @@ class TimeBinnedExposureTable(ExposureTableBase):
     time_format: str
     time_scale: str
     """
+
     binning_index_name = 'time_binning_index' 
     binning_method = 'Time'
     additional_column_scaler = [('tstart', 'D', ''),
@@ -59,6 +60,7 @@ class TimeBinnedExposureTable(ExposureTableBase):
         time_format: str
         time_scale: str
         """
+
         super().__init__(df, format=format, scale=scale)
 
     @classmethod
@@ -79,6 +81,7 @@ class TimeBinnedExposureTable(ExposureTableBase):
         -------
         :py:class:`cosipy.spacecraftfile.SpacecraftAttitudeExposureTable`
         """
+
         if tstart_list.isscalar == True:
             tstart_list = Time([tstart_list])
 
@@ -180,6 +183,7 @@ class TimeBinnedExposureTable(ExposureTableBase):
         :py:class:`histpy.Histogram`
             Binned data with axes ["Time", "Em", "Phi", "PsiChi"].
         """
+
         # Get TimeTags from unbinned event
         time_tags = unbinned_event.cosi_dataset['TimeTags']
 

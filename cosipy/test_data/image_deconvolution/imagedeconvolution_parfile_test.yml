@@ -16,7 +16,7 @@ model_definition:
       value: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0] #the number of these values should be the same as "the number of energy_edges - 1".
       unit: "cm-2 s-1 sr-1"  # do not change it as for now
 deconvolution:
-  algorithm: "RLsimple"
+  algorithm: "RLbasic"
   parameter:
     iteration_max: 2 
     background_normalization_optimization: 
