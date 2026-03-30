@@ -85,6 +85,7 @@ def cosi_bindata(argv=None):
     if args.tmax:
         config["tmax"] = args.tmax
 
+
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
     yaml_name="bin.yaml" if not args.suffix else str("bin_"+args.suffix+".yaml")
@@ -92,7 +93,6 @@ def cosi_bindata(argv=None):
     psichi_coo = config.get("coo_sys")
     #
     bdata_name=str("binned_data_"+psichi_coo) if not args.suffix else str("binned_data_"+psichi_coo+"_"+args.suffix)
-
 
     # Parse input files from config file
     data_path=config.absolute_path(config["unbinned_data_file"])
@@ -115,7 +115,7 @@ def cosi_bindata(argv=None):
     yaml_path = odir/yaml_name
     if yaml_path.exists() and not args.overwrite:
         raise RuntimeError(f"{yaml_path} already exists. If you mean to replace it then use --overwrite.")
-    write_yaml(str(data_path),str(ori_path),str(resp_path),dt,tmin,tmax,str(yaml_path))
+    write_yaml(str(data_path),str(ori_path),str(resp_path), dt,tmin,tmax,str(yaml_path))
 
     #Apply optional time selection:
     if config.get("tmin") is not None and config.get("tmax") is not None:

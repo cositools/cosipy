@@ -132,6 +132,6 @@ tsdetect:
     kwargs:
       tstart: 1836496300.0
       tstop: 1836496388.1
-  nside: 16
+  nside: 8
   iterative: false
 
