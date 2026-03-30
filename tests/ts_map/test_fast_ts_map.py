@@ -138,6 +138,48 @@ def test_moc_ts_fit():
 
     ts_values, pixels = ts_results
     assert all(pixels == [
+        16, 20, 24, 28, 32,
+        36, 40, 44, 48, 52,
+        56, 60, 17, 21, 25,
+        29, 33, 37, 41, 45,
+        49, 53, 57, 61, 18,
+        22, 26, 30, 34, 38,
+        42, 46, 50, 54, 58,
+        62, 19, 23, 27, 31,
+        35, 39, 43, 47, 51,
+        55, 59, 63
+    ])
+
+    assert np.allclose(ts_values, [
+        40.31750179, 39.40582836, 37.39229509, 39.78630473, 40.39347596,
+        40.10805455, 38.79974817, 38.86985166, 40.14551663, 39.92706709,
+        39.19653532, 40.07420192, 40.07720833, 38.76345776, 37.46243839,
+        40.19657905, 40.41047825, 39.9701239,  37.23577505, 39.28060583,
+        40.2803205,  39.83138091, 39.25707762, 39.90376762, 40.20425492,
+        39.93311807, 37.35958207, 39.07431591, 40.3217545,  40.1935334,
+        38.98305396, 37.24284051, 40.41652632, 39.61022258, 39.22641583,
+        40.09740223, 39.81314166, 39.49561083, 37.43747447, 39.65452285,
+        39.940159,   39.61014066, 37.24223294, 37.35636565, 40.65108076,
+        39.92533792, 37.24385822, 40.2989865
+    ])
+
+    ts.plot_ts(*ts_results,
+               skycoord = SkyCoord(l=0, b=0, unit=u.deg, frame="galactic"))
+
+    ts.plot_ts(*ts_results, containment = 0.9, save_plot = True,
+               save_dir = "", save_name = "ts_map.png")
+
+    assert Path("ts_map.png").exists()
+
+    os.remove("ts_map.png")
+
+    # test top-k strategy
+    ts_results = ts.fit(max_nside = 2, energy_channel = [2,3],
+                        spectrum = spectrum, cpu_cores = 1,
+                        strategy=MOCTSMap.TopKStrategy(k=8))
+
+    ts_values, pixels = ts_results
+    assert all(pixels == [
         6,  10, 11, 14, 16,
         20, 28, 32, 36, 48,
         52, 60, 17, 21, 29,
@@ -159,22 +201,15 @@ def test_moc_ts_fit():
         40.2989865
     ])
 
-    ts.plot_ts(*ts_results,
-               skycoord = SkyCoord(l=0, b=0, unit=u.deg, frame="galactic"))
-
-    ts.plot_ts(*ts_results, containment = 0.9, save_plot = True,
-               save_dir = "", save_name = "ts_map.png")
-
-    assert Path("ts_map.png").exists()
-
-    os.remove("ts_map.png")
-
     # test containment strategy
     ts_results = ts.fit(max_nside = 2, energy_channel = [2,3],
                         spectrum = spectrum,
                         strategy=MOCTSMap.ContainmentStrategy(0.9))
 
     ts_values, pixels = ts_results
+    print(pixels)
+    print(ts_values)
+
     assert all(pixels == [
         16, 20, 24, 28, 32,
         36, 40, 44, 48, 52,

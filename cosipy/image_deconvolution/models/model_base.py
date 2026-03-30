@@ -31,7 +31,6 @@ class ModelBase(Histogram, ABC):
         -------
         py:class:`ModelBase`
         """
-
         raise NotImplementedError
 
     @abstractmethod
@@ -44,7 +43,6 @@ class ModelBase(Histogram, ABC):
         parameter : py:class:`yayc.Configurator`
             Parameters for the specified algorithm.
         """
-
         raise NotImplementedError
 
     def mask_pixels(self, mask, fill_value = 0):

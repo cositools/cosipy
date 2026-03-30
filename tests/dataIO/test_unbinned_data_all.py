@@ -2,6 +2,8 @@
 from cosipy import UnBinnedData
 from cosipy import test_data
 import os
+import shutil
+import gzip
 import numpy as np
 import pytest
 
@@ -68,9 +70,13 @@ def test_unbinned_data_all(tmp_path):
    
     # Test reading in .tra file (instead of .tra.gz):
     gz_test_file = tmp_path/test_filename
-    os.system("scp %s %s" %(analysis.data_file, gz_test_file))
-    os.system("gzip -dk %s" %gz_test_file)
-    analysis.data_file = os.path.join(tmp_path,"GalacticScan.inc1.id1.crab10sec.extracted.testsample.tra")
+    shutil.copy(analysis.data_file, gz_test_file)
+
+    guzip_test_file = os.path.join(tmp_path,"GalacticScan.inc1.id1.crab10sec.extracted.testsample.tra")
+    with gzip.open(gz_test_file, 'rb') as f_in:
+        with open(guzip_test_file, 'wb') as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    analysis.data_file = guzip_test_file
     analysis.read_tra()
     analysis.data_file = os.path.join(test_data.path,test_filename)
 

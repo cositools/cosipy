@@ -12,16 +12,8 @@ from histpy import Histogram, Axes
 from cosipy.response import FullDetectorResponse
 
 from .image_deconvolution_data_interface_base import ImageDeconvolutionDataInterfaceBase
-
-def tensordot_sparse(A, A_unit, B, axes):
-    """
-    perform a tensordot operation on A and B.  A is sparse
-    and so does not carry a unit; rather it must be passed
-    as a separate argument.  B is a normal Quantity. Return
-    a proper Quantity as the result.
-    """
-    dotprod = np.tensordot(A, B.value, axes=axes)
-    return u.Quantity(dotprod, unit= A_unit * B.unit, copy=False)
+from .utils import tensordot_sparse
+from ..constants import NUMERICAL_ZERO
 
 
 class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
@@ -214,7 +206,7 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
 
         logger.info("Finished...")
 
-    def calc_expectation(self, model, dict_bkg_norm = None, almost_zero = 1e-12):
+    def calc_source_expectation(self, model):
         """
         Calculate expected counts from a given model.
 
@@ -222,11 +214,6 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         ----------
         model : :py:class:`cosipy.image_deconvolution.AllSkyImageModel`
             Model map
-        dict_bkg_norm : dict, default None
-            background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}
-        almost_zero : float, default 1e-12
-            In order to avoid zero components in extended count histogram, a tiny offset is introduced.
-            It should be small enough not to effect statistics.
 
         Returns
         -------
@@ -257,11 +244,30 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
             # [Time/ScAtt, NuLambda, Ei] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Em, Phi, PsiChi]
 
         expectation *= model.axes['lb'].pixarea()
-        expectation += almost_zero
+        expectation += NUMERICAL_ZERO
 
-        if dict_bkg_norm is not None:
-            for key in self.keys_bkg_models():
-                expectation += self.bkg_model(key).contents * dict_bkg_norm[key]
+        return Histogram(self.data_axes, contents = expectation, copy_contents = False)
+
+    def calc_bkg_expectation(self, dict_bkg_norm):
+        """
+        Calculate expected counts from a given background normalizations.
+
+        Parameters
+        ----------
+        dict_bkg_norm : dict, default None
+            background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}
+
+        Returns
+        -------
+        :py:class:`histpy.Histogram`
+            Expected count histogram
+
+        Notes
+        -----
+        This method should be implemented in a more general class, for example, extended source response class in the future.
+        """
+
+        expectation = sum(self.bkg_model(key).contents * dict_bkg_norm[key] for key in self.keys_bkg_models())
 
         return Histogram(self.data_axes, contents = expectation, copy_contents = False)
 
@@ -300,9 +306,6 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
         tprod *= self.model_axes['lb'].pixarea()
 
         return Histogram(self.model_axes, contents = tprod, copy_contents = False)
-
-
-        return hist
 
     def calc_bkg_model_product(self, key, dataspace_histogram):
         """

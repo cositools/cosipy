@@ -402,10 +402,25 @@ class SpacecraftHistory:
         # Type OrientationsGalactic
         # ...
         # EN
-        # Using [:-1] instead of skipfooter=1 because otherwise it's
-        # slow and you get ParserWarning: Falling back to the 'python'
-        # engine because the 'c' engine does not support skipfooter;
-        # you can avoid this warning by specifying engine='python'.
+
+        # Check that the EN line is present (and throw an error if
+        # not), lest we accidentally drop the last line of orientation
+        # data!
+        with open(file, "rb") as ori_file:
+            ori_file.seek(-4, 2)
+            s = ori_file.read(4)
+
+            # allow for possibility of missing EOL at end of file
+            if s[-1] == ord('\n'):
+                s = s[:-1]
+
+            if s != b'\nEN':
+                raise ValueError(".ori file must end with final line 'EN'!")
+
+        # now read the full file, skipping the first and last line.
+        # Use [:-1] instead of skipfooter=1; the latter causes a
+        # fallback to the slow Python CSV reading engine instead of
+        # faster C engine.
 
         df = pd.read_csv(file, sep=r"\s+", skiprows=1,
                          usecols=tuple(range(1,10)),
@@ -895,6 +910,32 @@ class SpacecraftHistory:
 
         return self.__class__(new_obstime, new_attitude, new_location, new_livetime)
 
+    def get_earth_occ(self, target_coord: SkyCoord):
+        """
+        For each time point, determine whether a given source would be
+        occluded by the earth.
+
+        We can cache some source-independent parts of the computation
+        to speed up repeated calls to this function.  Use the class
+        property cache_earth_occ to control whether caching is
+        enabled.
+
+        Parameters
+        ----------
+        target_coord:
+          source direction
+
+        Returns
+        -------
+        array of bool, True for each time point where source is
+        occluded
+        """
+
+        source_gcrs = target_coord.transform_to(self.location)
+        source_gcrs_vec = source_gcrs.cartesian.xyz.value
+
+        return self._get_earth_occ(source_gcrs_vec)
+
     def _get_earth_occ(self, src_vec):
         """
         For each time point, determine whether a given source would be
@@ -1006,8 +1047,28 @@ class SpacecraftHistory:
         else:
             return livetime
 
-    def _get_target_in_sc_frame(self, source: np.ndarray) -> (np.ndarray, np.ndarray):
+    def get_target_in_sc_frame(self, source: SkyCoord) -> SkyCoord:
+        """
+        Convert a source coordinate to the path of the source in the spacecraft
+        local frame.
 
+        Parameters
+        ----------
+        source:
+            The coordinates of the source
+        Returns
+        -------
+        The source path in the spacecraft frame. Each entry corresponds to a timestamp ib obstime
+        """
+
+        source_attframe = source.transform_to(self.attitude.frame)
+        source_attframe_vec = source_attframe.cartesian.xyz.value
+
+        lon_sc, colat_sc = self._get_target_in_sc_frame(source_attframe_vec)
+
+        return SkyCoord(lon = lon_sc, lat = np.pi/2 - colat_sc, units = 'rad', frame = SpacecraftFrame())
+
+    def _get_target_in_sc_frame(self, source: np.ndarray) -> (np.ndarray, np.ndarray):
         """
         Convert a source coordinate in the inertial frame of the
         SpacecraftHistory to the path of the source in the spacecraft
@@ -1095,7 +1156,7 @@ class SpacecraftHistory:
             # do not interpolate
             pixels = base.ang2pix(theta=theta,
                                   phi=phi,
-                                  lonlat=lonlat)
+                                  lonlat=False)
             weighted_duration = duration
 
         unique_pixels, unique_weights = \

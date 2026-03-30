@@ -345,6 +345,7 @@ class ExposureTableBase(pd.DataFrame, ABC):
         :py:class:`np.array`
             Averaged pointing in degrees, as np.array([l, b])
         """
+
         if np.all(livetime == 0) == True:
             averaged_vector = np.sum(hp.ang2vec(pointing.T[0], pointing.T[1], lonlat = True).T, axis = (1))
             logger.warning("Livetime is all zero")

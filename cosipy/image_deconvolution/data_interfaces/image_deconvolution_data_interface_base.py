@@ -32,8 +32,12 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
         It returns a binned histogram of a background model with the given key.
     - summed_bkg_model(key)
         It returns the summed value of the background histogram with the given key.
-    - calc_expectation(model)
-        It returns a histogram of expected counts from the given model.
+    - calc_source_expectation(model)
+        It returns a histogram of expected counts from the given source model.
+    - calc_bkg_expectation(dict_bkg_norm)
+        It returns a histogram of expected counts from the given background normalizations
+    - calc_expectation(model, dict_bkg_norm)
+        It returns a histogram of expected counts from the given source model and background normalizations
     - calc_T_product(dataspace_histogram)
         It returns the product of the input histogram with the transonse matrix of the response function.
     - calc_bkg_model_product(key, dataspace_histogram)
@@ -90,26 +94,56 @@ class ImageDeconvolutionDataInterfaceBase(ABC):
         return self._summed_bkg_models[key]
 
     @abstractmethod
-    def calc_expectation(self, model, dict_bkg_norm = None, almost_zero = 1e-12):
+    def calc_source_expectation(self, model):
         """
-        Calculate expected counts from a given model map.
+        Calculate expected counts from the source model only (R · model).
 
         Parameters
         ----------
-        model : :py:class:`cosipy.image_deconvolution.ModelBase` or its subclass
-            Model
-        dict_bkg_norm : dict, default None
-            background normalization for each background model, e.g, {'albedo': 0.95, 'activation': 1.05}
-        almost_zero : float, default 1e-12
-            In order to avoid zero components in extended count histogram, a tiny offset is introduced.
-            It should be small enough not to effect statistics.
+        model : ModelBase or subclass
 
         Returns
         -------
-        :py:class:`histpy.Histogram`
-            Expected count histogram
+        histpy.Histogram
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def calc_bkg_expectation(self, dict_bkg_norm):
+        """
+        Calculate expected counts from background models only.
+
+        Parameters
+        ----------
+        dict_bkg_norm : dict
+            Background normalization, e.g. {'albedo': 0.95}.
+
+        Returns
+        -------
+        histpy.Histogram
+        """
+        raise NotImplementedError
+
+    def calc_expectation(self, model, dict_bkg_norm):
+        """
+        Calculate total expected counts (source + background).
+
+        Default implementation sums calc_source_expectation and
+        calc_bkg_expectation. Subclasses may override for efficiency.
+
+        Parameters
+        ----------
+        model : ModelBase or subclass
+        dict_bkg_norm : dict
+
+        Returns
+        -------
+        histpy.Histogram
+        """
+
+        expectation = self.calc_source_expectation(model) + self.calc_bkg_expectation(dict_bkg_norm)
+
+        return expectation
 
     @abstractmethod
     def calc_T_product(self, dataspace_histogram):

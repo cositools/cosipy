@@ -1,10 +1,12 @@
 import itertools
 import logging
 import operator
+from typing import Optional
 
 from cosipy import UnBinnedData
 from cosipy.interfaces.expectation_interface import ExpectationInterface, ExpectationDensityInterface
 from cosipy.util.iterables import itertools_batched
+from cosipy.util.iterables import asarray
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +25,22 @@ __all__ = ['UnbinnedLikelihood',
 
 class UnbinnedLikelihood(UnbinnedLikelihoodInterface):
     def __init__(self,
-                 expectation:ExpectationDensityInterface,
-                 batch_size:int = 100000):
+                 expectation: ExpectationDensityInterface,
+                 batch_size: Optional[int] = None):
         """
-        Will get the number of events from the response and bkg expectation_density iterators
-
         Parameters
         ----------
-        response
-        bkg
+        expectation : ExpectationDensityInterface
+            Object that provides the expected counts and the
+            ``expectation_density()`` iterator used to compute the likelihood.
+
+        batch_size : int or None, optional
+            Number of density values to process at a time in ``get_log_like()``.
+            If None, all values are processed in a single batch.
+
+            This parameter only affects iteration when the expectation density
+            is provided as an iterator that is not a numpy array. If it is already
+            an array batching is not applied.
         """
 
         self._expectation = expectation
@@ -61,17 +70,23 @@ class UnbinnedLikelihood(UnbinnedLikelihoodInterface):
         # Based on the system
         nobservations = 0
         density_log_sum = 0
+        
+        expectation_density = self._expectation.expectation_density()
 
-        for density_iter_chunk in itertools_batched(self._expectation.expectation_density(), self._batch_size):
+        if (self._batch_size is None) or isinstance(expectation_density, np.ndarray):
+            chunks = [expectation_density]
+        else:
+            chunks = itertools_batched(expectation_density, self._batch_size)
+            
+        for chunk in chunks:
+            density = asarray(chunk, dtype=np.float64, force_dtype=False)
 
-            density = np.fromiter(density_iter_chunk, dtype=float)
-
-            if np.any(density == 0):
-                # np.log(0) = -inf for any event, no need to keep iterationg
+            # We don't have to continue
+            if density.min() <= 0.0:
                 return -np.inf
 
-            density_log_sum += np.sum(np.log(density))
             nobservations += density.size
+            density_log_sum += np.sum(np.log(density))
 
         self._nobservations = nobservations
 

@@ -10,7 +10,7 @@ class PriorBase:
     Parameters
     ----------
     parameter : dict
-        parameters for the prior probability.
+        Parameters for the prior probability.
     model : object of a subclass of :py:class:`cosipy.image_deconvolution.ModelBase`
         Model object to which the prior will be applied.
 
@@ -22,6 +22,28 @@ class PriorBase:
         Scaling coefficient for the prior probability.
     model_class : type
         Type of the model being used.
+
+    Notes
+    -----
+    All prior subclasses must implement:
+
+    - ``log_prior(model)``      : returns the scalar log prior value
+    - ``grad_log_prior(model)`` : returns the gradient of the log prior
+                                  with respect to the model, with units
+                                  inverse to the model
+
+    The ``coefficient`` (:math:`c`) controls the strength of the prior.
+    A larger value enforces the prior more strongly relative to the likelihood.
+    Setting ``coefficient = 0`` effectively disables the prior.
+
+    **YAML parameter block (common to all priors)**
+
+    .. code-block:: yaml
+
+        prior:
+            <prior_name>:
+                coefficient: 1.0   # regularization strength c (dimensionless)
+                # ... prior-specific parameters follow
     """
 
     usable_model_classes = []
@@ -90,6 +112,7 @@ class PriorBase:
         numpy.ndarray
             Gradient of the log prior.
             Its shape must be the same as the input model.
+            Its unit must be the inverse of the model unit.
         """
 
         raise NotImplementedError

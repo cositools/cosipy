@@ -176,4 +176,5 @@ class AllSkyImageModel(ModelBase):
         """
         Calculate the total flux at each energy bin.
         """
+
         return np.sum(self, axis = 0) * self.axes['lb'].pixarea()

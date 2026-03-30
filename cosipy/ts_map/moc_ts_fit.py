@@ -169,7 +169,7 @@ class MOCTSMap(FastTSMap):
           lowest nside used in map
         strategy : MOCTSMap.Strategy subclass, optional
           strategy to use in selecting pixels to refine.  If None,
-          default to TopKStrategy with k=8
+          default to PaddingStrategy(ContainmentStrategy(0.999)).
 
         Returns
         -------
@@ -197,7 +197,7 @@ class MOCTSMap(FastTSMap):
             return res
 
         if strategy is None:
-            self.strategy = self.TopKStrategy(k=8)
+            self.strategy = self.PaddingStrategy(self.ContainmentStrategy(0.999))
         else:
             self.strategy = strategy
 

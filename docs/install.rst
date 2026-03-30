@@ -6,11 +6,8 @@ Using pip
 
 Optional but recommended step: install a conda environment::
 
-  conda create -n <cosipy_env_name> python=3.10 pip
+  conda create -n <cosipy_env_name> python=3.12 pip
   conda activate <cosipy_env_name>
-
-Note: currently cosipy is not compatible with Python 3.12 due to
-installation issues with dependencies (`threeML <https://github.com/threeML/threeML/pull/631>`_ and `astromodels <https://github.com/threeML/astromodels/issues/204>`_)
 
 Install with pip::
   
@@ -24,7 +21,7 @@ From source (for developers)
 
 Optional but recommended step: install a conda environment::
 
-  conda create -n <cosipy_env_name> python=3.10 pip
+  conda create -n <cosipy_env_name> python=3.12 pip
   conda activate <cosipy_env_name>
 
 Also optional but recommended: before installing cosipy, install the main
