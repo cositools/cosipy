@@ -4,7 +4,7 @@ bindata:
     args:
       - ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5
   unbinned_data_file: GalTotal_SA100_F98_3months_unbinned_data_filtered_with_SAAcut.fits
-  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.ori
+  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
   dt: 1
   tmin: 1836496100.0
   tmax: 1836496588.1

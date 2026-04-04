@@ -123,6 +123,7 @@ class UnBinnedData(DataIO):
         if self.data_file.endswith(".tra.gz"):
             # Need to get number of lines for progress bar.  First try
             # fast method for unix-based systems
+
             try:
                 proc=subprocess.Popen(f'gunzip -c {self.data_file} | wc -l',
                                       shell=True, stdout=subprocess.PIPE)
@@ -149,6 +150,7 @@ class UnBinnedData(DataIO):
 
             # If fast method fails, use long method, which should work
             # in all cases
+
             except:
                 logger.info("Initial attempt failed.")
                 logger.info("Using long method...")
@@ -188,7 +190,6 @@ class UnBinnedData(DataIO):
 
             this_line = line.lstrip()
             match this_line[:2]: # will be "" for empty line
-
                 case "SE": # New event marker
 
                     # Previous event was read but is not valid.
@@ -483,7 +484,6 @@ class UnBinnedData(DataIO):
         self.zl_interp = interpolate.interp1d(time_tags, z_pointings.l.rad, kind='linear')
         self.zb_interp = interpolate.interp1d(time_tags, z_pointings.b.rad, kind='linear')
 
-
     def construct_scy(self, scx_l, scx_b, scz_l, scz_b):
 
         """Construct y-coordinate of instrument pointing given x and z directions.
@@ -558,6 +558,7 @@ class UnBinnedData(DataIO):
             Right ascension in radians.
         dec : float
             Declination in radians.
+
         """
 
         x, y, z = vector
@@ -597,7 +598,6 @@ class UnBinnedData(DataIO):
             with h5py.File(f'{output_name}.hdf5', 'w') as hf:
                 for each in self.cosi_dataset.keys():
                     hf.create_dataset(each, data=self.cosi_dataset[each], compression='gzip')
-
 
     def get_dict_from_fits(self, input_fits):
 

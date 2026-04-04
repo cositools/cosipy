@@ -1,8 +1,7 @@
 import numpy as np
+
 import astropy.units as u
-from astropy.units import Quantity
 from astropy.coordinates import Galactic
-from scipy import integrate
 
 from histpy import Histogram
 
@@ -23,8 +22,8 @@ from threeML import (
 )
 
 def get_integrated_spectral_model(spectrum, energy_axis):
-    """
-    Get the photon fluxes integrated over given energy bins with an input astropy spectral model
+    """Get the photon fluxes integrated over given energy bins with an
+    input astropy spectral model
 
     Parameters
     ----------
@@ -45,8 +44,38 @@ def get_integrated_spectral_model(spectrum, energy_axis):
 
     Notes
     -----
-    This function determines the unit of the spectrum, performs the integration
-    over each energy bin, and returns the result as a Histogram object.
+    This function determines the unit of the spectrum, performs the
+    integration over each energy bin, and returns the result as a
+    Histogram object.
+
+    """
+
+    from cosipy.response.integrals import get_integral_values
+
+    spectrum_unit = get_spectrum_unit(spectrum)
+
+    flux_values = get_integral_values(spectrum, energy_axis.edges.value)
+
+    flux = Histogram(energy_axis,
+                     contents = flux_values,
+                     unit = spectrum_unit * energy_axis.unit,
+                     copy_contents = False)
+
+    return flux
+
+
+def get_spectrum_unit(spectrum):
+    """
+    Get the unit of the spectral model.
+
+    Parameters
+    ----------
+    spectrum : astromodels.functions
+        One-dimensional spectral function from astromodels.
+
+    Returns:
+    astropy.unit for the spectrum
+
     """
 
     from cosipy.threeml import Band_Eflux
@@ -77,33 +106,18 @@ def get_integrated_spectral_model(spectrum, energy_axis):
                 except:
                     raise RuntimeError("Spectrum not yet supported because units are unknown.")
 
-    if isinstance(spectrum, DiracDelta):
-        flux = [spectrum.value.value
-                if spectrum.zero_point.value >= lo_lim and spectrum.zero_point.value <= hi_lim
-                else 0
-                for lo_lim, hi_lim in zip(energy_axis.lower_bounds.value,
-                                          energy_axis.upper_bounds.value)]
+    return spectrum_unit
 
-    else:
-        flux = [integrate.quad(spectrum, lo_lim, hi_lim)[0]
-                for lo_lim, hi_lim in zip(energy_axis.lower_bounds.value,
-                                          energy_axis.upper_bounds.value)]
-
-    flux = Histogram(energy_axis,
-                     contents = flux,
-                     unit = spectrum_unit * energy_axis.unit)
-
-    return flux
 
 def get_integrated_extended_model(extendedmodel, image_axis, energy_axis):
-    """
-    Calculate the integrated flux map for an extended source model.
+    """Calculate the integrated flux map for an extended source model.
 
     Parameters
     ----------
     extendedmodel : astromodels.ExtendedSource
-        An astromodels extended source model object. This model represents
-        the spatial and spectral distribution of an extended astronomical source.
+        An astromodels extended source model object. This model
+        represents the spatial and spectral distribution of an
+        extended astronomical source.
     image_axis : histpy.HealpixAxis
         Spatial axis for the image.
     energy_axis : histpy.Axis
@@ -116,21 +130,26 @@ def get_integrated_extended_model(extendedmodel, image_axis, energy_axis):
 
     Notes
     -----
-    This function first integrates the spectral model over the energy bins,
-    then combines it with the spatial distribution to create a 2D flux map.
+    This function first integrates the spectral model over the energy
+    bins, then combines it with the spatial distribution to create a
+    2D flux map.
+
     """
 
     if not isinstance(image_axis.coordsys, Galactic):
         raise ValueError
 
-    integrated_flux = get_integrated_spectral_model(spectrum = extendedmodel.spectrum.main.shape, energy_axis = energy_axis)
+    integrated_flux = \
+        get_integrated_spectral_model(spectrum = extendedmodel.spectrum.main.shape,
+                                      energy_axis = energy_axis)
 
-    npix = image_axis.npix
-    coords = image_axis.pix2skycoord(np.arange(npix))
-    normalized_map = extendedmodel.spatial_shape(coords.l.deg, coords.b.deg) / u.sr
+    l, b = image_axis.pix2ang(np.arange(image_axis.npix), lonlat=True)
+    normalized_map = extendedmodel.spatial_shape(l, b) / u.sr
+
+    flux = np.tensordot(normalized_map, integrated_flux.contents, axes = 0)
 
     flux_map = Histogram((image_axis, energy_axis),
-                         contents = np.tensordot(normalized_map, integrated_flux.contents, axes = 0),
+                         contents = flux,
                          copy_contents = False)
 
     return flux_map

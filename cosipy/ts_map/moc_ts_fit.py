@@ -7,7 +7,7 @@ import mhealpy as hp
 
 import matplotlib.pyplot as plt
 
-from .fast_ts_fit import FastTSMap
+from .fast_ts_fit import FastTSMap, Frame
 
 import logging
 logger = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ class MOCTSMap(FastTSMap):
           lowest nside used in map
         strategy : MOCTSMap.Strategy subclass, optional
           strategy to use in selecting pixels to refine.  If None,
-          default to TopKStrategy with k=8
+          default to PaddingStrategy(ContainmentStrategy(0.999)).
 
         Returns
         -------
@@ -197,7 +197,7 @@ class MOCTSMap(FastTSMap):
             return res
 
         if strategy is None:
-            self.strategy = self.TopKStrategy(k=8)
+            self.strategy = self.PaddingStrategy(self.ContainmentStrategy(0.999))
         else:
             self.strategy = strategy
 
@@ -216,7 +216,15 @@ class MOCTSMap(FastTSMap):
 
         while nside <= max_nside:
 
-            src_locs = self._get_hypothesis_coords(nside, pixels)
+            if self._cds_frame == Frame.LOCAL:
+                # compute possible source dirs in same frame
+                # we will use to translate them to local-frame paths
+                hyp_frame = self._orientation.attitude.frame
+            else: # galactic frame
+                hyp_frame = "galactic"
+
+            src_locs = self._get_hypothesis_coords(nside, pixels,
+                                                   coordsys=hyp_frame)
 
             results = [
                 self._fit_one_direction(source,
@@ -317,3 +325,6 @@ class MOCTSMap(FastTSMap):
 
         if save_plot:
             fig.savefig(Path(save_dir)/save_name, dpi = dpi)
+
+        plt.show()
+        plt.close(fig)

@@ -1,0 +1,37 @@
+bindata_grb:
+  response:
+    class: ExpectationInterfaceTBD
+    args:
+      - ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5
+  unbinned_data_file: GRB_bn081207680_3months_unbinned_data_filtered_with_SAAcut.fits.gz
+  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.ori
+  dt: 1
+  tmin: 1836496300.0
+  tmax: 1836496388.1
+  coo_sys: "local"
+
+
+bindata_bk:
+  response:
+    class: ExpectationInterfaceTBD
+    args:
+      - ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5
+  unbinned_data_file: GalTotal_SA100_F98_3months_unbinned_data_filtered_with_SAAcut.fits.gz
+  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.ori
+  dt: 1
+  tmin: 1836496200.0
+  tmax: 1836496488.1
+  coo_sys: "local" 
+
+bindata_grbbk:
+  response:
+    class: ExpectationInterfaceTBD
+    args:
+      - ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5
+  unbinned_data_file: galbk_grbdc3.fits.gz
+  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.ori
+  dt: 1
+  tmin: 1836496300.0
+  tmax: 1836496388.1
+  coo_sys: "local"
+   

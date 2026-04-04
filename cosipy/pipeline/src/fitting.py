@@ -1,4 +1,9 @@
-from cosipy import COSILike
+from cosipy.response.FullDetectorResponse import FullDetectorResponse
+from cosipy.statistics import PoissonLikelihood
+from cosipy.background_estimation import FreeNormBinnedBackground
+from cosipy.interfaces import ThreeMLPluginInterface
+from cosipy.response import BinnedThreeMLModelFolding, BinnedInstrumentResponse, BinnedThreeMLPointSourceResponse
+from cosipy.data_io import EmCDSBinnedData
 
 import numpy as np
 
@@ -8,7 +13,7 @@ from astromodels import Parameter
 from astropy import units as u
 
 
-def get_fit_results(sou, bk, resp_path, ori, bkname, model):
+def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
     """
     Fits a model to spectral data using threeML.
 
@@ -20,10 +25,10 @@ def get_fit_results(sou, bk, resp_path, ori, bkname, model):
         The binned histogram of the background data
     resp_path: str
         Path to the response file.
-    ori: cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile
-        A SpacecraftFile Object, parsed from an orientation file.
-    bkname: str
-        Name of the results of the fit to the background (internal to threeML).
+    ori_sou: cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile
+        A SpacecraftFile Object sliced as the source
+    ori_bk: cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile
+        A SpacecraftFile Object sliced as the background
     model: astromodels.core.model.Model
         threeML model
     Returns
@@ -35,20 +40,39 @@ def get_fit_results(sou, bk, resp_path, ori, bkname, model):
         predicted by the model in each energy bin.
     """
 
-    bkg_par = Parameter(bkname,  # background parameter
-                        0.1,  # initial value of parameter
-                        min_value=0,  # minimum value of parameter
-                        max_value=5,  # maximum value of parameter
-                        delta=1e-3,  # initial step used by fitting engine
-                        desc="Background parameter for cosi")
+    dr = FullDetectorResponse.open(resp_path)
 
-    cosi = COSILike("cosi",  # COSI 3ML plugin
-                    dr=resp_path,  # detector response
-                    data=sou.project('Em', 'Phi', 'PsiChi'),
-                    bkg=bk.project('Em', 'Phi', 'PsiChi'),
-                    sc_orientation=ori,  # spacecraft orientation
-                    nuisance_param=bkg_par,
-                    earth_occ=True)  # background parameter
+    data = EmCDSBinnedData(sou.project('Em', 'Phi', 'PsiChi'))
+
+    bkg = FreeNormBinnedBackground(bk.project('Em', 'Phi', 'PsiChi'),
+                               sc_history=ori_bk,
+                               copy = False)
+
+    instrument_response = BinnedInstrumentResponse(dr, data)
+
+    psr = BinnedThreeMLPointSourceResponse(data = data,
+                                       instrument_response = instrument_response,
+                                       sc_history=ori_sou,
+                                       energy_axis = dr.axes['Ei'],
+                                       polarization_axis = dr.axes['Pol'] if 'Pol' in dr.axes.labels else None,
+                                       nside = 2*data.axes['PsiChi'].nside)
+
+    response = BinnedThreeMLModelFolding(data = data, point_source_response = psr)
+
+    like_fun = PoissonLikelihood(data, response, bkg)
+
+    cosi = ThreeMLPluginInterface('cosi',
+                              like_fun,
+                              response,
+                              bkg)
+    
+    cosi.bkg_parameter['bkg_norm'] = Parameter('bkg_norm',  # background parameter
+                                      1.0,  # initial value of parameter
+                                      min_value=0,  # minimum value of parameter
+                                      max_value= 20,  # maximum value of parameter
+                                      delta=0.05,  # initial step used by fitting engine
+                                      unit = u.Hz
+                                      )
 
     cosi.set_model(model)
     plugins = DataList(cosi)
@@ -56,19 +80,12 @@ def get_fit_results(sou, bk, resp_path, ori, bkname, model):
     like.fit()
     results = like.results
 
-    # FIXME: Do no rely on protected variables. _expected_counts is not guaranteed to
-    #   survive refactoring. Revisit this after the interfaces refactoring
-    expectation = None
-    for source_expectation in cosi._expected_counts.values():
-        if expectation is None:
-            expectation = source_expectation.copy()
-        else:
-            expectation += source_expectation
-
+    expectation = response.expectation()
+    expectation_bkg = bkg.expectation()
     tot_exp_counts = expectation.project('Em').todense().contents + (
-                bkg_par.value * bk.project('Em').todense().contents)
-    #
-    #
+                expectation_bkg.project('Em').todense().contents)
+    
+    
     return results, tot_exp_counts
 
 

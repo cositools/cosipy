@@ -289,6 +289,8 @@ def test_inject_model():
 
     # Define the response
     response_path = test_data.path / "test_precomputed_response.h5"
+    orientation_path = test_data.path / "20280301_2s.fits"
+    ori = SpacecraftHistory.open(orientation_path)
 
     K = 17 / u.cm / u.cm / u.s / u.keV
     piv = 1 * u.keV

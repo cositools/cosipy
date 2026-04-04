@@ -145,7 +145,7 @@ bindata:
     args:
       - ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5
   unbinned_data_file: galbk_grbdc3.fits
-  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.ori
+  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
   dt: 1
   tmin: 1836496300.0
   tmax: 1836496388.1
@@ -156,7 +156,7 @@ bindata:
 threemlfit:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
     grbdc3 (point source): *grbdc3_source_model
-  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.ori
+  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
   data:
     class: DataInterfaceTBD
     args:

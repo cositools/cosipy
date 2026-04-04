@@ -39,12 +39,12 @@ class PolarizationAxis(Axis):
             convention = edges.convention if convention is None else convention
             edges = edges.angle
 
+        self._convention = PolarizationConvention.get_convention(convention)
+
         super().__init__(edges, label = label, scale='linear', unit=unit, copy=copy)
 
         if self.unit is None:
             raise ValueError("PolarizationAxis needs edges with units")
-
-        self._convention = PolarizationConvention.get_convention(convention)
 
     @property
     def convention(self):

@@ -6,11 +6,8 @@ Using pip
 
 Optional but recommended step: install a conda environment::
 
-  conda create -n <cosipy_env_name> python=3.10 pip
+  conda create -n <cosipy_env_name> python=3.12 pip
   conda activate <cosipy_env_name>
-
-Note: currently cosipy is not compatible with Python 3.12 due to
-installation issues with dependencies (`threeML <https://github.com/threeML/threeML/pull/631>`_ and `astromodels <https://github.com/threeML/astromodels/issues/204>`_)
 
 Install with pip::
   
@@ -24,7 +21,7 @@ From source (for developers)
 
 Optional but recommended step: install a conda environment::
 
-  conda create -n <cosipy_env_name> python=3.10 pip
+  conda create -n <cosipy_env_name> python=3.12 pip
   conda activate <cosipy_env_name>
 
 Also optional but recommended: before installing cosipy, install the main
@@ -42,8 +39,85 @@ Do the following (preferably inside a conda environment)::
 The flag ``-e`` (``--editable``) allows you to make changes and try them without
 having to run ``pip`` again.
 
+Enable machine learning tools ([ml])
+------------------------------------
+
+Some cosipy features require ``pytorch`` and other related libraries
+which are not installed by default. In order to access these you need to
+specify the ``[ml]`` extra packages during the installation. e.g.::
+
+    pip install cosipy[ml]
+
+or, if you are installing from from source::
+
+    pip install '.[ml]'
+
+If you do not install these optional dependencies, then some imports in the
+``.ml`` submodules will fail. For example::
+
+    from cosipy.background_estimation.ml import ContinuumEstimationNN
+
+would result in::
+
+    ImportError: Install cosipy with [ml] optional packages to use these features.
+
+NOTE: MacOS users with an M-series chip are recommended to install healpy and pytorch
+through conda instead of pip. See `OMP: Error #15`_ below.
+
 Troubleshooting
 ---------------
+
+OMP: Error #15
+^^^^^^^^^^^^^^
+
+This is caused by multiple and incompatible ``OpenMP`` libraries shipped
+with ``pip``-installed packages. See `PyTorch Issue 44282 <https://github.com/pytorch/pytorch/issues/44282>`_.
+
+Some observed error messages are:
+
+::
+
+    OMP: Error #15: Initializing libomp.dylib, but found libomp.dylib already initialized.
+    OMP: Hint This means that multiple copies of the OpenMP runtime have been linked into the program. That is dangerous, since it can degrade performance or cause incorrect results. The best thing to do is to ensure that only a single OpenMP runtime is linked into the process, e.g. by avoiding static linking of the OpenMP runtime in any library. As an unsafe, unsupported, undocumented workaround you can set the environment variable KMP_DUPLICATE_LIB_OK=TRUE to allow the program to continue to execute, but that may cause crashes or silently produce incorrect results. For more information, please see http://openmp.llvm.org/
+
+::
+
+    Current thread 0x00000001fd026240 (most recent call first):
+    File "<frozen importlib._bootstrap>", line 488 in _call_with_frames_removed
+    File "<frozen importlib._bootstrap_external>", line 1293 in create_module
+    File "<frozen importlib._bootstrap>", line 813 in module_from_spec
+    File "<frozen importlib._bootstrap>", line 921 in _load_unlocked
+    File "<frozen importlib._bootstrap>", line 1331 in _find_and_load_unlocked
+    File "<frozen importlib._bootstrap>", line 1360 in _find_and_load
+    ...
+    Abort trap: 6
+
+or
+
+::
+
+    Segmentation fault: 11
+
+While the root cause of this error is unrelated to ``cosipy``, it can
+be caused by the dependencies installed by default through ``pip``.
+In particular, we have seen this error under the following conditions::
+
+1. Running on a system with an Apple M-series chip.
+2. Importing a class from a machine learning submodule (".ml") --since it imports ``torch``.
+3. Running another command which uses OpenMP, `healpy.smoothing` (currently used by
+``cosipy.imaging_deconvolution.AllSkyImageModel`` and ``cosipy.background_estimation.LineBackgroundEstimation``).
+
+The current workaround to solve this is to install both ``healpy`` and ``pytorch``
+from conda before installing cosipy (so they don't get installed by ``pip``)::
+
+    conda create -n <cosipy_env_name> python=3.12 pip healpy pytorch
+
+The conda installation makes sure that the OpenMP libraries are
+compatible an work with an M chip.
+
+Note also that ``pytest`` imports all tests during the initial collection step.
+This means that, unless healpy and pytorch are installed through conda, running
+``pytest`` with all test can fail despite they working fine individually.
 
 ERROR:: Could not find a local HDF5 installation.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -94,9 +168,6 @@ While astromodels support Xspec functions, these are generally not currently rel
 Testing
 -------
 
-.. warning::
-    Under construction. Unit tests are not ready.
-    
 When you make a change, check that it didn't break something by running::
 
     pytest --cov=cosipy --cov-report term --cov-report html:tests/coverage_report
@@ -108,6 +179,9 @@ a 100% coverage!
 You can install ``pytest`` and ``pytest-cov`` with::
 
     conda install -c conda-forge pytest pytest-cov
+
+For MacOS with an M-series chip, see section `OMP: Error #15`_ above for the necessary
+extra steps for all tests to succeed.
 
 Compiling the docs
 ------------------

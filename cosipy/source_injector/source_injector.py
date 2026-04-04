@@ -1,3 +1,4 @@
+import numpy as np
 from cosipy.response import (
     GalacticResponse,
     FullDetectorResponse,
@@ -74,7 +75,8 @@ class SourceInjector():
                             make_PsiChi_plot=False,
                             data_save_path=None,
                             project_axes=None,
-                            polarization=None):
+                            polarization=None,
+                            earth_occ=True):
         """
         Get the expected counts for a point source.
 
@@ -106,6 +108,9 @@ class SourceInjector():
             assumed to have the same convention as the point source
             response. If the response does not include a `Pol` axis,
             the injector will fall back to an unpolarized expectation.
+        earth_occ : bool, optional
+            Option to include Earth occultation in scatt map calculation.
+            Default is True.
 
         Returns
         -------
@@ -134,7 +139,7 @@ class SourceInjector():
 
                 scatt_map = orientation.get_scatt_map(response.nside * 2,
                                                       target_coord=coordinate,
-                                                      earth_occ=True)
+                                                      earth_occ=earth_occ)
 
                 psr = response.get_point_source_response(coord=coordinate,
                                                          scatt_map=scatt_map)
@@ -284,7 +289,9 @@ class SourceInjector():
                      make_PsiChi_plot=False,
                      data_save_path=None,
                      project_axes=None,
-                     polarization=None):
+                     fluctuate=True,
+                     polarization=None,
+                     earth_occ=True):
         """
         Build an injected source by combining all the sources in a
         model.  Each injected source is stored by name in a dictionary
@@ -318,6 +325,12 @@ class SourceInjector():
             point sources. If a given point source response does not
             include a `Pol` axis, the injector will fall back to an
             unpolarized expectation for that source.
+        earth_occ : bool, optional
+            Option to include Earth occultation in scatt map calculation.
+            Default is True.
+        fluctuate : bool,optional
+            Add poisson fluctuations on the injected source.
+            The default value is set to True.
 
         Returns
         -------
@@ -348,7 +361,8 @@ class SourceInjector():
                                                 orientation=orientation,
                                                 source_name=name,
                                                 project_axes=project_axes,
-                                                polarization=polarization)
+                                                polarization=polarization,
+                                                earth_occ=earth_occ)
 
             # set to log scale manually. This inconsistency is from
             # the detector response module
@@ -377,6 +391,9 @@ class SourceInjector():
                 injected_all = component.copy()
             else:
                 injected_all += component
+
+        if fluctuate :
+            injected_all[:] = np.random.poisson(injected_all)
 
         if data_save_path is not None:
             injected_all.write(data_save_path)

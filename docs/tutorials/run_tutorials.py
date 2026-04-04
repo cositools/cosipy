@@ -49,6 +49,8 @@ def main():
                          'and then exit.'))
     p.add_argument('--tutorial', nargs='*', default = None,
                    help = "Which tutorials to run. All by default.")
+    p.add_argument('--exclude', nargs='*', default=None,
+                   help="Which tutorials to exclude.")
     p.add_argument('--log-level', default='info',
                     help='Set the logging level (debug, info, warning, error, critical)')
     p.add_argument('--dry', action='store_true', default=False,
@@ -104,6 +106,9 @@ def main():
 
     if tutorials is None:
         tutorials = list(config['tutorials'].keys())
+
+    if args.exclude is not None:
+        tutorials = [t for t in tutorials if t not in args.exclude]
 
     # Common convenient functions
     def get_unzip_output(output, file_args):
@@ -234,9 +239,15 @@ def main():
                 # like it succeeded.
                 for cell in nb.cells:
                     if cell.cell_type == 'code':
-                        source = cell.source.strip("\n").lstrip()
-                        if len(source) >= 2 and source[:2] == "%%":
-                            cell.source = cell.source.replace("%%", "#[magic commented out by run_tutorials.py]%%")
+                        lines = cell.source.split("\n")
+
+                        new_lines = []
+                        for line in lines:
+                            if line.strip().startswith("%") or line.strip().startswith("%%"):
+                                line = "#[magic commented out by run_tutorials.py] " + line
+                            new_lines.append(line)
+
+                        cell.source = "\n".join(new_lines)
 
                 # As script
                 script_path = nb_path.with_suffix('.py')

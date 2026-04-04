@@ -55,7 +55,7 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
     def differential_effective_area(self,
                                     direction: SkyCoord,
                                     energy:u.Quantity,
-                                    polarization:PolarizationAngle = None,
+                                    polarization:PolarizationAxis = None,
                                     attitude:Attitude = None,
                                     time = None,
                                     weight:Union[Quantity, float] = None,
@@ -77,7 +77,7 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
         energy:
             Photon energy
         polarization
-            Photon polarization angle
+            Photon polarization angle axis
         attitude
             Attitude defining the orientation of the SC in an inertial coordinate system.
         time:
@@ -185,7 +185,7 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
                                               attitude:Attitude,
                                               axes:Axes,
                                               direction: SkyCoord,
-                                              polarization:PolarizationAngle = None,
+                                              polarization:PolarizationAxis = None,
                                               weight:Union[float, Quantity] = None,
                                               out: Quantity = None,
                                               add_inplace:bool = False,
@@ -210,24 +210,22 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
         # and obtain the same results as in v3.x
         out_axes = [self._dr.axes['Ei']]
 
-
-
         if self.is_polarization_response:
 
-            raise RuntimeError("Fix me. No pol yet")
+            #raise RuntimeError("Fix me. No pol yet")
 
             # Since we're doing a 0-th order interpolation, the only thing that matter are the bin centers,
             # so we're placing them at the input polarization angles
 
-            if np.any(polarization.angle[1:] - polarization.angle[:-1] < 0):
+            if np.any(polarization.centers.angle.value[1:] - polarization.centers.angle.value[:-1] < 0):
                 raise ValueError("This implementation requires strictly monotonically increasing polarization angles")
 
-            pol_edges = (polarization.angle[:-1] + polarization.angle[1:])/2
+            pol_edges = (polarization.centers.angle[:-1] + polarization.centers.angle[1:]).to_value(u.deg)/2
 
-            pol_edges = np.concatenate(pol_edges[0] - 2*(pol_edges[0] - polarization.angle[0]), pol_edges)
-            pol_edges = np.concatenate(pol_edges, pol_edges[-1] + 2 * (polarization.angle[-1] - pol_edges[-1]))
+            pol_edges = np.concatenate((np.array([pol_edges[0] - 2*(pol_edges[0] - polarization.centers.angle.to_value(u.deg)[0])]), pol_edges))
+            pol_edges = np.concatenate((pol_edges, np.array([pol_edges[-1] + 2 * (polarization.centers.angle.to_value(u.deg)[-1] - pol_edges[-1])])))
 
-            out_axes += [PolarizationAxis(pol_edges, convention = polarization.convention)]
+            out_axes += [PolarizationAxis(pol_edges*u.deg, convention = polarization.convention)]
 
         out_axes += list(axes)
         out_axes = Axes(out_axes)

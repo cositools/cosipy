@@ -309,7 +309,15 @@ class FastTSMap():
         data_cds_array, bkg_model_cds_array, psr_cache = \
             self._prepare_inputs(energy_channel, spectrum, max_cache_size)
 
-        hypothesis_coords = self._get_hypothesis_coords(nside)
+        if self._cds_frame == Frame.LOCAL:
+            # compute possible source dirs in same frame
+            # we will use to translate them to local-frame paths
+            hyp_frame = self._orientation.attitude.frame
+        else: # galactic frame
+            hyp_frame = "galactic"
+
+        hypothesis_coords = self._get_hypothesis_coords(nside,
+                                                        coordsys=hyp_frame)
 
         results = [
             self._fit_one_direction(source,
@@ -389,6 +397,9 @@ class FastTSMap():
 
         if save_plot:
             fig.savefig(Path(save_dir)/save_name, dpi = dpi)
+
+        plt.show()
+        plt.close(fig)
 
     @staticmethod
     def get_chi_critical_value(containment = 0.90):

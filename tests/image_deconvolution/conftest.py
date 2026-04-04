@@ -4,7 +4,7 @@ import numpy as np
 from histpy import Histogram, Axis, Axes
 
 from cosipy import test_data
-from cosipy.image_deconvolution import DataIF_COSI_DC2, AllSkyImageModel
+from cosipy.image_deconvolution import DataIF_COSI_DC2, AllSkyImageModel, DataInterfaceCollection
 
 @pytest.fixture
 def dataset():
@@ -19,7 +19,7 @@ def dataset():
                                 rsp = precomputed_response,
                                 coordsys_conv_matrix = None)
 
-    return [data]
+    return DataInterfaceCollection([data])
 
 @pytest.fixture
 def model(dataset):

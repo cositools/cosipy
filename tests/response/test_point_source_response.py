@@ -1,21 +1,19 @@
 import numpy as np
 from numpy import array_equal as arr_eq
-from histpy import Histogram, Axes, Axis
+from histpy import Histogram
 from scoords import SpacecraftFrame
-from astropy.coordinates import SkyCoord
+
 import astropy.units as u
-import h5py as h5
+
 from astropy.time import Time
 from astromodels.core.polarization import LinearPolarization
-from mhealpy import HealpixBase, HealpixMap
+from mhealpy import HealpixMap
 
 from cosipy import test_data
-from cosipy.response.FullDetectorResponse import cosi_response
-from cosipy.response import PointSourceResponse, FullDetectorResponse
+from cosipy.response import FullDetectorResponse
 
 from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic 
 from threeML import StepFunction, StepFunctionUpper, GenericFunction
-from cosipy.threeml.custom_functions import SpecFromDat
 
 import pytest
 
@@ -102,14 +100,14 @@ def test_get_expectation():
     step.upper_bound.unit, step.lower_bound.unit, step.value.unit = norm, norm, norm
     exp = psr.get_expectation(step)
     assert isinstance(exp, Histogram)
-    assert np.isclose(np.sum(exp.contents), 2.3038894e+12, rtol=1e-8)
-    
+    assert np.isclose(np.sum(exp.contents), 2.300714202190e+12, rtol=1e-8)
+
     ## StepFunctionUpper (same as above except bounds are not "free")
     step_upper = StepFunctionUpper(upper_bound=3e2, lower_bound=0, value=1)
     step_upper.upper_bound.unit, step_upper.lower_bound.unit, step_upper.value.unit = norm, norm, norm
     exp = psr.get_expectation(step_upper)
     assert isinstance(exp, Histogram)
-    assert np.isclose(np.sum(exp.contents), 2.3038894e+12, rtol=1e-8)
+    assert np.isclose(np.sum(exp.contents), 2.300714202190e+12, rtol=1e-8)
 
     ## DiracDelta
     delta = DiracDelta(value=1, zero_point=251.189)
@@ -142,7 +140,7 @@ def test_get_expectation():
     ## get expectation with polarization
     exp = psr_pol.get_expectation(const, polarization=LinearPolarization(angle=180, degree=100))
     assert isinstance(exp, Histogram)
-    assert np.isclose(np.sum(exp.contents), 6.30823539e+11, rtol=1e-8)
+    assert np.isclose(np.sum(exp.contents), 7.56988247e+12, rtol=1e-8)
 
     # If polarization is not given, the result should be the same as PD=0
     exp_none = psr_pol.get_expectation(const)

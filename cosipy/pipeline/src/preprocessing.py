@@ -35,7 +35,7 @@ def write_yaml(udata_path, ori_path, resp_path, dt, tmin, tmax, bin_yaml_path):
         bin_dict = {
             "data_file": udata_path,
             "ori_file": ori_path,
-            "unbinned_output": udata_path[-4:],
+            "unbinned_output": 'fits',
             "time_bins": dt,
             "energy_bins": list(response.axes["Em"].edges.value),
             "phi_pix_size": int(180 / (response.axes["Phi"].nbins)),
