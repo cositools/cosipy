@@ -2,6 +2,8 @@ import pytest
 import numpy as np
 from astropy.io import fits
 import os
+import matplotlib
+matplotlib.use('Agg')
 
 # Import your classes
 from cosipy.phase_resolved_analysis import PhaseAssigner, PhaseSelector, PlotPulseProfile
