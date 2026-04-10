@@ -124,7 +124,7 @@ class BinnedData(UnBinnedData):
                      Axis(energy_bin_edges, unit=u.keV, label='Em'),
                      Axis(phi_bin_edges, unit=u.deg, label='Phi'),
                      psichi_axis], copy_axes=False)
-        self.binned_data = Histogram(axes, sparse=True)
+        self.binned_data = Histogram(axes, sparse=True, track_overflow=True)
 
         # Fill histogram:
         if event_range is None:
