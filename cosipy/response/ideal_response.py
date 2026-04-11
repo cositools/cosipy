@@ -41,6 +41,9 @@ from dataclasses import dataclass
 import numpy.typing as npt
 from tqdm import tqdm
 
+from astropy.table import Table
+from importlib.metadata import version
+
 
 def _to_rad(angle):
     if isinstance(angle, (Quantity, Angle)):
@@ -1411,3 +1414,55 @@ class RandomEventDataFromContinuumInSCFrame(EmCDSEventDataInSCFrameInterface):
         Return the number of realized events stored in `self._events`.
         """
         return len(self._events)
+
+    def save_data(self, saving_path, time_tags = None) -> None:
+
+        """
+        Save the injected unbinned data to a fits file
+
+        Parameters
+        ----------
+        saving_path : str or pathlib.Path
+            The path to save the file
+        time_tags : list or None
+            The time tags that will add to the injected data.
+            This is a place holder for future injection with orientation.
+        """
+
+        if time_tags is None:
+            cosi_dataset = {
+                "Energies": self.energy,
+                "Phi": self.scattering_angle.rad,
+                "Chi local": self.scattered_direction_sc.lon.rad,
+                "Psi local": np.pi/2 - self.scattered_direction_sc.lat.rad,
+            }
+            units = (
+                u.keV,
+                u.rad,
+                u.rad,
+                u.rad,
+            )
+            
+        else:
+            cosi_dataset = {
+                "TimeTags": time_tags,
+                "Energies": self.energy,
+                "Phi": self.scattering_angle.rad,
+                "Chi local": self.scattered_direction_sc.lon.rad,
+                "Psi local": np.pi/2 - self.scattered_direction_sc.lat.rad,
+            }
+            units = (
+                u.s,
+                u.keV,
+                u.rad,
+                u.rad,
+                u.rad,
+            )
+
+        cosipy_version = version("cosipy")
+        table = Table(cosi_dataset,
+                      units=units,
+                      meta={'version':cosipy_version})
+        table.write(saving_path, overwrite=True)
+
+        return
