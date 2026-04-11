@@ -125,6 +125,11 @@ class BinnedData(UnBinnedData):
                               unit=u.rad, frame=SpacecraftFrame())
 
         # Initialize histogram:
+        if sparse is None:
+            sparse = False
+        if track_overflow is None:
+            track_overflow = True
+
         axes = Axes([Axis(time_bin_edges, unit=u.s, label='Time'),
                      Axis(energy_bin_edges, unit=u.keV, label='Em'),
                      Axis(phi_bin_edges, unit=u.deg, label='Phi'),
