@@ -56,7 +56,7 @@ class BinnedData(UnBinnedData):
             use weight of 1
         sparse : bool, optional
             'True' for sparse binning, or
-            'False' for dense binning. (default is False)
+            'False' for dense binning. (default is True)
         track_overflow: bool, optional
              option to track under/overflow bin. (default is False)
             
@@ -126,7 +126,7 @@ class BinnedData(UnBinnedData):
 
         # Initialize histogram:
         if sparse is None:
-            sparse = False
+            sparse = True
         if track_overflow is None:
             track_overflow = True
 
