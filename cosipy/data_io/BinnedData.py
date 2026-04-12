@@ -128,7 +128,7 @@ class BinnedData(UnBinnedData):
         if sparse is None:
             sparse = True
         if track_overflow is None:
-            track_overflow = True
+            track_overflow = False
 
         axes = Axes([Axis(time_bin_edges, unit=u.s, label='Time'),
                      Axis(energy_bin_edges, unit=u.keV, label='Em'),
