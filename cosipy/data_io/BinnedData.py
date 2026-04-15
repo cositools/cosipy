@@ -56,7 +56,7 @@ class BinnedData(UnBinnedData):
             use weight of 1
         sparse : bool, optional
             'True' for sparse binning, or
-            'False' for dense binning. (default is True)
+            'False' for dense binning. (default is False)
         track_overflow: bool, optional
              option to track under/overflow bin. (default is False)
             
@@ -125,11 +125,6 @@ class BinnedData(UnBinnedData):
                               unit=u.rad, frame=SpacecraftFrame())
 
         # Initialize histogram:
-        if sparse is None:
-            sparse = True
-        if track_overflow is None:
-            track_overflow = False
-
         axes = Axes([Axis(time_bin_edges, unit=u.s, label='Time'),
                      Axis(energy_bin_edges, unit=u.keV, label='Em'),
                      Axis(phi_bin_edges, unit=u.deg, label='Phi'),
@@ -184,6 +179,13 @@ class BinnedData(UnBinnedData):
 
         self.binned_data = Histogram.open(binned_data)
 
+    def check_bin(self, contents):
+        """ Return dense array if object is sparse, otherwise return the same object """
+        if hasattr(contents, "todense"):
+            return contents.todense()
+        else:
+            return contents
+
     def get_binning_info(self, binned_data=None):
 
         """Get binning information from Histpy histogram.
@@ -203,7 +205,7 @@ class BinnedData(UnBinnedData):
             logger.info(f"{each.label} unit: {each.unit}")
 
         # Get time binning information:
-        self.time_hist = self.binned_data.project('Time').contents.todense()
+        self.time_hist = self.check_bin(self.binned_data.project('Time').contents.todense())
         self.num_time_bins = self.binned_data.axes['Time'].nbins
         self.time_bin_centers = self.binned_data.axes['Time'].centers
         self.time_bin_edges = self.binned_data.axes['Time'].edges
@@ -211,21 +213,21 @@ class BinnedData(UnBinnedData):
         self.total_time = self.time_bin_edges[-1] - self.time_bin_edges[0]
 
         # Get energy binning information:
-        self.energy_hist = self.binned_data.project('Em').contents.todense()
+        self.energy_hist = self.check_bin(self.binned_data.project('Em').contents.todense())
         self.num_energy_bins = self.binned_data.axes['Em'].nbins
         self.energy_bin_centers = self.binned_data.axes['Em'].centers
         self.energy_bin_edges = self.binned_data.axes['Em'].edges
         self.energy_bin_widths = self.binned_data.axes['Em'].widths
 
         # Get Phi binning information:
-        self.phi_hist = self.binned_data.project('Phi').contents.todense()
+        self.phi_hist = self.check_bin(self.binned_data.project('Phi').contents.todense())
         self.num_phi_bins = self.binned_data.axes['Phi'].nbins
         self.phi_bin_centers = self.binned_data.axes['Phi'].centers
         self.phi_bin_edges = self.binned_data.axes['Phi'].edges
         self.phi_bin_widths = self.binned_data.axes['Phi'].widths
 
         # Get PsiChi binning information:
-        self.psichi_hist = self.binned_data.project('PsiChi').contents.todense()
+        self.psichi_hist = self.check_bin(self.binned_data.project('PsiChi').contents.todense())
         self.num_psichi_bins = self.binned_data.axes['PsiChi'].nbins
         self.psichi_bin_centers = self.binned_data.axes['PsiChi'].centers
         self.psichi_bin_edges = self.binned_data.axes['PsiChi'].edges
@@ -336,7 +338,7 @@ class BinnedData(UnBinnedData):
 
         # Make healpix map with binned data slice:
         h = self.binned_data.project('Em', 'Phi', 'PsiChi').slice[{'Em':Em, 'Phi':phi}].project('PsiChi')
-        m = HealpixMap(base = HealpixBase(npix = h.nbins), data = h.contents.todense())
+        m = HealpixMap(base = HealpixBase(npix = h.nbins), data = self.check_bin(h.contents.todense()))
 
         # Plot standard view:
         plot,ax = m.plot('mollview')
