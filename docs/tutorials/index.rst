@@ -45,31 +45,35 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
     
 6. Fitting the spectrum of the Crab `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>`_
   
-  - Analysing a continuous source transiting in the sky.
+  - Analyzing a continuous source transiting in the sky.
 
-7. Extended source model fitting `(ipynb) <https://github.com/cositools/cosipy/blob/main/docs/tutorials/spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>`_
+7. Fitting the spectrum of the Galactic diffuse continuum `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/spectral_fits/galactic_diffuse_continuum/galdiff_continuum.ipynb>`_
+  
+  - Spectral fit for diffuse continuum emission from the Milky Way.
+
+8. Extended source model fitting `(ipynb) <https://github.com/cositools/cosipy/blob/main/docs/tutorials/spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>`_
    
   - Obtaining the extended source response as a convolution of multiple point sources
   - Pre-computing a response in galactic coordinates for all-sky
   - Fitting an extended source
     
-8. Image deconvolution `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/image_deconvolution/511keV-Galactic-ImageDeconvolution.ipynb>`_
+9. Image deconvolution `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/image_deconvolution/511keV-Galactic-ImageDeconvolution.ipynb>`_
   - Explain the RL algorithm. Reference the previous example. Explain the difference with a TS map.
   - Fitting the 511 diffuse emission.
   - Analyze data in the Compton data space with galactic coordinates.
   - Link to a notebook using Scatt binning which shows its advantages/disadvantages.
     
-9. Source injector `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/source_injector/Point_source_injector.ipynb>`_
+10. Source injector `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/source_injector/Point_source_injector.ipynb>`_
   - Convolve the response, point source model and orientation to obtain the mock data.
   - More types of source (e,g. extended source and polarization) will be suppored.
 
-10. Continuum background estimation `(ipynb) <https://github.com/cositools/cosipy/blob/develop/docs/tutorials/background_estimation/continuum_estimation/BG_estimationNN_example.ipynb>`_
+11. Continuum background estimation `(ipynb) <https://github.com/cositools/cosipy/blob/develop/docs/tutorials/background_estimation/continuum_estimation/BG_estimationNN_example.ipynb>`_
   - Estimating the continuum background from the data. 
 
-11. Line background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/line_background/line_background_estimation_example_notebook.ipynb>`_
+12. Line background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/line_background/line_background_estimation_example_notebook.ipynb>`_
   - Estimating the background from neighboring energy bins.
 
-12. Polarization (ASAD method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/ASAD_method.ipynb>`_
+13. Polarization (ASAD method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/ASAD_method.ipynb>`_
   - Estimating the polarization degree and angle of a GRB using the Azimuthal Scattering Angle Distribution (ASAD)
 
 .. warning::
@@ -84,6 +88,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    TS Map: localizing a GRB <ts_map/Parallel_TS_map_computation.ipynb>
    Fitting the spectrum of a GRB <spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb>
    Fitting the spectrum of the Crab <spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>
+   Fitting the spectrum of the Galactic diffuse continuum <spectral_fits/galactic_diffuse_continuum/galdiff_continuum.ipynb>
    Extended source model fitting <spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>
    Image deconvolution <image_deconvolution/511keV-Galactic-ImageDeconvolution.ipynb>
    Source injector <source_injector/Point_source_injector.ipynb>
