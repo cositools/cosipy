@@ -331,7 +331,7 @@ class BinnedData(UnBinnedData):
 
         # Make healpix map with binned data slice:
         h = self.binned_data.project('Em', 'Phi', 'PsiChi').slice[{'Em':Em, 'Phi':phi}].project('PsiChi')
-        m = HealpixMap(base = HealpixBase(npix = h.nbins), data = h.contents.todense())
+        m = HealpixMap(base = HealpixBase(npix = h.nbins), data = h.todense(),contents)
 
         # Plot standard view:
         plot,ax = m.plot('mollview')
