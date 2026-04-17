@@ -68,6 +68,9 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
 11. Polarization (ASAD method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/ASAD_method.ipynb>`_
   - Estimating the polarization degree and angle of a GRB using the Azimuthal Scattering Angle Distribution (ASAD)
 
+12. Polarization (Stokes parameters method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/Stokes_method.ipynb>`_
+  - Estimating the polarization of a GRB using Stokes parameters
+
 .. warning::
    Under construction. Some of the explanations described above might be missing. However, the notebooks are fully functional. If you have a question not yet covered by the tutorials, please discuss `issue <https://github.com/cositools/cosipy/discussions>`_ so we can prioritize it.
     
@@ -85,3 +88,4 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    Continuum Background Estimation <background_estimation/continuum_estimation/BG_estimationNN_example.ipynb>
    Line background estimation <background_estimation/line_background/line_background_estimation_example_notebook.ipynb>
    Polarization (ASAD method) <polarization/ASAD_method.ipynb>
+   Polarization (Stokes parameters method) <polarization/Stokes_method.ipynb>
