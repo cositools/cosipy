@@ -6,7 +6,7 @@ Other examples
    
    Point source response with Earth occultation <response/PSR_with_Earth_occultation_example.ipynb>
 
-   Fitting the spectrum of a GRB (binned) <spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb>
+   Fitting the spectrum of a GRB (binned, inertial coordinates) <spectral_fits/continuum_fit/grb/SpectralFit_GRB.ipynb>
 
    Fitting the spectrum of a GRB (unbinned) <spectral_fits/continuum_fit/grb/example_grb_fit_normalizing_flows.ipynb>
   
