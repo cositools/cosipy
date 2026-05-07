@@ -23,7 +23,6 @@ from astromodels import (
 
 from cosipy.threeml.custom_functions import Band_Eflux
 
-
 from cosipy.response.integrals import get_integral_values
 
 def test_integrate():

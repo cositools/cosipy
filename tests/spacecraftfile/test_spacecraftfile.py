@@ -12,6 +12,9 @@ from cosipy import SpacecraftHistory
 
 from pytest import raises
 
+from cosipy.event_selection import GoodTimeInterval
+
+
 def test_get_time():
 
     ori_path = test_data.path / "20280301_first_10sec.fits"
@@ -268,7 +271,14 @@ def test_select_interval():
     ori_path = test_data.path / "20280301_first_10sec.fits"
     ori = SpacecraftHistory.open(ori_path)
 
+    # verify that earth occultation caching is preserved under selection
+    ori.cache_earth_occ = False
     new_ori = ori.select_interval(ori.tstart+0.1*u.s, ori.tstart+2.1*u.s)
+    assert not new_ori.cache_earth_occ
+
+    ori.cache_earth_occ = True
+    new_ori = ori.select_interval(ori.tstart+0.1*u.s, ori.tstart+2.1*u.s)
+    assert new_ori.cache_earth_occ
 
     x, y, z = new_ori.attitude.as_axes()
 
@@ -306,6 +316,43 @@ def test_select_interval():
     assert new_ori.tstop == ori.tstart + 0.6*u.s
     assert new_ori.nintervals == 1
     assert np.isclose(new_ori.livetime[0], 0.2*u.s)
+
+def test_apply_gti():
+
+    ori_path = test_data.path / "20280301_first_10sec.fits"
+    ori = SpacecraftHistory.open(ori_path)
+
+    def assert_from_dt_sec(start_dt_sec, stop_dt_sec, expected_new_obstime_dt_sec):
+        gti = GoodTimeInterval(ori.tstart+start_dt_sec*u.s,
+                               ori.tstart+stop_dt_sec*u.s)
+
+        # verify that earth occultation caching is preserved under gti
+        ori.cache_earth_occ = False
+        new_ori = ori.apply_gti(gti)
+        assert not new_ori.cache_earth_occ
+
+        ori.cache_earth_occ = True
+        new_ori = ori.apply_gti(gti)
+        assert new_ori.cache_earth_occ
+
+        new_obstime_dt_sec = (new_ori.obstime - ori.tstart).to_value(u.second)
+
+        assert np.allclose(new_obstime_dt_sec, new_obstime_dt_sec)
+
+    start_dt_sec = [0.1, 9]
+    stop_dt_sec = [2.1, 10]
+    expected_new_obstime_dt_sec = [0.1, 1., 2., 2.1, 9., 10.]
+    assert_from_dt_sec(start_dt_sec, stop_dt_sec, expected_new_obstime_dt_sec)
+
+    start_dt_sec = 0
+    stop_dt_sec = 2.1
+    expected_new_obstime_dt_sec = [0., 1., 2., 2.1]
+    assert_from_dt_sec(start_dt_sec, stop_dt_sec, expected_new_obstime_dt_sec)
+
+    start_dt_sec = 2.1
+    stop_dt_sec = 4.5
+    expected_new_obstime_dt_sec = [2.1, 3, 4, 4.5]
+    assert_from_dt_sec(start_dt_sec, stop_dt_sec, expected_new_obstime_dt_sec)
 
 
 def test_ori_to_fits(tmp_path):
@@ -349,3 +396,61 @@ def test_ori_to_fits(tmp_path):
     # test overwriting behavior
     with raises(RuntimeError):
         ori.write_fits(tmp_path / "ori_test.fits", compress=True)
+
+
+def test_earth_occ():
+
+    ori_path = test_data.path / "20280301_first_10sec.fits"
+
+    ori = SpacecraftHistory.open(ori_path)
+
+    src = SkyCoord(l=180, b=67.1, unit="deg", frame="galactic")
+
+    occ = ori.get_earth_occ(src)
+
+    assert np.array_equal(occ, [ True, True,  True,  True,  True,
+                                 True, False, False, False, False,
+                                 False ])
+
+    ori.cache_earth_occ = True
+
+    _     = ori.get_earth_occ(src) # computes cached data
+    occ_c = ori.get_earth_occ(src) # uses cached data
+
+    assert np.array_equal(occ, occ_c)
+
+    ori.cache_earth_occ = False
+
+    occ_n = ori.get_earth_occ(src)
+
+    assert np.array_equal(occ, occ_n)
+
+class MockTimingModel:
+    """A dummy protocol object to safely test SpacecraftHistory exposure scaling."""
+    def get_duty_cycle(self, start, stop, intervals):
+        # Always return exactly 40% of the bin duration
+        return (stop - start).to(u.s) * 0.40
+
+def test_update_ephemeris_scaling():
+    """Test that SpacecraftHistory natively scales its exposure array in-place."""
+    
+    # Load the standard 10-second test file
+    ori_path = test_data.path / "20280301_first_10sec.ori"
+    ori = SpacecraftHistory.open(ori_path)
+    
+    # Extract the original livetime array (should be ~1.0s per bin)
+    original_livetime = np.copy(ori.livetime.to_value(u.s))
+    
+    # Initialize our dummy protocol and arbitrary intervals
+    dummy_model = MockTimingModel()
+    intervals = [(0.0, 0.4)] 
+    
+    # Run the native update method!
+    ori.update_ephemeris(dummy_model, intervals)
+    
+    # Verify the math: Every bin in the new livetime should be exactly 40% 
+    # of what it originally was
+    np.testing.assert_allclose(
+        ori.livetime.to_value(u.s), 
+        original_livetime * 0.40
+    )

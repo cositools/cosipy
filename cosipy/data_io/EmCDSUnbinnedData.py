@@ -8,7 +8,7 @@ from astropy.units import Quantity
 from numpy._typing import ArrayLike
 from scoords import SpacecraftFrame
 
-from cosipy import UnBinnedData
+from cosipy.data_io.UnBinnedData import UnBinnedData
 from cosipy.interfaces import EventWithEnergyInterface, EventDataInterface, EventDataWithEnergyInterface
 from cosipy.interfaces.data_interface import TimeTagEmCDSEventDataInSCFrameInterface, EmCDSEventDataInSCFrameInterface
 from cosipy.interfaces.event import  TimeTagEmCDSEventInSCFrameInterface, \

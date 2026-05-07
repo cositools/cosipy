@@ -6,45 +6,45 @@ from pathlib import Path
 
 
 def test_transient_background():
-    
+
     bkg_file = test_data.path / "GRB_bn110605183_with_bkg.hdf5"
-    
+
     data = Histogram.open(bkg_file)
-    
+
     estimator = TransientBackgroundEstimation(data)
-    
+
     estimator.plot_lightcurve(plot_limits = [1.841896e9 + 400, 1.841896e9+450])
-    
+
     # only one burst window error
     with pytest.raises(ValueError):
         estimator.add_burst_windows([1.8418964e9+4, 1.8418964e9+48], [1.8418964e9+4, 1.8418964e9+48])
-        
-    # burst window start > end error 
+
+    # burst window start > end error
     with pytest.raises(ValueError):
         estimator.add_burst_windows([1.8418964e9+48, 1.8418964e9+4])
-    
+
     estimator.add_burst_windows([1.8418964e9+4, 1.8418964e9+48])
-    
+
     estimator.add_bkg_windows([1.841896e9+200, 1.841896e9+300], [1.841896e9+500, 1.841896e9+600])
-    
+
     estimator.plot_lightcurve(burst_windows=True, bkg_windows=True)
-    
+
     # error for currently unsupported scaling by fitting
     with pytest.raises(NotImplementedError):
-        
+
         _ = estimator.make_background_model(scaling = "fitting")
-        
+
     # error for scaling method other than duration and fitting
     with pytest.raises(ValueError):
-        
+
         _ = estimator.make_background_model(scaling = "test")
-    
+
     save_path = Path("")/"test_data.hdf5"
-    
+
     bkg_model = estimator.make_background_model(save_path = save_path)
- 
+
     save_path.unlink()
-    
+
     psichi_array = np.array([4.62, 3.52, 3.96, 3.52, 5.06, 3.74, 2.86, 3.08, 2.86, 3.08, 3.52,
                                2.2 , 4.84, 4.62, 3.52, 3.08, 4.18, 3.52, 3.74, 2.86, 2.64, 3.52,
                                4.4 , 5.06, 4.62, 3.96, 2.2 , 3.08, 3.52, 3.74, 4.62, 3.08, 3.52,
@@ -115,79 +115,79 @@ def test_transient_background():
                                3.3 , 1.32, 1.98, 1.76, 2.86, 1.76, 1.76, 3.08, 3.74, 2.86, 4.62,
                                5.94, 2.86, 1.98, 4.84, 2.86, 3.08, 4.18, 3.3 , 3.3 , 2.2 , 3.96,
                                2.42, 2.86, 1.54, 2.42, 2.42, 1.54, 2.2 , 2.64, 1.98])
-    
-    assert np.allclose(bkg_model.project("PsiChi").contents.todense(),psichi_array)
-    
+
+    assert np.allclose(bkg_model.project("PsiChi").to_dense(copy=False).contents,psichi_array)
+
     assert np.allclose([44.0], estimator.burst_durations)
-    
+
     assert np.allclose([[1841896404.0, 1841896448.0]], estimator.burst_windows)
-    
+
     assert np.allclose([[1841896200.0, 1841896300.0], [1841896500.0, 1841896600.0]], estimator.bkg_windows)
-    
+
     assert np.allclose([100.0, 100.0], estimator.bkg_durations)
-    
+
 def test_data_type_error():
-    
+
     data = np.array([10])
 
     with pytest.raises(TypeError):
-        
+
         estimator = TransientBackgroundEstimation(data)
-        
-        
+
+
 def test_window_error():
-    
+
     bkg_file = test_data.path / "GRB_bn110605183_with_bkg.hdf5"
-    
+
     data = Histogram.open(bkg_file)
-    
+
     estimator = TransientBackgroundEstimation(data)
-    
+
     # making background error when the background window not defined
     with pytest.raises(ValueError):
-        
+
         _ = estimator.make_background_model()
-        
+
     estimator.add_bkg_windows([1.841896e9+200, 1.841896e9+300], [1.841896e9+500, 1.841896e9+600])
-    
+
     # making background error when the burst window not defined
     with pytest.raises(ValueError):
-        
+
         _ = estimator.make_background_model()
-        
+
 def test_Time_axis_error():
-    
-    bkg_file = test_data.path / "GRB_bn110605183_with_bkg_no_time_axis.hdf5"  
+
+    bkg_file = test_data.path / "GRB_bn110605183_with_bkg_no_time_axis.hdf5"
     data = Histogram.open(bkg_file)
-    
+
     # error when there is no Time axis in the data
     with pytest.raises(ValueError):
-        
+
         estimator = TransientBackgroundEstimation(data)
-        
+
     bkg_file = test_data.path / "GRB_bn110605183_with_bkg_time_axis_idx_not_zero.hdf5"
     data = Histogram.open(bkg_file)
-    
+
     # error when there is the Time axis doesn't have index of 0
     with pytest.raises(ValueError):
-        
+
         estimator = TransientBackgroundEstimation(data)
-        
-        
+
+
 def test_slice_timetage_error():
-    
+
     bkg_file = test_data.path / "GRB_bn110605183_with_bkg.hdf5"
-    
+
     data = Histogram.open(bkg_file)
-    
+
     estimator = TransientBackgroundEstimation(data)
-    
+
     # error when slicing window start > end
     with pytest.raises(ValueError):
-        
+
         estimator.slice_by_timetags(1.8418964e9+48, 1.8418964e9+4)
-        
+
     # error when the scaling start is smaller than the minumum time tag
     with pytest.raises(ValueError):
-        
+
         estimator.slice_by_timetags(1841896154.0-10, 1.8418964e9+48)

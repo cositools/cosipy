@@ -56,13 +56,12 @@ class DataIF_COSI_DC2(ImageDeconvolutionDataInterfaceBase):
 
         new = cls(name)
 
-        new._event = event_binned_data.to_dense()
+        new._event = event_binned_data.to_dense(copy=False)
 
         new._bkg_models = dict_bkg_binned_data
 
         for key in new._bkg_models:
-            if new._bkg_models[key].is_sparse:
-                new._bkg_models[key] = new._bkg_models[key].to_dense()
+            new._bkg_models[key] = new._bkg_models[key].to_dense(copy=False)
 
             new._summed_bkg_models[key] = np.sum(new._bkg_models[key])
 

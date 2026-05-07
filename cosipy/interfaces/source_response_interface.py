@@ -1,6 +1,7 @@
-from typing import Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable, Union
 from astromodels import Model
 from astromodels.sources import Source
+from pathlib import Path
 
 from .expectation_interface import BinnedExpectationInterface, ExpectationDensityInterface
 
@@ -63,6 +64,28 @@ class UnbinnedThreeMLSourceResponseInterface(ThreeMLSourceResponseInterface, Exp
     """
     No new methods. Just the inherited ones.
     """
+
+@runtime_checkable
+class CachedUnbinnedThreeMLSourceResponseInterface(UnbinnedThreeMLSourceResponseInterface, Protocol):
+    """
+    Guaranteeing that the source response can be cached to and loaded from a file.
+    """
+    
+    def cache_to_file(self, filename: Union[str, Path]):
+        """
+        Saves the calculated response cache to the specified HDF5 file.
+        The implementation has to make sure that the source is handled correctly.
+        """
+
+    def cache_from_file(self, filename: Union[str, Path]):
+        """Loads the response cache from the specified HDF5 file."""
+        
+    def init_cache(self):
+        """
+        Initialize the response cache that can be saved to file.
+        This way there is no need to call expected_counts() or expectation_density() to initialize the cache.
+        Make sure that repeated calls don't lead to unnecessary recomputations.
+        """
 
 @runtime_checkable
 class BinnedThreeMLSourceResponseInterface(ThreeMLSourceResponseInterface, BinnedExpectationInterface, Protocol):

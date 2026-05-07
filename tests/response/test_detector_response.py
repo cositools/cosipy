@@ -46,7 +46,7 @@ def test_spectral_response():
 
         drm = response[0]
 
-        spec = drm.get_spectral_response().to_dense()
+        spec = drm.get_spectral_response().to_dense(copy=False)
 
         assert np.allclose(spec[0].to_value('cm2'),
                            [8.92579524, 0.16115340, 0.        , 0.        , 0.        ,
@@ -66,13 +66,13 @@ def test_spectral_readwrite(tmp_path):
 
         drm = response[0]
 
-        spec = drm.get_spectral_response().to_dense()
+        spec = drm.get_spectral_response().to_dense(copy=False)
         aeff = drm.get_effective_area()
 
         drm.write(tmp_path / "drmfile", overwrite=True)
 
         drm2 = drm.open(tmp_path / "drmfile")
-        spec2 = drm.get_spectral_response().to_dense()
+        spec2 = drm.get_spectral_response().to_dense(copy=False)
         aeff2 = drm.get_effective_area()
 
         assert spec == spec2 and aeff == aeff2
@@ -85,7 +85,7 @@ def test_get_dispersion_matrix():
 
         rmf = drm.get_dispersion_matrix()
 
-        assert np.allclose(rmf.project('Ei').to_dense().contents, 1)
+        assert np.allclose(rmf.project('Ei').to_dense(copy=False).contents, 1)
 
 def test_cosi_response(tmp_path):
 

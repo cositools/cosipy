@@ -12,7 +12,7 @@ from mhealpy import HealpixMap
 from cosipy import test_data
 from cosipy.response import FullDetectorResponse
 
-from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic 
+from threeML import DiracDelta, Constant, Line, Quadratic, Cubic, Quartic
 from threeML import StepFunction, StepFunctionUpper, GenericFunction
 
 import pytest
@@ -148,3 +148,54 @@ def test_get_expectation():
     assert exp0 == exp_none
 
 
+def test_spectrum_unit_generic():
+
+    from astromodels import Function1D, FunctionMeta
+    import astropy.units as u
+    from cosipy.response.functions import get_spectrum_unit
+
+    # test that we can get the unit from a custom function that
+    # has never been seen before, provided that the unit is assigned
+    # to the K or k parameter
+
+    class MyFunction(Function1D, metaclass=FunctionMeta):
+        r"""
+        description :
+            a silly function
+        parameters:
+            K :
+              desc: Normalization
+              initial value : 1.0
+              unit : keV
+        """
+        def _set_units(self, x_unit, y_unit):
+            # this is never actually called during setup
+            pass
+
+        def evaluate(self, x, K):
+            return K * x
+
+    f = MyFunction()
+    unit = get_spectrum_unit(f)
+    assert unit == u.keV
+
+    class MyFunction2(Function1D, metaclass=FunctionMeta):
+        r"""
+        description :
+            another silly function
+        parameters:
+            k :
+              desc: Normalization
+              initial value : 1.0
+              unit : keV
+        """
+        def _set_units(self, x_unit, y_unit):
+            # this is never actually called during setup
+            pass
+
+        def evaluate(self, x, k):
+            return k * x
+
+    f = MyFunction()
+    unit = get_spectrum_unit(f)
+    assert unit == u.keV

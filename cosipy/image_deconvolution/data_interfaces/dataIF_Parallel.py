@@ -50,8 +50,8 @@ def load_response_matrix(comm, start_col, end_col, filename):
                 axis_tmp = axis_cls._open(axis)
 
             if label == 'PsiChi':
-                axis_tmp = HealpixAxis(edges = axis_tmp.edges[start_col:end_col+1], 
-                                       label = axis_tmp.label, 
+                axis_tmp = HealpixAxis(edges = axis_tmp.edges[start_col:end_col+1],
+                                       label = axis_tmp.label,
                                        scale = axis_tmp._scale,
                                        coordsys = axis_tmp._coordsys,
                                        nside = axis_tmp.nside)
@@ -89,8 +89,8 @@ def load_response_matrix_transpose(comm, start_row, end_row, filename):
                 axis_tmp = axis_cls._open(axis)
 
             if label == 'NuLambda':
-                axis_tmp = HealpixAxis(edges = axis_tmp.edges[start_row:end_row+1], 
-                                       label = axis_tmp.label, 
+                axis_tmp = HealpixAxis(edges = axis_tmp.edges[start_row:end_row+1],
+                                       label = axis_tmp.label,
                                        scale = axis_tmp._scale,
                                        coordsys = axis_tmp._coordsys,
                                        nside = axis_tmp.nside)
@@ -113,7 +113,7 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
 
         # Specific to parallel implementation:
         # 1. Assume numproc is known by the process that invoked `run_deconvolution()`
-        # 2. All processes have loaded event data, background, and created 
+        # 2. All processes have loaded event data, background, and created
         #    initial model (from model properties) independently
         self.parallel = False
         if comm is not None:
@@ -125,9 +125,9 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
                 logger.info('Image Deconvolution set to run in parallel mode')
 
         self._MPI_init(event_filename, bkg_filename, bkg_norm_label, drm_filename, comm)
-        
+
         # None if using Galactic CDS, required if using local CDS
-        self._coordsys_conv_matrix = None 
+        self._coordsys_conv_matrix = None
 
         # Calculate exposure map
         self._calc_exposure_map()
@@ -161,11 +161,11 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
 
         # Load event_binned_data
         event = Histogram.open(event_filename)
-        self._event = event.project(['Em', 'Phi', 'PsiChi']).to_dense()
+        self._event = event.project(('Em', 'Phi', 'PsiChi')).to_dense(copy=False)
 
         # Load dict_bg_binned_data
         bkg = Histogram.open(bkg_filename)
-        self._bkg_models = {bkg_norm_label: bkg.project(['Em', 'Phi', 'PsiChi']).to_dense()}
+        self._bkg_models = {bkg_norm_label: bkg.project(['Em', 'Phi', 'PsiChi']).to_dense(copy=False)}
 
         # Load response and response transpose
         self._image_response = load_response_matrix(comm, self.start_col, self.end_col, filename=drm_filename)
@@ -179,14 +179,14 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         # Set variable _model_axes
         # Derived from Parent class (ImageDeconvolutionDataInterfaceBase)
         axes = [self._image_response.axes['NuLambda'], self._image_response.axes['Ei']]
-        axes[0].label = 'lb' 
+        axes[0].label = 'lb'
         self._model_axes = Axes(axes)
         ## Create model_axes_slice
         axes = []
         for axis in self.model_axes:
             if axis.label == 'lb':
-                axes.append(HealpixAxis(edges = axis.edges[self.start_row:self.end_row+1], 
-                                        label = axis.label, 
+                axes.append(HealpixAxis(edges = axis.edges[self.start_row:self.end_row+1],
+                                        label = axis.label,
                                         scale = axis._scale,
                                         coordsys = axis._coordsys,
                                         nside = axis.nside))
@@ -201,22 +201,22 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         axes = []
         for axis in self.data_axes:
             if axis.label == 'PsiChi':
-                axes.append(HealpixAxis(edges = axis.edges[self.start_col:self.end_col+1], 
-                                        label = axis.label, 
+                axes.append(HealpixAxis(edges = axis.edges[self.start_col:self.end_col+1],
+                                        label = axis.label,
                                         scale = axis._scale,
                                         coordsys = axis._coordsys,
                                         nside = axis.nside))
             else:
                 axes.append(axis)
         self._data_axes_slice = Axes(axes)
-        
+
         ## Create bkg_model_slice Histogram
         self._bkg_models_slice = {}
         for key in self._bkg_models:
             bkg_model = self._bkg_models[key]
             self._summed_bkg_models[key] = np.sum(bkg_model)
             self._bkg_models_slice[key] = bkg_model.slice[:, :, self.start_col:self.end_col]
-        
+
     def _MPI_init(self, event_filename, bkg_filename, bkg_norm_label, drm_filename, comm):
 
         self._MPI_load_data(event_filename, bkg_filename, bkg_norm_label, drm_filename, comm)
@@ -229,13 +229,13 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         """
 
         logger.info("Calculating an exposure map...")
-        
+
         if self._coordsys_conv_matrix is None:
             self._exposure_map = Histogram(self._model_axes, unit = self._image_response.unit * u.sr)
             self._exposure_map[:] = np.sum(self._image_response.contents, axis = (2,3,4)) * self.model_axes['lb'].pixarea()
         else:
             self._exposure_map = Histogram(self._model_axes, unit = self._image_response.unit * self._coordsys_conv_matrix.unit * u.sr)
-            self._exposure_map[:] = np.tensordot(np.sum(self._coordsys_conv_matrix, axis = (0)), 
+            self._exposure_map[:] = np.tensordot(np.sum(self._coordsys_conv_matrix, axis = (0)),
                                                  np.sum(self._image_response, axis = (2,3,4)),
                                                  axes = ([1], [0]) ) * self._image_response.unit * self._coordsys_conv_matrix.unit * self.model_axes['lb'].pixarea()
             # [Time/ScAtt, lb, NuLambda] -> [lb, NuLambda]
@@ -299,12 +299,12 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         """
 
         expectation_slice = Histogram(self._data_axes_slice)
-        
+
         if self._coordsys_conv_matrix is None:
             expectation_slice[:] = np.tensordot( model.contents, self._image_response.contents, axes = ([0,1],[0,1])) * model.axes['lb'].pixarea()
             # ['lb', 'Ei'] x [NuLambda(lb), Ei, Em, Phi, PsiChi] -> [Em, Phi, PsiChi]
         else:
-            map_rotated = np.tensordot(self._coordsys_conv_matrix.contents, model.contents, axes = ([1], [0])) 
+            map_rotated = np.tensordot(self._coordsys_conv_matrix.contents, model.contents, axes = ([1], [0]))
             # ['Time/ScAtt', 'lb', 'NuLambda'] x ['lb', 'Ei'] -> [Time/ScAtt, NuLambda, Ei]
             map_rotated *= self._coordsys_conv_matrix.unit * model.unit
             map_rotated *= model.axes['lb'].pixarea()
@@ -313,7 +313,7 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
             expectation_slice[:] = np.tensordot( map_rotated, self._image_response.contents, axes = ([1,2], [0,1]))
             # [Time/ScAtt, NuLambda, Ei] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, Em, Phi, PsiChi]
 
-        expectation_slice += NUMERICAL_ZERO 
+        expectation_slice += NUMERICAL_ZERO
 
         return self._allgatherv_slice(expectation_slice)
 
@@ -331,7 +331,7 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
         """
 
         expectation_slice = Histogram(self._data_axes_slice)
-        
+
         for key in self.keys_bkg_models():
             expectation_slice += self.bkg_model_slice(key) * dict_bkg_norm[key]
 
@@ -365,7 +365,7 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
             hist_slice[:] = np.tensordot(dataspace_histogram.contents, self._image_response_T.contents, axes = ([0,1,2], [2,3,4])) * self.model_axes['lb'].pixarea()
             # [Em, Phi, PsiChi] x [NuLambda (lb), Ei, Em, Phi, PsiChi] -> [NuLambda (lb), Ei]
         else:
-            _ = np.tensordot(dataspace_histogram.contents, self._image_response_T.contents, axes = ([1,2,3], [2,3,4])) 
+            _ = np.tensordot(dataspace_histogram.contents, self._image_response_T.contents, axes = ([1,2,3], [2,3,4]))
             # [Time/ScAtt, Em, Phi, PsiChi] x [NuLambda, Ei, Em, Phi, PsiChi] -> [Time/ScAtt, NuLambda, Ei]
 
             hist_slice[:] = np.tensordot(self._coordsys_conv_matrix.contents, _, axes = ([0,2], [0,1])) \
@@ -391,7 +391,7 @@ class DataIF_Parallel(ImageDeconvolutionDataInterfaceBase):
 
             # Reshape the received buffer back into the original 2D array shape
             C = np.concatenate([ recvbuf[displacements[i]:displacements[i] + all_sizes[i]].reshape((-1,) + hist_slice.contents.shape[1:]) for i in range(self.numtasks) ], axis=0)
-                    
+
             # hist_slice (only slice operated on by current node) --> sum_T_product (all)
             hist = Histogram(self.model_axes, contents=C, unit=hist_slice.unit)
 

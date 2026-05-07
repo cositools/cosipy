@@ -65,7 +65,7 @@ def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
                               like_fun,
                               response,
                               bkg)
-    
+
     cosi.bkg_parameter['bkg_norm'] = Parameter('bkg_norm',  # background parameter
                                       1.0,  # initial value of parameter
                                       min_value=0,  # minimum value of parameter
@@ -82,10 +82,10 @@ def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
 
     expectation = response.expectation()
     expectation_bkg = bkg.expectation()
-    tot_exp_counts = expectation.project('Em').todense().contents + (
-                expectation_bkg.project('Em').todense().contents)
-    
-    
+    tot_exp_counts = expectation.project('Em').to_dense(copy=False).contents + (
+                expectation_bkg.project('Em').to_dense(copy=False).contents)
+
+
     return results, tot_exp_counts
 
 

@@ -101,9 +101,12 @@ def get_spectrum_unit(spectrum):
             case Band_Eflux():
                 spectrum_unit = spectrum.K.unit / spectrum.a.unit
             case _:
-                try:
-                    spectrum_unit = spectrum.k.unit
-                except:
+                spectrum_unit = None
+                for pname in ('K', 'k'):
+                    if pname in spectrum.parameters:
+                        spectrum_unit = spectrum.parameters[pname].unit
+
+                if spectrum_unit is None:
                     raise RuntimeError("Spectrum not yet supported because units are unknown.")
 
     return spectrum_unit

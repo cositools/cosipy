@@ -76,8 +76,7 @@ class ExtendedSourceResponse(Histogram):
 
         resp.track_overflow(False)
 
-        if resp.is_sparse:
-            resp = resp.to_dense()
+        resp = resp.to_dense(copy=False)
 
         resp.post_init()
 
