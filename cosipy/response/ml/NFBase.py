@@ -29,7 +29,9 @@ def build_c_arqs_flow(base: nf.distributions.BaseDistribution, num_layers: int,
                                                                      num_hidden_channels = num_hidden_units,
                                                                      num_bins = num_bins,
                                                                      num_context_channels = context_dim)]
-            flows += [nf.flows.LULinearPermute(latent_dim)]
+            if latent_dim > 1:
+                flows += [nf.flows.LULinearPermute(latent_dim)]
+                
         return nf.ConditionalNormalizingFlow(base, flows)
 
 class NNDensityInferenceWrapper(nn.Module):
