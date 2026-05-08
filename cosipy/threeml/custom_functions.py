@@ -349,3 +349,97 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
             intensity_2d /= len(intensity_3d) # return average intensity
 
         return intensity_2d
+
+
+class Asymmetric_exponential_disk_on_sphere(Function2D, metaclass=FunctionMeta):
+    r"""
+    description :
+
+        A bidimensional Exponential Disk function on a sphere with independent 
+        scale lengths for longitude and latitude.
+
+    latex : $$ f(\text{lon}, \text{lat}) = \left(\frac{180^\circ}{\pi}\right)^2 \frac{1}{2\pi L_{\text{lon}} L_{\text{lat}}} \, {\rm exp}\left( -\sqrt{ \left(\frac{\Delta \text{lon} \cos({\text{lat}_0})}{L_{\text{lon}}}\right)^2 + \left(\frac{\Delta \text{lat}}{L_{\text{lat}}}\right)^2 } \right) $$
+
+    parameters :
+
+        lon0 :
+            desc : Longitude of the center
+            initial value : 0.0
+            min : 0.0
+            max : 360.0
+
+        lat0 :
+            desc : Latitude of the center
+            initial value : 0.0
+            min : -90.0
+            max : 90.0
+
+        L_lon :
+            desc : Scale length in longitude (degrees)
+            initial value : 1.0
+            min : 1e-3
+            max : 20.0
+
+        L_lat :
+            desc : Scale length in latitude (degrees)
+            initial value : 1.0
+            min : 1e-3
+            max : 20.0
+    """
+
+    def _set_units(self, x_unit, y_unit, z_unit):
+        self.lon0.unit = x_unit
+        self.lat0.unit = y_unit
+        self.L_lon.unit = x_unit
+        self.L_lat.unit = y_unit
+
+    def evaluate(self, x, y, lon0, lat0, L_lon, L_lat):
+        
+        # Calculate angular offsets
+        # For longitude, we account for the convergence of meridians
+        d_lon = (x - lon0) * np.cos(np.radians(lat0))
+        d_lat = y - lat0
+
+        # Handle longitude wrap-around (so the disk is continuous at 0/360)
+        d_lon = (d_lon + 180) % 360 - 180
+
+        # Equivalent elliptical radius
+        r_ell = np.sqrt((d_lon / L_lon)**2 + (d_lat / L_lat)**2)
+
+        # Normalization
+        norm = (180 / np.pi)**2 * (1.0 / (2.0 * np.pi * L_lon * L_lat))
+
+        return norm * np.exp(-r_ell)
+
+    def get_boundaries(self):
+        # Use the maximum of the two scales to define the bounding box
+        max_L = max(self.L_lon.max_value, self.L_lat.max_value)
+        truncation_radius = 5 * max_L
+
+        min_lat = max(-90.0, self.lat0.value - truncation_radius)
+        max_lat = min(90.0, self.lat0.value + truncation_radius)
+
+        max_abs_lat = max(np.absolute(min_lat), np.absolute(max_lat))
+
+        # Adjust longitude boundary for the cos(lat) factor
+        cos_factor = np.cos(np.radians(max_abs_lat))
+        
+        if max_abs_lat > 89.0 or (truncation_radius / cos_factor) >= 180.0:
+            min_lon, max_lon = 0.0, 360.0
+        else:
+            delta_lon = truncation_radius / cos_factor
+            min_lon = self.lon0.value - delta_lon
+            max_lon = self.lon0.value + delta_lon
+
+            # Wrap-around logic
+            if min_lon < 0.0: min_lon += 360.0
+            if max_lon > 360.0: max_lon -= 360.0
+
+        return (min_lon, max_lon), (min_lat, max_lat)
+
+    def get_total_spatial_integral(self, z=None):
+        if z is None:
+            return 1.0
+        if isinstance(z, u.Quantity):
+            z = z.value
+        return np.ones_like(z)
