@@ -1,3 +1,4 @@
+
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.statistics import PoissonLikelihood
 from cosipy.background_estimation import FreeNormBinnedBackground
@@ -12,6 +13,7 @@ from threeML import Band, PointSource, Model, JointLikelihood, DataList
 from astromodels import Parameter
 from astropy import units as u
 
+from mhealpy import HealpixMap
 
 def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
     """
@@ -140,3 +142,59 @@ def get_fit_fluxes(results):
     e_low_fl = np.abs(result_fl["low bound"].values[0].value - fl)
     e_hi_fl = result_fl["hi bound"].values[0].value - fl
     return (fl, e_low_fl, e_hi_fl)
+
+
+def get_ts_results(ts_results, ts_uniq=None, multiresolution=False, nside=None):
+    """
+    Extract peak TS values, coordinates, and pixel spacing from TS map results.
+
+    Parameters
+    ----------
+    ts_results : array-like
+        Array of Test Statistic values.
+    ts_uniq : array-like, optional
+        HEALPix UNIQ indices for multiresolution maps (required if multiresolution=True).
+    multiresolution : bool, optional
+        If True, process as a MOC map. Default is False.
+    nside : int, optional
+        HEALPix resolution parameter (required if multiresolution=False).
+
+    Returns
+    -------
+    max_ts : float
+        Maximum TS value found in the map.
+    max_coo : astropy.coordinates.SkyCoord
+        SkyCoord object at the location of the maximum TS.
+    max_l : float
+        Galactic longitude [deg] at maximum TS.
+    max_b : float
+        Galactic latitude [deg] at maximum TS.
+    pixel_mean_spacing : float
+        Angular size of the pixel [deg]. For MOC, returns the minimum spacing.
+    """
+    if not multiresolution:
+        if nside is None:
+            raise ValueError("nside must be provided when multiresolution is False")
+
+        max_ts = np.max(ts_results)
+        highest_idx = np.argmax(ts_results)
+        m = HealpixMap(nside=nside, scheme="nested", coordsys="galactic")
+        max_coo = m.pix2skycoord(highest_idx)
+        pixel_area = m.pixarea()
+        pixel_mean_spacing = np.degrees(np.sqrt(pixel_area.value))
+
+    else:
+        if ts_uniq is None:
+            raise ValueError("ts_uniq must be provided when multiresolution is True")
+
+        max_ts = np.max(ts_results)
+        highest_idx = np.argmax(ts_results)
+        m = HealpixMap(data=ts_results, uniq=ts_uniq, coordsys="galactic")
+        max_coo = m.pix2skycoord(highest_idx)
+        pixel_area = np.min(m.pixarea())
+        pixel_mean_spacing = np.degrees(np.sqrt(pixel_area.value))
+
+    max_l = float(max_coo.l.value)
+    max_b = float(max_coo.b.value)
+
+    return (max_ts, max_coo,max_l, max_b, pixel_mean_spacing)

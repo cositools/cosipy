@@ -19,7 +19,7 @@ from cosipy.pipeline.src.plotting import *
 
 from pathlib import Path
 from histpy import Histogram
-from cosipy import FastTSMap
+from cosipy import FastTSMap,MOCTSMap
 from mhealpy import HealpixMap
 
 from astromodels.core.model_parser import ModelParser
@@ -127,8 +127,9 @@ def cosi_bindata(argv=None):
         tseldata=UnBinnedData(yaml_path)
         tseldata.select_data_time(unbinned_data=data_path,output_name=str(tseldata_path))
         #
-        #Unzip:
-        subprocess.run(["gunzip", str(tseldata_path)+".fits.gz"])
+        #Unzip and force overwrite
+        subprocess.run(["gunzip", "-f", f"{tseldata_path}.fits.gz"])
+        #
         tseldata_name=tseldata_name+".fits"
         tseldata_path=odir/tseldata_name
         data_path=tseldata_path
@@ -296,7 +297,16 @@ def  cosi_tsdetect(argv=None):
             """),
         description=textwrap.dedent(
             """
-            TBD
+            Performs Test Statistic (TS) map fitting, with optional time-windowing (tstart-tstop).
+            Data, background, response, and orientation file paths in the configuration file 
+            must be relative to the configuration file's location.
+            Features:
+            - Multiresolution: If enabled in the config, uses Multi-Order Coverage (MOC) maps.
+            - Coordinate Systems: Supports Galactic or Local systems as specified by the user.
+            - Resolution Control: The 'nside' parameter in the config sets either the fixed resolution or the maximum depth for MOC fits.   
+            Outputs:
+            - Printed to stdout: Maximum TS value, its Galactic coordinates, and the pixel linear size of the TS/MOC map.
+            - Files: A PNG plot of the TS map is saved to the output directory. 
             """),
         formatter_class=argparse.RawTextHelpFormatter)
 
@@ -343,12 +353,12 @@ def  cosi_tsdetect(argv=None):
 
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
-    #result_name="results.dat" if not args.suffix else str("results_"+args.suffix+".fits")
     plot_name="raw_ts.png" if not args.suffix else str("raw_ts_"+args.suffix+".png")
 
     #Setup of the tsmap search
+    coo_sys=config.get('coo_sys')
     nside_search=config.get('nside')
-    iterative=config.get('iterative')
+    multiresolution=config.get('multiresolution')
 
     # Parse template spectrum
     model = ModelParser(model_dict = config['model']).get_model()
@@ -385,7 +395,8 @@ def  cosi_tsdetect(argv=None):
     ori_sliced = ori.select_interval(tstart, tstop)
     ori=ori_sliced
 
-    # Prepare the background model. TBD: use the estimated background here:
+    # Prepare the background model.
+    # TBD: use the estimated background here:
 
     delta = tstop - tstart
     delta = delta.to_value('s')
@@ -398,33 +409,34 @@ def  cosi_tsdetect(argv=None):
 
     # Calculation
 
-    if iterative==False:
+    if multiresolution==False:
 
         ts = FastTSMap(data=binned_data, bkg_model=bkg_model, orientation=ori,
-                   response_path=resp_path, cds_frame="local")
+                   response_path=resp_path, cds_frame=coo_sys)
 
         ts_results = ts.fit(nside=nside_search, energy_channel=[2, 3],
                         spectrum=spectrum, cpu_cores=8)
 
-        max_ts = np.max(ts_results)
+        max_ts,max_coo,max_l,max_b,pixel_mean_spacing=get_ts_results(ts_results,multiresolution=multiresolution,nside=nside_search)
         print("Maximum TS= %f" % max_ts)
-
-        highest_idx = ts_results.argmax()
-        m = HealpixMap(nside=nside_search, scheme="nested", coordsys="galactic")
-        max_coo= m.pix2skycoord(highest_idx)
-        max_l= float(max_coo.l.value)
-        max_b= float(max_coo.b.value)
-
         print("Galactic coordinate at maximum TS: l=%f, b=%f" %(max_l, max_b))
-
-        pixel_area=m.pixarea()
-        pixel_mean_spacing=np.sqrt(pixel_area.value)*(180/np.pi)
-
         print("Linear Size of TS map pixel: %f" % (pixel_mean_spacing))
 
-    # Results and plot
+        # Results and plot
+        ts.plot_ts(ts_results, skycoord=max_coo, save_dir=odir, save_plot=True, save_name=plot_name)
 
-        ts.plot_ts(ts_results, skycoord = max_coo, save_dir=odir, save_plot=True, save_name=plot_name)
+    elif multiresolution==True:
+
+        moc_ts = MOCTSMap(data = binned_data, bkg_model = bkg_model, response_path = resp_path, orientation = ori, cds_frame = coo_sys)
+        moc_results, moc_uniq = moc_ts.fit(max_nside = nside_search, energy_channel = [2,3],spectrum = spectrum)
+
+        max_ts, max_coo, max_l, max_b, pixel_mean_spacing = get_ts_results(moc_results,moc_uniq, multiresolution=multiresolution)
+        print("Maximum TS= %f" % max_ts)
+        print("Galactic coordinate at maximum TS: l=%f, b=%f" % (max_l, max_b))
+        print("Linear Size of MOC map max_nside_pixel: %f" % (pixel_mean_spacing))
+
+        # Results and plot
+        moc_ts.plot_ts(moc_results, moc_uniq, skycoord=max_coo,save_dir=odir, save_plot=True, save_name=plot_name)
 
 if __name__ == "__main__":
-    cosi_tsdetect()
+        cosi_tsdetect()

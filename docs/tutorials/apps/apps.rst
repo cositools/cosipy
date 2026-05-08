@@ -13,6 +13,8 @@ cosi-bindata: to bin an unbinned dataset, matching a given response matrix. Opti
 
 cosi-threemlfit: to fit a source at l,b with a given threeml spectral model and optionally, in a time window tstart-tstop. It outputs the results of the fit (in a fits file), and a plot of the data and best-fit model. It prints in the terminal the best-fit parameters and the flux (with errors) in the 0.1-10 MeV band, computed from the best-fit model.
 
+cosi_tsdetect: to perform Test Statistic (TS) map fitting, with optional time-windowing (tstart-tstop) and multiresolution mode. It outputs to stdout the maximum TS value, its Galactic coordinates, and the pixel linear size of the TS/MOC map. It saves a plot of the raw TS values.
+
 For all the applications, the option --h or --help prints an help file that describes the function, the inputs, the outputs and the command line options available:
 
 cosi-threemlfit --help
@@ -21,9 +23,11 @@ A practical example
 ~~~~~~~~~~~~
 We provide an example of usage of the command line applications in the file run_tutorial.sh.
 
+We also provide an example of an end-to-end pipeline for a point-like source in the file run_pipeline_zero.sh.
+
 It is also possible to run the applications from a python script: this is shown in the file run_tutorial.py.
 
-This tutorial uses the data of GRB 081207680 from dc3 and the Galactic background component (for simplicity).
+The run_tutorial.* uses the data of GRB 081207680 from dc3 and the Galactic background component (for simplicity).
 
 This particular GRB starts at t=1836496100.0 and ends at t=1836496188.1.
 
@@ -37,17 +41,35 @@ Hence, it bins and cut in time the grb+bk data file thus preparing the dataset f
 
 Finally, it fits the binned grb+bk data in the whole time window, in the first ten seconds and in the last twenty seconds.
 
+The run_pipeline_zero.sh showcases an example of an end-to-end pipeline for the same GRB, using the following steps.
+
+First, it bins the background file, which is needed as a model in the next steps.
+
+It injects the known tstart and tstop of the GRB in cosi-bindata to perform the time selection and binning of the dataset.
+
+It uses cosi-tsdetect to get the position of the GRB and the size of the pixels used in the TS map.
+
+It injects the estimated position in cosi-threemlfit, to perform two spectral fits, respectively using a powerlaw model and a Band model.
+
+In the spectral fits, the position of the source is set to to the coordinates obatined in the TS map step and left free to vary in range given by 3xlinear size of the pixels of the TS map computation.
+
+This improves the localizatin and helps the fit converging.
+
 
 The .yaml parameter file
 ~~~~~~~~~~~~
 
 The files prep_bk_fit_grbdc3.yaml and prep_fit_grbdc3.yaml are example of configuration files needed to run the applications.
 
+The file pipeline_zero.yaml is the configuration file which runs the pipeline_zero example.
+
 Note the following:
 
-The parameters for each applications are subgrouped into sections in the file. The default config_group name are bindata (for cosi-bindata) and threemlfit (for cosi-threemlfit).
+The parameters for each applications are subgrouped into sections in the file. The default config_group name are bindata (for cosi-bindata), threemlfit (for cosi-threemlfit) and tsdetect (for cosi-tsdetect).
 
 These names can be customized, as the app can be run using the --config_group option (e.g., cosi_threemlfit --config_file MY_CONFIG_FILE --config_grup MY_CONFIG_GROUP).
+
+This is used for instance the pipeline_zero.yaml.
 
 Some parameters have suboptions, following the structure of the TBD Interface of cosipy.
 
