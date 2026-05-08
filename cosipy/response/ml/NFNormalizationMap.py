@@ -2,6 +2,10 @@ import torch
 import numpy as np
 import healpy as hp
 from typing import Union, Optional, Tuple, List, Sequence
+import json
+import os
+import h5py
+from pathlib import Path
 
 Interval = Tuple[Union[float, int], Union[float, int]]
 ArrayLike = Union[np.ndarray, torch.Tensor, Sequence, float, int, np.number]
@@ -11,7 +15,9 @@ MEnergyList = List[Interval]
 from .NFNormalizationDensity import NFNormalizationDensity
 
 # TODO: Shift from response only to response + background? -> Would require different integration of background
-# TODO: Add option for setters and clearing to recompute cache. Thereby also remove stuff from the init
+# TODO: Add option for ARM
+# TODO: Add option for more complex functional relationships
+# TODO: Add option for saving
 
 class NFNormalizationMap:
     def __init__(self,
@@ -19,40 +25,116 @@ class NFNormalizationMap:
                  ienergy_keV: IEnergyList,
                  menergy_keV: Optional[MEnergyList] = None,
                  scatt_angle_rad: Optional[MEnergyList] = None,
-                 map_nside: int = 32,
-                 ienergy_keV_resolution: Optional[float] = 1.5,
-                 range_energy_keV: Tuple[float, float] = (100., 10000.),
-                 menergy_keV_resolution: Optional[float] = 8.0,
                  ):
-        # We use PchipInterpolator for the Ei interpolation
-        # and get_interp_val for the healpy interpolation.
-        
         self._nfdensity = nfdensity
-        self._map_nside = map_nside
-        self._map_npix = hp.nside2npix(map_nside)
+        self._ienergy_keV_input = ienergy_keV
+        self._menergy_keV_input = menergy_keV
+        self._scatt_angle_rad_input = scatt_angle_rad 
         
-        self._ienergy_keV_resolution = ienergy_keV_resolution
-        self._menergy_keV_resolution = menergy_keV_resolution
-        self._range_energy_keV = range_energy_keV # TODO: Should be used for np.nan and checked compared to energy intervals
-        self._atol = 0.1 # TODO: Maybe check with ienergy_keV_resolution and ienergy_keV
+        self._map_nside: int = 32
+        self._map_npix: int = hp.nside2npix(self._map_nside)
+        self._ienergy_keV_resolution: Optional[float] = 1.5
+        self._menergy_keV_resolution: Optional[float] = 8.0
+        self._range_energy_keV: Optional[Tuple[float, float]] = (100., 10_000.)
+        self._atol: float = 0.1
         
         self._coordinates = None
         self._maps = None
+        self._ienergy_keV = None
+        self._menergy_keV = None
+        self._scatt_angle_rad = None
         
         self._set_norm_dimensions(nfdensity.norm_dimensions)
-        self._set_domain(ienergy_keV=ienergy_keV, menergy_keV=menergy_keV, scatt_angle_rad=scatt_angle_rad)
     
+    @property
+    def map_nside(self):
+        return self._map_nside
+    @map_nside.setter
+    def map_nside(self, val: int): self.set_integration_parameters(map_nside=val) 
+    
+    @property
+    def range_energy_keV(self):
+        return self._range_energy_keV
+    @range_energy_keV.setter
+    def range_energy_keV(self, val: Tuple[float, float]): self.set_integration_parameters(range_energy_keV=val)
+    
+    @property
+    def ienergy_keV_resolution(self):
+        return self._ienergy_keV_resolution
+    @ienergy_keV_resolution.setter
+    def ienergy_keV_resolution(self, val: float): self.set_integration_parameters(ienergy_keV_resolution=val)
+    
+    @property
+    def menergy_keV_resolution(self):
+        return self._menergy_keV_resolution
+    @menergy_keV_resolution.setter
+    def menergy_keV_resolution(self, val: float): self.set_integration_parameters(menergy_keV_resolution=val)
+    
+    @property
+    def atol(self):
+        return self._atol
+    @atol.setter
+    def atol(self, val: float): self.set_integration_parameters(atol=val)
+    
+    @property
+    def norm_dimensions(self):
+        return self._norm_dimensions
+    
+    def clear_cache(self):
+        self._coordinates = None
+        self._maps = None
+        self._ienergy_keV = None
+        self._menergy_keV = None
+        self._scatt_angle_rad = None
+    
+    def set_integration_parameters(self,
+                                   map_nside: Optional[int] = -1,
+                                   ienergy_keV_resolution: Optional[float] = -1.0,
+                                   menergy_keV_resolution: Optional[float] = -1.0,
+                                   range_energy_keV: Optional[Tuple[float, float]] = None,
+                                   atol: Optional[float] = -1.0):
+        
+        new_map_nside = map_nside if map_nside != -1 else self._map_nside
+        new_ienergy_keV_resolution = ienergy_keV_resolution if ienergy_keV_resolution != -1.0 else self._ienergy_keV_resolution
+        new_menergy_keV_resolution = menergy_keV_resolution if menergy_keV_resolution != -1.0 else self._menergy_keV_resolution
+        new_range_energy_keV = range_energy_keV or self._range_energy_keV
+        new_atol = atol if atol != -1.0 else self._atol
+        
+        if not isinstance(new_map_nside, (int, np.integer)) or (new_map_nside <= 0):
+            raise ValueError("map_nside must be a positive integer.")
+        
+        if not isinstance(new_ienergy_keV_resolution, (float, int, np.number)) or (new_ienergy_keV_resolution <= 0):
+            raise ValueError("ienergy_keV_resolution must be a positive float.")
+        
+        if not isinstance(new_menergy_keV_resolution, (float, int, np.number)) or (new_menergy_keV_resolution <= 0):
+            raise ValueError("menergy_keV_resolution must be a positive float.")
+        
+        if not isinstance(new_range_energy_keV, tuple) or (len(new_range_energy_keV) != 2) or not isinstance(new_range_energy_keV[0], (float, int, np.number)) or not isinstance(new_range_energy_keV[1], (float, int, np.number)):
+            raise ValueError("range_energy_keV must be a tuple of 2 floats.")
+        
+        if not isinstance(new_atol, (float, int, np.number)) or (new_atol <= 0):
+            raise ValueError("atol must be a positive float.")
+        
+        new_atol = min(new_atol, new_ienergy_keV_resolution)
+        changed = [a != b for a, b in zip(
+            [new_map_nside, new_ienergy_keV_resolution, new_menergy_keV_resolution, new_range_energy_keV, new_atol],
+            [self._map_nside, self._ienergy_keV_resolution, self._menergy_keV_resolution, self._range_energy_keV, self._atol])]
+        
+        if any(changed):
+            self.clear_cache()
+        
+        self._map_nside = new_map_nside
+        self._ienergy_keV_resolution = new_ienergy_keV_resolution
+        self._menergy_keV_resolution = new_menergy_keV_resolution
+        self._range_energy_keV = new_range_energy_keV
+        self._atol = new_atol
+                       
     def _set_norm_dimensions(self, norm_dimensions: str):
         if norm_dimensions not in ["Em"]: # Currently only "Em" is supported
             raise ValueError(f"Unsupported normalization dimensions {norm_dimensions}")
         self._norm_dimensions = norm_dimensions
     
-    def _set_domain(self,
-                    ienergy_keV: IEnergyList,
-                    menergy_keV: Optional[MEnergyList] = None,
-                    scatt_angle_rad: Optional[MEnergyList] = None, # TODO: add capability that np.nan for lower and higher values are replaced by energy range
-                    ):
-        def _validate_intervals(name: str, val: list, allow_float: bool = False) -> list:
+    def _validate_intervals(self, name: str, val: list, allow_float: bool = False, check_overlap: bool = False) -> list:
             if not isinstance(val, list):
                 raise TypeError(f"{name} must be a list.")
             
@@ -70,16 +152,46 @@ class NFNormalizationMap:
                         raise ValueError(f"Each interval in {name} must have exactly 2 elements. Got {item}.")
                     
                     a, b = float(item[0]), float(item[1])
+                    
+                    if np.isnan(a) or np.isnan(b):
+                        if self._range_energy_keV is None:
+                            raise ValueError("Cannot have NaN intervals if range_energy_keV is not specified.")
+                        if np.isnan(a):
+                            a = self._range_energy_keV[0]
+                        if np.isnan(b):
+                            b = self._range_energy_keV[1]
+                    
                     if a >= b:
                         raise ValueError(f"Intervals in {name} must be strictly increasing (a < b). Got {item}.")
                     
                     parsed_items.append([a, b])
                 else:
                     raise TypeError(f"Unrecognized element in {name}: {item}. Expected float/int or tuple.")
+            
+            if check_overlap:
+                intervals_only = [item for item in parsed_items if isinstance(item, list)]
+                if len(intervals_only) > 1:
+                    sorted_intervals = sorted(intervals_only, key=lambda x: x[0])
+                    for i in range(1, len(sorted_intervals)):
+                        prev_end = sorted_intervals[i-1][1]
+                        curr_start = sorted_intervals[i][0]
+                        if curr_start < prev_end:
+                            raise ValueError(
+                                f"Intervals in {name} cannot overlap. "
+                                f"Found overlap between {sorted_intervals[i-1]} and {sorted_intervals[i]}."
+                            )
 
             return parsed_items
+    
+    def _set_domain(self,
+                    ienergy_keV: IEnergyList,
+                    menergy_keV: Optional[MEnergyList] = None,
+                    scatt_angle_rad: Optional[MEnergyList] = None, # TODO: add capability that np.nan for lower and higher values are replaced by energy range
+                    ):
         
-        ienergy_val = _validate_intervals("ienergy_keV", ienergy_keV, allow_float=True)
+        ienergy_val = self._validate_intervals("ienergy_keV", ienergy_keV, allow_float=True)
+        
+        # Check intervals
         
         if menergy_keV is not None and scatt_angle_rad is not None and self._norm_dimensions != "EmPhi":
             raise ValueError("Only one of menergy_keV or scatt_angle_rad can be specified given the normalization dimensions.")
@@ -87,12 +199,12 @@ class NFNormalizationMap:
             raise ValueError("At least one of menergy_keV or scatt_angle_rad must be specified.")
         if menergy_keV is not None:
             if self._norm_dimensions != "Phi":
-                menergy_arr = _validate_intervals("menergy_keV", menergy_keV, allow_float=False)
+                menergy_arr = self._validate_intervals("menergy_keV", menergy_keV, allow_float=False, check_overlap=True)
             else:
                 raise ValueError("menergy_keV is not supported for normalization dimensions Phi.")
         if scatt_angle_rad is not None:
             if self._norm_dimensions != "Em":
-                scatt_arr = _validate_intervals("scatt_angle_rad", scatt_angle_rad, allow_float=False)
+                scatt_arr = self._validate_intervals("scatt_angle_rad", scatt_angle_rad, allow_float=False, check_overlap=True)
             else:
                 raise ValueError("scatt_angle_rad is not supported for normalization dimensions Em.")
         if menergy_keV is not None and scatt_angle_rad is not None:
@@ -105,8 +217,16 @@ class NFNormalizationMap:
                         f"Interval mismatch: menergy_keV has {num_menergy} intervals, "
                         f"but scatt_angle_rad has {num_scatt}."
                     )
+        
+        # Check if resolutions are specified
+        
         if any([isinstance(elem, list) for elem in ienergy_val]) and self._ienergy_keV_resolution is None:
             raise ValueError("If ienergy_keV contains intervals, ienergy_keV_resolution must be specified.")
+
+        if (self._norm_dimensions == "Em") and self._menergy_keV_resolution is None:
+            raise ValueError("Normalization dimensions Em requires menergy_keV_resolution to be specified.")
+        
+        # Set the arrays
 
         self._ienergy_keV = ienergy_val
         self._menergy_keV = menergy_arr if menergy_keV is not None else None
@@ -143,14 +263,85 @@ class NFNormalizationMap:
                 self._coordinates[3].append(list(range(counts, counts + length)))
                 counts += length
     
+    def init_setup(self):
+        if self._ienergy_keV is None:
+            self._set_domain(ienergy_keV=self._ienergy_keV_input, menergy_keV=self._menergy_keV_input, scatt_angle_rad=self._scatt_angle_rad_input)
+    
     def init_cache(self):
         if self._maps is None:
-            print("Initializing normalization maps...", flush=True)
+            self.init_setup()
             self._init_maps()
             if self._norm_dimensions == "Em":
                 self._integration_Em()
             else:
                 raise ValueError(f"Unsupported normalization dimensions {self._norm_dimensions}")
+    
+    def cache_to_file(self, filename: Union[str, Path]):
+        self.init_cache()
+        
+        with h5py.File(str(filename), 'w') as f:
+            f.attrs['map_nside'] = self._map_nside
+            f.attrs['atol'] = self._atol
+            f.attrs['norm_dimensions'] = self._norm_dimensions
+            if self._ienergy_keV_resolution is not None:
+                f.attrs['ienergy_keV_resolution'] = self._ienergy_keV_resolution
+            if self._menergy_keV_resolution is not None:
+                f.attrs['menergy_keV_resolution'] = self._menergy_keV_resolution
+            if self._range_energy_keV is not None:
+                f.attrs['range_energy_keV'] = self._range_energy_keV
+            
+            f.attrs['ienergy_keV'] = json.dumps(self._ienergy_keV)
+            if self._menergy_keV is not None:
+                f.attrs['menergy_keV'] = json.dumps(self._menergy_keV)
+            if self._scatt_angle_rad is not None:
+                f.attrs['scatt_angle_rad'] = json.dumps(self._scatt_angle_rad)
+                
+            f.create_dataset('maps', 
+                             data=self._maps.numpy(), 
+                             compression='gzip', 
+                             compression_opts=4)
+    
+    def cache_from_file(self, filename: Union[str, Path]):
+        """
+        Loads the computed normalization maps and rebuilds the coordinate system for querying.
+        Bypasses the need for model inference entirely.
+        """
+        if not os.path.exists(str(filename)):
+            raise FileNotFoundError(f"Cache file {str(filename)} not found.")
+
+        with h5py.File(str(filename), 'r') as f:
+            # Restore scalar configurations
+            self._map_nside = int(f.attrs['map_nside'])
+            self._map_npix = hp.nside2npix(self._map_nside)
+            self._ienergy_keV_resolution = float(f.attrs['ienergy_keV_resolution'])
+            self._menergy_keV_resolution = float(f.attrs['menergy_keV_resolution'])
+            self._range_energy_keV = tuple(f.attrs['range_energy_keV'])
+            self._atol = float(f.attrs['atol'])
+            self._norm_dimensions = f.attrs['norm_dimensions']
+            
+            # Restore complex nested lists
+            self._ienergy_keV = json.loads(f.attrs['ienergy_keV'])
+            
+            if 'menergy_keV' in f.attrs:
+                self._menergy_keV = json.loads(f.attrs['menergy_keV'])
+            else:
+                self._menergy_keV = None
+                
+            if 'scatt_angle_rad' in f.attrs:
+                self._scatt_angle_rad = json.loads(f.attrs['scatt_angle_rad'])
+            else:
+                self._scatt_angle_rad = None
+            
+            # Load the heavy maps tensor directly back into PyTorch
+            if 'maps' in f:
+                self._maps = torch.from_numpy(f['maps'][:])
+            else:
+                self._maps = None
+                
+            # Reconstruct the _coordinates structure (pol, az, blocks) instantly
+            # using the loaded metadata without doing any Neural Network integrations
+            if self._maps is not None:
+                self._init_maps()
     
     def _spatial_interpolation(self, q_pol: np.ndarray, q_az: np.ndarray, layer_indices: Union[int, torch.Tensor]) -> torch.Tensor:
         pixels, weights = hp.get_interp_weights(self._map_nside, q_pol, q_az)
@@ -236,8 +427,6 @@ class NFNormalizationMap:
     def query_normalization(self, pol_rad: ArrayLike, az_rad: ArrayLike, ienergy_keV: ArrayLike) -> np.ndarray:
         self.init_cache()
         
-        print("Query normalization...", flush=True)
-        
         pol_rad, az_rad, ienergy_keV = [np.atleast_1d(x).ravel() for x in [pol_rad, az_rad, ienergy_keV]]
         
         if not (pol_rad.shape == az_rad.shape == ienergy_keV.shape):
@@ -258,7 +447,6 @@ class NFNormalizationMap:
             if isinstance(e_ref, float):
                 mask = np.isclose(ienergy_keV, e_ref, atol=self._atol)
                 if np.any(mask):
-                    #results[mask] = hp.get_interp_val(self._maps[map_indices], pol_rad[mask], az_rad[mask])
                     results[mask] = self._spatial_interpolation(pol_rad[mask], az_rad[mask], map_indices).numpy()
                     processed_mask[mask] = True
 
@@ -275,12 +463,8 @@ class NFNormalizationMap:
                     
                     q_pol = pol_rad[mask]
                     q_az = az_rad[mask]
-                    
-                    print("Query normalization A", flush=True)
 
                     block_results = self._spectral_pchip_interpolation(q_e_t, e_ref_t, q_pol, q_az, map_indices_t)
-
-                    print("Query normalization B", flush=True)
                     
                     results[mask] = block_results.numpy()
                     processed_mask[mask] = True
@@ -291,8 +475,6 @@ class NFNormalizationMap:
                 f"The following energy queries are outside the defined domain/intervals: "
                 f"{np.unique(unprocessed_energies)}"
             )
-        
-        print("Finish normalization...", flush=True)    
 
         return results
                     
