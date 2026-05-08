@@ -17,12 +17,11 @@ from .NFNormalizationDensity import NFNormalizationDensity
 # TODO: Shift from response only to response + background? -> Would require different integration of background
 # TODO: Add option for ARM
 # TODO: Add option for more complex functional relationships
-# TODO: Add option for saving
 
 class NFNormalizationMap:
     def __init__(self,
-                 nfdensity: 'NFNormalizationDensity', 
-                 ienergy_keV: IEnergyList,
+                 nfdensity: Optional[NFNormalizationDensity] = None, 
+                 ienergy_keV: Optional[IEnergyList] = None,
                  menergy_keV: Optional[MEnergyList] = None,
                  scatt_angle_rad: Optional[MEnergyList] = None,
                  ):
@@ -37,6 +36,8 @@ class NFNormalizationMap:
         self._menergy_keV_resolution: Optional[float] = 8.0
         self._range_energy_keV: Optional[Tuple[float, float]] = (100., 10_000.)
         self._atol: float = 0.1
+        self._Em_peak_widths: Optional[Tuple[float, float, float]] = (0.85, 0.70, 0.75)
+        self._Em_peak_nums: Optional[Tuple[int, int, int]] = (18, 12, 12)
         
         self._coordinates = None
         self._maps = None
@@ -44,7 +45,16 @@ class NFNormalizationMap:
         self._menergy_keV = None
         self._scatt_angle_rad = None
         
-        self._set_norm_dimensions(nfdensity.norm_dimensions)
+        if nfdensity is not None:
+            self._set_norm_dimensions(nfdensity.norm_dimensions)
+        else:
+            self._norm_dimensions = None
+    
+    @classmethod
+    def from_cache(cls, filename: Union[str, Path]) -> 'NFNormalizationMap':
+        instance = cls(nfdensity=None, ienergy_keV=[])
+        instance.cache_from_file(filename)
+        return instance
     
     @property
     def map_nside(self):
@@ -77,6 +87,18 @@ class NFNormalizationMap:
     def atol(self, val: float): self.set_integration_parameters(atol=val)
     
     @property
+    def Em_peak_widths(self):
+        return self._Em_peak_widths
+    @Em_peak_widths.setter
+    def Em_peak_widths(self, val: Tuple[float, float, float]): self.set_integration_parameters(Em_peak_widths=val)
+    
+    @property
+    def Em_peak_nums(self):
+        return self._Em_peak_nums
+    @Em_peak_nums.setter
+    def Em_peak_nums(self, val: Tuple[int, int, int]): self.set_integration_parameters(Em_peak_nums=val)
+    
+    @property
     def norm_dimensions(self):
         return self._norm_dimensions
     
@@ -92,13 +114,17 @@ class NFNormalizationMap:
                                    ienergy_keV_resolution: Optional[float] = -1.0,
                                    menergy_keV_resolution: Optional[float] = -1.0,
                                    range_energy_keV: Optional[Tuple[float, float]] = None,
-                                   atol: Optional[float] = -1.0):
+                                   atol: Optional[float] = -1.0,
+                                   Em_peak_widths: Optional[Tuple[float, float, float]] = None,
+                                   Em_peak_nums: Optional[Tuple[int, int, int]] = None):
         
         new_map_nside = map_nside if map_nside != -1 else self._map_nside
         new_ienergy_keV_resolution = ienergy_keV_resolution if ienergy_keV_resolution != -1.0 else self._ienergy_keV_resolution
         new_menergy_keV_resolution = menergy_keV_resolution if menergy_keV_resolution != -1.0 else self._menergy_keV_resolution
         new_range_energy_keV = range_energy_keV or self._range_energy_keV
         new_atol = atol if atol != -1.0 else self._atol
+        new_Em_peak_widths = Em_peak_widths or self._Em_peak_widths
+        new_Em_peak_nums = Em_peak_nums or self._Em_peak_nums
         
         if not isinstance(new_map_nside, (int, np.integer)) or (new_map_nside <= 0):
             raise ValueError("map_nside must be a positive integer.")
@@ -115,12 +141,23 @@ class NFNormalizationMap:
         if not isinstance(new_atol, (float, int, np.number)) or (new_atol <= 0):
             raise ValueError("atol must be a positive float.")
         
+        if not isinstance(new_Em_peak_widths, tuple) or (len(new_Em_peak_widths) != 3) or not isinstance(new_Em_peak_widths[0], (float, int, np.number)) or not isinstance(new_Em_peak_widths[1], (float, int, np.number)) or not isinstance(new_Em_peak_widths[2], (float, int, np.number)):
+            raise ValueError("Em_peak_widths must be a tuple of 3 floats.")
+        
+        if not isinstance(new_Em_peak_nums, tuple) or (len(new_Em_peak_nums) != 3) or not isinstance(new_Em_peak_nums[0], (int, np.integer)) or not isinstance(new_Em_peak_nums[1], (int, np.integer)) or not isinstance(new_Em_peak_nums[2], (int, np.integer)):
+            raise ValueError("Em_peak_nums must be a tuple of 3 integers.")
+        
         new_atol = min(new_atol, new_ienergy_keV_resolution)
         changed = [a != b for a, b in zip(
-            [new_map_nside, new_ienergy_keV_resolution, new_menergy_keV_resolution, new_range_energy_keV, new_atol],
-            [self._map_nside, self._ienergy_keV_resolution, self._menergy_keV_resolution, self._range_energy_keV, self._atol])]
+            [new_map_nside, new_ienergy_keV_resolution, new_menergy_keV_resolution, new_range_energy_keV, new_Em_peak_widths, new_Em_peak_nums],
+            [self._map_nside, self._ienergy_keV_resolution, self._menergy_keV_resolution, self._range_energy_keV, self._Em_peak_widths, self._Em_peak_nums])]
         
         if any(changed):
+            if self._nfdensity is None:
+                raise RuntimeError(
+                    "Cannot change integration parameters that require recalculating the maps "
+                    "without providing the 'nfdensity' model."
+                )
             self.clear_cache()
         
         self._map_nside = new_map_nside
@@ -128,6 +165,8 @@ class NFNormalizationMap:
         self._menergy_keV_resolution = new_menergy_keV_resolution
         self._range_energy_keV = new_range_energy_keV
         self._atol = new_atol
+        self._Em_peak_nums = new_Em_peak_nums
+        self._Em_peak_widths = new_Em_peak_widths
                        
     def _set_norm_dimensions(self, norm_dimensions: str):
         if norm_dimensions not in ["Em"]: # Currently only "Em" is supported
@@ -186,7 +225,7 @@ class NFNormalizationMap:
     def _set_domain(self,
                     ienergy_keV: IEnergyList,
                     menergy_keV: Optional[MEnergyList] = None,
-                    scatt_angle_rad: Optional[MEnergyList] = None, # TODO: add capability that np.nan for lower and higher values are replaced by energy range
+                    scatt_angle_rad: Optional[MEnergyList] = None,
                     ):
         
         ienergy_val = self._validate_intervals("ienergy_keV", ienergy_keV, allow_float=True)
@@ -289,6 +328,10 @@ class NFNormalizationMap:
                 f.attrs['menergy_keV_resolution'] = self._menergy_keV_resolution
             if self._range_energy_keV is not None:
                 f.attrs['range_energy_keV'] = self._range_energy_keV
+            if self._Em_peak_nums is not None:
+                f.attrs['Em_peak_nums'] = json.dumps(self._Em_peak_nums)
+            if self._Em_peak_widths is not None:
+                f.attrs['Em_peak_widths'] = json.dumps(self._Em_peak_widths)
             
             f.attrs['ienergy_keV'] = json.dumps(self._ienergy_keV)
             if self._menergy_keV is not None:
@@ -302,24 +345,48 @@ class NFNormalizationMap:
                              compression_opts=4)
     
     def cache_from_file(self, filename: Union[str, Path]):
-        """
-        Loads the computed normalization maps and rebuilds the coordinate system for querying.
-        Bypasses the need for model inference entirely.
-        """
         if not os.path.exists(str(filename)):
             raise FileNotFoundError(f"Cache file {str(filename)} not found.")
 
         with h5py.File(str(filename), 'r') as f:
-            # Restore scalar configurations
+            loaded_dim = f.attrs['norm_dimensions']
+            if isinstance(loaded_dim, bytes):
+                loaded_dim = loaded_dim.decode('utf-8')
+                
+            if self._norm_dimensions is not None and self._norm_dimensions != loaded_dim:
+                 raise ValueError(f"Cache mismatch: File contains {loaded_dim}, "
+                                  f"but current model expects {self._norm_dimensions}")
+            self._norm_dimensions = loaded_dim
+            
             self._map_nside = int(f.attrs['map_nside'])
             self._map_npix = hp.nside2npix(self._map_nside)
-            self._ienergy_keV_resolution = float(f.attrs['ienergy_keV_resolution'])
-            self._menergy_keV_resolution = float(f.attrs['menergy_keV_resolution'])
-            self._range_energy_keV = tuple(f.attrs['range_energy_keV'])
             self._atol = float(f.attrs['atol'])
-            self._norm_dimensions = f.attrs['norm_dimensions']
             
-            # Restore complex nested lists
+            if 'Em_peak_nums' in f.attrs:
+                self._Em_peak_nums = tuple(json.loads(f.attrs['Em_peak_nums']))
+            else:
+                self._Em_peak_nums = None
+                
+            if 'Em_peak_widths' in f.attrs:
+                self._Em_peak_widths = tuple(json.loads(f.attrs['Em_peak_widths']))
+            else:
+                self._Em_peak_widths = None
+                
+            if 'ienergy_keV_resolution' in f.attrs:
+                self._ienergy_keV_resolution = float(f.attrs['ienergy_keV_resolution'])
+            else:
+                self._ienergy_keV_resolution = None
+                
+            if 'menergy_keV_resolution' in f.attrs:
+                self._menergy_keV_resolution = float(f.attrs['menergy_keV_resolution'])
+            else:
+                self._menergy_keV_resolution = None
+                
+            if 'range_energy_keV' in f.attrs:
+                self._range_energy_keV = tuple(f.attrs['range_energy_keV'])
+            else:
+                self._range_energy_keV = None
+            
             self._ienergy_keV = json.loads(f.attrs['ienergy_keV'])
             
             if 'menergy_keV' in f.attrs:
@@ -332,16 +399,8 @@ class NFNormalizationMap:
             else:
                 self._scatt_angle_rad = None
             
-            # Load the heavy maps tensor directly back into PyTorch
-            if 'maps' in f:
-                self._maps = torch.from_numpy(f['maps'][:])
-            else:
-                self._maps = None
-                
-            # Reconstruct the _coordinates structure (pol, az, blocks) instantly
-            # using the loaded metadata without doing any Neural Network integrations
-            if self._maps is not None:
-                self._init_maps()
+            self._maps = torch.from_numpy(f['maps'][:])
+            self._init_maps()
     
     def _spatial_interpolation(self, q_pol: np.ndarray, q_az: np.ndarray, layer_indices: Union[int, torch.Tensor]) -> torch.Tensor:
         pixels, weights = hp.get_interp_weights(self._map_nside, q_pol, q_az)
@@ -599,15 +658,15 @@ class NFNormalizationMap:
         x, w = np.polynomial.legendre.leggauss(degree)
         return torch.as_tensor(x, dtype=torch.float64), torch.as_tensor(w, dtype=torch.float64)
     
-    def _Em_peak_widths(self, ienergy_keV: float, mode: str) -> Tuple[float, int]:
-        # TODO: Implement
-        
+    def _Em_peak_params(self, ienergy_keV: float, mode: str) -> Tuple[float, int]:
+        if self._Em_peak_nums is None or self._Em_peak_widths is None:
+            raise ValueError("The Em normalization requires the peak widths and peak numbers to be set.")
         if mode == 'photo':
-            return (ienergy_keV*0.04, 18)
+            return (np.sqrt(ienergy_keV) * self._Em_peak_widths[0], self._Em_peak_nums[0])
         elif mode == 'annihilation':
-            return (ienergy_keV*0.04, 12)
+            return (np.sqrt(511) * self._Em_peak_widths[1], self._Em_peak_nums[1])
         elif mode == 'escape':
-            return (ienergy_keV*0.04, 12)
+            return (np.sqrt(ienergy_keV-511) * self._Em_peak_widths[2], self._Em_peak_nums[2])
         else:
             raise ValueError(f"Unknown mode: {mode}. Expected 'photo', 'annihilation', or 'escape'.")
 
@@ -679,9 +738,9 @@ class NFNormalizationMap:
         peaks = list(peaks[sort_idx_peaks])
         peak_types = np.array(['photo', 'escape', 'annihilation'])[~nan_peaks][sort_idx_peaks]
         
-        widths = [self._Em_peak_widths(ienergy_keV, mode) for mode in peak_types]
+        widths = [self._Em_peak_params(ienergy_keV, mode) for mode in peak_types]
         
-        Emax = ienergy_keV + self._Em_peak_widths(ienergy_keV, "photo")[0]
+        Emax = ienergy_keV + self._Em_peak_params(ienergy_keV, "photo")[0]
         
         menergy_keV_local = list(menergy_keV)
         menergy_keV_local[1] = float(np.clip(menergy_keV[1], a_min=None, a_max=Emax))
