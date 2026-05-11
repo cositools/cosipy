@@ -95,7 +95,7 @@ tutorials:
         COSI-SMEX/develop/Data/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.h5:
           checksum: eb72400a1279325e9404110f909c7785
 
-    spectral_fit_normalizing_flows:
+    spectral_fit_normalizing_flows_grb:
       notebook: spectral_fits/continuum_fit/grb/example_grb_fit_normalizing_flows.ipynb
       wasabi_files:
         COSI-SMEX/DC3/Data/Sources/GRB_bn090424592_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
@@ -104,8 +104,22 @@ tutorials:
           checksum: bbbe34004153d3a75b051f78cb2a93d9
         COSI-SMEX/DC4/Data/Backgrounds/Total_DC4_BG_3months_unbinned_data_timecut_GRB_bn090424592.fits.gz:
           checksum: a7b5b64e770249bd79a734fd652c5b95
-        COSI-SMEX/DC4/Data/Responses/unpolarized_nfresponse_v1-00.pt:
-          checksum: a4f9a7842f2a7345f604da32a155803f
+        COSI-SMEX/DC4/Data/Responses/unpolarized_nfresponse_v1-01.pt:
+          checksum: bf2d0c16eac5954fb56489480c2602ca
+        COSI-SMEX/DC4/Data/Responses/nfbackground_v1-01.pt:
+          checksum: 52a4fb024930e18430bff80db882d3d5
+    
+    spectral_fit_normalizing_flows_crab:
+      notebook: spectral_fits/continuum_fit/crab/example_crab_fit_normalizing_flows.ipynb
+      wasabi_files:
+        COSI-SMEX/DC3/Data/Sources/crab_powerlaw_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
+          checksum: fea0a6a1d2ad87589cedcadf0328ebc3
+        COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.ori:
+          checksum: bbbe34004153d3a75b051f78cb2a93d9
+        COSI-SMEX/DC4/Data/Backgrounds/Total_DC4_BG_3months_unbinned_data_filtered_with_SAAcut_withSAAbck.fits.gz:
+          checksum: 73c8b23e43684da3b35c25499254202b
+        COSI-SMEX/DC4/Data/Responses/unpolarized_nfresponse_v1-01.pt:
+          checksum: bf2d0c16eac5954fb56489480c2602ca
         COSI-SMEX/DC4/Data/Responses/nfbackground_v1-01.pt:
           checksum: 52a4fb024930e18430bff80db882d3d5
 

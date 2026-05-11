@@ -34,7 +34,7 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Meaning of the TS map and how to compute confidence contours
   - Computing a TS map, getting the best location and estimating the error
     
-5. Fitting the spectrum of the Crab `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>`_
+5. Fitting the spectrum of the Crab (binned) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>`_
   
   - Introduction to 3ML and astromodels
   - Likelihood analysis. 
@@ -43,43 +43,51 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
   - Comparing the result with the data
   - Analysing a continuous source transiting in the sky.
 
-6. Extended source model fitting `(ipynb) <https://github.com/cositools/cosipy/blob/main/docs/tutorials/spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>`_
+6. Fitting the spectrum of a GRB (unbinned) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/spectral_fits/continuum_fit/grb/example_grb_fit_normalizing_flows.ipynb>`_
+
+  - Introduction to unbinned analysis using normalizing flows.
+  - Setting up the neural-network response and background approximations.
+  - Initializing and saving adaptive integration caches for faster folding.
+  - Performing the unbinned likelihood fit for a GRB point source.
+  - Plotting the result and comparing it with the injected spectrum.
+
+7. Extended source model fitting `(ipynb) <https://github.com/cositools/cosipy/blob/main/docs/tutorials/spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>`_
    
   - Obtaining the extended source response as a convolution of multiple point sources
   - Pre-computing a response in galactic coordinates for all-sky
   - Fitting an extended source
     
-7. Image deconvolution `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/image_deconvolution/511keV-Galactic-ImageDeconvolution.ipynb>`_
+8. Image deconvolution `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/image_deconvolution/511keV-Galactic-ImageDeconvolution.ipynb>`_
   - Explain the RL algorithm. Reference the previous example. Explain the difference with a TS map.
   - Fitting the 511 diffuse emission.
   - Analyze data in the Compton data space with galactic coordinates.
   - Link to a notebook using Scatt binning which shows its advantages/disadvantages.
     
-8. Source injector `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/source_injector/Point_source_injector.ipynb>`_
+9. Source injector `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/source_injector/Point_source_injector.ipynb>`_
   - Convolve the response, point source model and orientation to obtain the mock data.
   - More types of source (e,g. extended source and polarization) will be suppored.
 
-9. Continuum background estimation `(ipynb) <https://github.com/cositools/cosipy/blob/develop/docs/tutorials/background_estimation/continuum_estimation/BG_estimationNN_example.ipynb>`_
+10. Continuum background estimation `(ipynb) <https://github.com/cositools/cosipy/blob/develop/docs/tutorials/background_estimation/continuum_estimation/BG_estimationNN_example.ipynb>`_
   - Estimating the continuum background from the data. 
 
-10. Line background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/line_background/line_background_estimation_example_notebook.ipynb>`_
+11. Line background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/line_background/line_background_estimation_example_notebook.ipynb>`_
   - Estimating the background from neighboring energy bins.
 
-11. Polarization (ASAD method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/ASAD_method.ipynb>`_
+12. Polarization (ASAD method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/ASAD_method.ipynb>`_
   - Estimating the polarization degree and angle of a GRB using the Azimuthal Scattering Angle Distribution (ASAi)
 
 
-12. Transient background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/transient_background/Transient_background_example.ipynb>`_
+13. Transient background estimation `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/background_estimation/transient_background/Transient_background_example.ipynb>`_
     
   - Estimating the background for transients.
 
-13. Polarization (ASAD method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/ASAD_method.ipynb>`_
+14. Polarization (ASAD method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/ASAD_method.ipynb>`_
   - Estimating the polarization degree and angle of a GRB using the Azimuthal Scattering Angle Distribution (ASAD)
 
-14. Polarization (Stokes parameters method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/Stokes_method.ipynb>`_
+15. Polarization (Stokes parameters method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/Stokes_method.ipynb>`_
   - Estimating the polarization of a GRB using Stokes parameters
 
-14. Phase-resolved analysis `(ipynb) <https://github.com/cositools/cosipy/blob/develop/docs/tutorials/phase_resolved_analysis/example_notebook.ipynb>`_
+16. Phase-resolved analysis `(ipynb) <https://github.com/cositools/cosipy/blob/develop/docs/tutorials/phase_resolved_analysis/example_notebook.ipynb>`_
    - Folding event data and scaling mission exposure using pulsar timing models (ephemeris).
 
 .. warning::
@@ -92,7 +100,8 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    response/SpacecraftHistory.ipynb
    Detector response and signal expectation <response/DetectorResponse.ipynb>
    TS Map: localizing a GRB <ts_map/Parallel_TS_map_computation.ipynb>
-   Fitting the spectrum of the Crab <spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>
+   Fitting the spectrum of the Crab (binned) <spectral_fits/continuum_fit/crab/SpectralFit_Crab.ipynb>
+   Fitting the spectrum of a GRB (unbinned) <spectral_fits/continuum_fit/grb/example_grb_fit_normalizing_flows.ipynb>
    Extended source model fitting <spectral_fits/extended_source_fit/diffuse_511_spectral_fit.ipynb>
    Image deconvolution <image_deconvolution/511keV-Galactic-ImageDeconvolution.ipynb>
    Source injector <source_injector/Point_source_injector.ipynb>
