@@ -127,6 +127,8 @@ class PointSourceResponse(Histogram):
 
         else:
 
+            polarization = to_linear_polarization(polarization)
+
             if polarization.degree.value != 0:
                 raise RuntimeError(
                     "Response must have polarization angle axis to include polarization in point source response")
