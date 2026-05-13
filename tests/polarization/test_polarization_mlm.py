@@ -1,7 +1,7 @@
 from astropy.coordinates import SkyCoord
 from astropy import units as u
-from threeML import LinearPolarization, SpectralComponent, PointSource, Model, JointLikelihood, DataList
-from astromodels import Parameter
+from threeML import LinearPolarization, StokesPolarization, SpectralComponent, PointSource, Model, JointLikelihood, DataList
+from astromodels import Parameter, Constant
 from scoords import SpacecraftFrame
 import numpy as np
 import sys
@@ -18,6 +18,7 @@ from cosipy.threeml.custom_functions import Band_Eflux
 from cosipy.polarization import PolarizationAxis
 from cosipy.sensitivity.mdp import compute_mdp
 from cosipy import test_data
+from cosipy.threeml.util import to_linear_polarization
 
 analysis = BinnedData(test_data.path / 'polarization_data_mlm.yaml')
 analysis.load_binned_data_from_hdf5(test_data.path / 'polarization_data_binned.hdf5')
@@ -46,6 +47,9 @@ spectrum.K.unit = K.unit
 source_direction = SkyCoord(0, 70, representation_type='spherical', frame=SpacecraftFrame(attitude=attitude), unit=u.deg).transform_to('galactic')
 
 polarization = LinearPolarization(0.5, 100)
+Q = polarization.degree.value / 100. * np.cos(2. * polarization.angle.value * np.pi / 180.)
+U = polarization.degree.value / 100. * np.sin(2. * polarization.angle.value * np.pi / 180.)
+polarization = StokesPolarization(Q=Constant(k=Q), U=Constant(k=U))
 spectral_component = SpectralComponent('test', spectrum, polarization)
 
 source = PointSource('test',
@@ -101,8 +105,8 @@ def test_polarization_fit():
 
 	_ = like.fit()
 
-	assert np.allclose([source.spectrum.test.polarization.degree.value, source.spectrum.test.polarization.angle.value],
-					   [83.8, 115.9], atol=[1., 1.])
+	assert np.allclose([source.spectrum.test.polarization.Q.Constant.k, source.spectrum.test.polarization.U.Constant.k],
+					   [1.35, -.86], atol=[.2, .2])
 
 def test_mdp():
 
@@ -128,6 +132,6 @@ def test_mdp():
 							  unit=u.Hz,
 							  free=False)
 
-	mdp = compute_mdp(30, model_mdp, bkg, bkg_parameter, sc_orientation, response_file, 'RelativeZ')
+	mdp = compute_mdp(50, model_mdp, bkg, bkg_parameter, sc_orientation, response_file, 'RelativeZ')
 
 	assert np.allclose([mdp], [25.], atol=[10.])
