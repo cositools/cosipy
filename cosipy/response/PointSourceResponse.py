@@ -12,6 +12,8 @@ import numpy as np
 import astropy.units as u
 from scoords import Attitude
 
+from astromodels.core.polarization import StokesPolarization
+
 from .functions import get_integrated_spectral_model
 
 import logging
@@ -79,16 +81,32 @@ class PointSourceResponse(Histogram):
              Histogram with the expected counts on each analysis bin
         """
 
-        polarization = to_linear_polarization(polarization)
-
         factor = 1.
+
+        polarization_level = None
+
+        if isinstance(polarization, StokesPolarization):
+
+            Q = polarization.Q.value.k.value
+            U = polarization.U.value.k.value
+            pd = np.sqrt(Q**2 + U**2)
+
+            if pd > 1.:
+
+                factor = np.exp((pd - 1.)**2)
+                pa = np.degrees(.5 * np.arctan2(U, Q))
+                pa = pa % 360
+                polarization_angle = np.where(pa > 180, 360 - pa, pa)
+                polarization_level = 1.
 
         if 'Pol' in self.axes.labels:
 
             pol_axis = self.axes['Pol']
 
-            polarization_angle = polarization.angle.value
-            polarization_level = polarization.degree.value / 100.
+            if polarization_level is None:
+                polarization = to_linear_polarization(polarization)
+                polarization_angle = polarization.angle.value
+                polarization_level = polarization.degree.value / 100.
 
             if polarization_level > 1.:
                 factor = 1. + np.exp((polarization_level - 1)**2 - 1)

@@ -5,10 +5,12 @@ from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.response import BinnedThreeMLModelFolding, BinnedInstrumentResponse, BinnedThreeMLPointSourceResponse
 from cosipy.data_io import EmCDSBinnedData
 from cosipy.polarization import PolarizationAxis
+from cosipy.threeml.util import to_linear_polarization
 
-from threeML import LinearPolarization, PointSource, Model, JointLikelihood, DataList
+from threeML import LinearPolarization, StokesPolarization, PointSource, Model, JointLikelihood, DataList
 import numpy as np
 from histpy import Histogram
+import copy
 
 import logging
 logger = logging.getLogger(__name__)
@@ -55,69 +57,73 @@ def compute_mdp(n, model, background, bkg_parameter, sc_orientation, response_fi
 	
 	for i in range(n):
 
+		this_model = copy.deepcopy(model)
+
 		injector = SourceInjector(response_path=response_file,
 								  response_frame=response_frame,
 								  pa_convention=response_pa_convention)
 
 		unpolarized = LinearPolarization(angle=0, degree=0)
 
-		source_mdp = PointSource('source_mdp', 
-								 l=source_direction.transform_to('galactic').l.deg, 
-								 b=source_direction.transform_to('galactic').b.deg, 
-								 spectral_shape=spectrum)
+		source = PointSource('source_mdp', 
+							 l=source_direction.transform_to('galactic').l.deg, 
+							 b=source_direction.transform_to('galactic').b.deg, 
+							 spectral_shape=spectrum)
 
-		mdp_model = Model(source_mdp)
+		model_inj = Model(source)
 
-		mdp_data = injector.inject_model(model=mdp_model,
-										 orientation=sc_orientation,
-										 polarization=unpolarized,
-										 make_spectrum_plot=False,
-										 earth_occ=True)
+		data = injector.inject_model(model=model_inj,
+									 orientation=sc_orientation,
+									 polarization=unpolarized,
+									 make_spectrum_plot=False,
+									 earth_occ=True)
 
-		mdp_data[:] = np.random.poisson(mdp_data, mdp_data.shape)
+		data[:] = np.random.poisson(data, data.shape)
 		bkg = Histogram(background.expectation().axes, contents=np.random.poisson(background.expectation(), background.expectation().shape))
 
-		mdp_data += bkg
-		mdp_data = EmCDSBinnedData(mdp_data)
+		data += bkg
+		data = EmCDSBinnedData(data)
 
-		mdp_instrument_response = BinnedInstrumentResponse(dr, mdp_data)
+		instrument_response = BinnedInstrumentResponse(dr, data)
 
-		mdp_psr = BinnedThreeMLPointSourceResponse(data=mdp_data,
-												   instrument_response=mdp_instrument_response,
-												   sc_history=sc_orientation,
-												   energy_axis=dr.axes['Ei'],
-												   polarization_axis=PolarizationAxis(dr.axes['Pol'], convention=response_pa_convention),
-												   nside=2*mdp_data.axes['PsiChi'].nside)
+		psr = BinnedThreeMLPointSourceResponse(data=data,
+											   instrument_response=instrument_response,
+											   sc_history=sc_orientation,
+											   energy_axis=dr.axes['Ei'],
+											   polarization_axis=PolarizationAxis(dr.axes['Pol'], convention=response_pa_convention),
+											   nside=2*data.axes['PsiChi'].nside)
 
-		mdp_response = BinnedThreeMLModelFolding(data=mdp_data, point_source_response=mdp_psr)
+		response = BinnedThreeMLModelFolding(data=data, point_source_response=psr)
 
-		like_fun = PoissonLikelihood(mdp_data, mdp_response, background)
+		like_fun = PoissonLikelihood(data, response, background)
 
-		mdp_cosi = ThreeMLPluginInterface('cosi_mdp',
-										  like_fun,
-										  mdp_response,
-										  background)
+		cosi = ThreeMLPluginInterface('cosi_mdp',
+									  like_fun,
+									  response,
+									  background)
 
-		mdp_cosi.bkg_parameter[bkg_parameter.name] = bkg_parameter
+		cosi.bkg_parameter[bkg_parameter.name] = bkg_parameter
 
-		mdp_plugins = DataList(mdp_cosi)
+		plugins = DataList(cosi)
 
-		mdp_like = JointLikelihood(model, mdp_plugins, verbose=False)
+		like = JointLikelihood(this_model, plugins, verbose=False)
 
 		try:
 
-			_ = mdp_like.fit(quiet=True)
+			_ = like.fit(quiet=True)
 
 		except:
 
 			failed_fits += 1
 			continue
 
-		results = mdp_like.results
+		results = like.results
 
 		for key in model.source.spectrum.to_dict().keys():
-			degree = results.optimized_model.source.spectrum[key].polarization.degree.value
-		
+
+			linear_polarization = to_linear_polarization(results.optimized_model.source.spectrum[key].polarization)
+			degree = linear_polarization.degree.value
+
 		degrees.append(degree)
 
 	mdp = np.percentile(degrees, confidence)
