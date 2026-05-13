@@ -51,6 +51,7 @@ def compute_mdp(n, model, background, bkg_parameter, sc_orientation, response_fi
 		spectrum = model.source._components[key].shape
 
 	degrees = []
+	angles = []
 	failed_fits = 0
 
 	dr = FullDetectorResponse.open(response_file, pa_convention=response_pa_convention)
@@ -123,10 +124,12 @@ def compute_mdp(n, model, background, bkg_parameter, sc_orientation, response_fi
 
 			linear_polarization = to_linear_polarization(results.optimized_model.source.spectrum[key].polarization)
 			degree = linear_polarization.degree.value
+			angle = linear_polarization.angle.value
 
 		degrees.append(degree)
+		angles.append(angle)
 
 	mdp = np.percentile(degrees, confidence)
 	logger.warning(f'{failed_fits}/{n} fits failed')
 
-	return mdp
+	return mdp, degrees, angles

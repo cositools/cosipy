@@ -32,9 +32,7 @@ def to_linear_polarization(polarization: Union[Polarization, None]):
         Q = polarization.Q.value.k.value
         U = polarization.U.value.k.value
 
-        pa = np.degrees(.5 * np.arctan2(U, Q))
-        pa = pa % 360
-        pa = np.where(pa > 180, 360 - pa, pa)
+        pa = np.degrees(.5 * np.arctan2(U, Q) % np.pi)
         pd = np.sqrt(Q**2 + U**2) * 100.
 
         return LinearPolarization(pd, pa)
