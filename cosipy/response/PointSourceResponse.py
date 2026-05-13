@@ -81,12 +81,18 @@ class PointSourceResponse(Histogram):
 
         polarization = to_linear_polarization(polarization)
 
+        factor = 1.
+
         if 'Pol' in self.axes.labels:
 
             pol_axis = self.axes['Pol']
 
             polarization_angle = polarization.angle.value
             polarization_level = polarization.degree.value / 100.
+
+            if polarization_level > 1.:
+                factor = 1. + np.exp((polarization_level - 1)**2 - 1)
+                polarization_level = 1.
 
             if polarization_angle == 180.:
                 polarization_angle = 0.
@@ -116,7 +122,7 @@ class PointSourceResponse(Histogram):
             energy_axis = self.photon_energy_axis
             flux = get_integrated_spectral_model(spectrum, energy_axis)
 
-        expectation = np.tensordot(contents, flux.contents, axes=(0, 0))
+        expectation = np.tensordot(contents, flux.contents, axes=(0, 0)) * factor
 
         # if self is sparse, expectation will be a SparseArray with
         # no units, so set the result's unit explicitly
