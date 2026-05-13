@@ -71,13 +71,12 @@ class FreeNormBackground(BackgroundInterface):
             else:
                 dist /= dist_norm
 
-        # These will be densify anyway since _expectation is dense
+        # These will be densified anyway since _expectation is dense
         # And histpy doesn't yet handle this operation efficiently
         # See Histogram._inplace_operation_handle_sparse()
         # Do it once and for all
         for label, bkg in self._distributions.items():
-            if bkg.is_sparse:
-                self._distributions[label] = bkg.to_dense()
+            self._distributions[label] = bkg.to_dense(copy=False)
 
         if self.ncomponents == 0:
             raise ValueError("You need to input at least one components")
@@ -294,10 +293,3 @@ class FreeNormBackgroundInterpolatedDensityTimeTagEmCDS(FreeNormBackground, Back
 
         # Multiply each probability by the norm, and then sum
         return np.tensordot(self._prob, self._norms, axes = (0,0))
-
-
-
-
-
-
-

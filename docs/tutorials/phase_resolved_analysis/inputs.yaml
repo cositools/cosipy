@@ -1,0 +1,26 @@
+---
+#----------#
+# Data I/O:
+data_file: "crab_with_albedo_10d.fits"
+ori_file: "20280301_3_month_with_orbital_info.ori" # full path
+unbinned_output: "fits" # 'fits' or 'hdf5'
+time_bins: 3600 # time bin size in seconds. Takes int, float, or list of bin edges.
+energy_bins: [
+    100.,
+    158.489,
+    251.189,
+    398.107,
+    630.957,
+    1000.,
+    1584.89,
+    2511.89,
+    3981.07,
+    6309.57,
+    10000.,
+  ] # Takes list. Needs to match response.
+phi_pix_size: 5 # binning of Compton scattering anlge [deg]
+nside: 8 # healpix binning of psi chi local
+scheme: "ring" # healpix binning of psi chi local
+tmin: 1835478000.0 # Min time cut in seconds.
+tmax: 1836351300.0 # Max time cut in seconds.
+#----------#

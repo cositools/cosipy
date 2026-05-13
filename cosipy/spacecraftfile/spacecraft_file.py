@@ -70,13 +70,21 @@ class SpacecraftHistory:
 
         """
 
-        time_axis = TimeAxis(obstime, copy = False, label= 'obstime')
+        self._obstime = obstime
+
+        if obstime.size < 2:
+            raise ValueError("SpacecraftHistory needs at least two timestamps.")
+
+        self._t0 = self._obstime[0]
+        self._obstime_dt_jd = self._get_dt_jd(obstime)
+
+        self._time_axis = Axis(self._obstime_dt_jd, copy = False,
+                               label= 'obstime_dt_jd')
 
         if livetime is None:
             livetime = time_axis.widths.to(u.s)
 
-        self._livetime_hist = Histogram(time_axis, livetime,
-                                        copy_contents = False)
+        self._livetime = livetime
 
         if not (location.shape == () or location.shape == obstime.shape):
             raise ValueError(f"'location' must be a scalar or have the same length as the timestamps ({obstime.shape}), but it has shape ({location.shape})")
@@ -90,41 +98,45 @@ class SpacecraftHistory:
 
         self._cache_earth_occ = False
 
+    def _get_dt_jd(self, time: Time):
+        time = time - self._t0
+        return time.jd1 + time.jd2
+
     @property
     def nintervals(self):
-        return self._livetime_hist.nbins
+        return len(self._livetime)
 
     @property
     def intervals_duration(self):
-        return self._livetime_hist.axis.widths.to(self._livetime_hist.unit)
+        return Quantity(self._time_axis.widths, u.day, copy = False)
 
     @property
     def intervals_tstart(self):
-        return self._livetime_hist.axis.lower_bounds
+        return self._obstime[:-1]
 
     @property
     def intervals_tstop(self):
-        return self._livetime_hist.axis.upper_bounds
+        return self._obstime[1:]
 
     @property
     def tstart(self):
-        return self._livetime_hist.axis.lo_lim
+        return self._obstime[0]
 
     @property
     def tstop(self):
-        return self._livetime_hist.axis.hi_lim
+        return self._obstime[-1]
 
     @property
     def npoints(self):
-        return self._livetime_hist.nbins + 1
+        return self._obstime.size
 
     @property
     def obstime(self):
-        return self._livetime_hist.axis.edges
+        return self._obstime
 
     @property
     def livetime(self):
-        return self._livetime_hist.contents
+        return self._livetime
 
     @property
     def attitude(self):
@@ -279,18 +291,25 @@ class SpacecraftHistory:
     @staticmethod
     def _find_time_index(time:Time, tstart:Time, tstop:Time):
 
-        # TimeAxis optimizes searchsorted for 128bit precision
-        time_axis = TimeAxis(time, copy=False)
+        t0 = time if time.isscalar else time[0]
+
+        time = (time - t0).jd
 
         if tstart is not None:
-            start_idx = time_axis.find_bin(tstart)
+            tstart = (tstart - t0).jd
+            start_idx = np.searchsorted(time, tstart, side='right')
         else:
             start_idx = 0
 
         if tstop is not None:
-            stop_idx = time_axis.find_bin(tstop) + 2
+            tstop = (tstop - t0).jd
+            stop_idx = np.searchsorted(time, tstop, side='right')
         else:
             stop_idx = time.size
+
+        # Include the full bin, but prevent an index error
+        start_idx = max(0, start_idx - 1)
+        stop_idx  = min(time.size, stop_idx + 1)
 
         return start_idx, stop_idx
 
@@ -402,10 +421,25 @@ class SpacecraftHistory:
         # Type OrientationsGalactic
         # ...
         # EN
-        # Using [:-1] instead of skipfooter=1 because otherwise it's
-        # slow and you get ParserWarning: Falling back to the 'python'
-        # engine because the 'c' engine does not support skipfooter;
-        # you can avoid this warning by specifying engine='python'.
+
+        # Check that the EN line is present (and throw an error if
+        # not), lest we accidentally drop the last line of orientation
+        # data!
+        with open(file, "rb") as ori_file:
+            ori_file.seek(-4, 2)
+            s = ori_file.read(4)
+
+            # allow for possibility of missing EOL at end of file
+            if s[-1] == ord('\n'):
+                s = s[:-1]
+
+            if s != b'\nEN':
+                raise ValueError(".ori file must end with final line 'EN'!")
+
+        # now read the full file, skipping the first and last line.
+        # Use [:-1] instead of skipfooter=1; the latter causes a
+        # fallback to the slow Python CSV reading engine instead of
+        # faster C engine.
 
         df = pd.read_csv(file, sep=r"\s+", skiprows=1,
                          usecols=tuple(range(1,10)),
@@ -668,8 +702,8 @@ class SpacecraftHistory:
                                                self._gcrs[points[1]])
 
     def _cumulative_livetime(self, points, weights) -> u.Quantity:
-        cum_livetime_discrete = np.append(0 * self._livetime_hist.unit,
-                                          np.cumsum(self.livetime))
+        cum_livetime_discrete = np.append(0 * self._livetime.unit,
+                                          np.cumsum(self._livetime))
 
         up_to_tstart = cum_livetime_discrete[points[0]]
 
@@ -708,7 +742,8 @@ class SpacecraftHistory:
         return self._cumulative_livetime(points, weights)
 
     def interp_weights(self, times: Time):
-        return self._livetime_hist.axis.interp_weights_edges(times)
+        times = self._get_dt_jd(times)
+        return self._time_axis.interp_weights_edges(times)
 
     def interp(self, times: Time) -> 'SpacecraftHistory':
 
@@ -765,6 +800,8 @@ class SpacecraftHistory:
 
         """
 
+        from scipy.spatial.transform import Rotation as R
+
         if start is None:
             start = self.tstart
 
@@ -774,12 +811,15 @@ class SpacecraftHistory:
         if start < self.tstart or stop > self.tstop:
             raise ValueError(f"Input range ({start}-{stop}) is outside the SC history ({self.tstart}-{self.tstop})")
 
-        start_points, start_weights = self.interp_weights(start)
-        stop_points, stop_weights = self.interp_weights(stop)
+        points, weights = self.interp_weights(Time((start, stop)))
+        start_points = points[:,0]
+        stop_points  = points[:,1]
+        start_weights = weights[:,0]
+        stop_weights  = weights[:,1]
 
         # Center values
         new_obstime = self.obstime[start_points[1]:stop_points[1]]
-        new_attitude = self._attitude.as_matrix()[start_points[1]:stop_points[1]]
+        new_attitude = [ self._attitude[start_points[1]:stop_points[1]].rot ]
         new_location = self._gcrs[start_points[1]:stop_points[1]]
         new_livetime = self.livetime[start_points[1]:stop_points[0]]
 
@@ -796,8 +836,8 @@ class SpacecraftHistory:
             start_attitude = self._interp_attitude(start_weights[1],
                                                    self._attitude[start_points[0]],
                                                    self._attitude[start_points[1]])
-            new_attitude = np.append(start_attitude.as_matrix()[None],
-                                     new_attitude, axis=0)
+
+            new_attitude.insert(0, start_attitude.rot)
 
             start_location = self._interp_location(start_weights[1],
                                                    self._gcrs[start_points[0]],
@@ -818,11 +858,10 @@ class SpacecraftHistory:
         stop_attitude = self._interp_attitude(stop_weights[1],
                                               self._attitude[stop_points[0]],
                                               self._attitude[stop_points[1]])
-        new_attitude = np.append(new_attitude,
-                                 stop_attitude.as_matrix()[None],
-                                 axis=0)
-        new_attitude = Attitude.from_matrix(new_attitude,
-                                            frame=self._attitude.frame)
+        new_attitude.append(stop_attitude.rot)
+
+        new_attitude = Attitude(R.concatenate(new_attitude),
+                                frame=self._attitude.frame)
 
         stop_location = self._interp_location(stop_weights[1],
                                               self._gcrs[stop_points[0]],
@@ -842,8 +881,13 @@ class SpacecraftHistory:
         # changed the format.  Bring it back
         new_obstime.format = self.obstime.format
 
-        return self.__class__(new_obstime, new_attitude, new_location,
-                              new_livetime)
+        new_history = self.__class__(new_obstime, new_attitude, new_location,
+                                     new_livetime)
+
+        # make sure new object uses same earth occ caching as old object
+        new_history.cache_earth_occ = self.cache_earth_occ
+
+        return new_history
 
     def apply_gti(self, gti: GoodTimeInterval) -> "SpacecraftHistory":
         """
@@ -893,7 +937,13 @@ class SpacecraftHistory:
         new_attitude = Attitude.from_matrix(new_attitude, frame=self._attitude.frame)
         new_obstime.format = self.obstime.format
 
-        return self.__class__(new_obstime, new_attitude, new_location, new_livetime)
+        new_history = self.__class__(new_obstime, new_attitude, new_location,
+                                     new_livetime)
+
+        # make sure new object uses same earth occ caching as old object
+        new_history.cache_earth_occ = self.cache_earth_occ
+
+        return new_history
 
     def get_earth_occ(self, target_coord: SkyCoord):
         """
@@ -907,7 +957,7 @@ class SpacecraftHistory:
 
         Parameters
         ----------
-        target_coord:
+        target_coord: SkyCoord
           source direction
 
         Returns
@@ -948,9 +998,15 @@ class SpacecraftHistory:
             min_angle_cos = self._min_angle_cos
             ez_cart = self._ez_cart
         else:
+            dist_earth_center = self._gcrs.spherical.distance.km
+            if np.any(dist_earth_center < self._r_earth):
+                logger.warning("computed altitude for orientation is negative!"
+                               "clamping to 0")
+                dist_earth_center = np.max(dist_earth_center, self._r_earth)
+
             # sine of angle between lines through satellite (1) normal
             # to earth and (2) tangent to earth
-            sin_earth_angle = self._r_earth / self._gcrs.spherical.distance.km
+            sin_earth_angle = self._r_earth / dist_earth_center
 
             # cosine of maximum unoccluded angle for source w/r to
             # satellite's earth zenith; that is,
@@ -1028,7 +1084,8 @@ class SpacecraftHistory:
             # zero out weights of time bins corresponding to occluded
             # pointings.  Assume occlusion at start of bin holds for
             # entire bin.
-            return np.where(is_occluded[:-1], 0*livetime.unit, livetime)
+            lt = np.where(is_occluded[:-1], 0, livetime.value)
+            return Quantity(lt, unit=livetime.unit, copy=False)
         else:
             return livetime
 
@@ -1141,7 +1198,7 @@ class SpacecraftHistory:
             # do not interpolate
             pixels = base.ang2pix(theta=theta,
                                   phi=phi,
-                                  lonlat=lonlat)
+                                  lonlat=False)
             weighted_duration = duration
 
         unique_pixels, unique_weights = \
@@ -1377,3 +1434,33 @@ class SpacecraftHistory:
         lon   = np.arctan2(v[:,1], v[:,0])
         colat = np.arccos(v[:,2])
         return (lon, colat)
+    
+    def update_ephemeris(self, ephemeris, intervals):
+        """
+        Adjust the mission livetime in-place based on a pulsar phase selection.
+
+        Parameters
+        ----------
+        ephemeris : PhaseEphemeris
+            An object adhering to the PhaseEphemeris Protocol.
+        intervals : list of tuple of float
+            A list of (start_phase, stop_phase) intervals.
+        """
+        exposed_durations = ephemeris.get_duty_cycle(
+            self.intervals_tstart, 
+            self.intervals_tstop, 
+            intervals
+        )
+        
+        bin_durations = (self.intervals_tstop - self.intervals_tstart).to(u.s)
+        
+        fraction = np.zeros_like(bin_durations.value)
+        valid_bins = bin_durations > 0
+        fraction[valid_bins] = (exposed_durations[valid_bins] / bin_durations[valid_bins]).decompose().value
+        
+        if hasattr(self, '_livetime_hist') and self._livetime_hist is not None:
+            # Legacy handling if a histpy object was manually injected
+            self._livetime_hist.contents[:] = self._livetime_hist.contents * fraction
+        else:
+            # Standard cosipy SpacecraftHistory storage natively uses _livetime
+            self._livetime = self.livetime * fraction

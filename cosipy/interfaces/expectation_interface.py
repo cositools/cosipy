@@ -117,7 +117,7 @@ class SumExpectationDensity(ExpectationDensityInterface):
         Parameters
         ----------
         expectations: Other ExpectationDensityInterface implementations
-        vectorize: It True (default), it will first cache all the individual expectations on numpy arrays, and then it will sum
+        vectorize: If True (default), it will first cache all the individual expectations on numpy arrays, and then it will sum
         them up using numpy's method. The output will also be a numpy. If False, it will query one element from each
         expectation object a time and sum them up. The output in this case is an Generator.
         """

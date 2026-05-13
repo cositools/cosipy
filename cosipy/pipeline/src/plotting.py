@@ -56,7 +56,7 @@ def get_counts_ene(data):
     e_cts: numpy:array
         The poissonian error for the counts in each energy bin.
     """
-    cts = data.project('Em').todense().contents
+    cts = data.project('Em').to_dense(copy=False).contents
     e_cts = np.sqrt(cts)
     return (cts, e_cts)
 

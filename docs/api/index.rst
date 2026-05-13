@@ -12,6 +12,7 @@ If you are instead interested in an overview on how to use cosipy, see out `tuto
    :maxdepth: 3
    :caption: Contents:
 
+   interfaces
    response
    data_io
    spacecraftfile
@@ -19,6 +20,7 @@ If you are instead interested in an overview on how to use cosipy, see out `tuto
    ts_map
    image_deconvolution
    polarization
+   background_estimation
    source_injector
    util
 

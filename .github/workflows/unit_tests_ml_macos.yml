@@ -12,10 +12,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      # Ideally we would like to install everything
+      # automatically with pip. However, there's a conflict
+      # between the OpenMP libraries shipped with healpy and
+      # pytorch. See https://github.com/pytorch/pytorch/issues/44282
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
         with:
+          activate-environment: cosipy-env
           python-version: ${{ matrix.python-version }}
+          auto-activate-base: true
+      - name: Install dependencies OpenMP
+        shell: bash -el {0}
+        run: |
+          conda install -c conda-forge healpy pytorch
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
       - name: Install

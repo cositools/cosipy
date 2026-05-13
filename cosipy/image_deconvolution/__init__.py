@@ -1,17 +1,19 @@
 from .image_deconvolution import ImageDeconvolution, ParallelImageDeconvolution
 
-from .image_deconvolution_data_interface_base import ImageDeconvolutionDataInterfaceBase
-from .dataIF_COSI_DC2 import DataIF_COSI_DC2
-from .dataIF_Parallel import DataIF_Parallel
+from .data_interfaces.image_deconvolution_data_interface_base import ImageDeconvolutionDataInterfaceBase
+from .data_interfaces.dataIF_COSI_DC2 import DataIF_COSI_DC2
+from .data_interfaces.dataIF_Parallel import DataIF_Parallel
+from .data_interfaces.data_interface_collection import DataInterfaceCollection
 
-from .model_base import ModelBase
-from .allskyimage import AllSkyImageModel
+from .models.model_base import ModelBase
+from .models.allskyimage import AllSkyImageModel
 
-from .deconvolution_algorithm_base import DeconvolutionAlgorithmBase
-from .RichardsonLucy import RichardsonLucy
-from .RichardsonLucySimple import RichardsonLucySimple
-from .MAP_RichardsonLucy import MAP_RichardsonLucy 
+from .algorithms.deconvolution_algorithm_base import DeconvolutionAlgorithmBase
+from .algorithms.RichardsonLucyBasic import RichardsonLucyBasic
+from .algorithms.RichardsonLucy import RichardsonLucy
+from .algorithms.RichardsonLucyAdvanced import RichardsonLucyAdvanced
+from .algorithms.MAP_RichardsonLucy import MAP_RichardsonLucy
 
-from .scatt_exposure_table import SpacecraftAttitudeExposureTable
-from .time_binned_exposure_table import TimeBinnedExposureTable
-from .coordsys_conversion_matrix import CoordsysConversionMatrix
+from .exposure_tables.scatt_exposure_table import SpacecraftAttitudeExposureTable
+from .exposure_tables.time_binned_exposure_table import TimeBinnedExposureTable
+from .exposure_tables.coordsys_conversion_matrix import CoordsysConversionMatrix

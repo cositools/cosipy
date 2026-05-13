@@ -26,7 +26,7 @@ __all__ = ["BinnedInstrumentResponseInterface"]
 from cosipy.response.photon_types import PhotonListWithDirectionAndEnergyInSCFrame
 
 
-class BinnedInstrumentResponseInterface(BinnedExpectationInterface, Protocol):
+class BinnedInstrumentResponseInterface(Protocol):
 
     def differential_effective_area(self,
                                     direction: SkyCoord,

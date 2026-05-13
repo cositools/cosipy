@@ -16,12 +16,14 @@ model_definition:
       value: [1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5,1e-5] #the number of these values should be the same as "the number of energy_edges - 1".
       unit: "cm-2 s-1 sr-1"  # do not change it as for now
 deconvolution:
-  algorithm: "RL"
+  algorithm: "RLadvanced"
   parameter:
     iteration_max: 10
     acceleration:
         activate: True
-        alpha_max: 10.0
+        algorithm: "MaxStep"
+        accel_factor_max: 10.0
+        accel_bkg_norm: False
     response_weighting:
         activate: True
         index: 0.5
