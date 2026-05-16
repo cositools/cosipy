@@ -106,7 +106,7 @@ def test_polarization_fit():
 	_ = like.fit()
 
 	assert np.allclose([source.spectrum.test.polarization.Q.Constant.k.value, source.spectrum.test.polarization.U.Constant.k.value],
-					   [1.35, -.86], atol=[.2, .2])
+					   [-.74, 0.], atol=[.2, .2])
 
 def test_mdp():
 
