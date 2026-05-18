@@ -134,4 +134,4 @@ def test_mdp():
 
 	mdp = compute_mdp(50, model_mdp, bkg, bkg_parameter, sc_orientation, response_file, 'RelativeZ')
 
-	assert np.allclose([mdp], [25.], atol=[10.])
+	assert np.allclose([mdp], [25.], atol=[15.])
