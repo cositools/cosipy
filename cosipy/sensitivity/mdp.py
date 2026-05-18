@@ -123,7 +123,6 @@ def compute_mdp(n, model, background, bkg_parameter, sc_orientation, response_fi
 
 			linear_polarization = to_linear_polarization(results.optimized_model.source.spectrum[key].polarization)
 			degree = linear_polarization.degree.value
-			angle = linear_polarization.angle.value
 
 		degrees.append(degree)
 
