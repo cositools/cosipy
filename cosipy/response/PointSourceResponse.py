@@ -94,7 +94,7 @@ class PointSourceResponse(Histogram):
             if pd > 1.:
 
                 factor = np.exp((pd - 1.)**2)
-                pa = np.degrees(.5 * np.arctan2(U, Q) % np.pi)
+                polarization_angle = np.degrees(.5 * np.arctan2(U, Q) % np.pi)
                 polarization_level = 1.
 
         if 'Pol' in self.axes.labels:
@@ -105,10 +105,6 @@ class PointSourceResponse(Histogram):
                 polarization = to_linear_polarization(polarization)
                 polarization_angle = polarization.angle.value
                 polarization_level = polarization.degree.value / 100.
-
-            if polarization_level > 1.:
-                factor = 1. + np.exp((polarization_level - 1)**2 - 1)
-                polarization_level = 1.
 
             if polarization_angle == 180.:
                 polarization_angle = 0.
