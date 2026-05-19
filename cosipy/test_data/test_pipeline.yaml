@@ -251,33 +251,46 @@ bindata:
   response:
     class: ExpectationInterfaceTBD
     args:
-      - test_full_detector_response_rel.h5
-  unbinned_data_file:  unbinned_data_MEGAlib_calc.hdf5
-  sc_file: 20280301_2s.fits
+      - test_full_detector_response.h5
+  unbinned_data_file:  tsel_unbinned_data_test.fits
+  sc_file: DC3-3mo-arbitrary-10s.fits
   dt: 1
-  tmin: null
-  tmax: null
+  tmin: 1835587306.0
+  tmax: 1835587307.0
   coo_sys: "local"
+  
+bindata_crabtest:
+  response:
+    class: ExpectationInterfaceTBD
+    args:
+      - test_full_detector_response.h5
+  unbinned_data_file: crab_standard_3months_unbinned_data_filtered_with_SAAcut.fits
+  sc_file: DC3-3mo-arbitrary-10s.fits
+  dt: 1
+  tmin: 1835587306.0
+  tmax: 1835587307.0
+  coo_sys: "local"
+
 
 
 
 
 threemlfit:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
-    grb_dc2_tutorial (point source): *grb_dc2_tutorial_source_model
-  sc_file: 20280301_2s.fits
+    crab (point source): *crab_source_model
+  sc_file: DC3-3mo-arbitrary-10s.fits
   data:
     class: DataInterfaceTBD
     args:
-      - test_spectral_fit_data.h5
+      - tsel_binned_data_local_crab1s.hdf5
     kwargs:
-      input_yaml: test_spectral_fit.yaml
+      input_yaml: bin_crab1s.yaml
   background: # This is a list of background component
     class: ExpectationInterfaceTBD
     args:
-      - test_spectral_fit_background.h5
+      - tsel_binned_data_local_test.hdf5
     kwargs:
-      input_yaml: test_spectral_fit.yaml
+      input_yaml: bin_test.yaml
   response:
     class: ExpectationInterfaceTBD
     args:
@@ -294,19 +307,19 @@ threemlfit:
 tsdetect:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
     template (point source): *template_pw
-  sc_file:
+  sc_file: DC3-3mo-arbitrary-10s.fits
   data:
     class: DataInterfaceTBD
     args:
-      - ts_map_src_bkg.h5
+      - tsel_binned_data_local_test.hdf5
     kwargs:
-      input_yaml: bin_galbk_grbdc3.yaml
+      input_yaml: bin_test.yaml
   background: # This is a list of background component
     class: ExpectationInterfaceTBD
     args:
-      - ts_map_bkg.h5
+      - tsel_binned_data_local_test.hdf5
     kwargs:
-      input_yaml: bin_galbkfull.yaml
+      input_yaml: bin_test.yaml
   response:
     class: ExpectationInterfaceTBD
     args:

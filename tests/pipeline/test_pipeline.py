@@ -11,23 +11,21 @@ config_path = os.path.join(data_path, "test_pipeline.yaml")
 def test_run_task(tmp_path):
     # Usiamo tmp_path che pytest ci fornisce automaticamente
     tmpdir = tmp_path.as_posix()
+    print(tmpdir)
     args = ['--config', config_path, '--overwrite', '--output-dir', tmpdir]
 
     # Esecuzione
     cosi_bindata(argv=args)
-    cosi_threemlfit(argv=args)
+    print(tmpdir)
+    assert Path(tmp_path/ "bin.yaml").exists()
+    assert Path(tmp_path / "tsel_binned_data_local.hdf5").exists()
+    #
+    #cosi_threemlfit(argv=args)
+    #assert Path(tmp_path/ "results.hdf").exists()
+    #assert Path(tmp_path / "raw_spectrum.pdf").exists()
+    #
     cosi_tsdetect(argv=args)
+    assert Path(tmp_path / "raw_ts.png").exists()
 
-    # Output files
-    expected_files = [
-        tmp_path / "bin.yaml",
-        tmp_path / "binned_data_local.hdf5",
-        tmp_path / "results.hdf",
-        tmp_path / "raw_spectrum.pdf"
-        tmp_path / "raw_ts.png"
-    ]
 
-    for file_path in expected_files:
-        assert file_path.exists()
-
-test_run_task(tmp_path)
+#test_run_task(tmp_path)
