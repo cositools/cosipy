@@ -99,6 +99,9 @@ def cosi_bindata(argv=None):
     resp_path = config.absolute_path(config["response:args"][0])
     ori_path=config.absolute_path(config["sc_file"])
 
+    #Set histogram sparse or dense.
+    sparse = config.get('sparse')
+
     # Time info
     ori = SpacecraftHistory.open(ori_path)
     ori_time=ori.obstime
@@ -109,7 +112,6 @@ def cosi_bindata(argv=None):
     if config.get("tmin")==None:
         tmax = np.max(ori_time).value
     dt=  config.get("dt")
-
 
     #Prepare the input ymal
     yaml_path = odir/yaml_name
@@ -142,7 +144,7 @@ def cosi_bindata(argv=None):
     bdata_path=odir/bdata_name
     if bdata_path.exists() and not args.overwrite:
         raise RuntimeError(f"{bdata_path} already exists. If you mean to replace it then use --overwrite.")
-    get_binned_data(yaml_path,data_path,bdata_path, psichi_coo)
+    get_binned_data(yaml_path,data_path,bdata_path, psichi_coo, sparse=sparse)
     #
     logger.info(str(" Binning configuration file " + str(yaml_path) + " is ready"))
     logger.info(str(" Binned data file "+str(bdata_path)+" is ready for analysis"))
@@ -384,15 +386,16 @@ def  cosi_tsdetect(argv=None):
         tstop = Time(tstop, format='unix')
 
         sliced_data = tslice_binned_data(data_full, tstart, tstop)
-        binned_data = sliced_data.project(['Em', 'Phi', 'PsiChi'])
+        binned_data = sliced_data.project(['Em', 'Phi', 'PsiChi'])+1E-12
 
     else:
         tstart=Time(np.min(data_full.axes['Time'].edges), format='unix')
         tstop=Time(np.max (data_full.axes['Time'].edges), format='unix')
-        binned_data = data_full.project(['Em', 'Phi', 'PsiChi'])
+        binned_data = data_full.project(['Em', 'Phi', 'PsiChi'])+1E-12
 
     # Slice the ori file in the time interval of the data:
-    ori_sliced = ori.select_interval(tstart, tstop)
+    #grb_ori = ori_full.select_interval(Time(grb_tmin, format="unix"), Time(grb_tmax, format="unix"))
+    ori_sliced = ori.select_interval(Time(tstart,format="unix"), Time(tstop, format="unix"))
     ori=ori_sliced
 
     # Prepare the background model.
@@ -400,11 +403,13 @@ def  cosi_tsdetect(argv=None):
 
     delta = tstop - tstart
     delta = delta.to_value('s')
+    print(delta)
     bkg_full=Histogram.open(bk_data_path)
     bkg_times = bkg_full.axes['Time'].edges.value
     bkg_full_duration = np.ptp(bkg_times)  # max - min
+    print(bkg_full_duration)
     bkg_model = bkg_full.project(['Em', 'Phi', 'PsiChi'])
-    bkg_model /= bkg_full_duration / delta
+    bkg_model /= (bkg_full_duration / delta)+1E-12
     del bkg_full
 
     # Calculation
@@ -416,7 +421,7 @@ def  cosi_tsdetect(argv=None):
 
         ts_results = ts.fit(nside=nside_search, energy_channel=[2, 3],
                         spectrum=spectrum, cpu_cores=8)
-
+        print(ts_results)
         max_ts,max_coo,max_l,max_b,pixel_mean_spacing=get_ts_results(ts_results,multiresolution=multiresolution,nside=nside_search)
         print("Maximum TS= %f" % max_ts)
         print("Galactic coordinate at maximum TS: l=%f, b=%f" %(max_l, max_b))

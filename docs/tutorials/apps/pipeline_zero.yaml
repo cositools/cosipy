@@ -254,6 +254,7 @@ bindata_bk:
   tmin: null
   tmax: null
   coo_sys: "local"
+  sparse: True
 
 bindata_soubk:
   response:
@@ -266,6 +267,7 @@ bindata_soubk:
   tmin: null
   tmax: null
   coo_sys: "local"
+  sparse: True
 
 
 tsdetect:
@@ -281,7 +283,7 @@ tsdetect:
   background: # This is a list of background component
     class: ExpectationInterfaceTBD
     args:
-      - binned_data_local_galbkfull.hdf5
+      - tsel_binned_data_local_galbkfull.hdf5
     kwargs:
       input_yaml: bin_galbkfull.yaml
   response:
@@ -295,8 +297,8 @@ tsdetect:
       tstart: null
       tstop: null
   coo_sys: "local"
-  nside: 16
-  multiresolution: true
+  nside: 8
+  multiresolution: false
 
 threemlfit_pw:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
@@ -326,10 +328,11 @@ threemlfit_pw:
       tstop: null
 
 
+
 threemlfit_band:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
     template_grb (point source): *template_band
-  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
+  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.ori
   data:
     class: DataInterfaceTBD
     args:
@@ -339,7 +342,7 @@ threemlfit_band:
   background: # This is a list of background component
     class: ExpectationInterfaceTBD
     args:
-      - binned_data_local_galbkfull.hdf5
+      - tsel_binned_data_local_galbkfull.hdf5
     kwargs:
       input_yaml: bin_galbkfull.yaml
   response:
