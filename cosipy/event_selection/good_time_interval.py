@@ -1,17 +1,18 @@
-import logging
+import numpy as np
+import astropy.units as u
+
+from astropy.coordinates import SkyCoord
+from astropy.time import Time
+from astropy.io import fits
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # Guard preventing circulat import
     from cosipy import SpacecraftHistory
 
+import logging
 logger = logging.getLogger(__name__)
 
-import numpy as np
-import astropy.units as u
-from astropy.coordinates import SkyCoord
-from astropy.time import Time
-from astropy.io import fits
 
 class GoodTimeInterval():
 

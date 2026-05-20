@@ -79,9 +79,9 @@ class RspArfRmfConverter:
 
         # get the effective area and matrix
         logger.info("Getting the effective area ...")
-        self.arf = np.float32(psr.project('Ei').to_dense(copy=False).contents.value) / self.ori.livetime.to_value(u.s).sum()
-        spectral_response = np.float32(psr.project(('Ei', 'Em')).to_dense(copy=False).contents.value)
-        self.rmf = np.float32(np.zeros((self.Ei_lo.size, self.Em_lo.size)))  # initialize the matrix
+        self.arf = psr.project('Ei').astype(np.float32).contents.value / self.ori.livetime.to_value(u.s).sum()
+        spectral_response = psr.project('Ei', 'Em').astype(np.float32).contents.value
+        self.rmf = np.zeros((self.Ei_lo.size, self.Em_lo.size), dtype=np.float32)  # initialize the matrix
 
         logger.info("Getting the energy redistribution matrix ...")
         for i in range(self.Ei_lo.size):

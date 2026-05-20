@@ -40,7 +40,7 @@ def test_inject_point_source():
                                                         make_spectrum_plot = False, make_PsiChi_plot = False ,data_save_path = None,
                                                         project_axes = None)
 
-    results = injected_crab_signal.project("Em").to_dense(copy=False).contents
+    results = injected_crab_signal.project("Em").contents
 
     assert isinstance(results, u.quantity.Quantity)
 
@@ -78,7 +78,7 @@ def test_inject_point_source_galactic():
                                                         make_spectrum_plot = True, make_PsiChi_plot=True , data_save_path = None,
                                                         project_axes = None)
 
-    results = injected_crab_signal.project("Em").to_dense(copy=False).contents
+    results = injected_crab_signal.project("Em").contents
 
     assert isinstance(results, u.quantity.Quantity)
 

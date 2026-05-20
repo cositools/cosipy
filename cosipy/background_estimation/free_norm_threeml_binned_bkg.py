@@ -1,27 +1,35 @@
-import itertools
-from typing import Dict, Tuple, Union, Any, Type, Optional, Iterable
+from typing import Dict, Union, Type, Iterable
 
 import numpy as np
-from astromodels import Parameter
-from astropy.coordinates import SkyCoord, CartesianRepresentation, UnitSphericalRepresentation
-from astropy.time import Time
-from histpy import Histogram
-from histpy import Axes
 
+from astropy.coordinates import (
+    SkyCoord,
+    CartesianRepresentation,
+    UnitSphericalRepresentation
+)
+from astropy.time import Time
 from astropy import units as u
+
+from histpy import Histogram
+
 from scoords import SpacecraftFrame
 
 from cosipy import SpacecraftHistory
-from cosipy.data_io.EmCDSUnbinnedData import TimeTagEmCDSEventInSCFrame
-from cosipy.interfaces import BinnedBackgroundInterface, BinnedDataInterface, DataInterface, BackgroundDensityInterface, \
-    BackgroundInterface, EventInterface
-
-__all__ = ["FreeNormBinnedBackground"]
+from cosipy.interfaces import (
+    BinnedBackgroundInterface,
+    BackgroundDensityInterface,
+    BackgroundInterface,
+    EventInterface
+)
 
 from cosipy.interfaces.data_interface import TimeTagEmCDSEventDataInSCFrameInterface
 
 from cosipy.interfaces.event import TimeTagEmCDSEventInSCFrameInterface
 from cosipy.util.iterables import itertools_batched
+
+
+__all__ = ["FreeNormBinnedBackground"]
+
 
 class FreeNormBackground(BackgroundInterface):
     """
@@ -61,22 +69,20 @@ class FreeNormBackground(BackgroundInterface):
 
         self._labels = tuple(self._distributions.keys())
 
-        # Normalize
-        # Unit: second
         self._livetime = sc_history.cumulative_livetime().to_value(u.s)
-        for label,dist in self._distributions.items():
-            dist_norm = np.sum(dist)
-            if copy:
-                self._distributions[label] = dist/dist_norm
-            else:
-                dist /= dist_norm
 
         # These will be densified anyway since _expectation is dense
         # And histpy doesn't yet handle this operation efficiently
         # See Histogram._inplace_operation_handle_sparse()
         # Do it once and for all
         for label, bkg in self._distributions.items():
-            self._distributions[label] = bkg.to_dense(copy=False)
+            self._distributions[label] = bkg.to_dense(copy=copy)
+
+        # Normalize
+        # Unit: second
+        for label,dist in self._distributions.items():
+            dist_norm = np.sum(dist)
+            dist /= dist_norm
 
         if self.ncomponents == 0:
             raise ValueError("You need to input at least one components")
@@ -287,8 +293,10 @@ class FreeNormBackgroundInterpolatedDensityTimeTagEmCDS(FreeNormBackground, Back
 
     def expectation_density(self) -> Iterable[float]:
         """
-        Return the expected number of counts density from the start-th event
-        to the stop-th event. This equals the event probabiliy times the number of events
+        Return the expected number of counts density from the start-th
+        event to the stop-th event. This equals the event probabiliy
+        times the number of events
+
         """
 
         # Multiply each probability by the norm, and then sum

@@ -1,18 +1,19 @@
 from typing import TypeVar, Generic, Iterator
 
 import numpy as np
-from astropy.coordinates import SkyCoord
-from scoords import SpacecraftFrame
 
-from cosipy.interfaces.photon_parameters import PhotonWithDirectionAndEnergyInSCFrameInterface, \
-    PolarizedPhotonStereographicConventionInSCInterface, \
-    PolarizedPhotonWithDirectionAndEnergyInSCFrameStereographicConventionInterface, PhotonWithEnergyInterface, \
-    PhotonListWithEnergyInterface, PhotonInterface, PhotonListWithDirectionAndEnergyInSCFrameInterface, \
-    PolarizedPhotonListWithDirectionAndEnergyInSCFrameStereographicConventionInterface, \
-    PhotonWithDirectionInSCFrameInterface, PhotonListWithDirectionInSCFrameInterface
-from cosipy.polarization import PolarizationAngle
+from cosipy.interfaces.photon_parameters import (
+    PhotonWithDirectionAndEnergyInSCFrameInterface,
+    PolarizedPhotonWithDirectionAndEnergyInSCFrameStereographicConventionInterface,
+    PhotonWithEnergyInterface,
+    PhotonListWithEnergyInterface,
+    PhotonInterface,
+    PhotonListWithDirectionAndEnergyInSCFrameInterface,
+    PolarizedPhotonListWithDirectionAndEnergyInSCFrameStereographicConventionInterface,
+    PhotonWithDirectionInSCFrameInterface,
+    PhotonListWithDirectionInSCFrameInterface
+)
 
-from astropy import units as u
 
 T = TypeVar("T")
 
@@ -25,9 +26,11 @@ class PhotonWithEnergyGen(Generic[T]):
     def energy_keV(self) -> T:
         return self._energy
 
-class PhotonWithEnergy(PhotonWithEnergyGen[float], PhotonWithEnergyInterface):...
+class PhotonWithEnergy(PhotonWithEnergyGen[float],
+                       PhotonWithEnergyInterface):...
 
-class PhotonListWithEnergy(PhotonWithEnergyGen[np.ndarray[float]], PhotonListWithEnergyInterface):
+class PhotonListWithEnergy(PhotonWithEnergyGen[np.ndarray[float]],
+                           PhotonListWithEnergyInterface):
 
     def __iter__(self) -> Iterator[PhotonInterface]:
         for energy_keV in self.energy_keV:
@@ -54,7 +57,8 @@ class PhotonWithDirectionInSCFrameGen(Generic[T]):
     def direction_lat_rad_sc(self) -> T:
         return self._lat
 
-class PhotonWithDirectionInSCFrame(PhotonWithDirectionInSCFrameGen[float], PhotonWithDirectionInSCFrameInterface): ...
+class PhotonWithDirectionInSCFrame(PhotonWithDirectionInSCFrameGen[float],
+                                   PhotonWithDirectionInSCFrameInterface): ...
 
 class PhotonListWithDirectionInSCFrame(PhotonWithDirectionInSCFrameGen[np.ndarray[float]], PhotonListWithDirectionInSCFrameInterface):
 

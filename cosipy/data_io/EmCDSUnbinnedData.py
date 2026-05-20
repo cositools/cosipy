@@ -1,20 +1,24 @@
 from pathlib import Path
-from typing import Iterable, Iterator, Optional, Tuple, Union, List
+from typing import Iterable, Iterator, Optional, Union, List
 
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, Angle, SkyCoord, UnitSphericalRepresentation
+
+from astropy.coordinates import Angle, SkyCoord, UnitSphericalRepresentation
 from astropy.time import Time
 from astropy.units import Quantity
-from numpy._typing import ArrayLike
+import astropy.units as u
+
 from scoords import SpacecraftFrame
 
 from cosipy.data_io.UnBinnedData import UnBinnedData
-from cosipy.interfaces import EventWithEnergyInterface, EventDataInterface, EventDataWithEnergyInterface
-from cosipy.interfaces.data_interface import TimeTagEmCDSEventDataInSCFrameInterface, EmCDSEventDataInSCFrameInterface
-from cosipy.interfaces.event import  TimeTagEmCDSEventInSCFrameInterface, \
+from cosipy.interfaces.data_interface import (
+    TimeTagEmCDSEventDataInSCFrameInterface,
+    EmCDSEventDataInSCFrameInterface
+)
+from cosipy.interfaces.event import (
+    TimeTagEmCDSEventInSCFrameInterface,
     EmCDSEventInSCFrameInterface
-
-import astropy.units as u
+)
 
 from cosipy.interfaces.event_selection import EventSelectorInterface
 from cosipy.util.iterables import asarray
@@ -104,16 +108,20 @@ class EmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameInterface):
                    event_id: Optional[np.ndarray[int]] = None,
                    selection: Optional[EventSelectorInterface] = None):
         """
-        Initialize from bare numpy arrays. The user is responsible from getting the right units, coordinates and formats
+        Initialize from bare numpy arrays. The user is responsible from
+        getting the right units, coordinates and formats
 
         Parameters
         ----------
         energy_keV: energy [keV]
-        scattered_lon_rad_sc: Longitude of the direction of the scattered photon in spacecraft coordinates [radian]
-        scattered_lat_rad_sc:  Latitude of the direction of the scattered photon in spacecraft coordinates [radian]
+        scattered_lon_rad_sc: Longitude of the direction of the
+          scattered photon in spacecraft coordinates [radian]
+        scattered_lat_rad_sc: Latitude of the direction of the
+          scattered photon in spacecraft coordinates [radian]
         scatt_angle_rad: Compton scattering angle [radians]
         event_id: Event ID. Optional. Sequential is not provided
         selection: Optional. Apply an event selection.
+
         """
 
         # Check size
@@ -149,7 +157,8 @@ class EmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameInterface):
                  event_id:Optional[Iterable[int]] = None,
                  selection:Optional[EventSelectorInterface] = None):
         """
-        Initialize from astropy objects, taking into account the units and formats
+        Initialize from astropy objects, taking into account the units and
+        formats
 
         Parameters
         ----------
@@ -158,6 +167,7 @@ class EmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameInterface):
         scattered_direction
         event_id
         selection
+
         """
 
         energy = energy.to_value(u.keV)
@@ -226,19 +236,24 @@ class TimeTagEmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameFromArrays
                    scatt_angle_rad: np.ndarray[float],
                    event_id: Optional[np.ndarray[int]] = None,
                    selection: Optional[EventSelectorInterface] = None):
-        """
-        Initialize from bare numpy arrays. The user is responsible from getting the right units, coordinates and formats
+        """Initialize from bare numpy arrays. The user is responsible from
+        getting the right units, coordinates and formats
 
         Parameters
         ----------
-        jd1: Julian days. Internal astropy Time representation using two values for full precision.
-        jd2: Julian days. Internal astropy Time representation using two values for full precision.
+        jd1: Julian days. Internal astropy Time representation using
+          two values for full precision.
+        jd2: Julian days. Internal astropy Time representation using
+          two values for full precision.
         energy_keV: energy [keV]
-        scattered_lon_rad_sc: Longitude of the direction of the scattered photon in spacecraft coordinates [radian]
-        scattered_lat_rad_sc:  Latitude of the direction of the scattered photon in spacecraft coordinates [radian]
+        scattered_lon_rad_sc: Longitude of the direction of the
+          scattered photon in spacecraft coordinates [radian]
+        scattered_lat_rad_sc: Latitude of the direction of the
+          scattered photon in spacecraft coordinates [radian]
         scatt_angle_rad: Compton scattering angle [radians]
         event_id: Event ID. Optional. Sequential is not provided
         selection: Optional. Apply an event selection.
+
         """
 
         # Check size
@@ -266,14 +281,15 @@ class TimeTagEmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameFromArrays
 
     @classmethod
     def from_astropy(cls,
-                 time:Time,
-                 energy:Quantity,
-                 scattering_angle:Angle,
-                 scattered_direction:SkyCoord,
-                 event_id:Optional[Iterable[int]] = None,
-                 selection:Optional[EventSelectorInterface] = None):
+                     time:Time,
+                     energy:Quantity,
+                     scattering_angle:Angle,
+                     scattered_direction:SkyCoord,
+                     event_id:Optional[Iterable[int]] = None,
+                    selection:Optional[EventSelectorInterface] = None):
         """
-        Initialize from astropy objects, taking into account the units and formats
+        Initialize from astropy objects, taking into account the units and
+        formats
 
         Parameters
         ----------
@@ -283,6 +299,7 @@ class TimeTagEmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameFromArrays
         scattered_direction
         event_id
         selection
+
         """
 
         jd1 = time.jd1
@@ -357,7 +374,3 @@ class TimeTagEmCDSEventDataInSCFrameFromDC3Fits(TimeTagEmCDSEventDataInSCFrameFr
 
         # Psi is colatitude (latitude complementary angle)
         super().__init__(time.jd1, time.jd2, energy, chi, np.pi / 2 - psi, phi, selection = selection)
-
-
-
-
