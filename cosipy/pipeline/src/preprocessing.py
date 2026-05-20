@@ -1,11 +1,6 @@
-from cosipy.pipeline.src.io import load_binned_data
-from astropy.time import Time
 from astropy.io.misc import yaml
 from cosipy.response import FullDetectorResponse
 from cosipy import BinnedData
-
-import numpy as np
-
 
 def write_yaml(udata_path, ori_path, resp_path, dt, tmin, tmax, bin_yaml_path):
     """

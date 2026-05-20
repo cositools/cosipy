@@ -4,11 +4,8 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-import os
 import subprocess
-
 import argparse, textwrap
-
 from yayc import Configurator
 from cosipy import UnBinnedData
 
@@ -20,7 +17,6 @@ from cosipy.pipeline.src.plotting import *
 from pathlib import Path
 from histpy import Histogram
 from cosipy import FastTSMap,MOCTSMap
-from mhealpy import HealpixMap
 
 from astromodels.core.model_parser import ModelParser
 
@@ -118,7 +114,6 @@ def cosi_bindata(argv=None):
     if yaml_path.exists() and not args.overwrite:
         raise RuntimeError(f"{yaml_path} already exists. If you mean to replace it then use --overwrite.")
     write_yaml(str(data_path),str(ori_path),str(resp_path), dt,tmin,tmax,str(yaml_path))
-
     #Apply optional time selection:
     if config.get("tmin") is not None and config.get("tmax") is not None:
         #
@@ -145,7 +140,6 @@ def cosi_bindata(argv=None):
     if bdata_path.exists() and not args.overwrite:
         raise RuntimeError(f"{bdata_path} already exists. If you mean to replace it then use --overwrite.")
     get_binned_data(yaml_path,data_path,bdata_path, psichi_coo, sparse=sparse)
-    #
     logger.info(str(" Binning configuration file " + str(yaml_path) + " is ready"))
     logger.info(str(" Binned data file "+str(bdata_path)+" is ready for analysis"))
 
@@ -386,13 +380,12 @@ def  cosi_tsdetect(argv=None):
         tstop = Time(tstop, format='unix')
 
         sliced_data = tslice_binned_data(data_full, tstart, tstop)
-        binned_data = sliced_data.project(['Em', 'Phi', 'PsiChi'])+1E-12
+        binned_data = sliced_data.project(['Em', 'Phi', 'PsiChi'])
 
     else:
         tstart=Time(np.min(data_full.axes['Time'].edges), format='unix')
         tstop=Time(np.max (data_full.axes['Time'].edges), format='unix')
-        binned_data = data_full.project(['Em', 'Phi', 'PsiChi'])+1E-12
-
+        binned_data = data_full.project(['Em', 'Phi', 'PsiChi'])
     # Slice the ori file in the time interval of the data:
     #grb_ori = ori_full.select_interval(Time(grb_tmin, format="unix"), Time(grb_tmax, format="unix"))
     ori_sliced = ori.select_interval(Time(tstart,format="unix"), Time(tstop, format="unix"))

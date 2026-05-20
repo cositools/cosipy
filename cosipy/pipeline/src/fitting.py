@@ -1,18 +1,14 @@
-
+import numpy as np
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.statistics import PoissonLikelihood
 from cosipy.background_estimation import FreeNormBinnedBackground
 from cosipy.interfaces import ThreeMLPluginInterface
 from cosipy.response import BinnedThreeMLModelFolding, BinnedInstrumentResponse, BinnedThreeMLPointSourceResponse
 from cosipy.data_io import EmCDSBinnedData
-
-import numpy as np
-
 from threeML import *
-from threeML import Band, PointSource, Model, JointLikelihood, DataList
+from threeML import JointLikelihood, DataList
 from astromodels import Parameter
 from astropy import units as u
-
 from mhealpy import HealpixMap
 
 def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):

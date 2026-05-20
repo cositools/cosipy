@@ -47,14 +47,14 @@ cosi-threemlfit --config pipeline_zero.yaml --config_group "threemlfit_pw" \
 ##
 ##
 ##
-#cosi-threemlfit --config pipeline_zero.yaml --config_group "threemlfit_band" \
-#--override "model:template_grb (point source):position:l:value=$measured_l" \
-#"model:template_grb (point source):position:b:value=$measured_b" \
-#"model:template_grb (point source):position:l:free=true" \
-#"model:template_grb (point source):position:l:min_value=$l_min" \
-#"model:template_grb (point source):position:l:max_value=$l_max" \
-#"model:template_grb (point source):position:b:free=true" \
-#"model:template_grb (point source):position:b:min_value=$b_min" \
-#"model:template_grb (point source):position:b:max_value=$b_max" \
-#--overwrite --suffix "band"
+cosi-threemlfit --config pipeline_zero.yaml --config_group "threemlfit_band" \
+--override "model:template_grb (point source):position:l:value=$measured_l" \
+"model:template_grb (point source):position:b:value=$measured_b" \
+"model:template_grb (point source):position:l:free=true" \
+"model:template_grb (point source):position:l:min_value=$l_min" \
+"model:template_grb (point source):position:l:max_value=$l_max" \
+"model:template_grb (point source):position:b:free=true" \
+"model:template_grb (point source):position:b:min_value=$b_min" \
+"model:template_grb (point source):position:b:max_value=$b_max" \
+--overwrite --suffix "band"
 #
