@@ -1,28 +1,23 @@
-import logging
-from pathlib import Path
-from typing import Union
-
-import histpy
-from mhealpy import HealpixBase
-
-from cosipy.data_io import EmCDSBinnedData
-from cosipy.interfaces.instrument_response_interface import BinnedInstrumentResponseInterface
-from cosipy.polarization.polarization_axis import PolarizationAxis
-from cosipy.threeml.util import to_linear_polarization
-
-logger = logging.getLogger(__name__)
-
 import copy
 
 from astromodels.sources import Source, PointSource
 from scoords import SpacecraftFrame
-from histpy import Axes, Histogram, Axis, HealpixAxis
-from cosipy.interfaces import BinnedThreeMLSourceResponseInterface, BinnedDataInterface, DataInterface
+from histpy import Axis, Axes, Histogram
 
-from cosipy.response import FullDetectorResponse, PointSourceResponse
-from cosipy.spacecraftfile import SpacecraftHistory, SpacecraftAttitudeMap
+from cosipy.data_io import EmCDSBinnedData
 
-from mhealpy import HealpixMap
+from cosipy.polarization import PolarizationAxis
+from cosipy.threeml.util import to_linear_polarization
+
+from cosipy.response import PointSourceResponse
+from cosipy.spacecraftfile import SpacecraftHistory
+
+from cosipy.interfaces import BinnedThreeMLSourceResponseInterface
+from cosipy.interfaces.instrument_response_interface import BinnedInstrumentResponseInterface
+
+import logging
+logger = logging.getLogger(__name__)
+
 
 __all__ = ["BinnedThreeMLPointSourceResponse"]
 
@@ -35,8 +30,11 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
     dr:
         Full detector response handle, or the file path
     sc_history:
-        Contains the information of the orientation: timestamps (astropy.Time) and attitudes (scoord.Attitude) that describe
-        the spacecraft for the duration of the data included in the analysis
+        Contains the information of the orientation: timestamps
+        (astropy.Time) and attitudes (scoord.Attitude) that describe
+        the spacecraft for the duration of the data included in the
+        analysis
+
     """
 
     def __init__(self,
@@ -45,27 +43,29 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
                  sc_history: SpacecraftHistory,
                  energy_axis:Axis,
                  polarization_axis:PolarizationAxis = None,
-                 nside = None
-                 ):
+                 nside = None):
         """
-
         Parameters
         ----------
         instrument_response:
-            A BinnedInstrumentResponseInterface capable of providing the differential
-            effective area in local coordinates as a function of direction, energy and
-            polarization.
+            A BinnedInstrumentResponseInterface capable of providing
+            the differential effective area in local coordinates as a
+            function of direction, energy and polarization.
         sc_history:
-            The SpacecraftHistory describing the SC orbit and attitude vs time.
+            The SpacecraftHistory describing the SC orbit and attitude
+            vs time.
         energy_axis:
             The desired effective binning of the photon energy (aka Ei)
         polarization_axis:
-            The desired effective binning of the photon polarization angle (aka Pol).
-            This also defined the polarization coordinate system and convention.
+            The desired effective binning of the photon polarization
+            angle (aka Pol).  This also defined the polarization
+            coordinate system and convention.
         nside:
-            - If transformation from local to an inertial system is needed, the spacecraft
-            attitude will be first discretized based on this nside.
+            - If transformation from local to an inertial system is
+            needed, the spacecraft attitude will be first discretized
+            based on this nside.
             - If local, this is the nside of the dwell time map
+
         """
 
         # TODO: FullDetectorResponse -> BinnedInstrumentResponseInterface
@@ -92,7 +92,8 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
 
         self._expectation = None
 
-        # The PSR change for each direction, but it's the same for all spectrum parameters
+        # The PSR change for each direction, but it's the same for all
+        # spectrum parameters
 
         # Source location cached separately since changing the response
         # for a given direction is expensive
@@ -101,7 +102,7 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
         self._psr = None
 
     @property
-    def axes(self) -> histpy.Axes:
+    def axes(self) -> Axes:
         return self._data.axes
 
     def clear_cache(self):
@@ -124,9 +125,10 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
 
     def set_source(self, source: Source):
         """
-        The source is passed as a reference and it's parameters
-        can change. Remember to check if it changed since the
-        last time the user called expectation.
+        The source is passed as a reference and its parameters can
+        change. Remember to check if it changed since the last time
+        the user called expectation.
+
         """
         if not isinstance(source, PointSource):
             raise TypeError("I only know how to handle point sources!")
@@ -187,7 +189,7 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
                                                                     self._polarization_axis)
 
             else:
-                # Inertial e..g. galactic
+                # Inertial, e.g., galactic
 
                 scatt_map = self._sc_ori.get_scatt_map(nside=self._nside,
                                                        target_coord=coord,
@@ -220,13 +222,12 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
                 else:
                     self._expectation += self._psr.get_expectation(getattr(self._source.spectrum, item).shape,
                                                                    self._source.components[item].polarization)
-                    
+
                 component_counter += 1
 
         # Check if axes match
         if self._data.axes != self._expectation.axes:
-            raise ValueError(
-                "Currently, the expectation axes must exactly match the detector response measurement axes")
+            raise ValueError("Currently, the expectation axes must exactly match the detector response measurement axes")
 
         # Cache. Use dict and copy since the internal variables can change
         # See this issue for the caveats of comparing models

@@ -87,8 +87,14 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
 15. Polarization (Stokes parameters method) `(ipynb) <https://github.com/cositools/cosipy/tree/main/docs/tutorials/polarization/Stokes_method.ipynb>`_
   - Estimating the polarization of a GRB using Stokes parameters
 
-16. Phase-resolved analysis `(ipynb) <https://github.com/cositools/cosipy/blob/develop/docs/tutorials/phase_resolved_analysis/example_notebook.ipynb>`_
-   - Folding event data and scaling mission exposure using pulsar timing models (ephemeris).
+16. Phase-resolved analysis `(ipynb) <https://github.com/cositools/cosipy/docs/tutorials/phase_resolved_analysis/example_notebook.ipynb>`_
+  - Folding event data and scaling mission exposure using pulsar timing models (ephemeris).
+
+17. Point source Sensitivity calculator `(ipynb) <https://github.com/cositools/cosipy/docs/tutorials/spectral_fits/Sensitivity_calculator/PointSource_Sensitivity.ipynb>`_   
+  - Example to show how to compute sensitivity for point source model
+
+18. Extended source Sensitivity calculator `(ipynb) <https://github.com/cositools/cosipy/docs/tutorials/spectral_fits/Sensitivity_calculator/ExtendedSource_Sensitivity.ipynb>`_   
+  - Example to show how to compute sensitivity for extended source model
 
 .. warning::
    Under construction. Some of the explanations described above might be missing. However, the notebooks are fully functional. If you have a question not yet covered by the tutorials, please discuss `issue <https://github.com/cositools/cosipy/discussions>`_ so we can prioritize it.
@@ -110,3 +116,5 @@ List of tutorials and contents, as a link to the corresponding Python notebook i
    Polarization (ASAD method) <polarization/ASAD_method.ipynb>
    Transient background estimation <background_estimation/transient_background/Transient_background_example.ipynb>
    Phase-resolved analysis <phase_resolved_analysis/example_notebook.ipynb>
+   Point source sensitivity calculator <spectral_fits/Sensitivity_calculator/PointSource_Sensitivity.ipynb>
+   Extended source sensitivity calculator <spectral_fits/Sensitivity_calculator/ExtendedSource_Sensitivity.ipynb>

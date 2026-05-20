@@ -1,9 +1,7 @@
 from pathlib import Path
+from typing import Union, Optional
 
 import numpy as np
-
-import astropy.units as u
-import astropy.constants as c
 
 from astropy.time import Time
 from astropy.coordinates import (
@@ -15,22 +13,22 @@ from astropy.coordinates import (
     cartesian_to_spherical
 )
 from astropy.units import Quantity
+import astropy.units as u
 from astropy.table import QTable
 from astropy.io import fits
 
 from mhealpy import HealpixBase, HealpixMap
 
-from histpy import Histogram, TimeAxis, HealpixAxis, Axis
+from histpy import Axis, HealpixAxis
 
 from scoords import Attitude, SpacecraftFrame
 
 from .scatt_map import SpacecraftAttitudeMap
 from cosipy.event_selection import GoodTimeInterval
 
-from typing import Union, Optional
-
 import logging
 logger = logging.getLogger(__name__)
+
 
 __all__ = ["SpacecraftHistory"]
 
@@ -47,7 +45,7 @@ class SpacecraftHistory:
                  obstime: Time,
                  attitude: Attitude,
                  location: GCRS,
-                 livetime: u.Quantity = None):
+                 livetime: Quantity = None):
         """Handles the spacecraft orientation. Calculates the dwell time
         map and point source response over a certain orientation
         period.

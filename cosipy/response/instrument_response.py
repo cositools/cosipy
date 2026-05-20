@@ -1,22 +1,20 @@
-from typing import Union, Optional
+from typing import Union
 
-import histpy
 import numpy as np
+
 from astropy.coordinates import SkyCoord
-import astropy.units as u
-from astropy.time import Time
 from astropy.units import Quantity
+import astropy.units as u
+
 from scoords import Attitude, SpacecraftFrame
 
-from cosipy.spacecraftfile import SpacecraftHistory
-from cosipy.data_io import EmCDSBinnedData
-from cosipy.interfaces import BinnedDataInterface
-from cosipy.interfaces.instrument_response_interface import BinnedInstrumentResponseInterface
+from histpy import Axes, Histogram
 
-from cosipy.polarization import PolarizationAngle, PolarizationAxis
+from cosipy.polarization import PolarizationAxis
 from cosipy.response import FullDetectorResponse
 
-from histpy import Axes, Histogram
+from cosipy.data_io import EmCDSBinnedData
+from cosipy.interfaces.instrument_response_interface import BinnedInstrumentResponseInterface
 
 
 __all__ = ["BinnedInstrumentResponse"]
@@ -45,7 +43,7 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
 
 
     @property
-    def axes(self) -> histpy.Axes:
+    def axes(self) -> Axes:
         return self._axes
 
     @property
@@ -54,19 +52,21 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
 
     def differential_effective_area(self,
                                     direction: SkyCoord,
-                                    energy:u.Quantity,
+                                    energy:Quantity,
                                     polarization:PolarizationAxis = None,
                                     attitude:Attitude = None,
                                     time = None,
                                     weight:Union[Quantity, float] = None,
                                     out:Quantity = None,
                                     add_inplace:bool = False) -> Quantity:
-        """
-        Interpolations and bin coupling:
+        """Interpolations and bin coupling:
         * The direction is always bi-linearly interpolated.
         * Ei, Em and Phi always needs to match the response exactly
-        * If PsiChi is in local coordinates, PsiChi and polarization need to match the response exactly
-        * If PsiChi is in inertial coordinates, PsiChi and polarization are interpolated at 0-th order during the rotation
+        * If PsiChi is in local coordinates, PsiChi and polarization
+          need to match the response exactly
+        * If PsiChi is in inertial coordinates, PsiChi and
+          polarization are interpolated at 0-th order during the
+          rotation
 
         Parameters
         ----------
@@ -79,23 +79,28 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
         polarization
             Photon polarization angle axis
         attitude
-            Attitude defining the orientation of the SC in an inertial coordinate system.
+            Attitude defining the orientation of the SC in an inertial
+            coordinate system.
         time:
             Ignored. Not time dependent.
         weight
-            Optional. Weighting the result by a given weight. Providing the weight at this point as opposed to
+            Optional. Weighting the result by a given
+            weight. Providing the weight at this point as opposed to
             apply it to the output can result in greater efficiency.
         out:
-            Optional. Histogram to store the output. If possible, the implementation should try to avoid allocating
-            new memory.
+            Optional. Histogram to store the output. If possible, the
+            implementation should try to avoid allocating new memory.
         add_inplace
-            If True and a Histogram output was provided, we will try to avoid allocating new
-            memory and add --not set-- the result of this operation to the output.
+            If True and a Histogram output was provided, we will try
+            to avoid allocating new memory and add --not set-- the
+            result of this operation to the output.
 
         Returns
         -------
-        The effective area times the event measurement probability distribution integrated on each of the bins
-        of the provided axes
+        The effective area times the event measurement probability
+        distribution integrated on each of the bins of the provided
+        axes
+
         """
 
         # Checks/limitations
@@ -139,7 +144,8 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
         # Matches the v0.3 behaviour
         pix = self._dr.ang2pix(direction)
 
-        # TODO: Update after Pr364. get_pixel(pix, weight) should make this more efficient
+        # TODO: Update after Pr364. get_pixel(pix, weight) should make
+        # this more efficient
         if weight is not None:
             result = self._dr[pix] * weight
         else:
@@ -156,14 +162,17 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
         result = result.project(results_axes_labels)
 
         if polarization is None and self.is_polarization_response:
-            # It was implicitly converted to unpolarized response by the
-            # projection above, but this is still needed to get the mean
+            # It was implicitly converted to unpolarized response by
+            # the projection above, but this is still needed to get
+            # the mean
             result /= self._dr.axes.nbins
 
         return self._fill_out_and_return(result, out, add_inplace)
 
     @staticmethod
-    def _fill_out_and_return(result:Histogram, out:Quantity, add_inplace:bool = False) -> Quantity:
+    def _fill_out_and_return(result:Histogram,
+                             out:Quantity,
+                             add_inplace:bool = False) -> Quantity:
 
         if out is None:
             # Convert to base class
@@ -214,8 +223,9 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
 
             #raise RuntimeError("Fix me. No pol yet")
 
-            # Since we're doing a 0-th order interpolation, the only thing that matter are the bin centers,
-            # so we're placing them at the input polarization angles
+            # Since we're doing a 0-th order interpolation, the only
+            # thing that matter are the bin centers, so we're placing
+            # them at the input polarization angles
 
             if np.any(polarization.centers.angle.value[1:] - polarization.centers.angle.value[:-1] < 0):
                 raise ValueError("This implementation requires strictly monotonically increasing polarization angles")
@@ -231,10 +241,13 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
         out_axes = Axes(out_axes)
 
         if weight is None:
-            # Weight takes the role of the exposure in _sum_rot_hist, which is not an optional argument
+            # Weight takes the role of the exposure in _sum_rot_hist,
+            # which is not an optional argument
             weight = 1
 
-        # Almost copy-paste from FullDetectorResponse.get_point_source_response(). Improve to avoid duplicated code
+        # Almost copy-paste from
+        # FullDetectorResponse.get_point_source_response(). Improve to
+        # avoid duplicated code
         def rotate_coords(c, rot):
             """
             Apply a rotation matrix to one or more 3D directions
@@ -274,7 +287,7 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
             if not add_inplace:
                 out[:] = 0
 
-        if isinstance(weight, u.Quantity):
+        if isinstance(weight, Quantity):
             weight_unit = weight.unit
             weight = weight.value
         else:
@@ -285,13 +298,6 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
                                   (loc_src_pixels,))
 
         if weight_unit is not None:
-            out = u.Quantity(out.value, weight_unit*out.unit, copy = None)
+            out = Quantity(out.value, weight_unit*out.unit, copy = None)
 
         return out
-
-
-
-
-
-
-

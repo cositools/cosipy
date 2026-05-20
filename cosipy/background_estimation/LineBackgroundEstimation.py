@@ -444,9 +444,11 @@ class LineBackgroundEstimation:
         for energy_indices in energy_indices_list:
             for energy_index in energy_indices:
                 if new_axes[0].label != "Em":
-                    bkg_model += self.event_histogram[:, energy_index].todense()
+                    ev_slice = self.event_histogram.slice[:, energy_index]
                 else:
-                    bkg_model += self.event_histogram[energy_index].todense()
+                    ev_slice = self.event_histogram.slice[energy_index]
+
+                bkg_model += ev_slice.to_dense(copy=False).contents
 
         # normalization
         corr_factor = source_weight / np.sum(weights)

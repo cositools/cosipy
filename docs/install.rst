@@ -48,9 +48,9 @@ specify the ``[ml]`` extra packages during the installation. e.g.::
 
     pip install cosipy[ml]
 
-or, if you are installing from from source::
+or, if you are installing from source::
 
-    pip install '.[ml]'
+    pip install -e '.[ml]'
 
 If you do not install these optional dependencies, then some imports in the
 ``.ml`` submodules will fail. For example::

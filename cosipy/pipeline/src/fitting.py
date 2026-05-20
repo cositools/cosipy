@@ -1,3 +1,9 @@
+import numpy as np
+
+from astropy import units as u
+
+from threeML import JointLikelihood, DataList
+from astromodels import Parameter
 
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.statistics import PoissonLikelihood
@@ -84,9 +90,9 @@ def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
 
     expectation = response.expectation()
     expectation_bkg = bkg.expectation()
-    tot_exp_counts = expectation.project('Em').to_dense(copy=False).contents + (
-                expectation_bkg.project('Em').to_dense(copy=False).contents)
-
+    tot_exp_counts = \
+        expectation.project('Em').to_dense(copy=False).contents + \
+        expectation_bkg.project('Em').to_dense(copy=False).contents
 
     return results, tot_exp_counts
 
@@ -137,7 +143,7 @@ def get_fit_fluxes(results):
         sum_sources=True,
         flux_unit="1/(cm2 s)"
     )
-    #
+
     fl = result_fl["flux"].values[0].value
     e_low_fl = np.abs(result_fl["low bound"].values[0].value - fl)
     e_hi_fl = result_fl["hi bound"].values[0].value - fl

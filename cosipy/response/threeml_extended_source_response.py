@@ -1,28 +1,21 @@
-import logging
-from pathlib import Path
-from typing import Union
+import copy
 
-import histpy
-from mhealpy import HealpixBase
+from astromodels.sources import Source, ExtendedSource
+
+from histpy import Axes, Histogram
 
 from cosipy.data_io import EmCDSBinnedData
-from cosipy.interfaces.instrument_response_interface import BinnedInstrumentResponseInterface
+
 from cosipy.polarization.polarization_axis import PolarizationAxis
 from cosipy.threeml.util import to_linear_polarization
 
+from cosipy.response import ExtendedSourceResponse
+
+from cosipy.interfaces import BinnedThreeMLSourceResponseInterface
+
+import logging
 logger = logging.getLogger(__name__)
 
-import copy
-
-from astromodels.sources import Source, PointSource,ExtendedSource
-from scoords import SpacecraftFrame
-from histpy import Axes, Histogram, Axis, HealpixAxis
-from cosipy.interfaces import BinnedThreeMLSourceResponseInterface, BinnedDataInterface, DataInterface
-
-from cosipy.response import ExtendedSourceResponse, PointSourceResponse
-from cosipy.spacecraftfile import SpacecraftHistory, SpacecraftAttitudeMap
-
-from mhealpy import HealpixMap
 
 __all__ = ["BinnedThreeMLExtendedSourceResponse"]
 
@@ -42,14 +35,16 @@ class BinnedThreeMLExtendedSourceResponse(BinnedThreeMLSourceResponseInterface):
                  polarization_axis:PolarizationAxis = None,
                  ):
         """
-
         Parameters
         ----------
         precomputed_psr:
-            Precomputed point source response for all pixel, a.k.a ExtendedSourceResponse.
+            Precomputed point source response for all pixel, a.k.a
+            ExtendedSourceResponse.
         polarization_axis:
-            The desired effective binning of the photon polarization angle (aka Pol).
-            This also defined the polarization coordinate system and convention.
+            The desired effective binning of the photon polarization
+            angle (aka Pol).  This also defined the polarization
+            coordinate system and convention.
+
         """
 
         # TODO: FullDetectorResponse -> BinnedInstrumentResponseInterface
@@ -73,15 +68,16 @@ class BinnedThreeMLExtendedSourceResponse(BinnedThreeMLSourceResponseInterface):
 
         self._expectation = None
 
-        # The PSR change for each direction, but it's the same for all spectrum parameters
+        # The PSR change for each direction, but it's the same for all
+        # spectrum parameters
 
         # Source location cached separately since changing the response
         # for a given direction is expensive
         #self._last_convolved_source_skycoord = None
         self._esr = None
-	
-    @property    
-    def axes(self) -> histpy.Axes:
+
+    @property
+    def axes(self) -> Axes:
         return self._data.axes
 
     def clear_cache(self):
@@ -104,16 +100,15 @@ class BinnedThreeMLExtendedSourceResponse(BinnedThreeMLSourceResponseInterface):
 
     def set_source(self, source: Source):
         """
-        The source is passed as a reference and it's parameters
-        can change. Remember to check if it changed since the
-        last time the user called expectation.
+        The source is passed as a reference and its parameters can
+        change. Remember to check if it changed since the last time
+        the user called expectation.
+
         """
         if not isinstance(source, ExtendedSource):
             raise TypeError("I only know how to handle extended sources!")
 
-
         polarization = to_linear_polarization(source.spectrum.main.polarization)
-
 
         if (polarization.degree.value != 0 and
                 self._polarization_axis is None):
@@ -125,10 +120,7 @@ class BinnedThreeMLExtendedSourceResponse(BinnedThreeMLSourceResponseInterface):
         # TODO: check coordsys from axis
         # TODO: Earth occ always true in this case
 
-        if self._data is None:
-            raise RuntimeError("Call set_source() first.")
-
-        if self._source is None:
+        if self._data is None or  self._source is None:
             raise RuntimeError("Call set_source() first.")
 
         # See this issue for the caveats of comparing models
@@ -136,7 +128,7 @@ class BinnedThreeMLExtendedSourceResponse(BinnedThreeMLSourceResponseInterface):
         source_dict = self._source.to_dict()
 
         #coord = self._source.position.sky_coord
-        
+
         # Use cached expectation if nothing has changed
         if self._expectation is not None and self._last_convolved_source_dict == source_dict :
             if copy:
@@ -145,19 +137,13 @@ class BinnedThreeMLExtendedSourceResponse(BinnedThreeMLSourceResponseInterface):
                 return self._expectation
 
         # Expectation calculation
-        # For ExtendedSource response, the psr has been already computed for each position in the sky
-        # so we just need to compute the expectation
-        # Check if the source position change, since these operations
-        # are expensive
+        # For ExtendedSource response, the psr has been already
+        # computed for each position in the sky so we just need to
+        # compute the expectation.  Check if the source position
+        # change, since these operations are expensive
         if self._esr is None :
-
-            
-
             logger.info("... Reading Extended source response ...")
-
             self._esr = self._response
-             
-            
             logger.info(f"--> done (source name : {self._source.name})")
 
         # Convolve with spectrum
@@ -165,8 +151,7 @@ class BinnedThreeMLExtendedSourceResponse(BinnedThreeMLSourceResponseInterface):
 
         # Check if axes match
         if self._data.axes != self._expectation.axes:
-            raise ValueError(
-                "Currently, the expectation axes must exactly match the detector response measurement axes")
+            raise ValueError("Currently, the expectation axes must exactly match the detector response measurement axes")
 
         # Cache. Use dict and copy since the internal variables can change
         # See this issue for the caveats of comparing models

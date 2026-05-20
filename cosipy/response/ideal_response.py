@@ -1,37 +1,51 @@
-import itertools
 import warnings
 from collections.abc import Callable
-from itertools import repeat
 from typing import Iterable, Tuple, Union, Iterator
 
-from astropy.coordinates import Angle, SkyCoord
-from astropy.units import Quantity
-from cosipy.data_io.EmCDSUnbinnedData import EmCDSEventInSCFrame
-from cosipy.interfaces import ExpectationDensityInterface
-from cosipy.interfaces.data_interface import EmCDSEventDataInSCFrameInterface
-from cosipy.polarization import StereographicConvention, PolarizationConvention, PolarizationAngle
-from cosipy.response.relative_coordinates import RelativeCDSCoordinates
-from more_itertools.more import sample
-from numpy._typing import NDArray
-from scipy.optimize import minimize_scalar
-from scipy.stats import rv_continuous, truncnorm, norm, uniform, randint, poisson
-from scipy.stats.sampling import SimpleRatioUniforms
-import astropy.units as u
 import numpy as np
-
-from cosipy.interfaces.event import EmCDSEventInSCFrameInterface
-from cosipy.interfaces.instrument_response_interface import FarFieldInstrumentResponseFunctionInterface, \
-    FarFieldSpectralInstrumentResponseFunctionInterface, FarFieldSpectralPolarizedInstrumentResponseFunctionInterface
-from cosipy.interfaces.photon_parameters import PhotonInterface, PhotonWithDirectionAndEnergyInSCFrameInterface, \
-    PhotonWithEnergyInterface, PhotonWithDirectionInSCFrameInterface, PhotonListWithDirectionAndEnergyInSCFrameInterface
-from cosipy.response.photon_types import \
-    PolarizedPhotonWithDirectionAndEnergyInSCFrameStereographicConventionInterface as PolDirESCPhoton, \
-    PolarizedPhotonListWithDirectionAndEnergyInSCFrameStereographicConventionInterface as PolDirESCPhotonList, \
-    PhotonWithDirectionAndEnergyInSCFrame, PolarizedPhotonWithDirectionAndEnergyInSCFrameStereographicConvention
+from scipy.stats import rv_continuous, truncnorm, norm, uniform, poisson
+from scipy.stats.sampling import SimpleRatioUniforms
 from scipy.special import erfi, erf
 
-from cosipy.util.iterables import itertools_batched
+from astropy.units import Quantity
+import astropy.units as u
+from astropy.coordinates import Angle, SkyCoord
+
 from scoords import SpacecraftFrame
+
+from cosipy.util.iterables import itertools_batched
+
+from cosipy.data_io.EmCDSUnbinnedData import EmCDSEventInSCFrame
+from cosipy.polarization import (
+    StereographicConvention,
+    PolarizationConvention,
+    PolarizationAngle
+)
+
+from cosipy.response.relative_coordinates import RelativeCDSCoordinates
+
+from cosipy.interfaces import ExpectationDensityInterface
+from cosipy.interfaces.data_interface import EmCDSEventDataInSCFrameInterface
+from cosipy.interfaces.event import EmCDSEventInSCFrameInterface
+from cosipy.interfaces.instrument_response_interface import (
+    FarFieldInstrumentResponseFunctionInterface,
+    FarFieldSpectralInstrumentResponseFunctionInterface,
+    FarFieldSpectralPolarizedInstrumentResponseFunctionInterface
+)
+
+from cosipy.interfaces.photon_parameters import (
+    PhotonInterface,
+    PhotonWithDirectionAndEnergyInSCFrameInterface,
+    PhotonWithEnergyInterface,
+    PhotonWithDirectionInSCFrameInterface,
+    PhotonListWithDirectionAndEnergyInSCFrameInterface
+)
+from cosipy.response.photon_types import (
+    PolarizedPhotonWithDirectionAndEnergyInSCFrameStereographicConventionInterface as PolDirESCPhoton,
+    PolarizedPhotonListWithDirectionAndEnergyInSCFrameStereographicConventionInterface as PolDirESCPhotonList,
+    PhotonWithDirectionAndEnergyInSCFrame,
+    PolarizedPhotonWithDirectionAndEnergyInSCFrameStereographicConvention
+)
 
 
 def _to_rad(angle):
@@ -59,7 +73,9 @@ class _SimpleRVSMixin:
     def _simple_ratio_uniforms_rvs(self, *args, size=None, random_state=None):
         if warnings.catch_warnings():
             # Suppress warning
-            # "WARNING RuntimeWarning: [objid: SROU] 22 : mode: try finding it (numerically) => (distribution) incomplete distribution object, entry missing"
+            # "WARNING RuntimeWarning: [objid: SROU] 22 : mode: try
+            # finding it (numerically) => (distribution) incomplete
+            # distribution object, entry missing"
             # when the mode need to be computed analytically
 
             if self._mode is None:
@@ -72,8 +88,9 @@ class _SimpleRVSMixin:
             rng = SimpleRatioUniforms(self, random_state=random_state, mode=self._mode)
 
         if isinstance(size, tuple) and not size: # == ()
-            # SimpleRatioUniforms.rvs expects an integer, tuple of integers or None.
-            # It crashes with an empty tuple, which corresponds to a scalar.
+            # SimpleRatioUniforms.rvs expects an integer, tuple of
+            # integers or None.  It crashes with an empty tuple, which
+            # corresponds to a scalar.
             size = None
 
         return rng.rvs(size=size)
@@ -177,7 +194,8 @@ class KleinNishinaAzimuthalScatteringAngleDist(_RVSMixin, rv_continuous):
         """
         Conditional probability, given a polar angle and energy.
 
-        NOTE: input phi in pdf(phi) and cdf(phi) MUST lie between [0,2*pi]. The results are unpredictable otherwise.
+        NOTE: input phi in pdf(phi) and cdf(phi) MUST lie between
+        [0,2*pi]. The results are unpredictable otherwise.
 
         Parameters
         ----------
@@ -185,6 +203,7 @@ class KleinNishinaAzimuthalScatteringAngleDist(_RVSMixin, rv_continuous):
         theta: polar angle
         args
         kwargs
+
         """
 
         super().__init__(0, *args, a=0, b=2*np.pi, **kwargs)
@@ -208,14 +227,10 @@ class KleinNishinaAzimuthalScatteringAngleDist(_RVSMixin, rv_continuous):
 
     def _pdf(self, phi, *args):
         """
-
         Parameters
         ----------
-        phi: azimuthal angle, starting from the electric field vector direction
-        args
-
-        Returns
-        -------
+        phi: azimuthal angle, starting from the electric field vector
+        direction args
 
         """
 
@@ -283,7 +298,8 @@ class ARMMultiNormDist(rv_continuous):
 
     def __init__(self, phi, angres, angres_weights, *args, **kwargs):
         """
-        Describe the ARM distribution by a combination of multiple [truncated] gaussians
+        Describe the ARM distribution by a combination of multiple
+        [truncated] gaussians
 
         Parameters
         ----------
@@ -292,6 +308,7 @@ class ARMMultiNormDist(rv_continuous):
         angres_weights
         args
         kwargs
+
         """
 
         phi = _to_rad(phi)
@@ -429,29 +446,37 @@ class MeasuredEnergyDist(rv_continuous):
 
     def __init__(self, energy, energy_res, phi, full_absorp_prob, *args, **kwargs):
         """
-        This is a *conditional* probability. We will assume the uncertainty on the measured angle phi is 0
-        (all the CDS errors will come from the ARM distribution)
+        This is a *conditional* probability. We will assume the
+        uncertainty on the measured angle phi is 0 (all the CDS errors
+        will come from the ARM distribution)
 
-        If it is fully absorbed, then the deposited energy equal the initial energy.
+        If it is fully absorbed, then the deposited energy equal the
+        initial energy.
 
-        If it escaped, then it will assume that the deposited energy  corresponds to the energy of the first hit,
-        following the Compton equation
+        If it escaped, then it will assume that the deposited energy
+        corresponds to the energy of the first hit, following the
+        Compton equation
 
         The measured energy will be drawn from a normal distribution
-        centered at the deposited energy and std equal to energy_deposited*energy_res
+        centered at the deposited energy and std equal to
+        energy_deposited*energy_res
 
-        The geometry was not taking into account for the backscatter criterion since it was too complicated.
+        The geometry was not taking into account for the backscatter
+        criterion since it was too complicated.
 
-        Inputs and outputs are values assumed to be in the same units as input energy.
+        Inputs and outputs are values assumed to be in the same units
+        as input energy.
 
         Parameters
         ----------
         energy: initial energy.
-        energy_res: function returning the energy resolution function of energy. Both input and output have energy units
+        energy_res: function returning the energy resolution function of
+           energy. Both input and output have energy units
         phi: polar scattered angle
         full_absorp_prob: probability of landing in the photopeak
         args
         kwargs
+
         """
 
         super().__init__(0, *args, a=0, **kwargs)
@@ -459,7 +484,7 @@ class MeasuredEnergyDist(rv_continuous):
         if full_absorp_prob < 0 or full_absorp_prob > 1:
             raise ValueError(f"full_absorp_prob must be between [0,1]. Got {full_absorp_prob}")
 
-        eps = (energy / u.Quantity(510.99895069, u.keV)).value
+        eps = (energy / Quantity(510.99895069, u.keV)).value
 
         phi = _to_rad(phi)
         energy_deposited = energy * (1 - 1 / (1 + eps * (1 - np.cos(phi))))
@@ -498,15 +523,16 @@ class LogGaussianCosThetaEffectiveArea:
                  sigma_decades: float,
                  batch_size = 1000):
         """
-        The effective area is represented as a log-gaussian as function of energy and
-        a cos(theta) dependence as a function of the instrument colatitude theta.
-        =0 beyond theta = 90 deg
+        The effective area is represented as a log-gaussian as function of
+        energy and a cos(theta) dependence as a function of the
+        instrument colatitude theta.  =0 beyond theta = 90 deg
 
         Parameters
         ----------
         max_area: maximum effective area
         max_area_energy: energy where the effective area peaks
         sigma_decades:
+
         """
 
         self._max_area = max_area
@@ -629,10 +655,8 @@ class UnpolarizedIdealComptonIRF(FarFieldSpectralInstrumentResponseFunctionInter
                   full_absorption_exp_cutoff = 10*u.MeV,
                   energy_threshold = 20*u.keV):
         """
-        Similar performance as COSI. Meant for code development, not science or sensitivity predictions.
-
-        Returns
-        -------
+        Similar performance as COSI. Meant for code development, not
+        science or sensitivity predictions.
 
         """
 
@@ -672,9 +696,11 @@ class UnpolarizedIdealComptonIRF(FarFieldSpectralInstrumentResponseFunctionInter
                                      phi:float,
                                      events:Iterable[EmCDSEventInSCFrameInterface]) -> Iterable[float]:
         """
-        Computes the probability for a given set of photon parameters, and for all events with the same phi
+        Computes the probability for a given set of photon parameters, and
+        for all events with the same phi
 
         Note: it is assumed that all events have the same phi!!!
+
         """
 
         # Get some needed values from this query
@@ -691,8 +717,10 @@ class UnpolarizedIdealComptonIRF(FarFieldSpectralInstrumentResponseFunctionInter
         phi_geom, az = RelativeCDSCoordinates(photon.direction, self._pol_convention).to_relative(psichi)
 
         # Get probability
-        # We're assuming the phi measured from kinematics has no errors. Otherwise, the calculation became too complex
-        # All directional error come from the uncertainty on psichi (through the ARM, in psichi_geom)
+        # We're assuming the phi measured from kinematics has no
+        # errors. Otherwise, the calculation became too complex
+        # All directional error come from the uncertainty on psichi
+        # (through the ARM, in psichi_geom)
         # P(phi|Ei) * P(Em | Ei, phi) * P(psichi | phi, Ei, PA)
         # P(psichi | phi, Ei, PA) = P(arm | phi) * P(az | phi, Ei)
 
@@ -705,17 +733,23 @@ class UnpolarizedIdealComptonIRF(FarFieldSpectralInstrumentResponseFunctionInter
 
     def _event_probability(self, photons: PolDirESCPhotonList, events:EmCDSEventDataInSCFrameInterface) -> Iterable[float]:
         """
-        Return the probability density of measuring a given event given a photon.
+        Return the probability density of measuring a given event given a
+        photon.
 
-        The units of the output the inverse of the phase space of the class event_type data space.
-        e.g. if the event measured photon_energy in keV, the units of output of this function are implicitly 1/keV
+        The units of the output the inverse of the phase space of the
+        class event_type data space.  e.g. if the event measured
+        photon_energy in keV, the units of output of this function are
+        implicitly 1/keV
 
-        NOTE: this implementation runs fast if you sort the queries by photon, following by the event phi.
+        NOTE: this implementation runs fast if you sort the queries by
+        photon, following by the event phi.
+
         """
 
         # This allows to sample the PDF for multiple values at once
-        # Multiple event with the phi pretty much only happen during testing though,
-        # since for real data the same measured values will not be repeating
+        # Multiple event with the phi pretty much only happen during
+        # testing though, since for real data the same measured values
+        # will not be repeating
         last_photon = None
         last_phi = None
         cached_events = []
@@ -738,7 +772,8 @@ class UnpolarizedIdealComptonIRF(FarFieldSpectralInstrumentResponseFunctionInter
                     # Same photon and phi. Keep caching events
                     cached_events.append(event)
                 else:
-                    # It's not longer the same. We now need to evaluate and yield what we have so far
+                    # It's no longer the same. We now need to evaluate
+                    # and yield what we have so far
                     yield from self._event_probability_const_phi(last_photon, last_phi, cached_events)
 
                     # Restart
@@ -747,7 +782,8 @@ class UnpolarizedIdealComptonIRF(FarFieldSpectralInstrumentResponseFunctionInter
                     cached_events = [event]
 
             else:
-                # It's not longer the same. We now need to evaluate and yield what we have so far
+                # It's no longer the same. We now need to evaluate and
+                # yield what we have so far
                 yield from self._event_probability_const_phi(last_photon, last_phi, cached_events)
 
                 # Restart
@@ -775,7 +811,9 @@ class UnpolarizedIdealComptonIRF(FarFieldSpectralInstrumentResponseFunctionInter
             phi = ThresholdKleinNishinaPolarScatteringAngleDist(energy, self._energy_threshold).rvs()
             azimuth = self._random_az(photon, phi)
 
-            # Get the measured energy based on phi and the energy resolution and absroption probabity for the photon location
+            # Get the measured energy based on phi and the energy
+            # resolution and absroption probabity for the photon
+            # location
             measured_energy = MeasuredEnergyDist(energy, self._energy_resolution, phi, full_absorp_prob).rvs()
             measured_energy_keV = Quantity(measured_energy, energy.unit, copy=None).to_value(u.keV)
 
@@ -787,8 +825,9 @@ class UnpolarizedIdealComptonIRF(FarFieldSpectralInstrumentResponseFunctionInter
             psichi = RelativeCDSCoordinates(photon.direction, self._pol_convention).to_cds(phi + arm, azimuth)
 
             # Put everything in the output event
-            # The assummed probability assumes that phi is measured exactly, all the uncertainty comes from the error
-            # in psichi (through the ARM)
+            # The assummed probability assumes that phi is measured
+            # exactly, all the uncertainty comes from the error in
+            # psichi (through the ARM)
             yield EmCDSEventInSCFrame(measured_energy_keV, phi, psichi.lon.rad, psichi.lat.rad)
 
 
@@ -1036,7 +1075,8 @@ class ExpectationFromLineInSCFrame(ExpectationDensityInterface):
             if (self._cached_event_probability_unpolarized is None
                     or self._energy_keV != self._cached_energy_keV
                     or self._direction != self._cached_direction):
-                # Energy or direction can affect the unpolarized response, but not PA nor PD
+                # Energy or direction can affect the unpolarized
+                # response, but not PA nor PD
                 unpolarized_photons = self._unpolarized_irf.photon_list_type.from_photon(self._unpolarized_photon, repeat = self._data.nevents)
                 self._cached_event_probability_unpolarized = np.fromiter(self._unpolarized_irf.event_probability(unpolarized_photons, self._data),dtype=float)
 
@@ -1050,7 +1090,8 @@ class ExpectationFromLineInSCFrame(ExpectationDensityInterface):
                         or self._energy_keV != self._cached_energy_keV
                         or self._direction != self._cached_direction
                         or self._polarization_angle_rad != self._cached_pol_angle_rad):
-                    # Energy, direction or PA can affect the unpolarized response, but not PD
+                    # Energy, direction or PA can affect the
+                    # unpolarized response, but not PD
                     polarized_photons = self._polarized_irf.photon_list_type.from_photon(self._polarized_photon, repeat = self._data.nevents)
                     self._cached_event_probability_polarized = np.fromiter(self._polarized_irf.event_probability(polarized_photons, self._data), dtype=float)
 
@@ -1078,4 +1119,3 @@ class ExpectationFromLineInSCFrame(ExpectationDensityInterface):
         self._update_cache()
 
         return self._cached_event_probability
-

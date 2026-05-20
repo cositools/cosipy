@@ -1,16 +1,12 @@
-from cosipy.pipeline.src.io import load_binned_data
-from astropy.time import Time
-
 import numpy as np
+
 import matplotlib.pyplot as plt
-
-
 
 ##### PLOTTING
 def get_ene(data):
     """
-    Computes the central energy and the half-width of each energy bin of a dataset
-    (for plotting purposes)
+    Computes the central energy and the half-width of each energy bin
+    of a dataset (for plotting purposes)
 
 
     Parameters
@@ -24,6 +20,7 @@ def get_ene(data):
         The central energy value of each bin.
     e_ene: numpy:array
         The half-width of each energy bin.
+
     """
     #
     binned_energy_edges = data.axes['Em'].edges.value
