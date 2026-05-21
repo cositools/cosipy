@@ -1,6 +1,6 @@
 export MPLBACKEND=Agg
 ##
-#python get_pipeline_zero_data.py
+python get_pipeline_zero_data.py
 ##
 export known_tstart=1836496300.0
 export known_tstop=1836496388.0
