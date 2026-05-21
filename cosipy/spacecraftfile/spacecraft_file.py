@@ -1106,7 +1106,7 @@ class SpacecraftHistory:
 
         lon_sc, colat_sc = self._get_target_in_sc_frame(source_attframe_vec)
 
-        return SkyCoord(lon = lon_sc, lat = np.pi/2 - colat_sc, units = 'rad', frame = SpacecraftFrame())
+        return SkyCoord(lon = lon_sc, lat = np.pi/2 - colat_sc, unit = 'rad', frame = SpacecraftFrame())
 
     def _get_target_in_sc_frame(self, source: np.ndarray) -> (np.ndarray, np.ndarray):
         """

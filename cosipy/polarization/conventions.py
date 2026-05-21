@@ -9,60 +9,55 @@ from scoords import Attitude, SpacecraftFrame
 # Base class for polarization conventions
 class PolarizationConvention:
 
+    _registered_conventions = {}
+
+    registered_name = None # class has no registered name by default
+
     def __init__(self):
         """
         Base class for polarization conventions
         """
 
-    _registered_conventions = {}
-        
     @classmethod
     def register(cls, name):
 
         name = name.lower()
-        
+
         def _register(convention_class):
             cls._registered_conventions[name] = convention_class
-            return convention_class 
+            convention_class.registered_name = name
+
+            return convention_class
         return _register
 
     @classmethod
     def get_convention(cls, name, *args, **kwargs):
-
-        if inspect.isclass(name):
-            if issubclass(name, PolarizationConvention):
-                return name(*args, **kwargs)
-            else:
-                raise TypeError("Class must be subclass of PolarizationConvention")
-
-        if isinstance(name, PolarizationConvention):
-            return name
-
-        if not isinstance(name, str):
-            raise TypeError("Input must be str, or PolarizationConvention subclass or object")
-        
-        name = name.lower()
-
-        try:
-            return cls._registered_conventions[name](*args, **kwargs)
-        except KeyError as e:
-            raise Exception(f"No polarization convention by name '{name}'") from e
-
-    def get_convention_registered_name(cls, convention_class):
         """
-        Opposite of get_convention. Returns None if not found.
+        Create an object of a specified PolarizationConvention type
+        using the provided *args/**kwargs.
+
+        Parameters
+        ----------
+        name : either
+           - string [name of a registered polarization convention]
+           - subclass of PolarizationConvention
+        *args, **kwargs
+           Arguments used to create new convention object
+
         """
+        if isinstance(name, str):
+            name = name.lower()
 
-        if isinstance(convention_class, PolarizationConvention):
-        # If the user passed the instant instead of the class
-            convention_class = type(convention_class)
+            try:
+                return cls._registered_conventions[name](*args, **kwargs)
+            except KeyError as e:
+                raise Exception(f"No polarization convention by name '{name}'") from e
 
-        for conv_name, conv_class in cls._registered_conventions.items():
-            if conv_class is convention_class:
-                return conv_name
+        elif inspect.isclass(name) and issubclass(name, PolarizationConvention):
+            return name(*args, **kwargs)
 
-        # If not found
-        return None
+        else:
+            raise TypeError("Input must be str or subclass of PolarizationConvention")
 
     @property
     def frame(self):
@@ -91,9 +86,9 @@ class PolarizationConvention:
             particle.
         """
 
-    def get_basis(self, source_direction: SkyCoord, *args, **kwargs):
+    def get_basis(self, source_direction: SkyCoord):
         """
-        Get the px,py unit vectors that define the polarization plane on 
+        Get the px,py unit vectors that define the polarization plane on
         this convention. Polarization angle increments from px to py.
 
         Parameters
@@ -122,7 +117,7 @@ class PolarizationConvention:
         return px, py
 
 
-        
+
 # Orthographic projection convention
 class OrthographicConvention(PolarizationConvention):
 
@@ -131,21 +126,21 @@ class OrthographicConvention(PolarizationConvention):
                  frame:Optional[BaseCoordinateFrame] = None,
                  clockwise: bool = False):
         """
-        The local polarization x-axis points towards an arbitrary reference vector, 
-        and the polarization angle increasing counter-clockwise when looking 
+        The local polarization x-axis points towards an arbitrary reference vector,
+        and the polarization angle increasing counter-clockwise when looking
         at the source.
-        
+
         Parameters
         ----------
         ref_vector : Union[SkyCoord, np.ndarray[float]]
-            Set the reference vector, defaulting to celestial north if not provided 
+            Set the reference vector, defaulting to celestial north if not provided
             (IAU convention). Alternatively, pass the cartesian representation and set a frame.
         frame : BaseCoordinateFrame
             Only used if ref_vector is a bare cartesian vector. Default: ICRS
         clockwise : bool
-            Direction of increasing PA, when looking at the source. Default is false 
+            Direction of increasing PA, when looking at the source. Default is false
             --i.e. counter-clockwise when looking outwards.
-            
+
         """
 
         if frame is None:
@@ -180,11 +175,11 @@ class OrthographicConvention(PolarizationConvention):
         When looking at the source
         """
         return True if self._sign == 1 else False
-    
+
     @property
     def frame(self):
         return self._frame
-        
+
     def get_basis_local(self, source_vector: np.ndarray):
         # Extract Cartesian coordinates for the source direction.
         pz = self._sign * source_vector
@@ -234,19 +229,19 @@ class MEGAlibRelative(ConventionInSpacecraftFrameMixin, OrthographicConvention):
 
     def __init__(self, axis, attitude = None):
         """
-        Use a polarization vector which is created the following way: 
-        Create an initial polarization vector which is orthogonal on the 
-        initial flight direction vector of the particle and the given axis vector 
-        (e.g. x-axis for RelativeX). This is a simple crossproduct. Then rotate 
-        the polarization vector (right-hand-way) around the initial flight 
-        direction vector of the particle by the given rotation angle. 
+        Use a polarization vector which is created the following way:
+        Create an initial polarization vector which is orthogonal on the
+        initial flight direction vector of the particle and the given axis vector
+        (e.g. x-axis for RelativeX). This is a simple crossproduct. Then rotate
+        the polarization vector (right-hand-way) around the initial flight
+        direction vector of the particle by the given rotation angle.
         """
 
         if not isinstance(axis, str):
             raise TypeError("Axis must be a string. 'x', 'y' or 'z'.")
 
         axis = axis.lower()
-        
+
         if axis == 'x':
             ref_vector = np.asarray([1,0,0])
         elif axis == 'y':
@@ -259,12 +254,12 @@ class MEGAlibRelative(ConventionInSpacecraftFrameMixin, OrthographicConvention):
         frame = SpacecraftFrame(attitude = attitude)
 
         super().__init__(ref_vector, frame = frame, clockwise = False)
-        
+
     def get_basis_local(self, source_vector: np.ndarray):
 
         # The MEGAlib and orthographic definitions are prett much the same, but
         # they differ on the order of the cross products
-        
+
         # In MEGAlib definition
         # pz = -source_direction = particle_direction
         # px = particle_direction x ref_vector  = pz x ref_vector
@@ -286,28 +281,28 @@ class MEGAlibRelative(ConventionInSpacecraftFrameMixin, OrthographicConvention):
 
         # Sign of px
         py = -py
-        
+
         return px,py
 
-@PolarizationConvention.register("RelativeX")    
+@PolarizationConvention.register("RelativeX")
 class MEGAlibRelativeX(MEGAlibRelative):
 
     def __init__(self, *args, **kwargs):
         super().__init__('x', *args, **kwargs)
-        
-@PolarizationConvention.register("RelativeY")    
+
+@PolarizationConvention.register("RelativeY")
 class MEGAlibRelativeY(MEGAlibRelative):
 
     def __init__(self, *args, **kwargs):
         super().__init__('y', *args, **kwargs)
 
-@PolarizationConvention.register("RelativeZ")    
+@PolarizationConvention.register("RelativeZ")
 class MEGAlibRelativeZ(MEGAlibRelative):
 
     def __init__(self, *args, **kwargs):
         super().__init__('z', *args, **kwargs)
 
-    
+
 # https://lambda.gsfc.nasa.gov/product/about/pol_convention.html
 # https://www.iau.org/static/resolutions/IAU1973_French.pdf
 @PolarizationConvention.register("IAU")
@@ -315,17 +310,17 @@ class IAUPolarizationConvention(OrthographicConvention):
 
     def __init__(self):
         """
-        The following resolution was adopted by Commissions 25 and 40: 
-        'RESOLVED, that the frame of reference for the Stokes parameters 
-        is that of Right Ascension and Declination with the position 
-        angle of electric-vector maximum, e, starting from North and 
+        The following resolution was adopted by Commissions 25 and 40:
+        'RESOLVED, that the frame of reference for the Stokes parameters
+        is that of Right Ascension and Declination with the position
+        angle of electric-vector maximum, e, starting from North and
         increasing through East.
         """
         super().__init__(ref_vector = [0,0,1],
                          frame="icrs",
                          clockwise = False)
-    
-    
+
+
 # Stereographic projection convention
 @PolarizationConvention.register("stereographic")
 class StereographicConvention(ConventionInSpacecraftFrameMixin, PolarizationConvention):
@@ -336,28 +331,28 @@ class StereographicConvention(ConventionInSpacecraftFrameMixin, PolarizationConv
         """
         Basis vector follow the steregraphic projection lines. Meant to describe
         polarization in spacecraft coordinate by minimizing the number of undefined location withing the field of view.
-        
+
         Near the boresight --i.e. on axis, center of the FoV, north pole-- it is
-        similar to 
+        similar to
         ``OrthographicConvention(ref_vector = SkyCoord(lon = 0*u.deg, lat = 0*u.deg, frame = SpacecraftFrame())``
         however, it has a single undefined point on the opposite end --i.e. south pole,
         back of the detector---
-        
-        
+
+
         Parameters
         ----------
         clockwise : bool
-            Direction of increasing PA, when looking at the source. Default is false 
+            Direction of increasing PA, when looking at the source. Default is false
             --i.e. counter-clockwise when looking outwards.
         attitude : Attitude
             Spacecraft orientation
         """
 
         self._frame = SpacecraftFrame(attitude=attitude)
-        
+
         self._sign = 1 if clockwise else -1
 
-    @property 
+    @property
     def frame(self):
         return self._frame
 
@@ -395,4 +390,3 @@ class StereographicConvention(ConventionInSpacecraftFrameMixin, PolarizationConv
         py = self._sign * np.cross([x, y, z], px, axis=0)
 
         return px,py
-

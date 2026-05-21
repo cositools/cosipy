@@ -14,7 +14,6 @@ from cosipy.interfaces.photon_parameters import (
     PhotonListWithDirectionInSCFrameInterface
 )
 
-
 T = TypeVar("T")
 
 class PhotonWithEnergyGen(Generic[T]):

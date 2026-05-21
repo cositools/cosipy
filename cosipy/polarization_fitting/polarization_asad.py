@@ -74,18 +74,16 @@ class PolarizationASAD():
         else:
             source = source.transform_to('icrs')
 
-        if ((isinstance(fit_convention, MEGAlibRelativeX) and response_convention != 'RelativeX') or
-            (isinstance(fit_convention, MEGAlibRelativeY) and response_convention != 'RelativeY') or
-            (isinstance(fit_convention, MEGAlibRelativeZ) and response_convention != 'RelativeZ')):
+        self._response = FullDetectorResponse.open(response_file, pa_convention=response_convention)
+
+        if isinstance(fit_convention.frame, SpacecraftFrame) and \
+           fit_convention.registered_name != self._response.pa_convention.registered_name:
             raise RuntimeError("If performing fit in spacecraft frame, "
                                "fit convention must match convention of response.")
 
         self._convention = fit_convention
-        self._response_convention = response_convention
 
         self._source = source
-
-        self._response = FullDetectorResponse.open(response_file, pa_convention=self._response_convention)
 
         self._spectral_flux = get_integrated_spectral_model(source_spectrum, self._response.axes['Ei'])
 
@@ -359,7 +357,7 @@ class PolarizationASAD():
         # unpolarized first, then all polarized
         pol_axis = self._response.axes['Pol']
         pol_fractions = np.hstack(([0.], np.ones(pol_axis.nbins)))
-        pol_angles =    np.hstack(([0.], pol_axis.centers.to_value(u.deg)))
+        pol_angles =    np.hstack(([0.], pol_axis.centers.angle.to_value(u.deg)))
 
         scattering_dirs, weights = self.scattering_dirs_from_response(self._spectral_flux,
                                                                       pol_fractions,
@@ -502,11 +500,11 @@ class PolarizationASAD():
             return a
 
         pol_axis = self._response.axes['Pol']
-        pol_angles = pol_axis.centers.to_value(u.deg)
+        pol_angles = pol_axis.centers.angle.to_value(u.deg)
 
         mu_100_vals = []
         for i in range(pol_axis.nbins):
-            logger.info(f'Polarization angle bin: {pol_axis.edges[i]} to {pol_axis.edges[i+1]} deg')
+            logger.info(f'Polarization angle bin: {pol_axis.edges.angle[i]} to {pol_axis.edges.angle[i+1]} deg')
 
             asad_polarized_corrected, _ = self.correct_asad(asads_polarized[i], asad_unpolarized)
             mu_100, coefficients = self.calculate_mu(asad_polarized_corrected,

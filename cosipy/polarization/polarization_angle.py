@@ -9,8 +9,7 @@ class PolarizationAngle:
 
     def __init__(self, angle,
                  source: SkyCoord = None,
-                 convention = 'iau',
-                 *args, **kwargs):
+                 convention = 'iau'):
         """
         Defines a polarization angle in the context of a source direction and
         polarization angle convention.
@@ -23,15 +22,15 @@ class PolarizationAngle:
         convention : PolarizationConvention
             Convention the defined the polarization basis and direction in
             the polarization plane (for which the source direction is normal)
-        *args, **kwargs
-            Passed to convention class.
         """
 
         # Ensure pa is an Angle object
         self._angle = Angle(angle)
 
-        self._convention = PolarizationConvention.get_convention(convention,
-                                                                 *args, **kwargs)
+        if not isinstance(convention, PolarizationConvention):
+            convention = PolarizationConvention.get_convention(convention)
+
+        self._convention = convention
 
         if source is not None:
             if source.size > 1:
@@ -47,6 +46,10 @@ class PolarizationAngle:
     @property
     def angle(self):
         return self._angle
+
+    @property
+    def value(self):
+        return self._angle.value
 
     @property
     def convention(self):
@@ -93,15 +96,17 @@ class PolarizationAngle:
 
         return v
 
-    def transform_to(self, convention, *args, **kwargs):
+    def transform_to(self, convention):
 
         if self.source is None:
             raise RuntimeError("Set source first")
 
         # Standardize convention
-        convention = PolarizationConvention.get_convention(convention, *args, **kwargs)
+        if not isinstance(convention, PolarizationConvention):
+            convention = PolarizationConvention.get_convention(convention)
 
-        # Get the projection vectors for the source direction in the new convention
+        # Get the projection vectors for the source direction in the
+        # new convention
         px, py = convention.get_basis(self._source)
 
         px = px.cartesian.xyz

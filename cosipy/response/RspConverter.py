@@ -2,12 +2,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 from pathlib import Path
-
 import gzip
+import re
 
 import numpy as np
 
+import astropy.units as u
+
 from histpy import Axes, Axis, HealpixAxis
+from cosipy.polarization import PolarizationAxis
 
 from scoords import SpacecraftFrame
 
@@ -39,43 +42,41 @@ class RspConverter():
     # axis labels in HDF5 file
     axis_name_map = {
         # ground truth axes
-        '"Initial energy [keV]"'      : "Ei",
-        '"#nu [deg]" "#lambda [deg]"' : "NuLambda",
-        '"Polarization Angle [deg]"'  : "Pol",
+        'Initial energy'      : "Ei",
+        '#nu|#lambda'         : "NuLambda",
+        'Polarization Angle'  : "Pol",
 
         # absolute CDS axes
-        '"Measured energy [keV]"'     : "Em",
-        '"#psi [deg]" "#chi [deg]"'   : "PsiChi",
-        '"#phi [deg]"'                : "Phi",  # used for relative too
+        'Measured energy'     : "Em",
+        '#psi|#chi'           : "PsiChi",
+        '#phi'                : "Phi",  # used for relative too
 
         # relative CDS axes
-        '"Epsilon"'                   : "Epsilon",
-        '"#theta [deg]"'              : "Theta",
-        '"#zeta [deg]"'               : "Zeta",
+        'Epsilon'             : "Epsilon",
+        '#theta'              : "Theta",
+        '#zeta'               : "Zeta",
 
         # other axes
-        '"#sigma [deg]" "#tau [deg]"' : "SigmaTau",
-        '"Distance [cm]"'             : "Dist"
+        '#sigma|#tau'         : "SigmaTau",
+        'Distance'            : "Dist"
     }
 
-    # parameters for non-Healpix axes
-    # (unit, scale)
-    axis_params = {
+    # scale for non-Healpix, non-polarization axes
+    axis_scale = {
         # ground truth axes
-        "Ei"      : ("keV", "log"),
-        "Pol"     : ("deg", "linear"),
+        "Ei"      : "log",
 
         # absolute CDS axes
-        "Em"      : ("keV", "log"),
-        "Phi"     : ("deg", "linear"), # used for relative too
+        "Em"      : "log",
+        "Phi"     : "linear", # used for relative too
 
         # relative CDS axes
-        "Epsilon" :  ("",    "linear"),
-        "Theta"   :  ("deg", "linear"),
-        "Zeta"    :  ("deg", "linear"),
+        "Epsilon" :  "linear",
+        "Theta"   :  "linear",
+        "Zeta"    :  "linear",
 
         # other axes
-        "Dist":     ("cm",  "linear")
+        "Dist"    :  "linear"
     }
 
     # textual descriptions of each axis (used for pretty-printing)
@@ -201,10 +202,10 @@ class RspConverter():
                       h5_filename = None,
                       overwrite = False,
                       compress = True,
-                      elt_type = None):
+                      elt_type = None,
+                      pa_convention = None):
 
-        """
-        Given a response file in .rsp format, read it
+        """Given a response file in .rsp format, read it
         and write it out as an HDF5 file
 
         Parameters
@@ -223,6 +224,10 @@ class RspConverter():
            type used to store raw event counts; if None,
            infer smallest feasible type from data (requires
            reading the .rsp file twice!)
+        pa_convention: string, optional
+           Polarization angle convention for polarization axis, or for
+           relative coordinate theta/zeta axes -- used only if not
+           present in the RSP file.
 
         Returns
         -------
@@ -246,7 +251,7 @@ class RspConverter():
         # read all info from the .rsp file
         with self._open_rsp(rsp_filename, "rt") as f:
 
-            axes, hdr, fd_axis_order = self._read_response_header(f)
+            axes, hdr, fd_axis_order = self._read_response_header(f, pa_convention)
             eff_area = self._get_eff_area_correction(axes, hdr)
 
             if elt_type is None:
@@ -265,7 +270,7 @@ class RspConverter():
         # constitute the index of each chunk
         h5_file, n_idx_axes = \
             self._create_h5(axes, elt_type, eff_area, h5_filename,
-                            compress=compress, headers=hdr["headers"])
+                            hdr, compress=compress)
 
         # transpose counts into the output axis order
         counts = counts.transpose(idx_order)
@@ -278,7 +283,7 @@ class RspConverter():
         return h5_filename
 
 
-    def _read_response_header(self, rsp_file):
+    def _read_response_header(self, rsp_file, pa_convention = None):
         """
         Read the header portion of a response file and construct the
         axes of the response.  Additional header info besides the axes
@@ -289,7 +294,12 @@ class RspConverter():
 
         Parameters
         ----------
-        rsp_file : file handle to open .rsp file
+        rsp_file : file handle
+          open .rsp file
+        pa_convention : string, optional
+          polarization angle convention for polarization axis, or for
+          relative coordinate theta/zeta axes -- used only if not
+          present in the RSP file.
 
         Returns
         -------
@@ -306,7 +316,8 @@ class RspConverter():
             "norm_params" : [],
             "area_sim"    : 0,
             "nbins"       : 0,
-            "headers"     : {}
+            "headers"     : {},
+            "pa_convention" : None
         }
 
         axes_names = []
@@ -321,6 +332,7 @@ class RspConverter():
                 continue # skip blanks and comments
 
             key = line[0]
+
             match key:
                 case 'TS':
                     hdr["nevents_sim"] = int(line[1])
@@ -348,6 +360,10 @@ class RspConverter():
 
                 case 'RD': # start of data for sparse .rsp
                     raise RuntimeError("Not supported: sparse .rsp files")
+
+                case 'PO': # convention for Pol axis and/or relative coords
+                    hdr["headers"][key] = " ".join(line[1:])
+                    hdr["pa_convention"] = line[1].lower()
 
                 case 'AN':
                     axes_names.append(' '.join(line[1:]))
@@ -407,21 +423,42 @@ class RspConverter():
         assert hdr["nbins"] > 0, \
             "no bin count provided for response"
 
-        axes_labels = [ RspConverter.axis_name_map[n] for n in axes_names ]
+        axes_info = [ self._parse_megalib_axis_name(n) for n in axes_names ]
 
         # Decide whether this is an absolute or relative response
-        if self.get_cds_type(axes_labels) == "relative":
+        # based on axis names
+        is_relative = \
+            (self.get_cds_type([ai[0] for ai in axes_info]) == "relative")
+
+        if is_relative:
             fd_axis_order = RspConverter.fd_axis_order_rel
         else:
             fd_axis_order = RspConverter.fd_axis_order_abs
 
+        # make sure we have a polarization angle convention if one is
+        # needed
+        if is_relative or any(ai[0] == "Pol" for ai in axes_info):
+            if hdr["pa_convention"] is None:
+                # user must provide pa_convention, as none in file
+                if pa_convention is None:
+                    raise RuntimeError("rsp file does not contain a polarization angle convention; "
+                                       "please provide one or add a 'PO' header.")
+                else:
+                    # make sure we store a pa_convention header, even
+                    # if the original file lacks one
+                    hdr["headers"]["PO"] = pa_convention
+                    hdr["pa_convention"] = pa_convention.lower()
+
+
         # Construct Axes object from specified axes' properties
         axes = []
-        for axis_edges, axis_type, axis_label in \
-            zip(axes_edges, axes_types, axes_labels):
+        for axis_edges, axis_type, axis_info in \
+            zip(axes_edges, axes_types, axes_info):
+
+            axis_label, axis_unit, _ = axis_info
 
             # skip axes that are not in HDF5 axis order; we assume that
-            # these axes are *not* dimeisions of the counts data!
+            # these axes are *not* dimensions of the counts data!
             if axis_label not in fd_axis_order:
                 continue
 
@@ -438,14 +475,82 @@ class RspConverter():
                                             scheme=scheme,
                                             coordsys=SpacecraftFrame(),
                                             label=axis_label))
+
+            elif axis_label == "Pol":
+                axes.append(PolarizationAxis(edges=axis_edges,
+                                             unit=axis_unit,
+                                             convention=hdr["pa_convention"],
+                                             label=axis_label))
+
             else:
-                unit, scale = RspConverter.axis_params[axis_label]
-                axes.append(Axis(edges=axis_edges, unit=unit,
+                scale = RspConverter.axis_scale[axis_label]
+                axes.append(Axis(edges=axis_edges, unit=axis_unit,
                                  scale=scale, label=axis_label))
 
         axes = Axes(axes, copy_axes = False)
 
         return axes, hdr, fd_axis_order
+
+    def _parse_megalib_axis_name(self, axis_name):
+        """
+        Parse the info in a MEGAlib axis name.  A name is a concatenation
+        of one or more quoted chunks, each of which contains an axis name
+        and zero or more attributes; the latter are in square brackets.
+        The first attribute, if present, is an axis unit.
+
+        Parameters
+        ----------
+        axis_name : str
+          axis name string
+        Returns
+        -------
+        tuple (name, unit, rest)
+          name : canonical axis name used in response
+          unit : astropy.Unit of axis (u.dimensionless_unscaled if none)
+          rest : a list of any remaining attribute strings
+
+        """
+
+        def _parse_chunk(chunk):
+            # a chunk consists of a name string (possibly with embedded
+            # spaces) followed by zero or more attributes in
+            # square brackets [].
+            attr_start = chunk.find("[")
+            if attr_start > 0:
+                name =  chunk[:attr_start]
+                attrs = [f[1:-1] for f in re.findall(r'\[[^\[]+\]+',
+                                                     chunk[attr_start:])]
+            else:
+                name = chunk
+                attrs = []
+
+            # return pair with name, list of attrs
+            return name.strip(), attrs
+
+        # an axis name consists of one or more double-quoted chunks;
+        # parse them out of the name first
+        chunks = [f[1:-1] for f in re.findall(r'"[^"]*"', axis_name)]
+
+        # if an axis name has two or more chunks, it is a HEALPix
+        # axis; concatenate the chunk names to get the axis name map
+        # key and ignore all other info in the chunks
+        if len(chunks) > 1:
+            cnames = []
+            for chunk in chunks:
+                cnames.append(_parse_chunk(chunk)[0])
+                name = "|".join(cnames)
+            unit = u.dimensionless_unscaled # HEALPix axes have no unit
+            rest = []
+        else:
+            name, attrs = _parse_chunk(chunks[0])
+            if len(attrs) == 0:
+                unit = u.dimensionless_unscaled
+            else:
+                unit = u.Unit(attrs[0])
+
+            rest = attrs[1:]
+
+        return RspConverter.axis_name_map[name], unit, rest
 
     def _validate_norm_params(self, norm, params):
         """
@@ -644,7 +749,7 @@ class RspConverter():
 
     @staticmethod
     def _create_h5(axes, counts_dtype, eff_area, h5_filename,
-                  compress=True, headers=None):
+                   hdr, compress=True):
         """
         Create the HDF5 file to hold the response, writing everything
         except the raw counts.  All data is stored in a group "DRM"
@@ -674,11 +779,6 @@ class RspConverter():
         also an AXIS_DESCRIPTIONS group whose attributes are brief
         textual descriptions of each named axis.
 
-        If headers is not None, it is a dictionary of header keys, each
-        giving the contents of the line with that key in the .rsp file.
-        These key/contents pairs are stored as attributes of a HEADERS
-        group.
-
         Parameters
         ----------
         axes : Axes object
@@ -691,9 +791,8 @@ class RspConverter():
           file name to be written
         compress : bool
           True iff HDF5 file should use internal compression
-        headers : dict or None
-          dictionary of keys and contents of header lines other than axis info,
-          to be written to the HEADERS group
+        her : dict
+          header information collected during response parsing
 
         Returns
         -------
@@ -716,20 +815,21 @@ class RspConverter():
         drm.attrs["VERSION"] = RspConverter.rsp_version
 
         header_group = drm.create_group('HEADERS')
-        if headers is not None:
-            # save any header values not deducible from Axes or contents
-            for key in headers:
-                header_group.attrs[key] = headers[key]
+        headers = hdr["headers"]
 
-            # record how the header keys should be permuted when we
-            # reread them from the file to recover the original order
-            drm.attrs["HEADER_ORDER"] = inv_perm(np.argsort(list(headers.keys())))
-        else:
-            # no headers
-            drm.attrs["HEADER_ORDER"] = np.array([])
+        # save any header values not deducible from Axes or contents
+        for key in headers:
+            header_group.attrs[key] = headers[key]
+
+        # record how the header keys should be permuted when we
+        # reread them from the file to recover the original order
+        drm.attrs["HEADER_ORDER"] = inv_perm(np.argsort(list(headers.keys())))
 
         drm.attrs['UNIT'] = 'cm2'
         drm.attrs['SPARSE'] = False
+
+        if hdr["pa_convention"] is not None:
+            drm.attrs['PA_CONVENTION'] = hdr["pa_convention"]
 
         axes_group = drm.create_group('AXES')
         axes.write(axes_group)
@@ -969,10 +1069,13 @@ class RspConverter():
         axes = fullDetectorResponse.axes
 
         # determine if this is an absolute or relative response
-        if self.get_cds_type(axes.labels) == "relative":
+        if fullDetectorResponse.is_relative_cds:
             rsp_axis_order = RspConverter.rsp_axis_order_rel
         else:
             rsp_axis_order = RspConverter.rsp_axis_order_abs
+
+        # pa_convention will be None if not required by response
+        pa_convention = fullDetectorResponse.pa_convention
 
         # reorder axes if needed to match the expected order for an
         # .rsp file
@@ -987,10 +1090,10 @@ class RspConverter():
 
         hdrs = fullDetectorResponse.headers
 
-        self._write_rsp(hdrs, axes, counts, rsp_filename)
+        self._write_rsp(hdrs, pa_convention, axes, counts, rsp_filename)
 
 
-    def _write_rsp(self, headers, axes, counts, rsp_filename):
+    def _write_rsp(self, headers, pa_convention, axes, counts, rsp_filename):
         """
         Write an .rsp file with all necessary info.
 
@@ -998,6 +1101,8 @@ class RspConverter():
         ----------
         headers : dict
           stored headers from original response
+        pa_convention : PolarizationConvention or None
+          angle convention for polarization axis or relative coords
         axes : Axes
           axes to write
         counts :
@@ -1013,6 +1118,24 @@ class RspConverter():
         for desc in RspConverter.axis_name_map:
             axis_names[RspConverter.axis_name_map[desc]] = desc
 
+        def format_megalib_axis_name(axis):
+            # recreate a valid MEGAlib axis name from an axis
+
+            desc = axis_names[axis.label]
+
+            if isinstance(axis, HealpixAxis):
+                chunk_names = desc.split("|")
+
+                # units are irrelevant for HEALPix axes but should be present
+                name = " ".join([f'"{n} [deg]"' for n in chunk_names])
+            else:
+                if axis.unit == u.dimensionless_unscaled:
+                    name = f'"{desc}"'
+                else:
+                    name = f'"{desc} [{str(axis.unit)}]"'
+
+            return name
+
         with self._open_rsp(rsp_filename, "wt") as f:
 
             f.write("# computed reduced response\n")
@@ -1021,9 +1144,15 @@ class RspConverter():
             for key in headers:
                 f.write(f"{key} {headers[key]}\n")
 
+            # if the response has a polarization angle convention,
+            # make sure .rsp file has a PO header, even if the
+            # FullDetectorResponse's saved headers did not have one
+            if pa_convention is not None and "PO" not in headers:
+                f.write(f"PO {pa_convention.registered_name}\n")
+
             # write axes
             for axis in axes:
-                f.write(f"AN {axis_names[axis.label]}\n")
+                f.write(f"AN {format_megalib_axis_name(axis)}\n")
 
                 if isinstance(axis, HealpixAxis):
                     f.write("AT 2D HEALPix\n")

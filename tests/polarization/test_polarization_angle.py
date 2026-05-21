@@ -6,7 +6,11 @@ from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 from cosipy.polarization import OrthographicConvention, StereographicConvention
 from scoords import SpacecraftFrame, Attitude
-from cosipy.polarization.conventions import MEGAlibRelativeX, IAUPolarizationConvention
+from cosipy.polarization.conventions import (
+    MEGAlibRelativeX,
+    MEGAlibRelativeZ,
+    IAUPolarizationConvention
+)
 
 # Define common test data
 source_direction = SkyCoord(ra = -36*u.deg, dec = 30*u.deg, frame = 'icrs')
@@ -16,7 +20,7 @@ def test_pa_transformation():
     pa = PolarizationAngle(20*u.deg, source_direction, convention = 'IAU')
 
     pa2 = pa.transform_to(StereographicConvention(attitude = Attitude.identity()))
-    
+
     assert np.isclose(pa2.angle, 56*u.deg)
 
     # exercise support for vectorized transform_to()
@@ -33,24 +37,24 @@ def test_pa_transformation():
     assert np.allclose(pa2.angle, [56*u.deg, 66*u.deg])
 
     pa = PolarizationAngle(20*u.deg, source_direction, convention = 'IAU')
-    
-    pa2 = pa.transform_to('RelativeZ', attitude = Attitude.identity())
+
+    pa2 = pa.transform_to(MEGAlibRelativeZ(attitude = Attitude.identity()))
 
     assert np.isclose(pa2.angle, 110*u.deg)
 
-    pa2 = pa.transform_to('RelativeZ', attitude = Attitude.from_rotvec([0,0,10]*u.deg))
+    pa2 = pa.transform_to(MEGAlibRelativeZ(attitude = Attitude.from_rotvec([0,0,10]*u.deg)))
 
     assert np.isclose(pa2.angle, 110*u.deg)
 
-    pa2 = pa.transform_to('RelativeZ', attitude = Attitude.from_rotvec([30,0,0]*u.deg))
+    pa2 = pa.transform_to(MEGAlibRelativeZ(attitude = Attitude.from_rotvec([30,0,0]*u.deg)))
 
     assert np.isclose(pa2.angle, 143.852403963*u.deg)
 
-    
-    pa2 = pa.transform_to('RelativeX', attitude = Attitude.identity())
-    
+
+    pa2 = pa.transform_to(MEGAlibRelativeX(attitude = Attitude.identity()))
+
     assert np.isclose(pa2.angle, 165.46460289540*u.deg)
-    
+
 def test_from_scattering_direction():
 
     psichi = SkyCoord(lat=np.pi/8, lon=np.pi/6, unit=u.rad, frame=SpacecraftFrame(attitude = Attitude.identity()))
@@ -70,7 +74,7 @@ def test_from_scattering_direction():
     assert np.allclose(pa.angle.deg, [-134.186,-167.253])
 
     psichi = SkyCoord(lat=np.pi/8, lon=np.pi/6, unit=u.rad, frame=SpacecraftFrame(attitude = Attitude.identity()))
-        
+
     pa2 = PolarizationAngle.from_scattering_direction(psichi.transform_to('galactic'), source_direction.transform_to('galactic'), IAUPolarizationConvention())
 
     assert np.isclose(pa2.angle.deg, 80.349)

@@ -12,6 +12,8 @@ from cosipy.response import FullDetectorResponse
 from cosipy.spacecraftfile import SpacecraftHistory
 
 response_path = test_data.path / "test_full_detector_response.h5"
+rel_response_path = test_data.path / "test_full_detector_response_rel.h5"
+pol_response_path = test_data.path / "test_polarization_response.h5"
 orientation_path = test_data.path / "20280301_first_10sec.fits"
 
 def test_open():
@@ -24,6 +26,9 @@ def test_open():
 
         assert response.shape == tuple(response.axes.nbins)
 
+        assert not response.is_relative_cds
+        assert response.pa_convention is None
+
         assert response.eff_area_correction.dtype == np.float32
         assert len(response.eff_area_correction) == response.axes['Ei'].nbins
 
@@ -35,6 +40,56 @@ def test_open():
         hdr = response.headers
 
         for tag in ('Version', 'NM', 'OD', 'TS', 'SA', 'SP', 'BE', 'CE'):
+            assert tag in hdr
+
+    with FullDetectorResponse.open(rel_response_path, dtype=np.float32) as response:
+
+        assert response.filename == rel_response_path
+
+        assert response.ndim == 6
+
+        assert response.shape == tuple(response.axes.nbins)
+
+        assert response.is_relative_cds
+        assert response.pa_convention is not None
+
+        assert response.eff_area_correction.dtype == np.float32
+        assert len(response.eff_area_correction) == response.axes['Ei'].nbins
+
+        assert arr_eq(response.axes.labels,
+                      ['NuLambda', 'Ei', 'Epsilon', 'Phi', 'Theta', 'Zeta'])
+
+        assert response.unit.is_equivalent('m2')
+
+        hdr = response.headers
+
+        for tag in ('Version', 'NM', 'OD', 'TS', 'SA', 'SP', 'BE', 'CE', 'PO'):
+            assert tag in hdr
+
+    with FullDetectorResponse.open(pol_response_path, dtype=np.float32) as response:
+
+        assert response.filename == pol_response_path
+
+        assert response.ndim == 6
+
+        assert response.shape == tuple(response.axes.nbins)
+
+        assert not response.is_relative_cds
+        assert response.pa_convention is not None
+
+        assert response.eff_area_correction.dtype == np.float32
+        assert len(response.eff_area_correction) == response.axes['Ei'].nbins
+
+        assert arr_eq(response.axes.labels,
+                      ['NuLambda', 'Ei', 'Pol', 'Em', 'Phi', 'PsiChi'])
+
+        assert response.pa_convention.registered_name == response.axes['Pol'].convention.registered_name
+
+        assert response.unit.is_equivalent('m2')
+
+        hdr = response.headers
+
+        for tag in ('Version', 'NM', 'OD', 'TS', 'SA', 'SP', 'BE', 'CE', 'PO'):
             assert tag in hdr
 
 def test_get_item():
