@@ -72,12 +72,12 @@ def main():
 
     dr_path = data_path / "SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.h5"  # path to detector response
     fetch_wasabi_file(
-        'COSI-SMEX/develop/Data/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.h5',
+        'COSI-SMEX/cosipy_tutorials/Data/Responses/SMEXv12.Continuum.HEALPixO3_10bins_log_flat.binnedimaging.imagingresponse.h5',
         output=str(dr_path),
         checksum='eb72400a1279325e9404110f909c7785')
 
     sc_orientation_path = data_path / "DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits"
-    fetch_wasabi_file('COSI-SMEX/develop/Data/Orientation/DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits',
+    fetch_wasabi_file('COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits',
                       output=str(sc_orientation_path), checksum='1b851c042acf4c909798e2401e9d2e38')
 
     binned_bkg_data_path = data_path / "bkg_binned_data.hdf5"

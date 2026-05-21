@@ -7,7 +7,7 @@ The goal is to allow users and developers to experiment with new versions of any
 
 This modularity is achieved by defining protocols for the interfaces between components. In practice, these are class-level contracts that specify a well-defined set of methods, including their expected inputs and outputs, that other parts of the code can rely on. The protocols describe what must be provided, but they do not prescribe how computations are performed; that is left to the specific implementation.
 
-Below we provide an overview of the available interfaces (used interchangeably with “protocols”) and how to use them. We start from the top-most level (the likelihood) and describe all other components needed to compute it. The best place to see practical examples in action is the `Crab spectral fit tutorials  <https://github.com/cositools/cosipy/tree/develop/docs/tutorials/spectral_fits/continuum_fit/crab>`_ (binned and unbinned). Note, however, that not every part of cosipy fully uses these protocols yet; some areas still refer to specific implementations rather than a generic interface.
+Below we provide an overview of the available interfaces (used interchangeably with “protocols”) and how to use them. We start from the top-most level (the likelihood) and describe all other components needed to compute it. The best place to see practical examples in action is the `Crab spectral fit tutorials  <https://github.com/cositools/cosipy/tree/main/docs/tutorials/spectral_fits/continuum_fit/crab>`_ (binned and unbinned). Note, however, that not every part of cosipy fully uses these protocols yet; some areas still refer to specific implementations rather than a generic interface.
 
 
 Here's a practical cheat sheet if you want to add/try a new:
