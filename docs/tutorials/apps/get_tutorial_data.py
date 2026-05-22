@@ -8,7 +8,7 @@ from cosipy.pipeline.task.task import cosi_bindata
 indir=Path.cwd() # Current path by default
 #
 #
-#Get Response from the develop folder in wasabi (new version)
+#Get Response from the DC4 folder in wasabi (new version)
 #
 filename = "ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5"
 fetch_wasabi_file('COSI-SMEX/develop/Data/Responses/' + filename,
