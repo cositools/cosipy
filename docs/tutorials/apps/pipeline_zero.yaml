@@ -249,7 +249,7 @@ bindata_bk:
     args:
       - ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5
   unbinned_data_file: GalTotal_SA100_F98_3months_unbinned_data_filtered_with_SAAcut.fits
-  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
+  sc_file: DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
   dt: 1
   tmin: null
   tmax: null
@@ -262,7 +262,7 @@ bindata_soubk:
     args:
       - ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5
   unbinned_data_file: galbk_grbdc3.fits
-  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
+  sc_file: DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
   dt: 1
   tmin: null
   tmax: null
@@ -273,7 +273,7 @@ bindata_soubk:
 tsdetect:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
     template (point source): *template_pw
-  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
+  sc_file: DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
   data:
     class: DataInterfaceTBD
     args:
@@ -303,7 +303,7 @@ tsdetect:
 threemlfit_pw:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
     template (point source): *template_pw
-  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
+  sc_file: DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
   data:
     class: DataInterfaceTBD
     args:
@@ -332,7 +332,7 @@ threemlfit_pw:
 threemlfit_band:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
     template_grb (point source): *template_band
-  sc_file: DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
+  sc_file: DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits
   data:
     class: DataInterfaceTBD
     args:
