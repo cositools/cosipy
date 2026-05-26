@@ -13,10 +13,12 @@ from cosipy.interfaces.event_selection import EventSelectorInterface
 from cosipy.response.ml.NFNormalizationMap import NFNormalizationMap, IEnergyList
 from cosipy.response.ml import NFNormalizationDensity
 
+from .NFSelectorNormalizationMixin import EnergySelectorNormalizationMixin
+
 import torch
 
 
-class UnpolarizedNFFarFieldInstrumentResponseFunction(FarFieldSpectralInstrumentResponseFunctionInterface):
+class UnpolarizedNFFarFieldInstrumentResponseFunction(EnergySelectorNormalizationMixin, FarFieldSpectralInstrumentResponseFunctionInterface):
     
     event_data_type = EmCDSEventDataInSCFrameInterface
     photon_list_type = PhotonListWithDirectionAndEnergyInSCFrameInterface
@@ -28,74 +30,8 @@ class UnpolarizedNFFarFieldInstrumentResponseFunction(FarFieldSpectralInstrument
             raise ValueError("The provided NNResponse is polarized, but UnpolarizedNNFarFieldInstrumentResponseFunction only supports unpolarized responses.")
         self._response = response
         
+        self._type_map = NFNormalizationMap
         self._load_selector(selector)
-    
-    def _load_selector(self, selector: Optional[EventSelectorInterface] = None):
-        self._norm_map = None
-        self._selector = None
-        if selector is not None:
-            if not isinstance(selector, EnergySelector):
-                raise ValueError("This response implementation only supports EnergySelector.")
-            else:
-                self._selector = selector
-                self._menergy_min_list = getattr(selector, 'menergy_keV_min', None)
-                self._menergy_max_list = getattr(selector, 'menergy_keV_max', None)
-                if self._menergy_min_list is None and self._menergy_max_list is None:
-                    # TODO: log warning that no map needs to be initialized
-                    self._selector = None
-                else:
-                    if self._menergy_min_list is None:
-                        self._menergy_min_list = [np.nan for _ in self._menergy_max_list]
-                    if self._menergy_max_list is None:
-                        self._menergy_max_list = [np.nan for _ in self._menergy_min_list]
-                        
-                    self._menergy_intervals = list(zip(self._menergy_min_list, self._menergy_max_list))
-    
-    @property
-    def norm_map(self) -> Optional[NFNormalizationMap]:
-        return self._norm_map
-    
-    # TODO: Init map when already one set? How to changer parameters afterwards? Different types of norm maps...
-    # TODO: Check if map matches selector type and selector intervals?
-
-    @norm_map.setter
-    def norm_map(self, custom_map: NFNormalizationMap):
-        """Allows users to inject a pre-configured normalization map directly."""
-        if not isinstance(custom_map, NFNormalizationMap):
-            raise TypeError("Provided map must be an instance of NFNormalizationMap.")
-        self._norm_map = custom_map
-    
-    def init_normalization_map(self, 
-                                nfdensity: NFNormalizationDensity, 
-                                ienergy_keV: IEnergyList, 
-                                **kwargs):
-        
-        if self._selector is None:
-            raise ValueError("Cannot initialize normalization map: No selector was provided to the response.")
-        else:
-            self._norm_map = NFNormalizationMap(
-                nfdensity=nfdensity,
-                ienergy_keV=ienergy_keV,
-                menergy_keV=self._menergy_intervals,
-                **kwargs
-            )
-    
-    def _valid_events(self, events: EmCDSEventDataInSCFrameInterface) -> torch.Tensor:
-        if self._selector is None:
-            return torch.ones(events.nevents, dtype=torch.bool)
-        else:
-            return torch.tensor(self._selector._select(events), dtype=torch.bool)
-    
-    def _get_norm_factor(self, context: torch.Tensor) -> Union[np.ndarray, float]:
-        if self._selector is None:
-            factor = 1.0
-        else:
-            if self._norm_map is not None:
-                factor = self._norm_map.query_normalization(pol_rad=context[:, 1], az_rad=context[:, 0], ienergy_keV=context[:, 2])
-            else:
-                raise ValueError("A selector was provided to the response, but no normalization map was initialized.")
-        
-        return factor
     
     def init_compute_pool(self, devices: Optional[List[Union[str, int, torch.device]]]=None):
         self._response.init_compute_pool(devices)
@@ -125,8 +61,6 @@ class UnpolarizedNFFarFieldInstrumentResponseFunction(FarFieldSpectralInstrument
         lat = -lat + (np.pi / 2)
         return torch.stack([en, phi, lon, lat], dim=1)
     
-    # TODO: Implement diff instead of area and pdf separately + same in the folding class so not to query renorm
-    
     def _differential_effective_area_cm2(self, photons: PhotonListWithDirectionAndEnergyInSCFrameInterface, events: EmCDSEventDataInSCFrameInterface) -> Iterable[float]:
         context = self._get_context(photons)
         source = self._get_source(events)
@@ -141,14 +75,22 @@ class UnpolarizedNFFarFieldInstrumentResponseFunction(FarFieldSpectralInstrument
     
     def _effective_area_cm2(self, photons: PhotonListWithDirectionAndEnergyInSCFrameInterface) -> Iterable[float]: 
         context = self._get_context(photons)
-        factor = self._get_norm_factor(context)
+        factor = self._get_norm_factor(
+            pol_rad=context[:, 1], 
+            az_rad=context[:, 0], 
+            ienergy_keV=context[:, 2]
+        )
         
         return np.asarray(self._response.evaluate_effective_area(context)) * factor
     
     def _event_probability(self, photons: PhotonListWithDirectionAndEnergyInSCFrameInterface, events: EmCDSEventDataInSCFrameInterface) -> Iterable[float]:
-        source = self._get_source(events) # TODO: add factor
+        source = self._get_source(events)
         context = self._get_context(photons)
-        factor = self._get_norm_factor(context)
+        factor = self._get_norm_factor(
+            pol_rad=context[:, 1], 
+            az_rad=context[:, 0], 
+            ienergy_keV=context[:, 2]
+        )
         selection = self._valid_events(events)
         
         if torch.all(selection):
