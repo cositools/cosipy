@@ -12,7 +12,6 @@ from cosipy.event_selection import EnergySelector
 from cosipy.interfaces.event_selection import EventSelectorInterface
 from cosipy.response.ml.NFNormalizationMap import NFNormalizationMap, IEnergyList
 from cosipy.response.ml import NFNormalizationDensity
-
 from .NFSelectorNormalizationMixin import EnergySelectorNormalizationMixin
 
 import torch
