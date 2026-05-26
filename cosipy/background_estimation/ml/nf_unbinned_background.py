@@ -2,7 +2,6 @@ from typing import Dict, Iterable, Type, Optional
 
 from astropy import units as u
 import numpy as np
-
 import torch
 
 from cosipy import SpacecraftHistory
@@ -11,16 +10,18 @@ from cosipy.interfaces.data_interface import TimeTagEmCDSEventDataInSCFrameInter
 from cosipy.data_io.EmCDSUnbinnedData import TimeTagEmCDSEventInSCFrameInterface
 from cosipy.interfaces.background_interface import BackgroundDensityInterface
 from cosipy.util.iterables import asarray
+from .NFBackground import NFBackground
+from cosipy.response.ml.NFSelectorNormalizationMixin import EnergySelectorNormalizationMixin
+from cosipy.interfaces.event_selection import EventSelectorInterface
+from .NFBkgNormalizationMap import NFBkgNormalizationMap
 
-from cosipy.background_estimation.ml.NFBackground import NFBackground
-
-
-class FreeNormNFUnbinnedBackground(BackgroundDensityInterface):
-
+class FreeNormNFUnbinnedBackground(EnergySelectorNormalizationMixin, BackgroundDensityInterface):
+    
     def __init__(self,
                  model: NFBackground,
                  data: TimeTagEmCDSEventDataInSCFrameInterface,
                  sc_history: SpacecraftHistory,
+                 selector: Optional[EventSelectorInterface] = None,
                  label: str = "bkg_norm"):
 
         self._expected_counts = None
@@ -34,7 +35,10 @@ class FreeNormNFUnbinnedBackground(BackgroundDensityInterface):
         self._norm = 1
         self._label = label
         self._offset: Optional[float] = 1e-12
-
+        
+        self._type_map = NFBkgNormalizationMap
+        self._load_selector(selector)
+    
     @property
     def event_type(self) -> Type[EventInterface]:
         return TimeTagEmCDSEventInSCFrameInterface
@@ -67,11 +71,18 @@ class FreeNormNFUnbinnedBackground(BackgroundDensityInterface):
         return {self._label: self.norm}
 
     def _integrate_rate(self) -> float:
-        mid_times = torch.as_tensor((self._sc_history.obstime[:-1] + (self._sc_history.obstime[1:] - self._sc_history.obstime[:-1]) / 2).utc.unix).view(-1, 1)
-        rate = self._model.evaluate_rate(mid_times)
+        mid_times_astropy = self._sc_history.obstime[:-1] + (self._sc_history.obstime[1:] - self._sc_history.obstime[:-1]) / 2
+        mid_times_unix = torch.as_tensor(mid_times_astropy.utc.unix).view(-1, 1)
+        
+        rate = self._model.evaluate_rate(mid_times_unix)
+        factor = self._get_norm_factor(mid_times_astropy)
+        rate = rate * torch.as_tensor(factor, dtype=rate.dtype)
+        
         return torch.sum(rate * torch.as_tensor(self._sc_history.livetime)).item()
 
     def _compute_density(self):
+        selection = self._valid_events(self._data)
+        
         self._energy_m_keV = torch.as_tensor(asarray(self._data.energy_keV, dtype=np.float32))
         self._phi_rad = torch.as_tensor(asarray(self._data.scattering_angle_rad, dtype=np.float32))
         self._lon_scatt = torch.as_tensor(asarray(self._data.scattered_lon_rad_sc, dtype=np.float32))
@@ -84,8 +95,13 @@ class FreeNormNFUnbinnedBackground(BackgroundDensityInterface):
         interval_ratios = torch.as_tensor(self._sc_history.livetime.to_value(u.s) / self._sc_history.intervals_duration.to_value(u.s))
         factor = torch.searchsorted(torch.as_tensor(self._sc_history.obstime.utc.unix), time.view(-1), right=True) - 1
 
-        return np.asarray(self._model.evaluate_density(time, source) * self._model.evaluate_rate(time) * interval_ratios[factor], dtype=np.float64)
-
+        if torch.all(selection):
+            return np.asarray(self._model.evaluate_density(time, source) * self._model.evaluate_rate(time) * interval_ratios[factor], dtype=np.float32)
+        else:
+            densities = np.zeros(len(selection), dtype=np.float32)
+            densities[selection] = np.asarray(self._model.evaluate_density(time[selection], source[selection]) * self._model.evaluate_rate(time[selection]) * interval_ratios[factor][selection], dtype=np.float32)
+            return densities
+    
     def _update_cache(self, counts_only=False):
         if self._expected_counts is None:
             self._expected_counts = self._integrate_rate()
