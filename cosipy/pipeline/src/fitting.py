@@ -75,16 +75,20 @@ def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
     cosi.set_model(model)
     plugins = DataList(cosi)
     like = JointLikelihood(model, plugins, verbose=False)
-    like.fit()
     results = like.results
-
-    expectation = response.expectation()
-    expectation_bkg = bkg.expectation()
-    tot_exp_counts = expectation.project('Em').to_dense(copy=False).contents + (
-                expectation_bkg.project('Em').to_dense(copy=False).contents)
-
-
-    return results, tot_exp_counts
+    try: #FRANCESCO
+        like.fit()
+    except Exception as e:
+        print(f'FIT CRASHED. Error: {e}')
+        return None, None
+    else:
+        print('CONVERGED')
+        results = like.results
+        expectation = response.expectation()
+        expectation_bkg = bkg.expectation()
+        tot_exp_counts = expectation.project('Em').to_dense(copy=False).contents + (
+        expectation_bkg.project('Em').to_dense(copy=False).contents)
+        return results, tot_exp_counts
 
 
 def get_fit_par(results):

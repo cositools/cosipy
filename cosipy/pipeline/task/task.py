@@ -166,8 +166,9 @@ def cosi_threemlfit(argv=None):
             """
             Fits a source at l,b and optionally in a time window tstart-tstop using the given model.
             Data, response and orientation files paths in the config file should be relative to the config file.
-            Outputs fit results in a fits file and a pdf plot of the fits. The fitted parameter
-            are also printed to stdout.
+            Outputs fit results in a hdf file and a pdf plot of the fits. The fitted parameter
+            are also printed to stdout. If the fit fails, the error message is printed to stdout, 
+            an empty hdf is saved and no plot is produced
             """),
         formatter_class=argparse.RawTextHelpFormatter)
 
@@ -214,7 +215,6 @@ def cosi_threemlfit(argv=None):
 
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
-    result_name="results.h5" if not args.suffix else str("results_"+args.suffix+".h5")
     plot_name="raw_spectrum.pdf" if not args.suffix else str("raw_spectrum_"+args.suffix+".pdf")
 
     # Parse model
@@ -260,25 +260,46 @@ def cosi_threemlfit(argv=None):
     # Calculation
     results, cts_exp = get_fit_results(binned_data, bk_binned_data, resp_path, ori_sliced_sou, ori_sliced_bk, model)
 
-
     # Results
-    results.display()
-    results.write_to(odir/result_name, overwrite=args.overwrite, as_hdf=True)
+    if results is not None: # FRANCESCO
+        result_name = "results.h5" if not args.suffix else str("results_" + args.suffix + ".h5")
+        results.display()
+        results.write_to(odir/result_name, overwrite=args.overwrite, as_hdf=True)
 
-    print("Median and errors:")
-    fitted_par_err = get_fit_par(results)
-    for par_name,(par_median,par_err) in fitted_par_err.items():
-        print(f"{par_name} = {par_median:.2e} +/- {par_err:.2e}")
+        print("Median and errors:")
+        fitted_par_err = get_fit_par(results)
+        for par_name,(par_median,par_err) in fitted_par_err.items():
+            print(f"{par_name} = {par_median:.2e} +/- {par_err:.2e}")
 
-    print("Total flux:")
-    fl, el_fl, eh_fl = get_fit_fluxes(results)
-    print("flux=%f +%f -%f" % (fl, el_fl, eh_fl))
+        print("Total flux:")
+        fl, el_fl, eh_fl = get_fit_fluxes(results)
+        print("flux=%f +%f -%f" % (fl, el_fl, eh_fl))
+    else:
+        x = np.array([1.0])
+        y = np.array([0.0])
+        yerr = np.array([1.0])
+        plugin = XYLike("single_point", x, y, yerr)
+        plugins = DataList(plugin)
+        model = Model(
+            PointSource(
+            "src",
+            0, 0,
+            spectral_shape=Constant()
+            )
+        )
+        model.src.spectrum.main.value = 0.0
+        like2 = JointLikelihood(model, plugins, verbose=False)
+        like2.fit()
+        results2=like2.results
+        result_name = "results_crash.h5" if not args.suffix else str("results_crash_" + args.suffix + ".h5")
+        results2.write_to(odir/result_name,overwrite=args.overwrite,as_hdf=True)
 
+#PLOT:
     plot_filename = odir/plot_name
     if plot_filename.exists() and not args.overwrite:
         raise RuntimeError(f"{plot_filename} already exists. If you mean to replace it then use --overwrite.")
-
-    plot_fit(binned_data, cts_exp, plot_filename)
+    if cts_exp is not None:
+        plot_fit(binned_data, cts_exp, plot_filename)
 
 if __name__ == "__main__":
     cosi_threemlfit()
