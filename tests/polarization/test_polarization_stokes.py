@@ -3,7 +3,7 @@ from astropy.coordinates import Angle, SkyCoord
 from astropy import units as u
 from scoords import SpacecraftFrame
 
-from cosipy.polarization_fitting.polarization_stokes import PolarizationStokes, rotate_points_to_x_axis
+from cosipy.polarization_fitting.polarization_stokes import PolarizationStokes
 from cosipy.spacecraftfile import SpacecraftHistory
 from cosipy import UnBinnedData
 from cosipy.threeml.custom_functions import Band_Eflux
@@ -37,13 +37,13 @@ source_direction = SkyCoord(0, 70, representation_type='spherical', frame=Spacec
 def test_stokes_polarization():
 
     bin_edges = Angle(np.linspace(-np.pi, np.pi, 10), unit=u.rad)
-    source_photons = PolarizationStokes(source_direction, spectrum, data,
-                                        response_path, sc_orientation, background=None,
-                                        asad_bin_edges=bin_edges, show_plots=False)
+    source_photons = PolarizationStokes(source_direction, spectrum, bin_edges, data,
+                                        sc_orientation, response_path, background=None,
+                                        show_plots=False)
 
     average_mu = source_photons._mu100['mu']
     mdp99 = source_photons._mdp99
-    bkg_duration = source_photons.get_background_duration()
+    bkg_duration = source_photons._background_duration
     print('Bkg duration (should be 0):', bkg_duration)
 
     qs, us = source_photons.compute_data_pseudo_stokes(show_plots=False)
@@ -53,7 +53,7 @@ def test_stokes_polarization():
     Pol_angl = polarization['angle'].angle.degree
 
     test_pd, test_pa = 0.8, 90
-    test_q, test_u = rotate_points_to_x_axis(test_pd, np.radians(test_pa))
+    test_q, test_u = source_photons.rotate_points_to_x_axis(test_pd, np.radians(test_pa))
     print('Testing rotate_points_to_x_axis (returns Q,U given PD,PA)', test_q, test_u)
 
     assert np.allclose([average_mu, mdp99, Pol_frac, Pol_angl], [0.19, 0.22, 185, 82], atol=[0.1, 0.1, 5, 10])
