@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 
 class SourceInjector():
 
-    def __init__(self, response_path, response_frame="spacecraftframe", pa_convention=None):
+    def __init__(self, response_path, response_frame="spacecraftframe",
+                 pa_convention=None):
         """
         `SourceInjector` convolve response, source model(s) and
         orientation to produce a mocked simulated data. The data can
@@ -27,9 +28,8 @@ class SourceInjector():
             the CDS is in the detector frame.)
         pa_convention : str, optional
             Polarization angle convention for polarization-enabled
-            detector-frame responses. Must be one of ('RelativeX',
-            'RelativeY', 'RelativeZ') when the response includes a
-            `Pol` axis and `response_frame="spacecraftframe"`.
+            detector-frame responses that do not specify their own
+            convention.
 
         """
 
@@ -129,11 +129,11 @@ class SourceInjector():
                                 "be provided to compute the "
                                 "expected counts.")
 
-            # If the response includes a polarization axis, FullDetectorResponse requires an explicit polarization-angle convention.
-            if self.pa_convention is None:
-                response = FullDetectorResponse.open(self.response_path)
-            else:
-                response = FullDetectorResponse.open(self.response_path, pa_convention=self.pa_convention)
+            # If the response includes a polarization axis but does
+            # not specify its convention, FullDetectorResponse
+            # requires an explicit polarization-angle convention.
+            response = FullDetectorResponse.open(self.response_path,
+                                                 pa_convention=self.pa_convention)
 
             with response as response:
 

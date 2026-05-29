@@ -301,8 +301,8 @@ tutorials:
           checksum: 21b1d75891edc6aaf1ff3fe46e91cb49
         COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits:
           checksum: 1b851c042acf4c909798e2401e9d2e38
-        COSI-SMEX/DC4/Data/Responses/ResponseContinuum.o3.pol.e200_10000.b4.p12.relx.s10396905069491.m420.filtered.binnedpolarization.11D.h5:
-          checksum: 46b006a6b397fd777dc561d3b028357f
+        COSI-SMEX/develop/Data/Responses/ResponseContinuum.o3.pol.e200_10000.b4.p12.relx.s10396905069491.m420.filtered.binnedpolarization.11D.h5:
+          checksum: d417d241be0ba7fbfeaef5e2c3bd6ebc
 
     polarization_ml:
       notebook:
@@ -316,8 +316,8 @@ tutorials:
           checksum: 21b1d75891edc6aaf1ff3fe46e91cb49
         COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits:
           checksum: 1b851c042acf4c909798e2401e9d2e38
-        COSI-SMEX/DC4/Data/Responses/ResponseContinuum.o3.pol.e200_10000.b4.p12.relx.s10396905069491.m420.filtered.binnedpolarization.11D.h5:
-          checksum: 46b006a6b397fd777dc561d3b028357f
+        COSI-SMEX/develop/Data/Responses/ResponseContinuum.o3.pol.e200_10000.b4.p12.relx.s10396905069491.m420.filtered.binnedpolarization.11D.h5:
+          checksum: d417d241be0ba7fbfeaef5e2c3bd6ebc
 
     polarization_stokes:
       notebook:
@@ -331,8 +331,8 @@ tutorials:
           checksum: 21b1d75891edc6aaf1ff3fe46e91cb49
         COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits:
           checksum: 1b851c042acf4c909798e2401e9d2e38
-        COSI-SMEX/DC4/Data/Responses/ResponseContinuum.o3.pol.e200_10000.b4.p12.relx.s10396905069491.m420.filtered.binnedpolarization.11D.h5:
-          checksum: 46b006a6b397fd777dc561d3b028357f
+        COSI-SMEX/develop/Data/Responses/ResponseContinuum.o3.pol.e200_10000.b4.p12.relx.s10396905069491.m420.filtered.binnedpolarization.11D.h5:
+          checksum: d417d241be0ba7fbfeaef5e2c3bd6ebc
 
     galactic_diffuse_continuum:
       notebook: spectral_fits/galactic_diffuse_continuum/galdiff_continuum.ipynb
