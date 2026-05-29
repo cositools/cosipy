@@ -435,7 +435,6 @@ def  cosi_tsdetect(argv=None):
 
         ts_results = ts.fit(nside=nside_search, energy_channel=[2, 3],
                         spectrum=spectrum, cpu_cores=8)
-        print(ts_results)
         max_ts,max_coo,max_l,max_b,pixel_mean_spacing=get_ts_results(ts_results,multiresolution=multiresolution,nside=nside_search)
         print("Maximum TS= %f" % max_ts)
         print("Galactic coordinate at maximum TS: l=%f, b=%f" %(max_l, max_b))
