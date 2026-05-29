@@ -417,11 +417,9 @@ def  cosi_tsdetect(argv=None):
 
     delta = tstop - tstart
     delta = delta.to_value('s')
-    print(delta)
     bkg_full=Histogram.open(bk_data_path)
     bkg_times = bkg_full.axes['Time'].edges.value
     bkg_full_duration = np.ptp(bkg_times)  # max - min
-    print(bkg_full_duration)
     bkg_model = bkg_full.project(['Em', 'Phi', 'PsiChi'])
     bkg_model /= (bkg_full_duration / delta)+1E-12
     del bkg_full
