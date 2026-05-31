@@ -32,28 +32,26 @@ spectrum.b.unit = b.unit
 spectrum.E0.unit = ebreak.unit
 spectrum.K.unit = K.unit
 
-source_direction = SkyCoord(0, 70, representation_type='spherical', frame=SpacecraftFrame(attitude=attitude), unit=u.deg)
+source_direction = SkyCoord(0, 70, representation_type='spherical',
+                            frame=SpacecraftFrame(attitude=attitude),
+                            unit=u.deg)
 
 def test_stokes_polarization():
-
     bin_edges = Angle(np.linspace(-np.pi, np.pi, 10), unit=u.rad)
     source_photons = PolarizationStokes(source_direction, spectrum, bin_edges, data,
                                         sc_orientation, response_path, background=None,
                                         show_plots=False)
 
-    average_mu = source_photons._mu100['mu']
-    mdp99 = source_photons._mdp99
-    bkg_duration = source_photons._background_duration
-    print('Bkg duration (should be 0):', bkg_duration)
+    assert source_photons._background_duration == 0 # no bkg provided
 
-    qs, us = source_photons.compute_data_pseudo_stokes(show_plots=False)
-    polarization = source_photons.calculate_polarization(qs, us, average_mu, mdp=mdp99,
-                                                         bkg_qs=None, bkg_us=None, show_plots=False)
+    polarization = source_photons.fit(show_plots=False)
     Pol_frac = polarization['fraction'] * 100
     Pol_angl = polarization['angle'].angle.degree
 
     test_pd, test_pa = 0.8, 90
     test_q, test_u = source_photons.rotate_points_to_x_axis(test_pd, np.radians(test_pa))
-    print('Testing rotate_points_to_x_axis (returns Q,U given PD,PA)', test_q, test_u)
+    assert np.allclose([test_q, test_u], [-0.8, 0])
 
+    average_mu = source_photons._mu100['mu']
+    mdp99 = source_photons._mdp99
     assert np.allclose([average_mu, mdp99, Pol_frac, Pol_angl], [0.19, 0.22, 185, 82], atol=[0.1, 0.1, 5, 10])

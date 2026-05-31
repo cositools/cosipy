@@ -108,6 +108,8 @@ class PolarizationASAD():
                                        asads['background_scaled'],
                                        self._mu_100['mu'])
 
+        self._asads = asads
+
         if show_plots:
 
             uncertainty = np.sqrt(asads['source_and_background'].bin_error.contents**2 +
@@ -621,10 +623,10 @@ class PolarizationASAD():
 
         """
 
-        uncertainty = np.sqrt(asads['source_and_background'].bin_error.contents**2 +
-                              asads['background_scaled'].bin_error.contents**2)
-        asad_source_corrected, sigma = self.correct_asad(asads['source'],
-                                                         asads['unpolarized'],
+        uncertainty = np.sqrt(self._asads['source_and_background'].bin_error.contents**2 +
+                              self._asads['background_scaled'].bin_error.contents**2)
+        asad_source_corrected, sigma = self.correct_asad(self._asads['source'],
+                                                         self._asads['unpolarized'],
                                                          uncertainty)
 
         params, uncertainties = self.fit_asad(asad_source_corrected,
@@ -675,7 +677,7 @@ class PolarizationASAD():
         }
 
     @staticmethod
-    def fit_asad(asad, p0, bounds, sigma):
+    def fit_asad(asad, p0=None, bounds=None, sigma=None):
         """
         Fit the ASAD with a sinusoid.
 

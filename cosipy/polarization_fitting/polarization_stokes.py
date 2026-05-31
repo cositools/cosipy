@@ -627,13 +627,9 @@ class PolarizationStokes():
         backscal : float
             Background scaling factor
         """
-        if self._background_duration == 0:
-            logger.warning('Background duration is zero, returning backscal = 0')
-            backscal = None
-        else:
-            backscal = self._data_duration / self._background_duration
 
-        return backscal
+        return self._data_duration / self._background_duration
+
 
     def fit(self, show_plots=False,
             ref_qu=(None, None),
@@ -680,87 +676,80 @@ class PolarizationStokes():
 
         """
 
-        src_qs, src_us = self._compute_pseudo_stokes(self._data_azimuthal_angles, show_plots=False)
+        has_background = self._background_azimuthal_angles is not None
 
-        if self._background_azimuthal_angles is not None:
-            bkg_qs, bkg_us = self._compute_pseudo_stokes(self._background_azimuthal_angles, show_plots=False)
-        else:
-            bkg_qs = None
-            bkg_us = None
+        src_qs, src_us = self._compute_pseudo_stokes(self._data_azimuthal_angles, show_plots=False)
 
         mu = self._mu100["mu"]
 
-        BACKSCAL = self._get_backscal()
-        if BACKSCAL is None:
-            logger.warning('Background scaling factor is None, assuming the unpolarized signal'
-                           'has been simulated with the same statistics as THE data')
-            BACKSCAL = 1
-
-        pol_I = I = len(src_qs)
+        pol_I = len(src_qs)
         pol_Q = np.sum(src_qs) / mu
         pol_U = np.sum(src_us) / mu
         logger.info(f'I, Q, U, mu: {pol_I} {pol_Q} {pol_U} {mu}')
 
-        QN = pol_Q/pol_I
-        UN = pol_U/pol_I
-        logger.info(f'Q, U (unsubtracted): {QN} {UN}')
-
-        if bkg_qs is None or bkg_us is None:
+        if not has_background:
             logger.info('No background data provided, assuming no background contribution.')
+
+            I = pol_I
+
+            QN = pol_Q/pol_I
+            UN = pol_U/pol_I
+
+            logger.info(f'Q, U (unsubtracted): {QN} {UN}')
+
         else:
             logger.info('Unpolarized bkg (or simulation) provided, subtracting its contribution.')
-            bkg_qs = np.asarray(bkg_qs)
-            bkg_us = np.asarray(bkg_us)
-            if bkg_qs.ndim == 1:
-                unpol_I = len(bkg_qs) * BACKSCAL
-                unpol_Q = np.sum(bkg_qs) * BACKSCAL / mu
-                unpol_U = np.sum(bkg_us) * BACKSCAL / mu
 
-                I = pol_I - unpol_I
-                logger.info(f'check I(src+bkg) vs I(src): {pol_I} {I}')
-            else:
-                BACKSCAL = 1
-                unpol_I = bkg_qs.shape[2] * BACKSCAL
-                unpol_Q = np.sum(bkg_qs) / len(bkg_qs) * BACKSCAL / mu
-                unpol_U = np.sum(bkg_qs) / len(bkg_us) * BACKSCAL / mu
+            bkg_qs, bkg_us = self._compute_pseudo_stokes(self._background_azimuthal_angles, show_plots=False)
 
+            BACKSCAL = self._get_backscal()
+
+            unpol_I = len(bkg_qs) * BACKSCAL
+            unpol_Q = np.sum(bkg_qs) * BACKSCAL / mu
+            unpol_U = np.sum(bkg_us) * BACKSCAL / mu
             logger.info(f'Q, U unpolarized: {unpol_Q/unpol_I} {unpol_U/unpol_I}')
-            unpol_modulation = mu * np.sqrt(unpol_Q**2. + unpol_U**2.) / unpol_I
-            unpol_sI = np.sqrt(unpol_I)
-            unpol_sQ = np.sqrt((2 - unpol_modulation**2) * unpol_sI**2 / unpol_I**2 / mu**2)
-            unpol_sU = np.sqrt((2 - unpol_modulation**2) * unpol_sI**2 / unpol_I**2 / mu**2)
-            logger.info(f'Q, U unpolarized uncertainty: {unpol_sQ*100} %')
+
+            I = pol_I - unpol_I
+            logger.info(f'check I(src+bkg) vs I(src): {pol_I} {I}')
 
             QN = pol_Q/pol_I + unpol_Q/unpol_I * BACKSCAL
             UN = pol_U/pol_I + unpol_U/unpol_I * BACKSCAL
 
             logger.info(f'Q, U, subtracted: {QN} {UN}')
 
-        pol_sI = np.sqrt(I)
-        pol_sQ = np.sqrt((2 - QN**2) * pol_sI**2 / I**2 / mu**2)
-        pol_sU = np.sqrt((2 - UN**2) * pol_sI**2 / I**2 / mu**2)
-        pol_covQNUN = - (QN * UN) / I**2
-        logger.info(f'Q/I, U/I, uncertainty: {pol_sQ} {pol_sU} {np.sqrt(pol_sQ)}')
+            # FIXED: analogous to Eqn 28a/b of Kislat 2015
+            unpol_modulation = mu * np.sqrt(unpol_Q**2 + unpol_U**2) / unpol_I
+            unpol_sI = np.sqrt(unpol_I - 1)
+            unpol_sQ = np.sqrt(2/mu**2 - unpol_modulation**2) / unpol_sI
+            logger.info(f'Q, U unpolarized uncertainty: {unpol_sQ*100} %')
 
-        # Reconstructed polarization fraction uncertainty: See eq 36 in Kislat 2015
-        polarization_fraction = np.sqrt(QN**2. + UN**2.)
+        # Reconstructed polarization fraction + uncertainty: See eqs
+        # 21, 36 in Kislat 2015
+        polarization_fraction = np.sqrt(QN**2 + UN**2)
         m = mu * polarization_fraction
         polarization_fraction_uncertainty = np.sqrt((2 - m**2)/((I - 1) * mu**2))
         pol_PD = polarization_fraction * 100
         pol_1sigmaPD = polarization_fraction_uncertainty * 100
 
-        # Reconstructed polarization angle uncertainty: See eq 37 in Kislat 2015
+        # Reconstructed polarization angle + uncertainty: See eqs 22,
+        # 37 in Kislat 2015
         pol_PA = 0.5 * np.arctan2(UN, QN)
         # Convert to 0 to 180 deg (just the convention)
         if pol_PA < 0:
             pol_PA += np.pi
 
-        pol_1sigmaPA = np.degrees(1 / (m * np.sqrt(2. * (I - 1.))))
+        pol_1sigmaPA = np.degrees(1 / (m * np.sqrt(2 * (I - 1))))
 
         polarization_angle = Angle(np.degrees(pol_PA), unit=u.deg)
         polarization_angle = PolarizationAngle(polarization_angle, self._source,
                                                convention=self._convention).transform_to(IAUPolarizationConvention())
         polarization_angle_uncertainty = Angle(pol_1sigmaPA, unit=u.deg)
+
+        # FIXED: corrected to ~ match Eqns 28a/b of Kislat 2015
+        pol_sI = np.sqrt(I - 1)
+        pol_sQ = np.sqrt(2/mu**2 - QN**2) / pol_sI
+        pol_sU = np.sqrt(2/mu**2 - UN**2) / pol_sI
+        logger.info(f'Q/I, U/I, uncertainty: {pol_sQ} {pol_sU} {np.sqrt(pol_sQ)}')
 
         polarization = {'fraction': polarization_fraction,
                         'angle': polarization_angle,
@@ -791,7 +780,7 @@ class PolarizationStokes():
                                label=r'MDP$_{99}$ = %.2f %%'%(self._mdp99*100))
             plt.gca().add_artist(c_mdp)
 
-            if bkg_qs is None or bkg_us is None:
+            if not has_background:
                 label_data = ("PD = (%.1f ± %.1f)%%\n"
                               "PA = (%.1f ± %.1f) deg"
                              % (pol_PD, pol_1sigmaPD, np.degrees(pol_PA), pol_1sigmaPA) )
@@ -803,17 +792,23 @@ class PolarizationStokes():
                           % (pol_PD, pol_1sigmaPD, np.degrees(pol_PA), pol_1sigmaPA) )
                 plt.plot(unpol_Q/unpol_I, unpol_U/unpol_I,  'o', markersize=5, color='0.4', \
                         label=r'Unpol (PD$_{1\sigma}$ = %i %%)'%(unpol_sQ*100))
-                unpol_c = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I), radius=unpol_sQ, facecolor='none', edgecolor='0.4', linewidth=1)
-                unpol_c2 = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I), radius=2*unpol_sQ, facecolor='none', edgecolor='0.4', linewidth=1)
-                unpol_c3 = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I), radius=3*unpol_sQ, facecolor='none', edgecolor='0.4', linewidth=1)
+                unpol_c  = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I), radius=unpol_sQ,
+                                      facecolor='none', edgecolor='0.4', linewidth=1)
+                unpol_c2 = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I), radius=2*unpol_sQ,
+                                      facecolor='none', edgecolor='0.4', linewidth=1)
+                unpol_c3 = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I), radius=3*unpol_sQ,
+                                      facecolor='none', edgecolor='0.4', linewidth=1)
                 plt.gca().add_artist(unpol_c)
                 plt.gca().add_artist(unpol_c2)
                 plt.gca().add_artist(unpol_c3)
 
             plt.plot(QN, UN, 'o', markersize=5, color='red', label=label_data)
-            pol_c = plt.Circle((QN, UN), radius=polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
-            pol_c2 = plt.Circle((QN, UN), radius=2*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
-            pol_c3 = plt.Circle((QN, UN), radius=3*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
+            pol_c = plt.Circle((QN, UN), radius=polarization_fraction_uncertainty,
+                               facecolor='none', edgecolor='red', linewidth=1)
+            pol_c2 = plt.Circle((QN, UN), radius=2*polarization_fraction_uncertainty,
+                                facecolor='none', edgecolor='red', linewidth=1)
+            pol_c3 = plt.Circle((QN, UN), radius=3*polarization_fraction_uncertainty,
+                                facecolor='none', edgecolor='red', linewidth=1)
             plt.gca().add_artist(pol_c)
             plt.gca().add_artist(pol_c2)
             plt.gca().add_artist(pol_c3)
