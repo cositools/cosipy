@@ -24,65 +24,6 @@ from cosipy.response.functions import get_integrated_spectral_model
 import logging
 logger = logging.getLogger(__name__)
 
-def R(x, a, b, c):
-    # Sinusoid to fit scattering angles x
-    # (radians) with shift and scaling parameters
-    return a + b * np.cos(x + c)**2
-
-def calculate_mu(_x, _y, title='Modulation', show=False):
-    """ Function to estimate the modulation factor.
-        _x is the central value of the histogram bins
-        _y is the value of the bins on the histograms
-
-        Parameters
-        ----------
-        _x : array
-            Central values of the histogram bins
-        _y : array
-            Values of the histogram bins
-        title : str
-            Title of the plot
-        show : bool
-            Whether to show the plot or not
-
-        Returns
-        -------
-        mu : float
-            Modulation factor
-        mu_err : float
-            Error on the modulation factor
-    """
-
-    params, pcov = curve_fit(R, _x, _y )
-    uncertainties = np.sqrt(np.diagonal(pcov))
-
-    print(f'A = {params[0]:.2f}, B = {params[1]:.2f}, C = {params[2]:.2f}')
-
-    Rvals = R(_x, *params)
-    Rmax, Rmin = np.amax(Rvals), np.amin(Rvals)
-    print('Rmax, Rmin:', Rmax, Rmin)
-    mu = (Rmax-Rmin)/(Rmax+Rmin)
-    print('Modulation mu = ', mu)
-
-    mu_err = 2/(params[1] + 2*params[0])**2 * \
-        np.sqrt((params[1] * uncertainties[0])**2 +
-                (params[0] * uncertainties[1])**2)
-
-    if show:
-        plt.figure()
-        plt.title(title)
-        plt.step(_x, _y, where='mid')
-        perr = (params[0]+uncertainties[0], params[1]+uncertainties[1], params[2])
-        merr = (params[0]-uncertainties[0], params[1]-uncertainties[1], params[2])
-        plt.fill_between(_x, R(_x, *perr), R(_x, *merr), color='red', alpha=0.3)
-        plt.plot(_x, R(_x, *params), 'r-', label=fr'$\mu=${mu:.3f}')
-        plt.legend(fontsize=12)
-        plt.xlabel('Azimuthal angle [rad]')
-        plt.savefig(title)
-
-    return mu, mu_err
-
-
 class PolarizationStokes():
     """
     Stokes parameter method to fit polarization.
@@ -164,7 +105,7 @@ class PolarizationStokes():
             self.calculate_scattering_angles(self._data, show_plots=show_plots)
 
         if background is not None:
-            print('Background provided. Make sure there is enough statistics.')
+            logger.info('Background provided. Make sure there is enough statistics.')
 
             if not isinstance(background, list):
                 background = [background]
@@ -180,7 +121,7 @@ class PolarizationStokes():
                 self._background_azimuthal_angles, self._background_duration = \
                     self.calculate_scattering_angles(self._background)
         else:
-            print('No background provided. Will not subtract background from data.')
+            logger.info('No background provided. Will not subtract background from data.')
             self._background = None
             self._background_azimuthal_angles = None
             self._background_duration = 0
@@ -448,8 +389,15 @@ class PolarizationStokes():
             logger.info(f'Polarization angle bin: {pol_axis.edges.angle[i]} to {pol_axis.edges.angle[i+1]} deg')
 
             asad_corrected = correct_asad(asads_polarized[i], asad_unpolarized)
-            mu_100, mu_err = calculate_mu(bin_centers.value, asad_corrected,
-                                          title=f'Modulation PA bin {i}', show=show_plots)
+            mu_100, mu_err = self.calculate_mu(bin_centers.value, asad_corrected,
+                                               title=f'Modulation PA bin {i}', show=show_plots)
+            print(f'Modulation @ {pol_angles[i]:.1f} deg [Stok method]: {mu_100:.3f} +/- {mu_err:.3f}')
+
+            res, _ = self.calculate_mu2(bin_centers.value, asad_corrected)
+            mu_100 = res["mu"]
+            mu_err = res["uncertainty"]
+            print(f'Modulation @ {pol_angles[i]:.1f} deg [ASAD method]: {mu_100:.3f} +/- {mu_err:.3f}')
+
             mu_100s.append(mu_100)
             mu_100_uncertainties.append(mu_err)
 
@@ -457,7 +405,7 @@ class PolarizationStokes():
                                pol_angles, mu_100s,
                                sigma = mu_100_uncertainties,
                                p0 = np.mean(mu_100s),
-                               absolute_sigma = True)
+                               absolute_sigma = False) # True for Stokes
         result = {'mu': popt[0], 'uncertainty': pcov[0][0]}
 
         if show_plots:
@@ -474,6 +422,110 @@ class PolarizationStokes():
 
         return result
 
+    @staticmethod
+    def calculate_mu2(asad_bin_centers, asad_values):
+        """
+        Calculate the modulation (mu).
+
+        Parameters
+        ----------
+        asad : Histogram
+           ASAD
+
+        Returns
+        -------
+        modulation : dict
+            Modulation and uncertainty of fitted sinusoid
+        parameter_values : np.ndarray
+            Fitted parameter values
+
+        """
+
+        def asad_sinusoid(x, a, b, c):
+            # Sinusoid to fit scattering angles x
+            # (radians) with shift and scaling parameters
+            return a - b * np.cos(2 * (x - c))
+
+        params, pcov = curve_fit(asad_sinusoid,
+                                 asad_bin_centers,
+                                 asad_values,
+                                 bounds=((0, 0, 0),
+                                         (np.inf,np.inf,np.pi)))
+
+        uncertainties = np.sqrt(np.diagonal(pcov))
+
+        mu = params[1] / params[0]
+        mu_uncertainty = mu * np.sqrt((uncertainties[0]/params[0])**2 +
+                                      (uncertainties[1]/params[1])**2)
+
+        logger.info(f'Modulation: {mu:.3f} +/- {mu_uncertainty:.3f}')
+
+        modulation = {'mu': mu, 'uncertainty': mu_uncertainty}
+
+        return modulation, params
+
+    @staticmethod
+    def calculate_mu(asad_bin_centers, asad_values,
+                     title='Modulation', show=False):
+        """
+        Function to estimate the modulation factor.
+
+        Parameters
+        ----------
+        asad_bin_centers : array
+            Central values of the ASAD histogram bins
+        asad_values : array
+            Values of the ASAD histogram bins
+        title : str
+            Title of the plot
+        show : bool
+            Whether to show the plot or not
+
+        Returns
+        -------
+        mu : float
+            Modulation factor
+        mu_uncertainty : float
+            Uncertainty in the modulation factor
+        """
+
+        def asad_sinusoid(x, a, b, c):
+            # Sinusoid to fit scattering angles x
+            # (radians) with shift and scaling parameters
+            return a + b * np.cos(x + c)**2
+
+        params, pcov = curve_fit(asad_sinusoid,
+                                 asad_bin_centers,
+                                 asad_values,
+                                 bounds=((0, 0, 0),
+                                         (np.inf,np.inf,np.pi)))
+
+        uncertainties = np.sqrt(np.diagonal(pcov))
+
+        Rvals = asad_sinusoid(asad_bin_centers, *params)
+        Rmax, Rmin = np.amax(Rvals), np.amin(Rvals)
+        mu = (Rmax-Rmin)/(Rmax+Rmin)
+
+        mu_uncertainty = 2/(params[1] + 2*params[0])**2 * \
+            np.sqrt((params[1] * uncertainties[0])**2 +
+                    (params[0] * uncertainties[1])**2)
+
+        logger.info(f'Modulation: {mu:.3f} +/- {mu_uncertainty:.3f}')
+
+        if show:
+            plt.figure()
+            plt.title(title)
+            plt.step(asad_bin_centers, asad_values, where='mid')
+            perr = (params[0]+uncertainties[0], params[1]+uncertainties[1], params[2])
+            merr = (params[0]-uncertainties[0], params[1]-uncertainties[1], params[2])
+            plt.fill_between(_x, asad_sinusoid(_x, *perr), asad_sinusoid(_x, *merr), color='red', alpha=0.3)
+            plt.plot(_x, R(_x, *params), 'r-', label=fr'$\mu=${mu:.3f}')
+            plt.legend(fontsize=12)
+            plt.xlabel('Azimuthal angle [rad]')
+            plt.show()
+
+        return mu, mu_uncertainty
+
     def calculate_mdp(self, mu_100):
         """
         Calculate the minimum detectable polarization (MDP) of the source.
@@ -485,16 +537,14 @@ class PolarizationStokes():
         """
 
         source_counts = self.get_counts(self._data)
-        source_data_rate = source_counts / self._data_duration
 
         if self._background is not None:
-            background_counts = self.get_counts(self._background)
-            background_data_rate = background_counts / self._background_duration
+            background_counts_scaled = self.get_counts(self._background) * \
+                self._data_duration / self._background_duration
 
-            mdp = 4.29 /  mu_100 * np.sqrt(source_data_rate / self._data_duration +
-                                           background_data_rate / self._background_duration) / source_data_rate
+            mdp = 4.29 / mu_100 * np.sqrt(source_counts + background_counts_scaled) / source_counts
         else:
-            mdp = 4.29 /  mu_100 / np.sqrt(source_counts)
+            mdp = 4.29 / mu_100 / np.sqrt(source_counts)
 
         logger.info(f'Minimum detectable polarization (MDP) of source: {mdp:.3f}')
 
@@ -520,50 +570,19 @@ class PolarizationStokes():
     # STOKES-SPECIFIC PARTS
     ######################################################################
 
-    @staticmethod
-    def stokes_u(phi):
+    def _compute_pseudo_stokes(self, azimuthal_angles, show_plots=False, label=None):
         """
-        Calculate the U Stokes parameter from the azimuthal angle phi.
+        Calculates photon-by-photon pseudo stokes parameters from the
+        photon azimutal angle.
 
         Parameters
         ----------
-        phi : float
-        Azimuthal angle in radians
-
-        Returns
-        -------
-        u : float
-        U Stokes parameter
-        """
-
-        return np.sin(phi * 2) * 2
-
-    @staticmethod
-    def stokes_q(phi):
-        """
-        Calculate the Q Stokes parameter from the azimuthal angle phi.
-
-        Parameters
-        ----------
-        phi : float
-            Azimuthal angle in radians
-
-        Returns
-        -------
-        q : float
-            Q Stokes parameter
-        """
-        return np.cos(phi * 2) * 2
-
-    def compute_data_pseudo_stokes(self, show_plots=False):
-        """
-        Calculates photon-by-photon pseudo stokes parameters from the photon azimutal angle.
-
-        Parameters
-        ----------
-        show : bool, optional
-            If True, display a diagnostic plot in the Q-U plane with
-            uncertainty circles, by default False.
+        azimuthal_angles : Angle array
+            Azimuthal scattering angles (radians)
+        show_plots : bool, optional
+            Plot Stokes parameters (default False)
+        label : string
+            Label for type of Stokes parameters being plotted
 
         Returns
         -------
@@ -571,22 +590,26 @@ class PolarizationStokes():
             pseudo-q parameters for each photon (ordered as input array)
         us : array
             pseudo-u parameters for each photon (ordered as input array)
+
         """
 
-        try:
-            a_ = self._data_azimuthal_angles.value
-        except:
-            a_ = np.concatenate(self._data_azimuthal_angles).value
+        def stokes_q(phi):
+            return np.cos(phi * 2) * 2
+
+        def stokes_u(phi):
+            return np.sin(phi * 2) * 2
+
+        angles = azimuthal_angles.value
 
         ######################
         # ATTENTION: I need to add 90 degrees because the stokes convention assumes that EVPA //
         # source polarization, while for Compton scatttering it is perpendicular)
-        qs = self.stokes_q(a_ - np.pi/2)
-        us = self.stokes_u(a_ - np.pi/2)
+        qs = stokes_q(angles - np.pi/2)
+        us = stokes_u(angles - np.pi/2)
 
         if show_plots:
             plt.figure()
-            plt.title('Source Stokes parameters (%i events)'%len(qs))
+            plt.title(f'{label} Stokes parameters (%i events)'%len(qs))
             plt.hist(qs, bins=50, alpha=0.5, label='q$_s$')
             plt.hist(us, bins=50, alpha=0.5, label='u$_s$')
             plt.xlabel('Pseudo Stokes parameter')
@@ -595,120 +618,97 @@ class PolarizationStokes():
 
         return qs, us
 
-    def compute_background_pseudo_stokes(self, show_plots=False):
+    def _get_backscal(self):
         """
-        Calculates photon-by-photon pseudo stokes parameters from the photon azimutal angle.
-
-        Parameters
-        ----------
-        azimuthal_angles : list
-            Azimuthal scattering angles (radians)
+        Calculate the background scaling factor to match the source duration.
 
         Returns
         -------
-        qs : array
-            pseudo-q parameters for each photon (ordered as input array)
-        us : array
-            pseudo-u parameters for each photon (ordered as input array)
+        backscal : float
+            Background scaling factor
         """
-
-        if self._background_azimuthal_angles is None:
-            logger.warning('No background data provided, returning empty lists for pseudo Stokes parameters.')
-            return np.array([]), np.array([])
+        if self._background_duration == 0:
+            logger.warning('Background duration is zero, returning backscal = 0')
+            backscal = None
         else:
-            try:
-                a_ = self._background_azimuthal_angles.value
-            except:
-                a_ = np.concatenate(self._background_azimuthal_angles).value
+            backscal = self._data_duration / self._background_duration
 
-            qs = self.stokes_q(a_ - np.pi/2)
-            us = self.stokes_u(a_ - np.pi/2)
+        return backscal
 
-            if show_plots:
-                plt.figure()
-                plt.title('Background Stokes parameters (%i events)'%len(qs))
-                plt.hist(qs, bins=50, alpha=0.5, label='q$_b$')
-                plt.hist(us, bins=50, alpha=0.5, label='u$_b$')
-                plt.xlabel('Pseudo Stokes parameter')
-                plt.legend()
-                plt.show()
-
-        return qs, us
-
-    def calculate_polarization(self, qs, us, mu,
-                               bkg_qs=None, bkg_us=None,
-                               show_plots=False,
-                               ref_qu=(None, None),
-                               ref_pdpa=(None, None),
-                               ref_label=None, mdp=None):
-        """
-        Calculate the polarization degree (PD), polarization angle (PA),
-        and their associated 1-sigma uncertainties given Q and U measurements
-        from both polarized and unpolarized data sets.
+    def fit(self, show_plots=False,
+            ref_qu=(None, None),
+            ref_pdpa=(None, None),
+            ref_label=None):
+        """Calculate the polarization degree (PD), polarization angle (PA),
+        and their associated 1-sigma uncertainties given Q and U
+        measurements from both polarized and unpolarized data sets.
 
         This implements equations (21), (22), (36), and (37) from Kislat et al. (2015).
 
         Parameters
         ----------
-        qs : array-like
-            Array of Q measurements (from polarized source).
-        us : array-like
-            Array of U measurements (from polarized source).
-        mu : float
-            Modulation factor. Used to convert raw measurements into normalized Q/I and U/I.
-        bkg_qs : array-like, optional
-            Array of Q measurements from unpolarized background or simulation data, by default None.
-        bkg_us : array-like, optional
-            Array of U measurements from unpolarized background or simulation data, by default None.
         show_plots : bool, optional
             If True, display a diagnostic plot in the Q-U plane with
             uncertainty circles, by default False.
         ref_qu : tuple of (float or None, float or None), optional
-            Reference (Q, U) point (e.g., from simulation) to be plotted for comparison,
-            by default (None, None) (no reference shown).
+            Reference (Q, U) point (e.g., from simulation) to be
+            plotted for comparison, by default (None, None) (no
+            reference shown).
         ref_pdpa : tuple of (float or None, float or None), optional
-            Reference (PD, PA) point (e.g., from simulation) to be converted to Q/U
-            and plotted for comparison, by default (None, None) (no reference shown).
+            Reference (PD, PA) point (e.g., from simulation) to be
+            converted to Q/U and plotted for comparison, by default
+            (None, None) (no reference shown).
         ref_label : str, optional
-            Label for the reference point in the plot, by default None (no label shown).
-        mdp : float, optional
-            Minimum detectable polarization (MDP) value to be used for uncertainty calculations,
-            by default None (no MDP used).
+            Label for the reference point in the plot, by default None
+            (no label shown).
 
         Returns
         -------
         polarization: dict
-
             fraction : float
                 Polarization degree, PD = sqrt(Q^2 + U^2).
             fraction_uncertainty : float
-                1-sigma statistical uncertainty on the polarization degree.
+                1-sigma statistical uncertainty on the polarization
+                degree.
             angle : astropy.coordinates.Angle
-                Polarization angle (in radians internally),
-                computed as 90 - 0.5 * arctan2(U, Q) (converted into an Angle object).
+                Polarization angle (in radians internally), computed
+                as 90 - 0.5 * arctan2(U, Q) (converted into an Angle
+                object).
             angle_uncertainty : float
-                1-sigma statistical uncertainty on the polarization angle (in degrees).
-        """
-        BACKSCAL = self.get_backscal()
+                1-sigma statistical uncertainty on the polarization
+                angle (in degrees).
 
+        """
+
+        src_qs, src_us = self._compute_pseudo_stokes(self._data_azimuthal_angles, show_plots=False)
+
+        if self._background_azimuthal_angles is not None:
+            bkg_qs, bkg_us = self._compute_pseudo_stokes(self._background_azimuthal_angles, show_plots=False)
+        else:
+            bkg_qs = None
+            bkg_us = None
+
+        mu = self._mu100["mu"]
+
+        BACKSCAL = self._get_backscal()
         if BACKSCAL is None:
-            logger.warning('Background scaling factor is None, assuming the unpolarized signal'+
+            logger.warning('Background scaling factor is None, assuming the unpolarized signal'
                            'has been simulated with the same statistics as THE data')
             BACKSCAL = 1
 
-        pol_I = I = len(qs)
-        pol_Q = np.sum(qs) / mu
-        pol_U = np.sum(us) / mu
-        print('I, Q, U, mu', pol_I, pol_Q, pol_U, mu)
+        pol_I = I = len(src_qs)
+        pol_Q = np.sum(src_qs) / mu
+        pol_U = np.sum(src_us) / mu
+        logger.info(f'I, Q, U, mu: {pol_I} {pol_Q} {pol_U} {mu}')
 
-        self.QN = pol_Q/pol_I
-        self.UN = pol_U/pol_I
-        print('Q, U (unsubtracted:)', self.QN, self.UN)
+        QN = pol_Q/pol_I
+        UN = pol_U/pol_I
+        logger.info(f'Q, U (unsubtracted): {QN} {UN}')
 
         if bkg_qs is None or bkg_us is None:
-            print('No background data provided, assuming no background contribution.')
+            logger.info('No background data provided, assuming no background contribution.')
         else:
-            print('Unpolarized bkg (or simulation) provided, subtracting its contribution.')
+            logger.info('Unpolarized bkg (or simulation) provided, subtracting its contribution.')
             bkg_qs = np.asarray(bkg_qs)
             bkg_us = np.asarray(bkg_us)
             if bkg_qs.ndim == 1:
@@ -717,49 +717,59 @@ class PolarizationStokes():
                 unpol_U = np.sum(bkg_us) * BACKSCAL / mu
 
                 I = pol_I - unpol_I
-                print('check I(src+bkg) vs I(src):', pol_I, I)
+                logger.info(f'check I(src+bkg) vs I(src): {pol_I} {I}')
             else:
                 BACKSCAL = 1
                 unpol_I = bkg_qs.shape[2] * BACKSCAL
                 unpol_Q = np.sum(bkg_qs) / len(bkg_qs) * BACKSCAL / mu
                 unpol_U = np.sum(bkg_qs) / len(bkg_us) * BACKSCAL / mu
 
-            print('Q, U unpolarized:', unpol_Q/unpol_I, unpol_U/unpol_I)
+            logger.info(f'Q, U unpolarized: {unpol_Q/unpol_I} {unpol_U/unpol_I}')
             unpol_modulation = mu * np.sqrt(unpol_Q**2. + unpol_U**2.) / unpol_I
             unpol_sI = np.sqrt(unpol_I)
             unpol_sQ = np.sqrt((2 - unpol_modulation**2) * unpol_sI**2 / unpol_I**2 / mu**2)
             unpol_sU = np.sqrt((2 - unpol_modulation**2) * unpol_sI**2 / unpol_I**2 / mu**2)
-            print('Q, U unpolarized uncertainty:', unpol_sQ*100, '%')
+            logger.info(f'Q, U unpolarized uncertainty: {unpol_sQ*100} %')
 
-            self.QN = pol_Q/pol_I + unpol_Q/unpol_I * BACKSCAL
-            self.UN = pol_U/pol_I + unpol_U/unpol_I * BACKSCAL
+            QN = pol_Q/pol_I + unpol_Q/unpol_I * BACKSCAL
+            UN = pol_U/pol_I + unpol_U/unpol_I * BACKSCAL
 
-            print('Q, U, subtracted:', self.QN, self.UN)
+            logger.info(f'Q, U, subtracted: {QN} {UN}')
 
         pol_sI = np.sqrt(I)
-        pol_sQ = np.sqrt((2 - self.QN**2) * pol_sI**2 / I**2 / mu**2)
-        pol_sU = np.sqrt((2 - self.UN**2) * pol_sI**2 / I**2 / mu**2)
-        pol_covQNUN = - (self.QN * self.UN) / I**2
-        print('Q/I, U/I, uncertainty:', pol_sQ, pol_sU, np.sqrt(pol_sQ))
+        pol_sQ = np.sqrt((2 - QN**2) * pol_sI**2 / I**2 / mu**2)
+        pol_sU = np.sqrt((2 - UN**2) * pol_sI**2 / I**2 / mu**2)
+        pol_covQNUN = - (QN * UN) / I**2
+        logger.info(f'Q/I, U/I, uncertainty: {pol_sQ} {pol_sU} {np.sqrt(pol_sQ)}')
 
         # Reconstructed polarization fraction uncertainty: See eq 36 in Kislat 2015
-        polarization_fraction = np.sqrt(self.QN**2. + self.UN**2.)
+        polarization_fraction = np.sqrt(QN**2. + UN**2.)
         m = mu * polarization_fraction
         polarization_fraction_uncertainty = np.sqrt((2 - m**2)/((I - 1) * mu**2))
         pol_PD = polarization_fraction * 100
         pol_1sigmaPD = polarization_fraction_uncertainty * 100
 
         # Reconstructed polarization angle uncertainty: See eq 37 in Kislat 2015
-        pol_PA = 0.5 * np.arctan2(self.UN, self.QN)
+        pol_PA = 0.5 * np.arctan2(UN, QN)
         # Convert to 0 to 180 deg (just the convention)
         if pol_PA < 0:
             pol_PA += np.pi
 
         pol_1sigmaPA = np.degrees(1 / (m * np.sqrt(2. * (I - 1.))))
-        print('\n ############################## \n')
-        print('     PD: %.2f'%(pol_PD), '+/- %.2f'%(pol_1sigmaPD), '%')
-        print('     PA: %.2f'%(np.degrees(pol_PA)), '+/- %.2f'%pol_1sigmaPA, 'deg')
-        print('\n ############################## \n')
+
+        polarization_angle = Angle(np.degrees(pol_PA), unit=u.deg)
+        polarization_angle = PolarizationAngle(polarization_angle, self._source,
+                                               convention=self._convention).transform_to(IAUPolarizationConvention())
+        polarization_angle_uncertainty = Angle(pol_1sigmaPA, unit=u.deg)
+
+        polarization = {'fraction': polarization_fraction,
+                        'angle': polarization_angle,
+                        'fraction_uncertainty': polarization_fraction_uncertainty,
+                        'angle_uncertainty': polarization_angle_uncertainty,
+                        'QN': QN,
+                        'UN': UN,
+                        'QN_ERR': pol_sQ,
+                        'UN_ERR': pol_sU}
 
         if show_plots:
 
@@ -768,22 +778,18 @@ class PolarizationStokes():
             self.polar_chart_backbone(ax)
 
             if ref_qu[0] != None:
-                # print('Drawing Reference point:', ref_qu)
                 plt.plot(ref_qu[0], ref_qu[1], 'x', markersize=20, color='tab:green')
                 plt.annotate(ref_label, (ref_qu[0], ref_qu[1]), textcoords="offset points", xytext=(0,10),
                              ha='center', fontsize=12)
             if ref_pdpa[0] != None:
-                # print('Drawing Reference point:', ref_pdpa)
                 ref_q, ref_u = self.rotate_points_to_x_axis(ref_pdpa[0], np.radians(ref_pdpa[1]))
                 plt.plot(ref_q, ref_u, 'x', markersize=20, color='tab:green')
                 plt.annotate(ref_label, (ref_q, ref_u), textcoords="offset points", xytext=(0,10), ha='center',
                              color='tab:green', fontsize=12)
 
-            if mdp != None:
-                c_mdp = plt.Circle((0, 0), radius=mdp, facecolor='tab:red', alpha=0.3, linewidth=1, linestyle='--',
-                                   label=r'MDP$_{99}$ = %.2f %%'%(self._mdp99*100))
-                plt.gca().add_artist(c_mdp)
-
+            c_mdp = plt.Circle((0, 0), radius=self._mdp99, facecolor='tab:red', alpha=0.3, linewidth=1, linestyle='--',
+                               label=r'MDP$_{99}$ = %.2f %%'%(self._mdp99*100))
+            plt.gca().add_artist(c_mdp)
 
             if bkg_qs is None or bkg_us is None:
                 label_data = ("PD = (%.1f ± %.1f)%%\n"
@@ -804,10 +810,10 @@ class PolarizationStokes():
                 plt.gca().add_artist(unpol_c2)
                 plt.gca().add_artist(unpol_c3)
 
-            plt.plot(self.QN, self.UN, 'o', markersize=5, color='red', label=label_data)
-            pol_c = plt.Circle((self.QN, self.UN), radius=polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
-            pol_c2 = plt.Circle((self.QN, self.UN), radius=2*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
-            pol_c3 = plt.Circle((self.QN, self.UN), radius=3*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
+            plt.plot(QN, UN, 'o', markersize=5, color='red', label=label_data)
+            pol_c = plt.Circle((QN, UN), radius=polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
+            pol_c2 = plt.Circle((QN, UN), radius=2*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
+            pol_c3 = plt.Circle((QN, UN), radius=3*polarization_fraction_uncertainty, facecolor='none', edgecolor='red', linewidth=1)
             plt.gca().add_artist(pol_c)
             plt.gca().add_artist(pol_c2)
             plt.gca().add_artist(pol_c3)
@@ -821,62 +827,7 @@ class PolarizationStokes():
 
             plt.show()
 
-        polarization_angle = Angle(np.degrees(pol_PA), unit=u.deg)
-        polarization_angle = PolarizationAngle(polarization_angle, self._source, convention=self._convention).transform_to(IAUPolarizationConvention())
-        polarization_angle_uncertainty = Angle(pol_1sigmaPA, unit=u.deg)
-
-        polarization = {'fraction': polarization_fraction,
-                        'angle': polarization_angle,
-                        'fraction_uncertainty': polarization_fraction_uncertainty,
-                        'angle_uncertainty': polarization_angle_uncertainty,
-                        'QN': self.QN,
-                        'UN': self.UN,
-                        'QN_ERR': pol_sQ,
-                        'UN_ERR': pol_sU}
-
         return polarization
-
-    def get_backscal(self):
-        """
-        Calculate the background scaling factor to match the source duration.
-
-        Returns
-        -------
-        backscal : float
-            Background scaling factor
-        """
-        if self._background_duration == 0:
-            logger.warning('Background duration is zero, returning backscal = 0')
-            backscal = None
-        else:
-            backscal = self._data_duration / self._background_duration
-
-        return backscal
-
-    @staticmethod
-    def rotate_points_to_x_axis(newPD, newPA):
-        """
-        Rotate arrays of points (x_, y_) in the QN-UN plane by an angle
-
-        Parameters
-        ----------
-        newPD : float
-        Polarization degree
-        newPA : float
-        Polarization angle
-        Returns
-        -------
-        rotated_Q : float
-        Q Stokes parameter
-        rotated_U : float
-        U Stokes parameter
-
-        """
-        # Create a matrix of rotation matrices for each point
-        rotated_Q = newPD * np.cos(2 * newPA)
-        rotated_U = newPD * np.sin(2 * newPA)
-
-        return rotated_Q, rotated_U
 
     @staticmethod
     def polar_chart_backbone(ax):
@@ -904,3 +855,28 @@ class PolarizationStokes():
         plt.vlines(0, -1, 1, linewidth=1, color='k', linestyle='--', alpha=0.3)
         plt.plot([1,-1], [1,-1], linewidth=1, color='k', linestyle='--', alpha=0.3)
         plt.plot([1,-1], [-1,1], linewidth=1, color='k', linestyle='--', alpha=0.3)
+
+    @staticmethod
+    def rotate_points_to_x_axis(newPD, newPA):
+        """
+        Rotate arrays of points (x_, y_) in the QN-UN plane by an angle
+
+        Parameters
+        ----------
+        newPD : float
+        Polarization degree
+        newPA : float
+        Polarization angle
+        Returns
+        -------
+        rotated_Q : float
+        Q Stokes parameter
+        rotated_U : float
+        U Stokes parameter
+
+        """
+        # Create a matrix of rotation matrices for each point
+        rotated_Q = newPD * np.cos(2 * newPA)
+        rotated_U = newPD * np.sin(2 * newPA)
+
+        return rotated_Q, rotated_U

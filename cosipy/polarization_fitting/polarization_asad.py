@@ -100,15 +100,6 @@ class PolarizationASAD():
 
         asads = self.create_asads(data, background, asad_bin_edges)
 
-        uncertainty = np.sqrt(asads['source_and_background'].bin_error.contents**2 +
-                              asads['background_scaled'].bin_error.contents**2)
-        asad_corrected, sigma = self.correct_asad(asads['source'],
-                                                  asads['unpolarized'],
-                                                  uncertainty)
-
-        self._asad_source_corrected = asad_corrected
-        self._sigma = sigma
-
         self._mu_100 = self.calculate_mu100(asads['polarized'],
                                             asads['unpolarized'],
                                             show_plots)
@@ -118,6 +109,9 @@ class PolarizationASAD():
                                        self._mu_100['mu'])
 
         if show_plots:
+
+            uncertainty = np.sqrt(asads['source_and_background'].bin_error.contents**2 +
+                                  asads['background_scaled'].bin_error.contents**2)
 
             self.plot_asad(asads['source'],
                            'Source ASAD',
@@ -433,7 +427,8 @@ class PolarizationASAD():
 
         plt.show()
 
-    def correct_asad(self, asad_data, asad_unpolarized,
+    @staticmethod
+    def correct_asad(asad_data, asad_unpolarized,
                      asad_data_uncertainties=None):
         """
         Correct the ASAD using the ASAD of an unpolarized source.
@@ -507,8 +502,7 @@ class PolarizationASAD():
             logger.info(f'Polarization angle bin: {pol_axis.edges.angle[i]} to {pol_axis.edges.angle[i+1]} deg')
 
             asad_polarized_corrected, _ = self.correct_asad(asads_polarized[i], asad_unpolarized)
-            mu_100, coefficients = self.calculate_mu(asad_polarized_corrected,
-                                                     bounds=((0, 0, 0), (np.inf,np.inf,np.pi)))
+            mu_100, coefficients = self.calculate_mu(asad_polarized_corrected)
 
             mu_100_vals.append(mu_100)
 
@@ -542,8 +536,9 @@ class PolarizationASAD():
 
         return result
 
-    def calculate_mu(self, asad,
-                     p0=None, bounds=None, sigma=None):
+    @staticmethod
+    def calculate_mu(asad):
+
         """
         Calculate the modulation (mu).
 
@@ -551,12 +546,6 @@ class PolarizationASAD():
         ----------
         asad : Histogram
            ASAD
-        p0 : list or np.array
-            Initial guess for parameter values
-        bounds : 2-tuple of float, list, or np.array
-            Lower & upper bounds on parameters
-        sigma : float, list, or np.array
-            Uncertainties for each azimuthal scattering angle bin
 
         Returns
         -------
@@ -566,8 +555,9 @@ class PolarizationASAD():
             Fitted parameter values
 
         """
-        params, uncertainties = self.fit_asad(asad,
-                                              p0, bounds, sigma)
+        bounds = ((0, 0, 0), (np.inf,np.inf,np.pi))
+        params, uncertainties = PolarizationASAD.fit_asad(asad,
+                                                          bounds=bounds)
 
         mu = params[1] / params[0]
         mu_uncertainty = mu * np.sqrt((uncertainties[0]/params[0])**2 +
@@ -631,11 +621,14 @@ class PolarizationASAD():
 
         """
 
-        if bounds is None:
-            bounds = ((0, 0, 0), (np.inf,np.inf,np.pi))
+        uncertainty = np.sqrt(asads['source_and_background'].bin_error.contents**2 +
+                              asads['background_scaled'].bin_error.contents**2)
+        asad_source_corrected, sigma = self.correct_asad(asads['source'],
+                                                         asads['unpolarized'],
+                                                         uncertainty)
 
-        params, uncertainties = self.fit_asad(self._asad_source_corrected,
-                                              p0, bounds, self._sigma)
+        params, uncertainties = self.fit_asad(asad_source_corrected,
+                                              p0, bounds, sigma)
 
         # polarization fraction
         pf = params[1] / (params[0] * self._mu_100['mu'])
@@ -662,9 +655,9 @@ class PolarizationASAD():
                         f'MDP: {self._mdp:.3f}')
 
         if show_plots:
-            self.plot_asad(self._asad_source_corrected,
+            self.plot_asad(asad_source_corrected,
                            'Corrected Source ASAD',
-                           self._sigma,
+                           sigma,
                            coefficients = params)
 
         # return angle as PolarizationAngle
@@ -692,9 +685,9 @@ class PolarizationASAD():
             ASAD
         p0 : np.array or None
             Initial guess for parameter values
-        bounds : 2-tuple of float or array-like
+        bounds : 2-tuple of float or array-like or None
             Lower & upper bounds on parameters
-        sigma : float or array-like
+        sigma : float or array-like or None
             Uncertainties in y data
 
         Returns
@@ -704,6 +697,9 @@ class PolarizationASAD():
         uncertainties : np.ndarray
             Uncertainty on each parameter value
         """
+
+        if bounds is None:
+            bounds = ((0, 0, 0), (np.inf,np.inf,np.pi))
 
         popt, pcov = curve_fit(PolarizationASAD.asad_sinusoid,
                                asad.axis.centers,
