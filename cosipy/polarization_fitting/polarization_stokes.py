@@ -728,9 +728,6 @@ class PolarizationStokes():
         polarization_fraction = np.sqrt(QN**2 + UN**2)
         m = mu * polarization_fraction
         polarization_fraction_uncertainty = np.sqrt((2 - m**2)/((I - 1) * mu**2))
-        pol_PD = polarization_fraction * 100
-        pol_1sigmaPD = polarization_fraction_uncertainty * 100
-
         # Reconstructed polarization angle + uncertainty: See eqs 22,
         # 37 in Kislat 2015
         pol_PA = 0.5 * np.arctan2(UN, QN)
@@ -767,51 +764,62 @@ class PolarizationStokes():
             self.polar_chart_backbone(ax)
 
             if ref_qu[0] != None:
-                plt.plot(ref_qu[0], ref_qu[1], 'x', markersize=20, color='tab:green')
-                plt.annotate(ref_label, (ref_qu[0], ref_qu[1]), textcoords="offset points", xytext=(0,10),
+                plt.plot(ref_qu[0], ref_qu[1], 'x',
+                         markersize=20, color='tab:green')
+                plt.annotate(ref_label, (ref_qu[0], ref_qu[1]),
+                             textcoords="offset points", xytext=(0,10),
                              ha='center', fontsize=12)
             if ref_pdpa[0] != None:
-                ref_q, ref_u = self.rotate_points_to_x_axis(ref_pdpa[0], np.radians(ref_pdpa[1]))
+                ref_q, ref_u = \
+                    self.rotate_points_to_x_axis(ref_pdpa[0],
+                                                 np.radians(ref_pdpa[1]))
                 plt.plot(ref_q, ref_u, 'x', markersize=20, color='tab:green')
-                plt.annotate(ref_label, (ref_q, ref_u), textcoords="offset points", xytext=(0,10), ha='center',
-                             color='tab:green', fontsize=12)
+                plt.annotate(ref_label, (ref_q, ref_u),
+                             textcoords="offset points", xytext=(0,10),
+                             ha='center', color='tab:green', fontsize=12)
 
-            c_mdp = plt.Circle((0, 0), radius=self._mdp99, facecolor='tab:red', alpha=0.3, linewidth=1, linestyle='--',
-                               label=r'MDP$_{99}$ = %.2f %%'%(self._mdp99*100))
+            c_mdp = plt.Circle((0, 0), radius=self._mdp99,
+                               facecolor='tab:red', alpha=0.3, linewidth=1,
+                               linestyle='--',
+                               label=rf'MDP$_{{99}}$ = {self._mdp99*100:.2f} %')
             plt.gca().add_artist(c_mdp)
 
+            pol_PD = polarization_fraction * 100
+            pol_1sigmaPD = polarization_fraction_uncertainty * 100
+            pol_PA = polarization_angle.angle.deg
+            pol_1sigmaPA = polarization_angle_uncertainty.deg
+
             if not has_background:
-                label_data = ("PD = (%.1f ± %.1f)%%\n"
-                              "PA = (%.1f ± %.1f) deg"
-                             % (pol_PD, pol_1sigmaPD, np.degrees(pol_PA), pol_1sigmaPA) )
-                pass
+                label_header = ""
             else:
-                label_data = ("Measured (Unpol subtracted)\n"
-                          "PD = (%.1f ± %.1f)%%\n"
-                          "PA = (%.1f ± %.1f) deg"
-                          % (pol_PD, pol_1sigmaPD, np.degrees(pol_PA), pol_1sigmaPA) )
-                plt.plot(unpol_Q/unpol_I, unpol_U/unpol_I,  'o', markersize=5, color='0.4', \
-                        label=r'Unpol (PD$_{1\sigma}$ = %i %%)'%(unpol_sQ*100))
-                unpol_c  = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I), radius=unpol_sQ,
-                                      facecolor='none', edgecolor='0.4', linewidth=1)
-                unpol_c2 = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I), radius=2*unpol_sQ,
-                                      facecolor='none', edgecolor='0.4', linewidth=1)
-                unpol_c3 = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I), radius=3*unpol_sQ,
-                                      facecolor='none', edgecolor='0.4', linewidth=1)
-                plt.gca().add_artist(unpol_c)
-                plt.gca().add_artist(unpol_c2)
-                plt.gca().add_artist(unpol_c3)
+                label_header = "Measured (Unpol subtracted)\n"
+
+                plt.plot(unpol_Q/unpol_I, unpol_U/unpol_I,
+                         'o', markersize=5, color='0.4',
+                         label=rf'Unpol (PD$_{{1\sigma}}$ = {unpol_sQ*100:.0f} %)')
+
+                for r in (1, 2, 3):
+                    unpol_c  = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I),
+                                          radius=r*unpol_sQ,
+                                          facecolor='none',
+                                          edgecolor='0.4',
+                                          linewidth=1)
+
+                    plt.gca().add_artist(unpol_c)
+
+            label_data = (label_header + \
+                          f"PD = ({pol_PD:.1f} ± {pol_1sigmaPD:.1f})%\n"
+                          f"PA = ({pol_PA:.1f} ± {pol_1sigmaPA:.1f}) deg")
 
             plt.plot(QN, UN, 'o', markersize=5, color='red', label=label_data)
-            pol_c = plt.Circle((QN, UN), radius=polarization_fraction_uncertainty,
-                               facecolor='none', edgecolor='red', linewidth=1)
-            pol_c2 = plt.Circle((QN, UN), radius=2*polarization_fraction_uncertainty,
-                                facecolor='none', edgecolor='red', linewidth=1)
-            pol_c3 = plt.Circle((QN, UN), radius=3*polarization_fraction_uncertainty,
-                                facecolor='none', edgecolor='red', linewidth=1)
-            plt.gca().add_artist(pol_c)
-            plt.gca().add_artist(pol_c2)
-            plt.gca().add_artist(pol_c3)
+
+            for r in (1, 2, 3):
+                pol_c = plt.Circle((QN, UN),
+                                   radius=r*polarization_fraction_uncertainty,
+                                   facecolor='none',
+                                   edgecolor='red',
+                                   linewidth=1)
+                plt.gca().add_artist(pol_c)
 
             plt.xlim(-1, 1)
             plt.ylim(-1, 1)
@@ -834,22 +842,28 @@ class PolarizationStokes():
         """
         ax.spines['top'].set_visible(True)
         ax.spines['right'].set_visible(True)
-        c0 = plt.Circle((0,0), radius=0.25, facecolor='none', edgecolor='k', linewidth=1, linestyle='--', alpha=0.3)
-        c1 = plt.Circle((0,0), radius=0.50, facecolor='none', edgecolor='k', linewidth=1, linestyle='--', alpha=0.3)
-        c2 = plt.Circle((0,0), radius=0.75, facecolor='none', edgecolor='k', linewidth=1, linestyle='--', alpha=0.3)
-        c3 = plt.Circle((0,0), radius=1.00, facecolor='none', edgecolor='k', linewidth=1, linestyle='-', alpha=0.5)
-        plt.gca().add_artist(c0)
-        plt.gca().add_artist(c1)
-        plt.gca().add_artist(c2)
-        plt.gca().add_artist(c3)
-        plt.annotate('0.25', (0.25, 0), textcoords="offset points", xytext=(10,0), ha='center', fontsize=8, color='k', alpha=0.3)
-        plt.annotate('0.50', (0.50, 0), textcoords="offset points", xytext=(10,0), ha='center', fontsize=8, color='k', alpha=0.3)
-        plt.annotate('0.75', (0.75, 0), textcoords="offset points", xytext=(10,0), ha='center', fontsize=8, color='k', alpha=0.3)
-        plt.annotate('1.00', (1.00, 0), textcoords="offset points", xytext=(10,0), ha='center', fontsize=8, color='k', alpha=0.3)
-        plt.hlines(0, -1, 1, linewidth=1, color='k', linestyle='--', alpha=0.3)
-        plt.vlines(0, -1, 1, linewidth=1, color='k', linestyle='--', alpha=0.3)
-        plt.plot([1,-1], [1,-1], linewidth=1, color='k', linestyle='--', alpha=0.3)
-        plt.plot([1,-1], [-1,1], linewidth=1, color='k', linestyle='--', alpha=0.3)
+
+        for r in (0.25, 0.50, 0.75, 1.00):
+            ls    = ('-' if r == 1.00 else '--')
+            alpha = (0.5 if r == 1.00 else 0.3)
+
+            c = plt.Circle((0,0), radius=r,
+                           facecolor='none', edgecolor='k',
+                           linewidth=1, linestyle=ls, alpha=alpha)
+            plt.gca().add_artist(c)
+            plt.annotate(f"{r:.2f}", (r, 0),
+                         textcoords="offset points", xytext=(10,0),
+                         ha='center', fontsize=8, color='k', alpha=0.3)
+
+        plt.hlines(0, -1, 1, linewidth=1, color='k',
+                   linestyle='--', alpha=0.3)
+        plt.vlines(0, -1, 1, linewidth=1, color='k',
+                   linestyle='--', alpha=0.3)
+
+        plt.plot([1,-1], [1,-1], linewidth=1, color='k',
+                 linestyle='--', alpha=0.3)
+        plt.plot([1,-1], [-1,1], linewidth=1, color='k',
+                 linestyle='--', alpha=0.3)
 
     @staticmethod
     def rotate_points_to_x_axis(newPD, newPA):
