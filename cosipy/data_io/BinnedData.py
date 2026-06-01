@@ -464,10 +464,10 @@ class BinnedData(UnBinnedData):
 
         # Write data:
         if output_name is not None:
-            d = {"Energy[keV]":self.energy_bin_centers,data_label:raw_rate}
+            d = {"Energy[keV]":self.energy_bin_centers,"Xerror[keV]":self.energy_bin_widths/2.0,data_label:raw_rate}
             df = pd.DataFrame(data=d)
             df.to_csv(f"{output_name}.dat",float_format='%10.5e',index=False,
-                      sep="\t",columns=["Energy[keV]",data_label])
+                      sep="\t",columns=["Energy[keV]","Xerror[keV]",data_label])
 
     def get_raw_lightcurve(self, binned_data=None, output_name=None, show_plots=False):
 

@@ -249,7 +249,8 @@ class TransientBackgroundEstimation:
         unit_bkg = total_bkg/(np.sum(self.bkg_durations))
 
         if scaling == "duration":
-            bkg_model = self.burst_durations[0]*unit_bkg
+            duration = float(self.burst_durations[0])
+            bkg_model = unit_bkg * duration
 
         elif scaling == "fitting":
             raise NotImplementedError(
