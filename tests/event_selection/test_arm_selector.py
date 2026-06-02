@@ -2,65 +2,105 @@ import numpy as np
 import pytest
 import astropy.units as u
 from astropy.coordinates import SkyCoord
+from scoords import SpacecraftFrame
 
 from cosipy.event_selection import ARMSelector
+from cosipy.data_io.EmCDSUnbinnedData import EmCDSEventDataInSCFrameFromArrays
 
 
-CHI_COL = "Chi galactic"
-PSI_COL = "Psi galactic"
-PHI_COL = "Phi"
+def make_source_sc(lon_deg=0.0, lat_deg=0.0):
+    return SkyCoord(
+        lon=lon_deg * u.deg,
+        lat=lat_deg * u.deg,
+        frame=SpacecraftFrame(),
+    )
 
 
-def make_events(chi_rad, psi_rad, phi_rad):
-    return {
-        CHI_COL: np.asarray(chi_rad, dtype=np.float64),
-        PSI_COL: np.asarray(psi_rad, dtype=np.float64),
-        PHI_COL: np.asarray(phi_rad, dtype=np.float64),
-    }
+def make_events(scattered_lon_deg, scattered_lat_deg, phi_deg):
+    scattered_lon_deg = np.asarray(scattered_lon_deg, dtype=np.float64)
+    scattered_lat_deg = np.asarray(scattered_lat_deg, dtype=np.float64)
+    phi_deg = np.asarray(phi_deg, dtype=np.float64)
+
+    return EmCDSEventDataInSCFrameFromArrays(
+        energy_keV=np.full(scattered_lon_deg.size, 1000.0),
+        scattered_lon_rad_sc=np.deg2rad(scattered_lon_deg),
+        scattered_lat_rad_sc=np.deg2rad(scattered_lat_deg),
+        scatt_angle_rad=np.deg2rad(phi_deg),
+    )
 
 
 def test_arm_selector_initialization():
-    source = SkyCoord(l=0.0 * u.deg, b=0.0 * u.deg, frame="galactic")
-    spacecraft_history = object()
+    source = make_source_sc()
 
     selector = ARMSelector(
-        spacecraft_history=spacecraft_history,
         target_coord=source,
         arm_cut=13.0 * u.deg,
-        chi_col=CHI_COL,
-        psi_col=PSI_COL,
-        phi_col=PHI_COL,
     )
 
-    assert selector.spacecraft_history is spacecraft_history
+    assert selector.target_coord is source
     assert selector.arm_cut == 13.0 * u.deg
-    assert selector.chi_col == CHI_COL
-    assert selector.psi_col == PSI_COL
-    assert selector.phi_col == PHI_COL
-    assert np.isclose(selector.target_coord.l.to_value(u.deg), 0.0)
-    assert np.isclose(selector.target_coord.b.to_value(u.deg), 0.0)
+    assert selector.polarization_convention is not None
 
 
-def test_compute_arm_values():
-    source = SkyCoord(l=0.0 * u.deg, b=0.0 * u.deg, frame="galactic")
+def test_target_coord_must_be_skycoord():
+    with pytest.raises(
+        TypeError,
+        match="target_coord must be an astropy.coordinates.SkyCoord object",
+    ):
+        ARMSelector(
+            target_coord=object(),
+            arm_cut=13.0 * u.deg,
+        )
 
-    selector = ARMSelector(
-        spacecraft_history=None,
-        target_coord=source,
-        arm_cut=13.0 * u.deg,
-        chi_col=CHI_COL,
-        psi_col=PSI_COL,
-        phi_col=PHI_COL,
+
+def test_target_coord_must_be_spacecraft_frame():
+    source = SkyCoord(
+        l=0.0 * u.deg,
+        b=0.0 * u.deg,
+        frame="galactic",
     )
 
-    # Source is at l=0 deg, b=0 deg.
-    # Therefore, events at chi=0,10,30 deg and psi=0 deg have
-    # angular separations of 0,10,30 deg from the source.
-    chi_rad = np.deg2rad(np.array([0.0, 10.0, 30.0]))
-    psi_rad = np.deg2rad(np.array([0.0, 0.0, 0.0]))
-    phi_rad = np.deg2rad(np.array([0.0, 5.0, 0.0]))
+    with pytest.raises(
+        ValueError,
+        match="target_coord must be in SpacecraftFrame",
+    ):
+        ARMSelector(
+            target_coord=source,
+            arm_cut=13.0 * u.deg,
+        )
 
-    events = make_events(chi_rad, psi_rad, phi_rad)
+
+def test_invalid_polarization_convention_type_raises_type_error():
+    source = make_source_sc()
+
+    with pytest.raises(
+        TypeError,
+        match="polarization_convention must be either",
+    ):
+        ARMSelector(
+            target_coord=source,
+            arm_cut=13.0 * u.deg,
+            polarization_convention=object(),
+        )
+
+
+def test_compute_arm_values_from_event_interface():
+    source = make_source_sc()
+
+    selector = ARMSelector(
+        target_coord=source,
+        arm_cut=13.0 * u.deg,
+    )
+
+    # Source is at spacecraft lon=0 deg, lat=0 deg.
+    # Events at lon=0, 10, 30 deg and lat=0 deg have angular distances
+    # 0, 10, and 30 deg from the source.
+    # ARM = angular_distance - Phi.
+    events = make_events(
+        scattered_lon_deg=[0.0, 10.0, 30.0],
+        scattered_lat_deg=[0.0, 0.0, 0.0],
+        phi_deg=[0.0, 5.0, 0.0],
+    )
 
     arm = selector._compute_arm(events).to_value(u.deg)
 
@@ -69,25 +109,21 @@ def test_compute_arm_values():
     np.testing.assert_allclose(arm, expected_arm, atol=1e-10)
 
 
-def test_select_returns_boolean_mask():
-    source = SkyCoord(l=0.0 * u.deg, b=0.0 * u.deg, frame="galactic")
+def test_select_returns_boolean_mask_from_event_interface():
+    source = make_source_sc()
 
     selector = ARMSelector(
-        spacecraft_history=None,
         target_coord=source,
         arm_cut=13.0 * u.deg,
-        chi_col=CHI_COL,
-        psi_col=PSI_COL,
-        phi_col=PHI_COL,
     )
 
-    # ARM values will be 0, 10, and 20 deg.
-    # With arm_cut = 13 deg, only the first two should be selected.
-    chi_rad = np.deg2rad(np.array([0.0, 10.0, 20.0]))
-    psi_rad = np.deg2rad(np.array([0.0, 0.0, 0.0]))
-    phi_rad = np.deg2rad(np.array([0.0, 0.0, 0.0]))
-
-    events = make_events(chi_rad, psi_rad, phi_rad)
+    # ARM values are 0, 10, and 20 deg.
+    # With arm_cut = 13 deg, only the first two events should be selected.
+    events = make_events(
+        scattered_lon_deg=[0.0, 10.0, 20.0],
+        scattered_lat_deg=[0.0, 0.0, 0.0],
+        phi_deg=[0.0, 0.0, 0.0],
+    )
 
     mask = selector._select(events)
 
@@ -95,45 +131,20 @@ def test_select_returns_boolean_mask():
     np.testing.assert_array_equal(mask, np.array([True, True, False]))
 
 
-def test_chi_psi_shape_mismatch_raises_value_error():
-    source = SkyCoord(l=0.0 * u.deg, b=0.0 * u.deg, frame="galactic")
+def test_public_select_method_works_from_event_interface():
+    source = make_source_sc()
 
     selector = ARMSelector(
-        spacecraft_history=None,
         target_coord=source,
         arm_cut=13.0 * u.deg,
-        chi_col=CHI_COL,
-        psi_col=PSI_COL,
-        phi_col=PHI_COL,
     )
 
     events = make_events(
-        chi_rad=np.array([0.0, 1.0, 2.0]),
-        psi_rad=np.array([0.0, 1.0]),
-        phi_rad=np.array([0.0, 0.0, 0.0]),
+        scattered_lon_deg=[0.0, 30.0],
+        scattered_lat_deg=[0.0, 0.0],
+        phi_deg=[0.0, 0.0],
     )
 
-    with pytest.raises(ValueError, match="Chi and Psi columns"):
-        selector._compute_arm(events)
+    mask = selector.select(events)
 
-
-def test_phi_shape_mismatch_raises_value_error():
-    source = SkyCoord(l=0.0 * u.deg, b=0.0 * u.deg, frame="galactic")
-
-    selector = ARMSelector(
-        spacecraft_history=None,
-        target_coord=source,
-        arm_cut=13.0 * u.deg,
-        chi_col=CHI_COL,
-        psi_col=PSI_COL,
-        phi_col=PHI_COL,
-    )
-
-    events = make_events(
-        chi_rad=np.array([0.0, 1.0, 2.0]),
-        psi_rad=np.array([0.0, 1.0, 2.0]),
-        phi_rad=np.array([0.0, 0.0]),
-    )
-
-    with pytest.raises(ValueError, match="Chi/Psi and Phi columns"):
-        selector._compute_arm(events)
+    np.testing.assert_array_equal(mask, np.array([True, False]))
