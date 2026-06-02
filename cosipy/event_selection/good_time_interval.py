@@ -5,6 +5,8 @@ from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from astropy.io import fits
 
+from histpy import HealpixAxis
+
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # Guard preventing circulat import
@@ -229,6 +231,95 @@ class GoodTimeInterval():
         start_idx = edges[::2]
         stop_idx = edges[1::2] - 1
 
+        return cls(sc_history.intervals_tstart[start_idx],
+                   sc_history.intervals_tstop[stop_idx])
+
+    @classmethod
+    def from_region_cut(cls,
+                        region: 'Histogram',
+                        sc_history: 'SpacecraftHistory',
+                        earth_occ: bool = False,
+                        earth_occ_mode: str = 'all'):
+        """
+        Build a GTI where the spacecraft z-pointing is within a given sky region.
+ 
+        Parameters
+        ----------
+        region : histpy.Histogram
+            1-D boolean Histogram with a single HealpixAxis defining the on-region.
+            Pixels whose value is True are considered "on-region".
+        sc_history : cosipy.spacecraftfile.SpacecraftHistory
+            Spacecraft pointinghistory to evaluate (.ori file).
+        earth_occ : bool, optional
+            If True, exclude time bins in which the target is occulted
+            by the Earth. Default is False.
+        earth_occ_mode : {'all', 'any'}, optional
+            Controls how Earth occultation is evaluated across on-region pixels.
+            'all' : *all* on-region pixels must be unoccluded (stricter).
+            'any' : *at least one* on-region pixel must be unoccluded (looser).
+            Only used when earth_occ=True. Default is 'all'.
+ 
+        Returns
+        -------
+        GoodTimeInterval
+            GTI containing time ranges where the z-pointing condition is satisfied.
+        """
+ 
+        if earth_occ and earth_occ_mode not in ('all', 'any'):
+            raise ValueError(f"earth_occ_mode must be 'all' or 'any', got '{earth_occ_mode}'")
+
+        if region.ndim != 1 or not isinstance(region.axes[0], HealpixAxis):
+            raise ValueError(
+                f"region must be a 1D histogram with a HealpixAxis, "
+                f"got ndim={region.ndim}"
+            )
+
+        region_coordsys = region.axes[0].coordsys
+        if region_coordsys is None or region_coordsys.name != 'galactic':
+            raise ValueError(
+                f"region must be in galactic coordinates, "
+                f"got '{getattr(region_coordsys, 'name', region_coordsys)}'"
+            )
+ 
+        _, _, z_gal = sc_history.attitude[:-1].transform_to('galactic').as_axes()
+ 
+        z_l = z_gal.l.deg
+        z_b = z_gal.b.deg
+ 
+        z_hp_idx = region.axis.ang2pix(z_l, z_b, lonlat=True)
+ 
+        # Bool mask: is the z-pointing pixel inside the on-region?
+        in_region = np.asarray(region[z_hp_idx], dtype=bool)
+ 
+        if earth_occ:
+            on_pixels = np.flatnonzero(np.asarray(region[:], dtype=bool))
+            on_region_coords = region.axis.pix2skycoord(on_pixels)  # shape (n_on_pix,)
+ 
+            occulted = np.array([sc_history.get_earth_occ(coord)
+                                 for coord in on_region_coords])
+ 
+            # Align with time bins: use left-edge
+            occulted_bins = occulted[:, :-1]
+ 
+            if earth_occ_mode == 'all':
+                earth_ok = np.all(~occulted_bins, axis=0)
+            else:
+                earth_ok = np.any(~occulted_bins, axis=0)
+ 
+            in_region = in_region & earth_ok
+ 
+        if not np.any(in_region):
+            empty_time = Time([],
+                              format=sc_history.intervals_tstart.format,
+                              scale=sc_history.intervals_tstart.scale)
+            return cls(empty_time, empty_time.copy())
+ 
+        edges = np.flatnonzero(
+            np.diff(np.concatenate(([False], in_region, [False])))
+        )
+        start_idx = edges[::2]
+        stop_idx  = edges[1::2] - 1
+ 
         return cls(sc_history.intervals_tstart[start_idx],
                    sc_history.intervals_tstop[stop_idx])
 
