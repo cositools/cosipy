@@ -40,11 +40,11 @@ def test_stokes_polarization():
     bin_edges = Angle(np.linspace(-np.pi, np.pi, 10), unit=u.rad)
     source_photons = PolarizationStokes(source_direction, spectrum, bin_edges, data,
                                         sc_orientation, response_path, background=None,
-                                        show_plots=False)
+                                        show_plots=True)
 
     assert source_photons._background_duration == 0 # no bkg provided
 
-    polarization = source_photons.fit(show_plots=False)
+    polarization = source_photons.fit(show_plots=True)
     Pol_frac = polarization['fraction'] * 100
     Pol_angl = polarization['angle'].angle.degree
 
