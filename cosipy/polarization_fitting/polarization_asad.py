@@ -222,10 +222,10 @@ class PolarizationASAD():
 
         axis = Axis(bin_edges)
         asads = {
-            'source' : Histogram(axis, contents=asad_source, copy_contents=False),
+            'source_and_background' : Histogram(axis, contents=asad_sb, copy_contents=False),
             'background' : Histogram(axis, contents=asad_background, copy_contents=False),
             'background_scaled' : Histogram(axis, contents=asad_background_scaled, copy_contents=False),
-            'source_and_background' : Histogram(axis, contents=asad_sb, copy_contents=False),
+            'source' : Histogram(axis, contents=asad_source, copy_contents=False),
         }
 
         return asads
@@ -268,7 +268,6 @@ class PolarizationASAD():
         asads_polarized = [ Histogram(axis, contents=asad, copy_contents=False) for asad in asads[1:] ]
 
         return asad_unpolarized, asads_polarized
-
 
     def scattering_dirs_from_unbinned_data(self, unbinned_data):
         """
@@ -399,7 +398,7 @@ class PolarizationASAD():
 
         return scattering_dirs, weights
 
-    def scattering_dirs_to_asad(self, directions, bin_edges, weights=None):
+    def scattering_dirs_to_asad(self, directions, bin_edges, weights=None, return_angles=False):
         """
         Convert a set of (possibly weighted) scattering directions to
         an ASAD. For each direction, determine its azimuthal angle
@@ -414,7 +413,8 @@ class PolarizationASAD():
            azimuthal angle bin edges for ASAD
         weights : np.array of float, optional
            weight for each direction
-
+        return_angles : bool, optional
+           return raw angles along with ASAD (default: False)
         Returns
         -------
         asad : np.array
@@ -424,11 +424,14 @@ class PolarizationASAD():
 
         azimuthal_angles = PolarizationAngle.from_scattering_direction(directions,
                                                                        self._source,
-                                                                       self._convention)
+                                                                       self._convention).angle
 
-        asad, _ = np.histogram(azimuthal_angles.angle, bins=bin_edges, weights=weights)
+        asad, _ = np.histogram(azimuthal_angles, bins=bin_edges, weights=weights)
 
-        return asad
+        if return_angles:
+            return asad, azimuthal_angles
+        else:
+            return asad
 
     @staticmethod
     def correct_asad(asad_data, asad_unpolarized,
@@ -537,8 +540,8 @@ class PolarizationASAD():
 
         return result
 
-    @staticmethod
-    def calculate_mu(asad):
+    @classmethod
+    def calculate_mu(cls, asad):
 
         """
         Calculate the modulation (mu).
@@ -560,7 +563,7 @@ class PolarizationASAD():
 
         """
 
-        params, uncertainties = PolarizationASAD.fit_asad(asad)
+        params, uncertainties = cls.fit_asad(asad)
 
         mu = params[1] / params[0]
         mu_uncertainty = mu * np.sqrt((uncertainties[0]/params[0])**2 +
@@ -572,8 +575,8 @@ class PolarizationASAD():
 
         return modulation, params
 
-    @staticmethod
-    def fit_asad(asad, p0=None, bounds=None, sigma=None):
+    @classmethod
+    def fit_asad(cls, asad, p0=None, bounds=None, sigma=None):
         """
         Fit the ASAD with a sinusoid.
 
@@ -600,7 +603,7 @@ class PolarizationASAD():
         if bounds is None:
             bounds = ((0, 0, 0), (np.inf, np.inf, np.pi))
 
-        popt, pcov = curve_fit(PolarizationASAD.asad_sinusoid,
+        popt, pcov = curve_fit(cls.asad_sinusoid,
                                asad.axis.centers,
                                asad.contents,
                                p0=p0,
@@ -626,8 +629,8 @@ class PolarizationASAD():
         ----------
         asad_source : Histogram
             ASAD for source
-        asad_background_scaled : Histogram
-            ASAD for background (scaled)
+        asad_background_scaled : Histogram or None
+            ASAD for background (scaled) if background known
         mu100 : float
             Modulation of 100% polarized source
 
@@ -638,7 +641,11 @@ class PolarizationASAD():
         """
 
         source_counts = np.sum(asad_source)
-        background_counts = np.sum(asad_background_scaled)
+
+        if asad_background_scaled is not None:
+            background_counts = np.sum(asad_background_scaled)
+        else:
+            background_counts = 0
 
         mdp99 = 4.29 / mu100 * np.sqrt(source_counts + background_counts) / source_counts
 
@@ -646,8 +653,8 @@ class PolarizationASAD():
 
         return mdp99
 
-    @staticmethod
-    def plot_asad(asad, title, error=None, coefficients=None):
+    @classmethod
+    def plot_asad(cls, asad, title, error=None, coefficients=None):
         """
         Plot an ASAD
 
@@ -675,11 +682,10 @@ class PolarizationASAD():
 
         if coefficients is not None:
             x = np.linspace(-np.pi, np.pi, 1000)
-            y = PolarizationASAD.asad_sinusoid(x, *coefficients)
+            y = cls.asad_sinusoid(x, *coefficients)
             plt.plot(np.rad2deg(x), y, color='green')
 
         plt.show()
-
 
     def fit(self, p0=None, bounds=None, show_plots=False):
         """
