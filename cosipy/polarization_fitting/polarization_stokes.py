@@ -67,8 +67,7 @@ class PolarizationStokes(PolarizationFitting):
         asad_sb, self._source_duration, self._data_scattering_angles = \
             self.asad_and_angles_from_data(data, asad_bin_edges, show_plots=show_plots)
 
-        axis = Axis(asad_bin_edges)
-        asads = { 'source_and_background' : Histogram(axis, contents=asad_sb, copy_contents=False) }
+        asads = { 'source_and_background' : asad_sb }
 
         if background is not None:
             if not isinstance(background, list):
@@ -81,26 +80,26 @@ class PolarizationStokes(PolarizationFitting):
             asad_background_scaled = asad_background * source_duration / background_duration
             asad_source = asad_sb - asad_background_scaled
 
-            asads['background'] = Histogram(axis, contents=asad_background, copy_contents=False)
-            asads['background_scaled'] = Histogram(axis, contents=asad_background_scaled, copy_contents=False),
-            asads['source'] = Histogram(axis, contents=asad_source, copy_contents=False),
+            asads['background'] = asad_background
+            asads['background_scaled'] = asad_background_scaled
+            asads['source'] = asad_source
 
         else:
             logger.info('No background provided. Will not subtract background from data.')
             self._background_scattering_angles = None
             self._background_duration = 0
+            asads['background_scaled'] = None
             asads['source'] = asads['source_and_background']
 
-        asad_unpolarized, asads_polarized = self.create_simulated_asads(asad_bin_edges)
-        asads['unpolarized'] = asad_unpolarized
-        asads['polarized']   = asads_polarized
+        asads['unpolarized'], asads['polarized'] = \
+            self.create_simulated_asads(asad_bin_edges)
 
         self._mu100 = self.calculate_mu100(asads['polarized'],
                                            asads['unpolarized'],
                                            show_plots)
 
         self._mdp99 = self.calculate_mdp99(asads['source'],
-                                           None if background is None else asads['background_scaled'],
+                                           asads['background_scaled'],
                                            self._mu100['mu'])
 
         if show_plots:
@@ -140,7 +139,7 @@ class PolarizationStokes(PolarizationFitting):
 
         Returns
         -------
-        asad : array
+        asad : Histogram
             Azimuthal angle scattering distribution over all
             data sets binned according to provided bin edges
         duration : float
@@ -173,7 +172,8 @@ class PolarizationStokes(PolarizationFitting):
             plt.legend()
             plt.show()
 
-        return asad, duration, scattering_angles
+        asad_hist = Histogram(bin_edges, contents=asad, copy_contents=False)
+        return asad_hist, duration, scattering_angles
 
     @staticmethod
     def get_counts(data):

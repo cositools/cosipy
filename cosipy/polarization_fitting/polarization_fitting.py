@@ -73,18 +73,30 @@ class PolarizationFitting():
         self._ori = sc_orientation
 
     def get_source(self):
+        """
+        Source direction (np.ndarray, Cartesian vector)
+        """
         return self._source
 
     def get_response(self):
+        """
+        Detector response (FullDetectorResponse)
+        """
         return self._response
 
     def get_convention(self):
+        """
+        Fitting convention (PolarizationConvention)
+        """
         return self._convention
 
     def get_spectral_flux(self):
         return self._spectral_flux
 
     def get_ori(self):
+        """
+        Orientation history (SpacecraftHistory)
+        """
         return self._ori
 
     @staticmethod

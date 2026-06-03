@@ -71,9 +71,8 @@ class PolarizationASAD(PolarizationFitting):
 
         asads = self.create_data_asads(data, background, asad_bin_edges)
 
-        asad_unpolarized, asads_polarized = self.create_simulated_asads(asad_bin_edges)
-        asads['unpolarized'] = asad_unpolarized
-        asads['polarized']   = asads_polarized
+        asads['unpolarized'], asads['polarized'] = \
+            self.create_simulated_asads(asad_bin_edges)
 
         self._asads = asads
 
