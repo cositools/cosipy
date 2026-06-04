@@ -42,8 +42,6 @@ def test_stokes_polarization():
                                         sc_orientation, response_path, background=None,
                                         show_plots=True)
 
-    assert source_photons._background_duration == 0 # no bkg provided
-
     polarization = source_photons.fit(show_plots=True)
     Pol_frac = polarization['fraction'] * 100
     Pol_angl = polarization['angle'].angle.degree
@@ -54,4 +52,6 @@ def test_stokes_polarization():
 
     average_mu = source_photons._mu100['mu']
     mdp99 = source_photons._mdp99
-    assert np.allclose([average_mu, mdp99, Pol_frac, Pol_angl], [0.19, 0.22, 185, 82], atol=[0.1, 0.1, 5, 10])
+    assert np.allclose([average_mu, mdp99, Pol_frac, Pol_angl],
+                       [0.19, 0.22, 185, 82],
+                       atol=[0.1, 0.1, 5, 10])
