@@ -64,7 +64,7 @@ class PolarizationStokes(PolarizationFitting):
             data = [data]
         data = self.apply_energy_cut(data, energy_range)
 
-        asad_sb, self._source_duration, self._data_scattering_angles = \
+        asad_sb, source_duration, self._data_scattering_angles = \
             self.asad_and_angles_from_data(data, asad_bin_edges, show_plots=show_plots)
 
         asads = { 'source_and_background' : asad_sb }
@@ -74,10 +74,11 @@ class PolarizationStokes(PolarizationFitting):
                 background = [background]
             background = self.apply_energy_cut(background, energy_range)
 
-            asad_background, self._background_duration, self._background_scattering_angles = \
+            asad_background, background_duration, self._background_scattering_angles = \
                 self.asad_and_angles_from_data(background, asad_bin_edges, show_plots=show_plots)
 
-            asad_background_scaled = asad_background * source_duration / background_duration
+            self._backscal = source_duration / background_duration
+            asad_background_scaled = asad_background * self._backscal
             asad_source = asad_sb - asad_background_scaled
 
             asads['background'] = asad_background
@@ -175,22 +176,6 @@ class PolarizationStokes(PolarizationFitting):
         asad_hist = Histogram(bin_edges, contents=asad, copy_contents=False)
         return asad_hist, duration, scattering_angles
 
-    @staticmethod
-    def get_counts(data):
-        """
-        Calculate the total counts in unbinned data.
-
-        Returns
-        -------
-        data_counts : int
-            Total counts in data
-        """
-        counts = 0
-        for dataset in data:
-            counts += len(dataset['TimeTags'])
-
-        return counts
-
     ######################################################################
     # STOKES-SPECIFIC PARTS
     ######################################################################
@@ -242,19 +227,6 @@ class PolarizationStokes(PolarizationFitting):
             plt.show()
 
         return qs, us
-
-    def _get_backscal(self):
-        """
-        Calculate the background scaling factor to match the source duration.
-
-        Returns
-        -------
-        backscal : float
-            Background scaling factor
-        """
-
-        return self._source_duration / self._background_duration
-
 
     def fit(self, show_plots=False,
             ref_qu=(None, None),
@@ -327,18 +299,16 @@ class PolarizationStokes(PolarizationFitting):
 
             bkg_qs, bkg_us = self._compute_pseudo_stokes(self._background_scattering_angles, show_plots=False)
 
-            BACKSCAL = self._get_backscal()
-
-            unpol_I = len(bkg_qs) * BACKSCAL
-            unpol_Q = np.sum(bkg_qs) * BACKSCAL / mu
-            unpol_U = np.sum(bkg_us) * BACKSCAL / mu
+            unpol_I = len(bkg_qs) * self._backscal
+            unpol_Q = np.sum(bkg_qs) * self._backscal / mu
+            unpol_U = np.sum(bkg_us) * self._backscal / mu
             logger.info(f'Q, U unpolarized: {unpol_Q/unpol_I} {unpol_U/unpol_I}')
 
             I = pol_I - unpol_I
             logger.info(f'check I(src+bkg) vs I(src): {pol_I} {I}')
 
-            QN = pol_Q/pol_I + unpol_Q/unpol_I * BACKSCAL
-            UN = pol_U/pol_I + unpol_U/unpol_I * BACKSCAL
+            QN = pol_Q/pol_I + unpol_Q/unpol_I * self._backscal
+            UN = pol_U/pol_I + unpol_U/unpol_I * self._backscal
 
             logger.info(f'Q, U, subtracted: {QN} {UN}')
 
@@ -375,8 +345,8 @@ class PolarizationStokes(PolarizationFitting):
 
         polarization = {'fraction': polarization_fraction,
                         'angle': polarization_angle,
-                        'fraction_uncertainty': polarization_fraction_uncertainty,
-                        'angle_uncertainty': polarization_angle_uncertainty,
+                        'fraction uncertainty': polarization_fraction_uncertainty,
+                        'angle uncertainty': polarization_angle_uncertainty,
                         'QN': QN,
                         'UN': UN,
                         'QN_ERR': pol_sQ,
@@ -456,6 +426,20 @@ class PolarizationStokes(PolarizationFitting):
             plt.show()
 
         return polarization
+
+    def plot_pseudostokes(self):
+        """
+        Plot the pseudo-stokes parameters for the source and, if
+        background was specified, for the background.
+        """
+
+        self._compute_pseudo_stokes(self._data_scattering_angles,
+                                    show_plots=True, label="Source")
+
+        if self._background_scattering_angles is not None:
+            self._compute_pseudo_stokes(self._background_scattering_angles,
+                                        show_plots=True, label="Background")
+
 
     @staticmethod
     def polar_chart_backbone(ax):
