@@ -50,7 +50,7 @@ background = {
     'TimeTags': np.array([1., 2.])
 }
 
-def test_spacecraft_fit():
+def test_asad_spacecraft_fit():
 
     # ASAD from unbinned data
     polarization_spacecraft = PolarizationASAD(source_direction,
@@ -88,7 +88,7 @@ def test_spacecraft_fit():
                         1.993361180746714, 0.6416512077658346],
                        atol=[0.2, 0.1, 0.2, 0.1])
 
-def test_icrs_fit():
+def test_asad_icrs_fit():
 
     # ASAD from unbinned data
     polarization_icrs = PolarizationASAD(source_direction.transform_to('galactic'),
