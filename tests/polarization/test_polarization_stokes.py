@@ -114,7 +114,9 @@ def test_stokes_nobg_fit():
 
     assert np.allclose([average_mu, mdp99], [0.19, 0.22], atol=[0.1, 0.1])
 
-    polarization_fit = polarization.fit(show_plots=True)
+    polarization_fit = polarization.fit(show_plots=True,
+                                        ref_qu = (0, 0),
+                                        ref_pdpa = (0.8, 90))
 
     assert np.allclose([polarization_fit['fraction'],
                         polarization_fit['fraction uncertainty'],
@@ -129,5 +131,6 @@ def test_stokes_nobg_fit():
 
     # test rotate_photons_to_x_axis
     test_pd, test_pa = 0.8, 90
-    test_q, test_u = polarization.rotate_points_to_x_axis(test_pd, np.radians(test_pa))
+    test_q, test_u = \
+        polarization.rotate_points_to_x_axis(test_pd, np.radians(test_pa))
     assert np.allclose([test_q, test_u], [-0.8, 0])
