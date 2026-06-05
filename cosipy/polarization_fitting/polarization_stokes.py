@@ -176,10 +176,6 @@ class PolarizationStokes(PolarizationFitting):
         asad_hist = Histogram(bin_edges, contents=asad, copy_contents=False)
         return asad_hist, duration, scattering_angles
 
-    ######################################################################
-    # STOKES-SPECIFIC PARTS
-    ######################################################################
-
     def _compute_pseudo_stokes(self, azimuthal_angles, show_plots=False, label=None):
         """
         Calculates photon-by-photon pseudo stokes parameters from the
@@ -211,15 +207,16 @@ class PolarizationStokes(PolarizationFitting):
 
         angles = azimuthal_angles.value
 
-        ######################
-        # ATTENTION: I need to add 90 degrees because the stokes convention assumes that EVPA //
-        # source polarization, while for Compton scatttering it is perpendicular)
+        ############################################################
+        # ATTENTION: I need to add 90 degrees because the stokes
+        # convention assumes that EVPA // source polarization, while
+        # for Compton scatttering it is perpendicular)
         qs = stokes_q(angles - np.pi/2)
         us = stokes_u(angles - np.pi/2)
 
         if show_plots:
             plt.figure()
-            plt.title(f'{label} Stokes parameters (%i events)'%len(qs))
+            plt.title(f'{label} Stokes parameters ({len(qs)} events)')
             plt.hist(qs, bins=50, alpha=0.5, label='q$_s$')
             plt.hist(us, bins=50, alpha=0.5, label='u$_s$')
             plt.xlabel('Pseudo Stokes parameter')
