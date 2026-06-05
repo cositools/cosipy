@@ -58,7 +58,7 @@ class PolarizationASAD(PolarizationFitting):
                          response_file, response_convention,
                          fit_convention)
 
-        energy_edges = self.get_response().axes['Em'].edges.value
+        energy_edges = self.response.axes['Em'].edges.value
         energy_range = ( np.min(energy_edges), np.max(energy_edges) )
 
         if not isinstance(data, list):
@@ -228,8 +228,8 @@ class PolarizationASAD(PolarizationFitting):
                            coefficients = params)
 
         # return angle as PolarizationAngle
-        pa = PolarizationAngle(pa, self.get_source(),
-                               convention=self.get_convention())
+        pa = PolarizationAngle(pa, self.source,
+                               convention=self.convention)
         pa = pa.transform_to(IAUPolarizationConvention())
 
         return {

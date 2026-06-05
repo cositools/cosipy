@@ -50,7 +50,7 @@ class PolarizationFitting():
 
         if isinstance(fit_convention.frame, SpacecraftFrame):
             if not isinstance(source.frame, SpacecraftFrame):
-                attitude = sc_orientation.get_attitude()[0]
+                attitude = sc_orientation.attitude[0]
                 source = source.transform_to(SpacecraftFrame(attitude=attitude))
                 logger.warning("The source direction is being converted to the spacecraft "
                                "frame using the attitude at the first timestamp of the orientation.")
@@ -72,19 +72,22 @@ class PolarizationFitting():
 
         self._ori = sc_orientation
 
-    def get_source(self):
+    @property
+    def source(self):
         """
         Source direction (np.ndarray, Cartesian vector)
         """
         return self._source
 
-    def get_response(self):
+    @property
+    def response(self):
         """
         Detector response (FullDetectorResponse)
         """
         return self._response
 
-    def get_convention(self):
+    @property
+    def convention(self):
         """
         Fitting convention (PolarizationConvention)
         """

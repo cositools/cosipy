@@ -50,7 +50,9 @@ background = {
 
 def test_stokes_spacecraft_fit():
 
-    polarization_spacecraft = PolarizationStokes(source_direction,
+    # test forcing source dir into Spacecraft frame when fit
+    # convention is relative
+    polarization_spacecraft = PolarizationStokes(source_direction.transform_to('galactic'),
                                                  spectrum, bin_edges,
                                                  unbinned_data,
                                                  sc_orientation, response_path,

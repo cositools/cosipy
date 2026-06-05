@@ -57,7 +57,7 @@ class PolarizationStokes(PolarizationFitting):
                          response_file, response_convention,
                          fit_convention)
 
-        energy_edges = self.get_response().axes['Em'].edges.value
+        energy_edges = self.response.axes['Em'].edges.value
         energy_range = ( np.min(energy_edges), np.max(energy_edges) )
 
         if not isinstance(data, list):
@@ -166,7 +166,7 @@ class PolarizationStokes(PolarizationFitting):
             plt.figure()
             plt.title('Azimuthal scattering angles')
             plt.hist(scattering_angles, bins=50, alpha=0.5, label='Data fine binning')
-            plt.hist(scattering_angles, bins=self.get_response().axes['Pol'].nbins, alpha=0.5,
+            plt.hist(scattering_angles, bins=self.response.axes['Pol'].nbins, alpha=0.5,
                      histtype='step', linewidth=2, label='Response binning')
             plt.xlabel('Azimuthal angle (radians)')
             plt.ylabel('Counts')
@@ -330,8 +330,8 @@ class PolarizationStokes(PolarizationFitting):
         pol_1sigmaPA = np.degrees(1 / (m * np.sqrt(2 * (I - 1))))
 
         polarization_angle = Angle(np.degrees(pol_PA), unit=u.deg)
-        polarization_angle = PolarizationAngle(polarization_angle, self.get_source(),
-                                               convention=self.get_convention()).transform_to(IAUPolarizationConvention())
+        polarization_angle = PolarizationAngle(polarization_angle, self.source,
+                                               convention=self.convention).transform_to(IAUPolarizationConvention())
         polarization_angle_uncertainty = Angle(pol_1sigmaPA, unit=u.deg)
 
         # FIXED: corrected to ~ match Eqns 28a/b of Kislat 2015

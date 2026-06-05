@@ -53,7 +53,9 @@ background = {
 def test_asad_spacecraft_fit():
 
     # ASAD from unbinned data
-    polarization_spacecraft = PolarizationASAD(source_direction,
+    # test forcing source dir into Spacecraft frame when fit
+    # convention is relative
+    polarization_spacecraft = PolarizationASAD(source_direction.transform_to('galactic'),
                                                spectrum, bin_edges,
                                                unbinned_data, background,
                                                sc_orientation, response_path,
