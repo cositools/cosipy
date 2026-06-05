@@ -238,12 +238,13 @@ class RspConverter():
         if h5_filename is None:
             rsp_path = Path(rsp_filename)
 
-            # strip any .rsp and .gz from end of path and add .h5
-            h5_path = rsp_path.parent / rsp_path.stem
-            while h5_path.suffix in {".rsp", "gz"}:
+            # strip any .rsp and .gz from end of path
+            h5_path = rsp_path
+            while h5_path.suffix in {".rsp", ".gz"}:
                 h5_path = h5_path.with_suffix("")
 
-            h5_filename = h5_path.parent / (h5_path.stem + ".h5")
+            # add .h5 to end of path
+            h5_filename = str(h5_path) + ".h5"
 
         if Path(h5_filename).exists() and not overwrite:
             raise RuntimeError(f"Not overwriting existing HDF5 file {h5_filename}")

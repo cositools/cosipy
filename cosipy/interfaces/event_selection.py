@@ -43,10 +43,10 @@ class EventSelectorInterface(Protocol):
         else:
             return self._select(events, early_stop)
 
-        def _select(self, events:EventDataInterface,
-                    early_stop:bool = True) -> Iterable[bool]:
-            """
-            This allows implementation to only define the behaviour for list,
-            and let the above function handle the case of single event.
+    def _select(self, events:EventDataInterface,
+                early_stop:bool = True) -> Iterable[bool]:
+        """
+        This allows implementation to only define the behaviour for list,
+        and let the above function handle the case of single event.
 
-            """
+        """

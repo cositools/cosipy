@@ -906,10 +906,7 @@ class SpacecraftHistory:
         new_location = None
         new_livetime = None
 
-        for i, (start, stop) in enumerate(zip(gti.tstart_list, gti.tstop_list)):
-        # TODO: this line can be replaced with the following line
-        # after the PR in the develop branch is merged.
-        #for i, (start, stop) in enumerate(gti):
+        for i, (start, stop) in enumerate(gti):
             _sph = self.select_interval(start, stop)
 
             _obstime = _sph.obstime
