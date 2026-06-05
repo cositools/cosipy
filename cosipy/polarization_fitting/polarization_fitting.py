@@ -90,15 +90,6 @@ class PolarizationFitting():
         """
         return self._convention
 
-    def get_spectral_flux(self):
-        return self._spectral_flux
-
-    def get_ori(self):
-        """
-        Orientation history (SpacecraftHistory)
-        """
-        return self._ori
-
     @staticmethod
     def apply_energy_cut(data, erange):
         """
