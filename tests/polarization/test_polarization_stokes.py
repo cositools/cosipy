@@ -73,6 +73,9 @@ def test_stokes_spacecraft_fit():
     #                    1.5645814961205469, 0.5143016570410734],
     #                   atol=[0.2, 0.1, 0.2, 0.1])
 
+    # test pseudostokes plotting code, including background
+    polarization_spacecraft.plot_pseudostokes()
+
 def test_stokes_icrs_fit():
 
     polarization_icrs = PolarizationStokes(source_direction.transform_to('galactic'),
@@ -97,6 +100,9 @@ def test_stokes_icrs_fit():
     #                    1.84399578798795, 0.3812557749920544],
     #                   atol=[0.2, 0.1, 0.2, 0.1])
 
+    # test pseudostokes plotting code, including background
+    polarization_icrs.plot_pseudostokes()
+
 def test_stokes_nobg_fit():
 
     polarization = PolarizationStokes(source_direction, spectrum, bin_edges, unbinned_data,
@@ -117,6 +123,9 @@ def test_stokes_nobg_fit():
                        [1.8181606920477378, 0.06885360774325616,
                         81.95528281435703, 1.1209284368621406],
                        atol=[0.05, 0.1, 10, 1])
+
+    # test pseudostokes plotting code
+    polarization.plot_pseudostokes()
 
     # test rotate_photons_to_x_axis
     test_pd, test_pa = 0.8, 90
