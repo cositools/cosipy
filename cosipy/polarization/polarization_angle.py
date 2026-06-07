@@ -69,7 +69,7 @@ class PolarizationAngle:
         Direction of the electric field vector
         """
 
-        if self.source is None:
+        if self._source is None:
             raise RuntimeError("Set source first")
 
         # Get the projection vectors for the source direction in the
@@ -98,7 +98,7 @@ class PolarizationAngle:
 
     def transform_to(self, convention):
 
-        if self.source is None:
+        if self._source is None:
             raise RuntimeError("Set source first")
 
         # Standardize convention

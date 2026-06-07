@@ -48,17 +48,6 @@ class PolarizationFitting():
                  response_file, response_convention='RelativeX',
                  fit_convention=IAUPolarizationConvention()):
 
-        if isinstance(fit_convention.frame, SpacecraftFrame):
-            if not isinstance(source.frame, SpacecraftFrame):
-                attitude = sc_orientation.attitude[0]
-                source = source.transform_to(SpacecraftFrame(attitude=attitude))
-                logger.warning("The source direction is being converted to the spacecraft "
-                               "frame using the attitude at the first timestamp of the orientation.")
-        else:
-            source = source.transform_to('icrs')
-
-        self._source = source
-
         self._response = FullDetectorResponse.open(response_file, pa_convention=response_convention)
 
         if isinstance(fit_convention.frame, SpacecraftFrame) and \
@@ -67,6 +56,8 @@ class PolarizationFitting():
                                "fit convention must match convention of response.")
 
         self._convention = fit_convention
+
+        self._source = source
 
         self._spectral_flux = get_integrated_spectral_model(source_spectrum, self._response.axes['Ei'])
 
@@ -173,25 +164,33 @@ class PolarizationFitting():
         ----------
         unbinned_data : dict
             Unbinned data including polar and azimuthal angles
-           (radians) of scattered photon in local coordinates
+            (radians) of scattered photon in local coordinates
 
         Returns
         -------
         scattering_dirs : SkyCoord array
-           Array of scattering directions
+            Array of scattering directions in fit convention's frame
 
         """
 
         if isinstance(self._convention.frame, SpacecraftFrame):
-            # source is in spacecraft-local frame
+            # Local-frame input directions are treated as if they are
+            # all in fit convention's frame, which has only a single
+            # attitude (a reasonable approximation for short-duration
+            # sources during which the spacecraft is approximately
+            # stationary).
+
             scattering_dirs = SkyCoord(lon=unbinned_data['Chi local'],
                                        lat=np.pi/2 - unbinned_data['Psi local'],
                                        unit=u.rad, frame=self._convention.frame)
+
         else:
-            # source is in inertial frame
+            # Convert galactic-frame input directions to fit
+            # convention's inertial frame.
+
             scattering_dirs = SkyCoord(l=unbinned_data['Chi galactic'],
                                        b=unbinned_data['Psi galactic'],
-                                       unit=u.deg, frame='galactic').transform_to('icrs')
+                                       unit=u.deg, frame='galactic').transform_to(self._convention.frame)
 
         return scattering_dirs
 
@@ -209,7 +208,7 @@ class PolarizationFitting():
         Returns
         -------
         scattering_dirs : SkyCoord array
-           Array of scattering directions
+           Array of scattering directions in fit convention's frame
         weights : array of float
            Weights for each scattering direction
 
@@ -219,13 +218,22 @@ class PolarizationFitting():
         pix = np.arange(psichi_axis.nbins)
 
         if isinstance(psichi_axis.coordsys, SpacecraftFrame):
-            # source is in spacecraft-local frame
+            # NB: THIS CODE IS NEVER ACTUALLY EXERCISED because test
+            # cases only use galactic-frame binned data.
+
+            # Ignore the data PsiChi axis's coordsys (which may not
+            # even have an associated attitude) and assume (!) that it
+            # matches the frame of the fit convention.
+
             lon, lat = psichi_axis.pix2ang(pix, lonlat=True)
             scattering_dirs = SkyCoord(lon, lat,
                                        unit=u.deg, frame=self._convention.frame)
+
         else:
-            # source is in inertial frame
-            scattering_dirs = psichi_axis.pix2skycoord(pix).transform_to('icrs')
+            # Convert inertial-frame direction of each data bin to
+            # frame of fit convention.
+
+            scattering_dirs = psichi_axis.pix2skycoord(pix).transform_to(self._convention.frame)
 
         weights = binned_data.project('PsiChi').to_dense(copy=False).contents
 
@@ -258,33 +266,49 @@ class PolarizationFitting():
         Returns
         -------
         scattering_dirs : SkyCoord array
-           Array of scattering directions
+           Array of scattering directions in fit convention's frame
         weights : list of arrays of float
            Weights for each scattering direction
 
         """
 
         if isinstance(self._convention.frame, SpacecraftFrame):
-            # source is in spacecraft-local frame
-            source = self._source.transform_to('galactic')
-            dwell_time_map = self._ori.get_dwell_map(source, base=self._response)
-            psr = self._response.get_point_source_response(coord=source,
+            # Get an average PSR for source direction over
+            # spacecraft's dwell-time history.  We assume that the fit
+            # convention's frame's single attitude is a reasonable
+            # approximation to the average of direction of the dwell
+            # map.  This only makes sense over short durations, for
+            # which the spacecraft is nearly stationary, AND if the
+            # fit convention's attitude matches the dwell map.
+
+            dwell_time_map = self._ori.get_dwell_map(self._source, base=self._response)
+            psr = self._response.get_point_source_response(coord=self._source,
                                                            exposure_map=dwell_time_map)
             psichi_axis = psr.axes['PsiChi']
             pix = np.arange(psichi_axis.nbins)
             lon, lat = psichi_axis.pix2ang(pix, lonlat=True)
-            scattering_dirs = SkyCoord(lon, lat,
-                                       unit=u.deg, frame=self._convention.frame)
+            scattering_dirs = SkyCoord(lon, lat, unit=u.deg, frame=self._convention.frame)
+
         else:
-            # source is in inertial frame
-            source = self._source
+            # Use the scatt-map method to obtain an inertial-frame PSR
+            # for the source direction from the spacecraft's attitude
+            # history.  The PSR will be computed in the frame of the
+            # source, so make sure the source has been rotated into
+            # the fit convention's frame before computing it.  That
+            # way, we don't have to transform the bins' scattering
+            # directions afterwards, which would compound the error
+            # caused by a low-resolution PsiChi axis.
+
+            source = self._source.transform_to(self._convention.frame)
+
             scatt_map = self._ori.get_scatt_map(nside=self._response.nside*2,
                                                 target_coord=source)
+
             psr = self._response.get_point_source_response(coord=source,
                                                            scatt_map=scatt_map)
             psichi_axis = psr.axes['PsiChi']
             pix = np.arange(psichi_axis.nbins)
-            scattering_dirs = psichi_axis.pix2skycoord(pix).transform_to('icrs')
+            scattering_dirs = psichi_axis.pix2skycoord(pix)
 
         weights = []
         for pl, pa in zip(polarization_levels, polarization_angles):
