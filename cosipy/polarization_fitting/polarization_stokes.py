@@ -276,18 +276,17 @@ class PolarizationStokes(PolarizationFitting):
 
         mu = self._mu100["mu"]
 
-        pol_I = len(src_qs)
-        pol_Q = np.sum(src_qs) / mu
-        pol_U = np.sum(src_us) / mu
+        pol_I = len(src_qs)          # I in eqn 10a
+        pol_Q = np.sum(src_qs) / mu  # 2/mu x Q in eqn 10b
+        pol_U = np.sum(src_us) / mu  # 2/mu x q in eqn 10c
         logger.info(f'I, Q, U, mu: {pol_I} {pol_Q} {pol_U} {mu}')
 
         if not has_background:
             logger.info('No background data provided, assuming no background contribution.')
 
             I = pol_I
-
-            QN = pol_Q/pol_I
-            UN = pol_U/pol_I
+            QN = pol_Q/pol_I # 2/mu x mathcal{Q} in eqn 11b
+            UN = pol_U/pol_I # 2/mu x mathcal{U} in eqn 11b
 
             logger.info(f'Q, U (unsubtracted): {QN} {UN}')
 
@@ -309,24 +308,32 @@ class PolarizationStokes(PolarizationFitting):
 
             logger.info(f'Q, U, subtracted: {QN} {UN}')
 
-            # FIXED: analogous to Eqn 28a/b of Kislat 2015
+            # analogous to mu * mathcal{Q_r}
             unpol_modulation = mu * np.sqrt(unpol_Q**2 + unpol_U**2) / unpol_I
+
+            # FIXED: analogous to eqn 28a/b of Kislat 2015
             unpol_sI = np.sqrt(unpol_I - 1)
-            unpol_sQ = np.sqrt(2/mu**2 - unpol_modulation**2) / unpol_sI
+            unpol_sQ = np.sqrt(2 - unpol_modulation**2) / unpol_sI / mu
             logger.info(f'Q, U unpolarized uncertainty: {unpol_sQ*100} %')
 
-        # Reconstructed polarization fraction + uncertainty: See eqs
-        # 21, 36 in Kislat 2015
+        # Reconstructed polarization fraction + uncertainty
+
+        # eqn 21 of Kislat 2015
         polarization_fraction = np.sqrt(QN**2 + UN**2)
+
+        # eqn 36 of Kislat 2015
         m = mu * polarization_fraction
         polarization_fraction_uncertainty = np.sqrt((2 - m**2)/((I - 1) * mu**2))
-        # Reconstructed polarization angle + uncertainty: See eqs 22,
-        # 37 in Kislat 2015
+
+        # Reconstructed polarization angle + uncertainty
+
+        # eqn 22 of Kislat 2015
         pol_PA = 0.5 * np.arctan2(UN, QN)
         # Convert to 0 to 180 deg (just the convention)
         if pol_PA < 0:
             pol_PA += np.pi
 
+        # eqn 37 of Kislat 2015
         pol_1sigmaPA = np.degrees(1 / (m * np.sqrt(2 * (I - 1))))
 
         polarization_angle = Angle(np.degrees(pol_PA), unit=u.deg)
@@ -334,10 +341,10 @@ class PolarizationStokes(PolarizationFitting):
                                                convention=self.convention).transform_to(IAUPolarizationConvention())
         polarization_angle_uncertainty = Angle(pol_1sigmaPA, unit=u.deg)
 
-        # FIXED: corrected to ~ match Eqns 28a/b of Kislat 2015
+        # FIXED: eqn 28 a/b of Kislat 2015
         pol_sI = np.sqrt(I - 1)
-        pol_sQ = np.sqrt(2/mu**2 - QN**2) / pol_sI
-        pol_sU = np.sqrt(2/mu**2 - UN**2) / pol_sI
+        pol_sQ = np.sqrt(2 - (mu * QN)**2) / pol_sI / mu
+        pol_sU = np.sqrt(2 - (mu * UN)**2) / pol_sI / mu
         logger.info(f'Q/I, U/I, uncertainty: {pol_sQ} {pol_sU} {np.sqrt(pol_sQ)}')
 
         polarization = {'fraction': polarization_fraction,
