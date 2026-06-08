@@ -173,7 +173,7 @@ class PolarizationFitting():
 
         """
 
-        if isinstance(self._convention.frame, SpacecraftFrame):
+        if False: #isinstance(self._convention.frame, SpacecraftFrame):
             # Local-frame input directions are treated as if they are
             # all in fit convention's frame, which has only a single
             # attitude (a reasonable approximation for short-duration
@@ -272,7 +272,7 @@ class PolarizationFitting():
 
         """
 
-        if isinstance(self._convention.frame, SpacecraftFrame):
+        if False: # isinstance(self._convention.frame, SpacecraftFrame):
             # Get an average PSR for source direction over
             # spacecraft's dwell-time history.  We assume that the fit
             # convention's frame's single attitude is a reasonable
