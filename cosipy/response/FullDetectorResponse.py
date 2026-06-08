@@ -614,8 +614,10 @@ class FullDetectorResponse(HealpixBase):
                 from cosipy.polarization.polarization_angle import PolarizationAngle
                 from cosipy.polarization.conventions import IAUPolarizationConvention
 
-                # angles in IAU convention's frame corresponding to
-                # each bin on Pol axis in source's frame
+                # Define a set of discrete angles in the IAU
+                # convention with the same range/resolution as the
+                # response's Pol axis, to be used when sampling the
+                # polarization response.
                 pol_convention = IAUPolarizationConvention()
                 iau_pol_angles = PolarizationAngle(psr_axes['Pol'].centers.angle,
                                                    source,
@@ -665,17 +667,17 @@ class FullDetectorResponse(HealpixBase):
                     # local convention
                     conv_type = type(psr_axes['Pol'].convention)
                     conv_w_att = PolarizationConvention.get_convention(conv_type, att)
-                    loc_pol_angles = iau_pol_angles.transform_to(conv_w_att)
+                    loc_pol_angles = iau_pol_angles.transform_to(conv_w_att).angle
 
                     # wrap 180-degree polarization angles to keep them
                     # within bin range
-                    la = loc_pol_angles.angle
-                    la = np.where(la.deg == 180., 0. * u.deg , la)
+                    loc_pol_angles = np.where(loc_pol_angles.deg == 180.,
+                                              0. * u.deg , loc_pol_angles)
 
                     # map each local-convention Pol bin angle to
                     # nearest bin (TODO: this could also be
                     # interpolated)
-                    loc_pol_bins = psr_axes['Pol'].find_bin(la)
+                    loc_pol_bins = psr_axes['Pol'].find_bin(loc_pol_angles)
 
                     sf_psr += self._rot_psr_pol(psr_axes, exposure,
                                                 loc_psichi_pixels, loc_pol_bins,
