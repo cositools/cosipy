@@ -205,23 +205,9 @@ class PolarizationFitting():
         psichi_axis = binned_data.axes['PsiChi']
         pix = np.arange(psichi_axis.nbins)
 
-        if isinstance(psichi_axis.coordsys, SpacecraftFrame):
-            # NB: THIS CODE IS NEVER ACTUALLY EXERCISED because test
-            # cases only use galactic-frame binned data.
+        # Convert direction of each data bin to frame of fit convention.
 
-            # Ignore the data PsiChi axis's coordsys (which may not
-            # even have an associated attitude) and assume (!) that it
-            # matches the frame of the fit convention.
-
-            lon, lat = psichi_axis.pix2ang(pix, lonlat=True)
-            scattering_dirs = SkyCoord(lon, lat,
-                                       unit=u.deg, frame=self._convention.frame)
-
-        else:
-            # Convert inertial-frame direction of each data bin to
-            # frame of fit convention.
-
-            scattering_dirs = psichi_axis.pix2skycoord(pix).transform_to(self._convention.frame)
+        scattering_dirs = psichi_axis.pix2skycoord(pix).transform_to(self._convention.frame)
 
         weights = binned_data.project('PsiChi').to_dense(copy=False).contents
 
