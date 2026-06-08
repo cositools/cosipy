@@ -173,24 +173,12 @@ class PolarizationFitting():
 
         """
 
-        if False: #isinstance(self._convention.frame, SpacecraftFrame):
-            # Local-frame input directions are treated as if they are
-            # all in fit convention's frame, which has only a single
-            # attitude (a reasonable approximation for short-duration
-            # sources during which the spacecraft is approximately
-            # stationary).
+        # Convert galactic-frame input directions to fit convention's
+        # inertial frame.
 
-            scattering_dirs = SkyCoord(lon=unbinned_data['Chi local'],
-                                       lat=np.pi/2 - unbinned_data['Psi local'],
-                                       unit=u.rad, frame=self._convention.frame)
-
-        else:
-            # Convert galactic-frame input directions to fit
-            # convention's inertial frame.
-
-            scattering_dirs = SkyCoord(l=unbinned_data['Chi galactic'],
-                                       b=unbinned_data['Psi galactic'],
-                                       unit=u.deg, frame='galactic').transform_to(self._convention.frame)
+        scattering_dirs = SkyCoord(l=unbinned_data['Chi galactic'],
+                                   b=unbinned_data['Psi galactic'],
+                                   unit=u.deg, frame='galactic').transform_to(self._convention.frame)
 
         return scattering_dirs
 
@@ -268,47 +256,30 @@ class PolarizationFitting():
         scattering_dirs : SkyCoord array
            Array of scattering directions in fit convention's frame
         weights : list of arrays of float
-           Weights for each scattering direction
+           list of arrays of weights for each scattering direction --
+           one array per input (pl, pa)
 
         """
 
-        if False: # isinstance(self._convention.frame, SpacecraftFrame):
-            # Get an average PSR for source direction over
-            # spacecraft's dwell-time history.  We assume that the fit
-            # convention's frame's single attitude is a reasonable
-            # approximation to the average of direction of the dwell
-            # map.  This only makes sense over short durations, for
-            # which the spacecraft is nearly stationary, AND if the
-            # fit convention's attitude matches the dwell map.
+        # Use the scatt-map method to obtain an inertial-frame PSR for
+        # the source direction from the spacecraft's attitude history.
+        # The PSR will be computed in the frame of the source, so make
+        # sure the source has been rotated into the fit convention's
+        # frame before computing it.  That way, we don't have to
+        # transform the bins' scattering directions afterwards, which
+        # would compound the error caused by a low-resolution PsiChi
+        # axis.
 
-            dwell_time_map = self._ori.get_dwell_map(self._source, base=self._response)
-            psr = self._response.get_point_source_response(coord=self._source,
-                                                           exposure_map=dwell_time_map)
-            psichi_axis = psr.axes['PsiChi']
-            pix = np.arange(psichi_axis.nbins)
-            lon, lat = psichi_axis.pix2ang(pix, lonlat=True)
-            scattering_dirs = SkyCoord(lon, lat, unit=u.deg, frame=self._convention.frame)
+        source = self._source.transform_to(self._convention.frame)
 
-        else:
-            # Use the scatt-map method to obtain an inertial-frame PSR
-            # for the source direction from the spacecraft's attitude
-            # history.  The PSR will be computed in the frame of the
-            # source, so make sure the source has been rotated into
-            # the fit convention's frame before computing it.  That
-            # way, we don't have to transform the bins' scattering
-            # directions afterwards, which would compound the error
-            # caused by a low-resolution PsiChi axis.
+        scatt_map = self._ori.get_scatt_map(nside=self._response.nside*2,
+                                            target_coord=source)
 
-            source = self._source.transform_to(self._convention.frame)
-
-            scatt_map = self._ori.get_scatt_map(nside=self._response.nside*2,
-                                                target_coord=source)
-
-            psr = self._response.get_point_source_response(coord=source,
-                                                           scatt_map=scatt_map)
-            psichi_axis = psr.axes['PsiChi']
-            pix = np.arange(psichi_axis.nbins)
-            scattering_dirs = psichi_axis.pix2skycoord(pix)
+        psr = self._response.get_point_source_response(coord=source,
+                                                       scatt_map=scatt_map)
+        psichi_axis = psr.axes['PsiChi']
+        pix = np.arange(psichi_axis.nbins)
+        scattering_dirs = psichi_axis.pix2skycoord(pix)
 
         weights = []
         for pl, pa in zip(polarization_levels, polarization_angles):
