@@ -218,7 +218,7 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
             
             self._maps = torch.from_numpy(f['maps'][:])
             self._init_maps()
-    
+            self._init_interpolator()
     
     def query_normalization(self, pol_rad: ArrayLike, az_rad: ArrayLike, ienergy_keV: ArrayLike) -> np.ndarray:
         self.init_cache()

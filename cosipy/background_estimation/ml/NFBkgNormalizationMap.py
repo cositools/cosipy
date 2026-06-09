@@ -55,14 +55,14 @@ class NFBkgNormalizationMap(NFNormalizationMapEmBase[MEnergyList, NFBkgNormaliza
             (1014,  "w0", "p12"),
             (1039,  "w0", "pd"),
             (1076,  "w0", "pd"),
-            (1335,  "w0", "pd"),
-            (1367,  "w0", "p12"),
+            (1335,  "w0", "pd"),#
+            (1367,  "w0", "p18"),#12
             (1432,  "w0", "pd"),
             (1610,  "w0", "pd"),
             (1632,  "w0", "pd"),
             (1763,  "w0", "pd"),
             (1778,  "w0", "pd"),
-            (1809,  "w0", "pd"),
+            (1809,  "w0", "pd"),#
             (1893,  "w0", "pd"),
             (1921,  "w0", "pd"),
             (2208,  "w0", "pd"),
