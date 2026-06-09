@@ -4,6 +4,7 @@ import json
 from typing import Optional, Iterable, Type, Tuple, List, Union
 from pathlib import Path
 from tqdm.auto import tqdm
+import matplotlib.pyplot as plt
 
 import numpy as np
 import h5py
@@ -63,7 +64,8 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self.force_energy_node_caching = force_energy_node_caching
         
         # Default parameters for irf energy node placement
-        self._total_energy_nodes = (60, 500)
+        self._density_integration_nodes = 60
+        self._total_expectation_resolution = 18.
         self._peak_nodes = (18, 12)
         self._peak_widths = (0.04, 0.1)
         self._energy_range = (100., 10_000.)
@@ -93,6 +95,8 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._area_energy_node_cache: Optional[np.ndarray] = None
         self._exp_events: Optional[float] = None
         self._exp_density: Optional[torch.Tensor] = None
+        self._valid_mask_cache: Optional[np.ndarray] = None
+        self._valid_events: Optional[int] = None
         
         # Precomputed spacecraft history - Midpoint
         self._mid_times = self._sc_ori.obstime[:-1] + (self._sc_ori.obstime[1:] - self._sc_ori.obstime[:-1]) / 2
@@ -150,39 +154,44 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._force_energy_node_caching = val
     
     @property
-    def total_energy_nodes(self) -> Tuple[int, int]: return self._total_energy_nodes
-    @total_energy_nodes.setter
-    def total_energy_nodes(self, val): self.set_integration_parameters(total_energy_nodes=val)
+    def density_integration_nodes(self) -> int: return self._density_integration_nodes
+    @density_integration_nodes.setter
+    def density_integration_nodes(self, val): self._set_integration_parameters(density_integration_nodes=val)
+
+    @property
+    def total_expectation_resolution(self) -> float: return self._total_expectation_resolution
+    @total_expectation_resolution.setter
+    def total_expectation_resolution(self, val): self._set_integration_parameters(total_expectation_resolution=val)
 
     @property
     def peak_nodes(self) -> Tuple[int, int]: return self._peak_nodes
     @peak_nodes.setter
-    def peak_nodes(self, val): self.set_integration_parameters(peak_nodes=val)
+    def peak_nodes(self, val): self._set_integration_parameters(peak_nodes=val)
 
     @property
     def peak_widths(self) -> Tuple[float, float]: return self._peak_widths
     @peak_widths.setter
-    def peak_widths(self, val): self.set_integration_parameters(peak_widths=val)
+    def peak_widths(self, val): self._set_integration_parameters(peak_widths=val)
 
     @property
     def energy_range(self) -> Tuple[float, float]: return self._energy_range
     @energy_range.setter
-    def energy_range(self, val): self.set_integration_parameters(energy_range=val)
+    def energy_range(self, val): self._set_integration_parameters(energy_range=val)
 
     @property
-    def cache_batch_size(self) -> int: return self._cache_batch_size
+    def cache_batch_size(self) -> Optional[int]: return self._cache_batch_size
     @cache_batch_size.setter
-    def cache_batch_size(self, val): self.set_integration_parameters(cache_batch_size=val)
+    def cache_batch_size(self, val): self._set_integration_parameters(cache_batch_size=val)
     
     @property
-    def integration_batch_size(self) -> int: return self._integration_batch_size
+    def integration_batch_size(self) -> Optional[int]: return self._integration_batch_size
     @integration_batch_size.setter
-    def integration_batch_size(self, val): self.set_integration_parameters(integration_batch_size=val)
+    def integration_batch_size(self, val): self._set_integration_parameters(integration_batch_size=val)
 
     @property
     def offset(self) -> Optional[float]: return self._offset
     @offset.setter
-    def offset(self, val): self.set_integration_parameters(offset=val)
+    def offset(self, val): self._set_integration_parameters(offset=val)
     
     @property
     def show_progress(self) -> bool: return self._show_progress
@@ -193,7 +202,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._show_progress = val
     
     def _check_memory_savings(self):
-        inefficient = (self._integration_batch_size > (self._n_events * self._total_energy_nodes[0]/2))
+        inefficient = (self._integration_batch_size > (self._n_events * self._density_integration_nodes/2))
         if inefficient & self._reduce_memory:
             logger.warning(f"Since integration_batch_size is too large reduce_memory will increase the memory usage! Disable it if this behavior is not desired.")
     @property
@@ -215,16 +224,25 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             if self._irf_energy_node_cache is not None:
                 self._irf_energy_node_cache = np.asarray(self._irf_energy_node_cache, dtype=np.float32)
     
-    def set_integration_parameters(self,
-                                   total_energy_nodes: Optional[Tuple[int, int]] = None,
+    @property
+    def total_expectation_integration_nodes(self) -> int:
+        return self._total_expectation_integration_nodes(self._total_expectation_resolution, self._energy_range[1] - self._energy_range[0])
+    
+    def _total_expectation_integration_nodes(self, resolution: float, diff: float) -> int:
+        return int(np.ceil(diff / resolution)) + 1
+    
+    def _set_integration_parameters(self,
+                                   density_integration_nodes: int = -1,
+                                   total_expectation_resolution: float = -1.0,
                                    peak_nodes: Optional[Tuple[int, int]] = None,
                                    peak_widths: Optional[Tuple[float, float]] = None,
                                    energy_range: Optional[Tuple[float, float]] = None,
                                    cache_batch_size: Optional[int] = -1,
                                    integration_batch_size: Optional[int] = -1,
-                                   offset: Optional[float] = -1.0):
+                                   offset: float = -1.0):
         
-        new_total = total_energy_nodes or self._total_energy_nodes
+        new_density_integration_nodes = density_integration_nodes if density_integration_nodes != -1 else self._density_integration_nodes
+        new_total_expectation_resolution = total_expectation_resolution if total_expectation_resolution != -1.0 else self._total_expectation_resolution
         new_peak_nodes = peak_nodes or self._peak_nodes
         new_peak_widths = peak_widths or self._peak_widths
         new_range = energy_range or self._energy_range
@@ -235,12 +253,12 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         irf_affected = (
             new_peak_nodes != self._peak_nodes or 
             new_peak_widths != self._peak_widths or 
-            new_total[0] != self._total_energy_nodes[0] or
+            new_density_integration_nodes != self._density_integration_nodes or
             new_range != self._energy_range
         )
         
         area_affected = (
-            new_total[1] != self._total_energy_nodes[1] or
+            new_total_expectation_resolution != self._total_expectation_resolution or
             new_range != self._energy_range
         )
         
@@ -252,30 +270,37 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         if area_affected:
             self._area_cache = self._area_energy_node_cache = None
             
-        if new_total[0] < (new_peak_nodes[0] + 2 * new_peak_nodes[1] + 3):
+        if new_density_integration_nodes < (new_peak_nodes[0] + 2 * new_peak_nodes[1] + 3):
             raise ValueError("Too many nodes per peak compared to the total number or peaks!")
             
-        if any(n < 1 for n in new_total) or any(n < 1 for n in new_peak_nodes):
+        if (new_density_integration_nodes < 1) or any(n < 1 for n in new_peak_nodes):
             raise ValueError("The number of energy nodes must be at least 1.")
+        
+        if (new_total_expectation_resolution > (new_range[1] - new_range[0])) or (new_total_expectation_resolution <= 0):
+            raise ValueError("The total expectation resolution must be positive and smaller than the energy range.")
 
         if new_range[0] >= new_range[1]:
             raise ValueError("The initial energy interval needs to be increasing!")
         
-        if (new_cache_batch is not None) and (new_cache_batch < max(new_total)):
-            raise ValueError("The cache batch size cannot be smaller than the number of integration nodes.")
+        new_total_expectation_integration_nodes = self._total_expectation_integration_nodes(new_total_expectation_resolution, new_range[1] - new_range[0])
+        new_max_nodes = max(new_total_expectation_integration_nodes, new_density_integration_nodes)
         
-        if (new_integration_batch is not None) and (new_integration_batch < max(new_total)):
-            raise ValueError("The integration batch size cannot be smaller than the number of integration nodes.")
+        if (new_cache_batch is not None) and (new_cache_batch < new_max_nodes):
+            raise ValueError(f"The cache batch size cannot be smaller than the number of integration nodes ({new_max_nodes}).")
+        
+        if (new_integration_batch is not None) and (new_integration_batch < new_max_nodes):
+            raise ValueError(f"The integration batch size cannot be smaller than the number of integration nodes ({new_max_nodes}).")
         
         if (new_offset is not None) and (new_offset < 0):
             raise ValueError("The offset cannot be negative.")
             
-        self._total_energy_nodes = new_total
+        self._density_integration_nodes = new_density_integration_nodes
+        self._total_expectation_resolution = new_total_expectation_resolution
         self._peak_nodes = new_peak_nodes
         self._peak_widths = new_peak_widths
         self._energy_range = new_range
-        self._cache_batch_size = new_cache_batch if new_cache_batch is not None else (self._n_events * max(new_total))
-        self._integration_batch_size = new_integration_batch if new_integration_batch is not None else (self._n_events * max(new_total))
+        self._cache_batch_size = new_cache_batch if new_cache_batch is not None else (self._n_events * new_max_nodes)
+        self._integration_batch_size = new_integration_batch if new_integration_batch is not None else (self._n_events * new_max_nodes)
         self._offset = new_offset
         self._check_memory_savings()
     
@@ -295,14 +320,14 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._nodes_primary = self._build_nodes(self._peak_nodes[0])
         self._nodes_secondary = self._build_nodes(self._peak_nodes[1])
 
-        self._nodes_bkg_1 = self._build_nodes(self._total_energy_nodes[0] - self._peak_nodes[0])
+        self._nodes_bkg_1 = self._build_nodes(self._density_integration_nodes - self._peak_nodes[0])
 
         self._nodes_bkg_2 = self._build_split_nodes(
-            self._total_energy_nodes[0] - self._peak_nodes[0] - self._peak_nodes[1], 2
+            self._density_integration_nodes - self._peak_nodes[0] - self._peak_nodes[1], 2
         )
 
         self._nodes_bkg_3 = self._build_split_nodes(
-            self._total_energy_nodes[0] - self._peak_nodes[0] - 2 * self._peak_nodes[1], 3
+            self._density_integration_nodes - self._peak_nodes[0] - 2 * self._peak_nodes[1], 3
         )
 
     @staticmethod
@@ -364,6 +389,8 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._area_energy_node_cache = None
         self._exp_events = None
         self._exp_density = None
+        self._valid_mask_cache = None
+        self._valid_events = None
         
         self._last_convolved_source_skycoord = None
         self._last_convolved_source_dict_number = None
@@ -400,7 +427,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
     
     def _compute_area(self):
         coord = self._source.position.sky_coord
-        n_energy = self._total_energy_nodes[1]
+        n_energy = self.total_expectation_integration_nodes
 
         log_E_min = np.log10(self._energy_range[0])
         log_E_max = np.log10(self._energy_range[1])
@@ -596,7 +623,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         
         batch_size = energy_m_keV.shape[0]
         
-        nodes = torch.zeros((batch_size, self._total_energy_nodes[0]), dtype=torch.float32)
+        nodes = torch.zeros((batch_size, self._density_integration_nodes), dtype=torch.float32)
         weights = torch.zeros_like(nodes)
         
         peaks = torch.zeros((batch_size, 4), dtype=torch.float32)
@@ -639,16 +666,19 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         
         return nodes, weights
     
-    def _get_CDS_coordinates(self, lon_src_rad: torch.Tensor, lat_src_rad: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def _get_CDS_coordinates(self, lon_src_rad: torch.Tensor, lat_src_rad: torch.Tensor, indices=None) -> Tuple[torch.Tensor, torch.Tensor]:
         cos_lat_src = torch.cos(lat_src_rad)
         sin_lat_src = torch.sin(lat_src_rad)
         cos_lon_src = torch.cos(lon_src_rad)
         sin_lon_src = torch.sin(lon_src_rad)
         
+        if indices is None:
+            indices = slice(0, len(self._cos_lat_scatt))
+        
         cos_geo = (
-            cos_lat_src * cos_lon_src * self._cos_lat_scatt * self._cos_lon_scatt +
-            cos_lat_src * sin_lon_src * self._cos_lat_scatt * self._sin_lon_scatt +
-            sin_lat_src * self._sin_lat_scatt
+            cos_lat_src * cos_lon_src * self._cos_lat_scatt[indices] * self._cos_lon_scatt[indices] +
+            cos_lat_src * sin_lon_src * self._cos_lat_scatt[indices] * self._sin_lon_scatt[indices] +
+            sin_lat_src * self._sin_lat_scatt[indices]
         )
         
         cos_geo = torch.clip(cos_geo, -1.0, 1.0)
@@ -657,34 +687,113 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         return phi_geo_rad, np.pi - phi_geo_rad
     
     def _compute_nodes(self):
-        sc_coord_sph = self._sc_coord_sph_cache
+        sc_coord_sph = self._sc_coord_sph_cache[self._valid_mask_cache]
         
         lon_ph_rad = asarray(sc_coord_sph.lon.rad, dtype=np.float32)
         lat_ph_rad = asarray(sc_coord_sph.lat.rad, dtype=np.float32)
         
-        phi_geo_rad, phi_igeo_rad = self._get_CDS_coordinates(torch.as_tensor(lon_ph_rad), torch.as_tensor(lat_ph_rad))
+        phi_geo_rad, phi_igeo_rad = self._get_CDS_coordinates(torch.as_tensor(lon_ph_rad), torch.as_tensor(lat_ph_rad), indices=self._valid_mask_cache)
         np_memory_dtype = np.float32 if self._reduce_memory else np.float64
-        self._irf_energy_node_cache = np.asarray(self._get_nodes(self._energy_m_keV, self._phi_rad, phi_geo_rad, phi_igeo_rad)[0], dtype=np_memory_dtype)
+        self._irf_energy_node_cache = np.asarray(self._get_nodes(self._energy_m_keV[self._valid_mask_cache], self._phi_rad[self._valid_mask_cache], phi_geo_rad, phi_igeo_rad)[0], dtype=np_memory_dtype)
+    
+    def _compute_density_helper(self, indices: np.ndarray, source_coord,
+                                sc_coord_sph=None, earth_occ_index: Optional[np.ndarray]=None,
+                                buffer: Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]]=None) -> Tuple[torch.Tensor, np.ndarray]:
+        indices = np.asarray(indices)
+            
+        if sc_coord_sph is None:
+            sc_coord_sph = self._get_target_in_sc_frame(source_coord, self._sc_ori_unique)[self._inv_idx[indices]]
+        else:
+            sc_coord_sph = sc_coord_sph[indices]
+        if earth_occ_index is None:
+            earth_occ_index = self._earth_occ(source_coord, self._sc_ori_unique)[self._inv_idx[indices]]
+        else:
+            earth_occ_index = earth_occ_index[indices]
+        
+        live_sub = self._livetime_ratio[indices]
+        current_n = len(earth_occ_index)
+        
+        e_sl = self._energy_m_keV[indices]
+        p_sl = self._phi_rad[indices]
+
+        lon_ph_rad = asarray(sc_coord_sph.lon.rad, dtype=np.float32)
+        lat_ph_rad = asarray(sc_coord_sph.lat.rad, dtype=np.float32)
+        
+        phi_geo_rad, phi_igeo_rad = self._get_CDS_coordinates(torch.as_tensor(lon_ph_rad), torch.as_tensor(lat_ph_rad), indices=indices)
+        
+        nodes, weights = self._get_nodes(e_sl, p_sl, phi_geo_rad, phi_igeo_rad)
+        n_energy = self._density_integration_nodes
+        
+        current_total = current_n * n_energy
+        
+        if buffer is not None:
+            batch_lon_src_buffer, batch_lat_src_buffer, batch_energy_buffer, batch_phi_buffer, batch_lon_scatt_buffer, batch_lat_scatt_buffer = buffer
+        else:
+            buffer_size = n_energy * current_n
+            batch_lon_src_buffer   = np.empty(buffer_size, dtype=np.float32)
+            batch_lat_src_buffer   = np.empty(buffer_size, dtype=np.float32)
+            batch_energy_buffer    = np.empty(buffer_size, dtype=np.float32)
+            batch_phi_buffer       = np.empty(buffer_size, dtype=np.float32)
+            batch_lon_scatt_buffer = np.empty(buffer_size, dtype=np.float32)
+            batch_lat_scatt_buffer = np.empty(buffer_size, dtype=np.float32)
+        
+        batch_lon_src_buffer[:current_total].reshape(current_n, n_energy)[:] = lon_ph_rad[:, np.newaxis]
+        batch_lat_src_buffer[:current_total].reshape(current_n, n_energy)[:] = lat_ph_rad[:, np.newaxis]
+        
+        batch_energy_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(e_sl[:, np.newaxis])
+        batch_lon_scatt_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._lon_scatt[indices, np.newaxis])
+        batch_lat_scatt_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._lat_scatt[indices, np.newaxis])
+        batch_phi_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(p_sl[:, np.newaxis])
+        
+        photons = PhotonListWithDirectionAndEnergyInSCFrame(
+            batch_lon_src_buffer[:current_total],
+            batch_lat_src_buffer[:current_total],
+            np.asarray(nodes).ravel()
+        )
+
+        events = EmCDSEventDataInSCFrameFromArrays(
+            batch_energy_buffer[:current_total],
+            batch_lon_scatt_buffer[:current_total],
+            batch_lat_scatt_buffer[:current_total],
+            batch_phi_buffer[:current_total],
+        )
+        
+        res_block = torch.as_tensor(asarray(self._irf.differential_effective_area_cm2(photons, events), dtype=np.float32)).view(current_n, n_energy)
+        
+        occ = torch.as_tensor(earth_occ_index).view(-1, 1)
+        live = torch.as_tensor(live_sub).view(-1, 1)
+        
+        res_block *= occ * live * weights
+        
+        np_memory_dtype = np.float32 if self._reduce_memory else np.float64
+        return res_block, np.asarray(nodes, dtype=np_memory_dtype)
     
     def _compute_density(self):
         coord = self._source.position.sky_coord
-        sc_coord_sph = self._sc_coord_sph_cache
-        earth_occ_index = self._earth_occ(coord, self._sc_ori_unique)[self._inv_idx]
-
-        lon_ph_rad = asarray(sc_coord_sph.lon.rad, dtype=np.float32)
-        lat_ph_rad = asarray(sc_coord_sph.lat.rad, dtype=np.float32)
-        
-        phi_geo_rad, phi_igeo_rad = self._get_CDS_coordinates(torch.as_tensor(lon_ph_rad), torch.as_tensor(lat_ph_rad))
-
-        n_energy = self._total_energy_nodes[0]
+        n_energy = self._density_integration_nodes
         batch_size_events = self._cache_batch_size // n_energy
         
-        np_memory_dtype = np.float32 if self._reduce_memory else np.float64
         torch_memory_dtype = torch.float32 if self._reduce_memory else torch.float64
-
-        self._irf_cache = torch.zeros((self._n_events, n_energy), dtype=torch_memory_dtype)
+        np_memory_dtype = np.float32 if self._reduce_memory else np.float64
         
-        buffer_size = n_energy * min(batch_size_events, self._n_events)
+        sc_coord_sph = self._sc_coord_sph_cache
+        earth_occ_index = self._earth_occ(coord, self._sc_ori_unique)[self._inv_idx]
+        self._valid_mask_cache = np.where((earth_occ_index > 0) & (self._livetime_ratio > 0))[0]
+        self._valid_events = int(len(self._valid_mask_cache))
+        
+        self._irf_cache = torch.zeros((self._valid_events, n_energy), dtype=torch_memory_dtype)
+        
+        batched_node_caching = (batch_size_events < self._valid_events) & (self._force_energy_node_caching)
+        if batched_node_caching:
+            self._irf_energy_node_cache = np.zeros((self._valid_events, n_energy), dtype=np_memory_dtype)
+        
+        #
+        #lon_ph_rad = asarray(sc_coord_sph.lon.rad, dtype=np.float32)
+        #lat_ph_rad = asarray(sc_coord_sph.lat.rad, dtype=np.float32)
+        #
+        #phi_geo_rad, phi_igeo_rad = self._get_CDS_coordinates(torch.as_tensor(lon_ph_rad), torch.as_tensor(lat_ph_rad))
+        #
+        buffer_size = n_energy * min(batch_size_events, self._valid_events)
         batch_lon_src_buffer   = np.empty(buffer_size, dtype=np.float32)
         batch_lat_src_buffer   = np.empty(buffer_size, dtype=np.float32)
         batch_energy_buffer    = np.empty(buffer_size, dtype=np.float32)
@@ -692,65 +801,71 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         batch_lon_scatt_buffer = np.empty(buffer_size, dtype=np.float32)
         batch_lat_scatt_buffer = np.empty(buffer_size, dtype=np.float32)
         
-        if (batch_size_events < self._n_events) & (self._force_energy_node_caching):
-            self._irf_energy_node_cache = np.zeros((self._n_events, n_energy), dtype=np_memory_dtype)
+        buffer = (batch_lon_src_buffer, batch_lat_src_buffer, batch_energy_buffer, batch_phi_buffer, batch_lon_scatt_buffer, batch_lat_scatt_buffer)
         
-        for i in tqdm(range(0, self._n_events, batch_size_events), 
+        for i in tqdm(range(0, self._valid_events, batch_size_events), 
                       disable=(not self.show_progress),
                       desc="Caching the response", 
                       smoothing=0.2, 
                       leave=False):
             start = i
-            end = min(i + batch_size_events, self._n_events)
-            current_n = end - start
-            current_total = current_n * n_energy
-
-            e_sl = self._energy_m_keV[start:end]
-            p_sl = self._phi_rad[start:end]
-            pg_sl = phi_geo_rad[start:end]
-            pig_sl = phi_igeo_rad[start:end]
-
-            nodes, weights = self._get_nodes(e_sl, p_sl, pg_sl, pig_sl)
-
-            if batch_size_events >= self._n_events:
-                self._irf_energy_node_cache = np.asarray(nodes, dtype=np_memory_dtype)
-            else:
-                self._irf_energy_node_cache[start:end] = np.asarray(nodes)
+            end = min(i + batch_size_events, self._valid_events)
             
-            batch_lon_src_buffer[:current_total].reshape(current_n, n_energy)[:] = lon_ph_rad[start:end, np.newaxis]
-            batch_lat_src_buffer[:current_total].reshape(current_n, n_energy)[:] = lat_ph_rad[start:end, np.newaxis]
+            slice_sub = slice(start, end)
             
-            batch_energy_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._energy_m_keV[start:end, np.newaxis])
-            batch_lon_scatt_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._lon_scatt[start:end, np.newaxis])
-            batch_lat_scatt_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._lat_scatt[start:end, np.newaxis])
-            batch_phi_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._phi_rad[start:end, np.newaxis])
+            res_block, nodes = self._compute_density_helper(self._valid_mask_cache[slice_sub], coord, sc_coord_sph, earth_occ_index, buffer)
+            
+            #current_n = end - start
+            #current_total = current_n * n_energy
+            #
+            #e_sl = self._energy_m_keV[start:end]
+            #p_sl = self._phi_rad[start:end]
+            #pg_sl = phi_geo_rad[start:end]
+            #pig_sl = phi_igeo_rad[start:end]
+            #
+            #nodes, weights = self._get_nodes(e_sl, p_sl, pg_sl, pig_sl)
 
-            photons = PhotonListWithDirectionAndEnergyInSCFrame(
-                batch_lon_src_buffer[:current_total],
-                batch_lat_src_buffer[:current_total],
-                np.asarray(nodes).ravel()
-                )
+            if batch_size_events >= self._valid_events:
+                self._irf_energy_node_cache = nodes.astype(np_memory_dtype)
+            if batched_node_caching:
+                self._irf_energy_node_cache[start:end] = nodes.astype(np_memory_dtype)
+                
+            self._irf_cache[start:end] = res_block.to(torch_memory_dtype)
             
-            events = EmCDSEventDataInSCFrameFromArrays(
-                batch_energy_buffer[:current_total],
-                batch_lon_scatt_buffer[:current_total],
-                batch_lat_scatt_buffer[:current_total],
-                batch_phi_buffer[:current_total],
-            )
+            #batch_lon_src_buffer[:current_total].reshape(current_n, n_energy)[:] = lon_ph_rad[start:end, np.newaxis]
+            #batch_lat_src_buffer[:current_total].reshape(current_n, n_energy)[:] = lat_ph_rad[start:end, np.newaxis]
+            #
+            #batch_energy_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._energy_m_keV[start:end, np.newaxis])
+            #batch_lon_scatt_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._lon_scatt[start:end, np.newaxis])
+            #batch_lat_scatt_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._lat_scatt[start:end, np.newaxis])
+            #batch_phi_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._phi_rad[start:end, np.newaxis])
+            #
+            #photons = PhotonListWithDirectionAndEnergyInSCFrame(
+            #    batch_lon_src_buffer[:current_total],
+            #    batch_lat_src_buffer[:current_total],
+            #    np.asarray(nodes).ravel()
+            #    )
+            #
+            #events = EmCDSEventDataInSCFrameFromArrays(
+            #    batch_energy_buffer[:current_total],
+            #    batch_lon_scatt_buffer[:current_total],
+            #    batch_lat_scatt_buffer[:current_total],
+            #    batch_phi_buffer[:current_total],
+            #)
             
-            res_block = torch.as_tensor(asarray(self._irf.differential_effective_area_cm2(photons, events), dtype=np.float32)).view(current_n, n_energy)
+            #res_block = torch.as_tensor(asarray(self._irf.differential_effective_area_cm2(photons, events), dtype=np.float32)).view(current_n, n_energy)
             
-            #eff_areas_flat = torch.as_tensor(asarray(self._irf._effective_area_cm2(photons), dtype=np.float32))
-            #densities_flat = torch.as_tensor(asarray(self._irf._event_probability(photons, events), dtype=np.float32))
+            ###eff_areas_flat = torch.as_tensor(asarray(self._irf._effective_area_cm2(photons), dtype=np.float32))
+            ###densities_flat = torch.as_tensor(asarray(self._irf._event_probability(photons, events), dtype=np.float32))
 
-            #res_block = (densities_flat * eff_areas_flat).view(current_n, n_energy)
+            ###res_block = (densities_flat * eff_areas_flat).view(current_n, n_energy)
 
-            occ = torch.as_tensor(earth_occ_index[start:end]).view(-1, 1)
-            live = torch.as_tensor(self._livetime_ratio[start:end]).view(-1, 1)
+            #occ = torch.as_tensor(earth_occ_index[start:end]).view(-1, 1)
+            #live = torch.as_tensor(self._livetime_ratio[start:end]).view(-1, 1)
             
-            res_block *= occ * live * weights
+            #res_block *= occ * live * weights
 
-            self._irf_cache[start:end] = res_block
+            #self._irf_cache[start:end] = res_block
     
     def _update_cache(self):
         
@@ -809,8 +924,8 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
     
     def cache_to_file(self, filename: Union[str, Path]):
         with h5py.File(str(filename), 'w') as f:
-            f.attrs['total_energy_nodes'] = self._total_energy_nodes
-            f.attrs['peak_nodes'] = self._peak_nodes
+            f.attrs['density_integration_nodes'] = self._density_integration_nodes
+            f.attrs['total_expectation_resolution'] = self._total_expectation_resolution
             f.attrs['peak_widths'] = self._peak_widths
             f.attrs['energy_range'] = self._energy_range
             f.attrs['cache_batch_size'] = self._cache_batch_size
@@ -821,6 +936,9 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             
             if self._offset is not None:
                 f.attrs['offset'] = self._offset
+            
+            if self._valid_events is not None:
+                f.attrs['valid_events'] = self._valid_events
             
             if self._irf_cache is not None:
                 f.create_dataset('irf_cache', data=self._irf_cache.numpy(), 
@@ -844,6 +962,10 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             if self._exp_density is not None:
                 f.create_dataset('exp_density', data=self._exp_density.numpy(),
                                compression='gzip')
+            
+            if self._valid_mask_cache is not None:
+                f.create_dataset('valid_mask_cache', data=self._valid_mask_cache,
+                               compression='gzip')
 
             if self._last_convolved_source_dict_number is not None:
                 json_str = json.dumps(self._last_convolved_source_dict_number)
@@ -866,8 +988,8 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             raise FileNotFoundError(f"Cache file {str(filename)} not found.")
 
         with h5py.File(str(filename), 'r') as f:
-            self._total_energy_nodes = tuple(f.attrs['total_energy_nodes'])
-            self._peak_nodes = tuple(f.attrs['peak_nodes'])
+            self._density_integration_nodes = int(f.attrs['density_integration_nodes'])
+            self._total_expectation_resolution = float(f.attrs['total_expectation_resolution'])
             self._peak_widths = tuple(f.attrs['peak_widths'])
             self._energy_range = tuple(f.attrs['energy_range'])
             self._cache_batch_size = int(f.attrs['cache_batch_size'])
@@ -880,6 +1002,11 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 self._offset = f.attrs['offset']
             else:
                 self._offset = None
+            
+            if 'valid_events' in f.attrs:
+                self._valid_events = int(f.attrs['valid_events'])
+            else:
+                self._valid_events = None
             
             if 'irf_cache' in f:
                 self._irf_cache = torch.from_numpy(f['irf_cache'][:])
@@ -910,6 +1037,11 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 self._exp_density = torch.from_numpy(f['exp_density'][:])
             else:
                 self._exp_density = None
+            
+            if 'valid_mask_cache' in f:
+                self._valid_mask_cache = np.asarray(f['valid_mask_cache'][:])
+            else:
+                self._valid_mask_cache = None
 
             if 'last_convolved_source_dict_number' in f.attrs:
                 self._last_convolved_source_dict_number = json.loads(f.attrs['last_convolved_source_dict_number'])
@@ -933,6 +1065,286 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             
             if self._irf_cache is not None:
                 self._init_node_pool()
+
+    def _compute_density_for_indices(self, indices: np.ndarray, sc_coord_sph, earth_occ_index, coord) -> np.ndarray:
+        self._init_node_pool()
+        
+        active_pool = True
+        if isinstance(self._irf, UnpolarizedNFFarFieldInstrumentResponseFunction):
+            active_pool = self._irf.active_pool
+            if not active_pool:
+                self._irf.init_compute_pool()
+
+        res_block, nodes = self._compute_density_helper(
+            indices, coord, sc_coord_sph=sc_coord_sph, earth_occ_index=earth_occ_index, buffer=None
+        )
+        
+        if isinstance(self._irf, UnpolarizedNFFarFieldInstrumentResponseFunction) and not active_pool:
+            self._irf.shutdown_compute_pool()
+            
+        flux = torch.as_tensor(
+            self._source(np.asarray(nodes, dtype=np.float64).ravel()),
+            dtype=torch.float64
+        ).view(nodes.shape)
+        
+        exp_density = torch.zeros(len(indices), dtype=torch.float64)
+        torch.linalg.vecdot(res_block.to(torch.float64), flux, dim=1, out=exp_density)
+        
+        result = np.asarray(exp_density, dtype=np.float64)
+        if self._offset is not None:
+            result += self._offset
+            
+        return result
+
+    def _integrate_single_event_density(self, event_idx: int, occ_val: float, live_val: float, 
+                                        lon_val: float, lat_val: float, 
+                                        relerr: float, abserr: float, maxEval: int) -> tuple[float, bool]:
+        from cubature import cubature
+        
+        if np.isclose(0.0, occ_val * live_val):
+            return 0.0, True
+
+        e_meas = self._energy_m_keV[event_idx].item()
+        lon_sc = self._lon_scatt[event_idx].item()
+        lat_sc = self._lat_scatt[event_idx].item()
+        phi_m = self._phi_rad[event_idx].item()
+
+        def density_integrand(Ei):
+            energies = Ei[:, 0]
+            num_eval = len(energies)
+            
+            lon_src = np.full(num_eval, lon_val, dtype=np.float32)
+            lat_src = np.full(num_eval, lat_val, dtype=np.float32)
+            e_meas_arr = np.full(num_eval, e_meas, dtype=np.float32)
+            lon_sc_arr = np.full(num_eval, lon_sc, dtype=np.float32)
+            lat_sc_arr = np.full(num_eval, lat_sc, dtype=np.float32)
+            phi_m_arr = np.full(num_eval, phi_m, dtype=np.float32)
+
+            photons = PhotonListWithDirectionAndEnergyInSCFrame(lon_src, lat_src, energies.astype(np.float32))
+            events = EmCDSEventDataInSCFrameFromArrays(e_meas_arr, lon_sc_arr, lat_sc_arr, phi_m_arr)
+
+            diff_area = asarray(self._irf.differential_effective_area_cm2(photons, events), dtype=np.float64)
+            flux = asarray(self._source(energies), dtype=np.float64)
+            return diff_area * occ_val * live_val * flux
+
+        res, err = cubature(
+            density_integrand, ndim=1, fdim=1,
+            xmin=[self._energy_range[0]], xmax=[self._energy_range[1]],
+            vectorized=True, relerr=relerr, abserr=abserr, maxEval=maxEval
+        )
+        res_val = res[0]
+        allowed_err = max(abserr, relerr * abs(res_val))
+        return res_val, bool(err[0] <= allowed_err)
+
+    def _integrate_total_counts(self, coord, relerr: float, abserr: float, maxEval: int) -> tuple[float, bool]:
+        from cubature import cubature
+        
+        sc_coord_sph = self._get_target_in_sc_frame(coord, self._sc_ori_center)
+        lon_ph_rad_center = asarray(sc_coord_sph.lon.rad, dtype=np.float32)
+        lat_ph_rad_center = asarray(sc_coord_sph.lat.rad, dtype=np.float32)
+        earth_occ_center = self._earth_occ(coord, self._sc_ori_center)
+        combined_time_weights = (self._sc_ori.livetime.to_value(u.s)).astype(np.float32) * earth_occ_center
+
+        def total_counts_integrand(Ei):
+            energies = Ei[:, 0]
+            num_eval = len(energies)
+            total_counts_for_energies = np.zeros(num_eval, dtype=np.float64)
+            
+            for i_e, E in enumerate(energies):
+                batch_energies = np.full(len(lon_ph_rad_center), E, dtype=np.float32)
+                photons = PhotonListWithDirectionAndEnergyInSCFrame(lon_ph_rad_center, lat_ph_rad_center, batch_energies)
+                eff_areas = asarray(self._irf.effective_area_cm2(photons), dtype=np.float64)
+                
+                total_area_at_E = np.sum(eff_areas * combined_time_weights)
+                flux_at_E = self._source(np.array([E]))[0]
+                total_counts_for_energies[i_e] = total_area_at_E * flux_at_E
+                
+            return total_counts_for_energies
+
+        res_total, err_total = cubature(
+            total_counts_integrand, ndim=1, fdim=1,
+            xmin=[self._energy_range[0]], xmax=[self._energy_range[1]],
+            vectorized=True, relerr=relerr, abserr=abserr, maxEval=maxEval
+        )
+        high_prec_total_counts = float(res_total[0])
+        allowed_err_total = max(abserr, relerr * abs(high_prec_total_counts))
+        return high_prec_total_counts, bool(err_total[0] <= allowed_err_total)
+
+    def validate_integration(self, 
+                             n_events: int, 
+                             relerr: float = 2e-4, 
+                             abserr: float = 1e-30, 
+                             maxEval: int = 1000000,
+                             save_path: Optional[Union[str, Path]] = None) -> dict:
+        if self._source is None:
+            raise RuntimeError("Call set_source() first.")
+            
+        pool_was_active = True
+        if isinstance(self._irf, UnpolarizedNFFarFieldInstrumentResponseFunction):
+            pool_was_active = self._irf.active_pool
+            if not pool_was_active:
+                self._irf.init_compute_pool()
+                
+        try:
+            coord = self._source.position.sky_coord
+            
+            sc_coord_sph = self._get_target_in_sc_frame(coord, self._sc_ori_unique)[self._inv_idx]
+            earth_occ_index = self._earth_occ(coord, self._sc_ori_unique)[self._inv_idx]
+            self._valid_mask_cache = np.where((earth_occ_index > 0) & (self._livetime_ratio > 0))[0]
+            self._valid_events = int(len(self._valid_mask_cache))
+            
+            sampled_indices = np.random.choice(self._valid_mask_cache, size=min(n_events, self._valid_events), replace=False)
+            
+            sc_coord_sph_sampled = sc_coord_sph[sampled_indices]
+            earth_occ_sampled = earth_occ_index[sampled_indices]
+            livetime_ratio_sampled = self._livetime_ratio[sampled_indices]
+            
+            high_prec_densities = []
+            converged_mask = []
+            
+            for idx, event_idx in enumerate(tqdm(sampled_indices, desc="Computing high-precision densities", disable=not self.show_progress)):
+                res_val, is_converged = self._integrate_single_event_density(
+                    event_idx, earth_occ_sampled[idx], livetime_ratio_sampled[idx],
+                    sc_coord_sph_sampled[idx].lon.rad, sc_coord_sph_sampled[idx].lat.rad,
+                    relerr, abserr, maxEval
+                )
+                if self._offset is not None:
+                    res_val += self._offset
+                high_prec_densities.append(res_val)
+                converged_mask.append(is_converged)
+                
+            high_prec_densities = np.array(high_prec_densities, dtype=np.float64)
+            converged_mask = np.array(converged_mask, dtype=bool)
+            
+            if sum(converged_mask) / len(converged_mask) < 0.9:
+                raise RuntimeError("Less than 90% of high-precision densities converged. Try increasing the maximum number of evaluations or the acceptable error.")
+              
+            high_prec_total_counts, total_counts_converged = self._integrate_total_counts(coord, relerr, abserr, maxEval)
+            if not total_counts_converged:
+                raise RuntimeError("High-precision total counts integration did not converge. Try increasing the maximum number of evaluations or the acceptable error.")
+            
+            opt_densities = self._compute_density_for_indices(sampled_indices, sc_coord_sph, earth_occ_index, coord)
+            
+            if (self._area_cache is None) or (coord != self._last_convolved_source_skycoord):
+                self._compute_area()
+            flux_area = self._source(self._area_energy_node_cache)
+            opt_total_counts = float(np.sum(self._area_cache * flux_area, dtype=float))
+            
+            with np.errstate(divide='ignore', invalid='ignore'):
+                rel_errors = (opt_densities / high_prec_densities) - 1.0
+                rel_errors = np.nan_to_num(rel_errors, nan=0.0, posinf=0.0, neginf=0.0)
+                
+            rel_deviation_total = (opt_total_counts / high_prec_total_counts) - 1.0
+            converged_rel_errors = rel_errors[converged_mask]
+            
+            if len(converged_rel_errors) > 0:
+                mean_err = float(np.mean(converged_rel_errors))
+                median_err = float(np.median(converged_rel_errors))
+                std_err = float(np.std(converged_rel_errors, ddof=1))
+            else:
+                mean_err = median_err = std_err = float('nan')
+            
+            results = {
+                "total_counts": {
+                    "optimized": opt_total_counts,
+                    "high_precision": high_prec_total_counts,
+                    "relative_deviation": rel_deviation_total,
+                },
+                "density_errors": {
+                    "mean": mean_err,
+                    "median": median_err,
+                    "std": std_err,
+                    "raw_relative_errors": rel_errors,
+                    "sampled_indices": sampled_indices,
+                    "converged_mask": converged_mask,
+                    "num_converged": int(np.sum(converged_mask)),
+                    "total_sampled": len(sampled_indices)
+                }
+            }
+            
+            if save_path is not None:
+                serializable_results = {
+                    "total_counts": results["total_counts"],
+                    "density_errors": {
+                        "mean": results["density_errors"]["mean"],
+                        "median": results["density_errors"]["median"],
+                        "std": results["density_errors"]["std"],
+                        "num_converged": results["density_errors"]["num_converged"],
+                        "total_sampled": results["density_errors"]["total_sampled"],
+                        "raw_relative_errors": results["density_errors"]["raw_relative_errors"].tolist(),
+                        "sampled_indices": results["density_errors"]["sampled_indices"].tolist(),
+                        "converged_mask": results["density_errors"]["converged_mask"].tolist()
+                    }
+                }
+                with open(str(save_path), 'w') as f:
+                    json.dump(serializable_results, f, indent=4)
+            
+            return results
+            
+        finally:
+            if not pool_was_active and isinstance(self._irf, UnpolarizedNFFarFieldInstrumentResponseFunction):
+                self._irf.shutdown_compute_pool()
+
+    @staticmethod
+    def report_and_plot_validation(validation_results: Union[dict, str, Path], 
+                                   save_path: Optional[Union[str, Path]] = None):
+        if isinstance(validation_results, (str, Path)):
+            if not os.path.exists(str(validation_results)):
+                raise FileNotFoundError(f"Validation file {str(validation_results)} not found.")
+            with open(str(validation_results), 'r') as f:
+                validation_results = json.load(f)
+
+        tc = validation_results["total_counts"]
+        de = validation_results["density_errors"]
+
+        print("=" * 55)
+        print("         INTEGRATION VALIDATION REPORT")
+        print("=" * 55)
+        print(f"Total Expected Counts (Optimized):  {tc['optimized']:.2f}")
+        print(f"Total Expected Counts (Reference): {tc['high_precision']:.2f}")
+        print(f"Relative Deviation:   {tc['relative_deviation']*100:.1e}%")
+        print("-" * 55)
+        print("Event Density Relative Errors:")
+        print(f"  Convergence:  {de['num_converged']/de['total_sampled']*100:.2f}% of all sampled events converged")
+        print(f"  Mean Error:   {de['mean']*100:.1e}%")
+        print(f"  Median Error: {de['median']*100:.1e}%")
+        print(f"  Std Dev:      {de['std']*100:.1e}%")
+        print("=" * 55)
+
+        errors = np.array(de["raw_relative_errors"]) * 100
+
+        if "converged_mask" in de:
+            converged_mask = np.array(de["converged_mask"], dtype=bool)
+        else:
+            converged_mask = np.ones(len(errors), dtype=bool)
+
+        converged_errors = errors[converged_mask]
+
+        if len(converged_errors) == 0:
+            raise RuntimeError("Zero events converged successfully.")
+
+        fig, ax = plt.subplots(figsize=(9, 6))
+        
+        p1, p99 = np.percentile(converged_errors, [1, 99])
+        plot_range = (p1, p99) if p1 < p99 else (converged_errors.min(), converged_errors.max())
+        
+        ax.hist(converged_errors, bins='fd', range=plot_range, alpha=0.75, color='royalblue', edgecolor='black')
+        ax.axvline(0, color='red', linestyle='--', alpha=0.7, label='Zero Error')
+        ax.axvline(de['median']*100, color='darkorange', linestyle='-', 
+                   label=f"Median ({de['median']*100:.1e}%)")
+        ax.set_xlabel("Relative Error (%)", fontsize=11)
+
+        ax.set_title("Distribution of Relative Errors in Expectation Densities", fontsize=12, fontweight='bold')
+        ax.set_ylabel("Number of Events", fontsize=11)
+        ax.grid(True, which="both", linestyle=":", alpha=0.5)
+        ax.legend()
+
+        plt.tight_layout()
+        
+        if save_path is not None:
+            plt.savefig(str(save_path), bbox_inches='tight', dpi=300)
+            
+        plt.show()
     
     def expected_counts(self) -> float:
         """
@@ -959,10 +1371,10 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         if (source_dict != self._last_convolved_source_dict_density) or (self._exp_density is None):
             self._exp_density = torch.zeros(self._n_events, dtype=torch.float64)
             
-            n_energy = self._total_energy_nodes[0]
+            n_energy = self._density_integration_nodes
             batch_size = self._integration_batch_size // n_energy
 
-            if (self._irf_energy_node_cache is not None) & (batch_size >= self._n_events):
+            if (self._irf_energy_node_cache is not None) & (batch_size >= self._valid_events):
                 flux = torch.as_tensor(
                     self._source(
                         np.asarray(self._irf_energy_node_cache, dtype=np.float64).ravel()
@@ -972,23 +1384,23 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 
                 cache = torch.as_tensor(self._irf_cache, dtype=torch.float64)
 
-                torch.linalg.vecdot(cache, flux, dim=1, out=self._exp_density)
+                self._exp_density[self._valid_mask_cache] = torch.linalg.vecdot(cache, flux, dim=1)
 
             else:
                 if self._irf_energy_node_cache is None:
-                    sc_coord_sph = self._sc_coord_sph_cache
+                    sc_coord_sph = self._sc_coord_sph_cache[self._valid_mask_cache]
 
                     lon_ph_rad = asarray(sc_coord_sph.lon.rad, dtype=np.float32)
                     lat_ph_rad = asarray(sc_coord_sph.lat.rad, dtype=np.float32)
 
-                    phi_geo_rad, phi_igeo_rad = self._get_CDS_coordinates(torch.as_tensor(lon_ph_rad), torch.as_tensor(lat_ph_rad))
+                    phi_geo_rad, phi_igeo_rad = self._get_CDS_coordinates(torch.as_tensor(lon_ph_rad), torch.as_tensor(lat_ph_rad), indices=self._valid_mask_cache)
 
-                for i in range(0, self._n_events, batch_size):
-                    end = min(i + batch_size, self._n_events)
+                for i in range(0, self._valid_events, batch_size):
+                    end = min(i + batch_size, self._valid_events)
 
                     if self._irf_energy_node_cache is None:
-                        e_sl = self._energy_m_keV[i:end]
-                        p_sl = self._phi_rad[i:end]
+                        e_sl = self._energy_m_keV[self._valid_mask_cache[i:end]]
+                        p_sl = self._phi_rad[self._valid_mask_cache[i:end]]
                         pg_sl = phi_geo_rad[i:end]
                         pig_sl = phi_igeo_rad[i:end]
 
@@ -1005,7 +1417,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                     
                     cache = torch.as_tensor(self._irf_cache[i:end], dtype=torch.float64)
                     
-                    torch.linalg.vecdot(cache, flux_batch, dim=1, out=self._exp_density[i:end])
+                    self._exp_density[self._valid_mask_cache[i:end]] = torch.linalg.vecdot(cache, flux_batch, dim=1)
             
         self._last_convolved_source_dict_density = source_dict
         
