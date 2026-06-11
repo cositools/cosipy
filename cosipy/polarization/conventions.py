@@ -242,14 +242,18 @@ class MEGAlibRelative(ConventionInSpacecraftFrameMixin, OrthographicConvention):
 
         axis = axis.lower()
 
-        if axis == 'x':
-            ref_vector = np.asarray([1,0,0])
-        elif axis == 'y':
-            ref_vector = np.asarray([0,1,0])
-        elif axis == 'z':
-            ref_vector = np.asarray([0,0,1])
-        else:
-            raise ValueError("Axis must be 'x', 'y' or 'z'.")
+        match axis:
+            case 'x':
+                ref_vector = np.asarray([1,0,0])
+
+            case 'y':
+                ref_vector = np.asarray([0,1,0])
+
+            case 'z':
+                ref_vector = np.asarray([0,0,1])
+
+            case _:
+                raise ValueError("Axis must be 'x', 'y' or 'z'.")
 
         frame = SpacecraftFrame(attitude = attitude)
 
@@ -257,12 +261,12 @@ class MEGAlibRelative(ConventionInSpacecraftFrameMixin, OrthographicConvention):
 
     def get_basis_local(self, source_vector: np.ndarray):
 
-        # The MEGAlib and orthographic definitions are prett much the same, but
-        # they differ on the order of the cross products
+        # The MEGAlib and orthographic definitions are pretty much the
+        # same, but they differ on the order of the cross products
 
         # In MEGAlib definition
         # pz = -source_direction = particle_direction
-        # px = particle_direction x ref_vector  = pz x ref_vector
+        # px = particle_direction x ref_vector = pz x ref_vector
         # py = pz x px
 
         # In the base orthographic definition

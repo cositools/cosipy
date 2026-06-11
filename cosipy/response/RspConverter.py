@@ -481,7 +481,8 @@ class RspConverter():
                 axes.append(PolarizationAxis(edges=axis_edges,
                                              unit=axis_unit,
                                              convention=hdr["pa_convention"],
-                                             label=axis_label))
+                                             label=axis_label,
+                                             copy=False))
 
             else:
                 scale = RspConverter.axis_scale[axis_label]

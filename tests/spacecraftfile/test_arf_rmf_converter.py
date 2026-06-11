@@ -6,6 +6,8 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 from astropy.io import fits
 
+import matplotlib.pyplot as plt
+
 from cosipy import test_data, SpacecraftHistory
 from cosipy.response import FullDetectorResponse
 from cosipy.response import RspArfRmfConverter
@@ -183,6 +185,8 @@ def test_plot_arf(tmp_path):
     converter = RspArfRmfConverter(response, ori, target_coord)
 
     converter.plot_arf()
+    plt.show()
+    plt.close()
 
 def test_plot_rmf(tmp_path):
     response_path = test_data.path / "test_full_detector_response.h5"
@@ -194,3 +198,5 @@ def test_plot_rmf(tmp_path):
     converter = RspArfRmfConverter(response, ori, target_coord)
 
     converter.plot_rmf()
+    plt.show()
+    plt.close()
