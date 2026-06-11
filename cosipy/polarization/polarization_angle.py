@@ -3,13 +3,16 @@ from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 from scoords import SpacecraftFrame
 
-from .conventions import PolarizationConvention
+from .conventions import (
+    PolarizationConvention,
+    IAUPolarizationConvention,
+)
 
 class PolarizationAngle:
 
     def __init__(self, angle,
                  source: SkyCoord = None,
-                 convention = 'iau'):
+                 convention = IAUPolarizationConvention()):
         """
         Defines a polarization angle in the context of a source direction and
         polarization angle convention.
