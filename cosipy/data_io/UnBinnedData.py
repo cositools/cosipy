@@ -922,7 +922,7 @@ class UnBinnedData(DataIO):
             logger.info("Saving file...")
             self.write_unbinned_output(output_name)
 			
-	def cut_EarthHorizon(self ,cutvalue ,unbinned_data=None, output_name=None, returnEHcut = False):
+    def cut_EarthHorizon(self ,cutvalue ,unbinned_data=None, output_name=None, returnEHcut = False):
 
         """Applies Earth horizon cuts [cutvalue,1] to unbinnned data dictionary
 
