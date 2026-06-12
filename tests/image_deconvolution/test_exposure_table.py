@@ -5,31 +5,30 @@ from histpy import Histogram
 
 from cosipy import test_data
 from cosipy.image_deconvolution import SpacecraftAttitudeExposureTable, TimeBinnedExposureTable
-from cosipy.spacecraftfile import SpacecraftFile
 from cosipy import response
 from cosipy import BinnedData
+from cosipy.spacecraftfile import SpacecraftHistory
 
 def test_scatt_exposure_table(tmp_path):
 
     nside = 1
 
-    ori = SpacecraftFile.open(test_data.path / "20280301_first_10sec.fits")
+    ori = SpacecraftHistory.open(test_data.path / "20280301_first_10sec.fits")
 
-    assert SpacecraftAttitudeExposureTable.analyze_orientation(ori, nside=nside, start=None, stop=ori.get_time()[-1], min_livetime=0, min_num_pointings=1) == None
+    assert SpacecraftAttitudeExposureTable.analyze_orientation(ori, nside=nside, start=None, stop=ori.obstime[-1], min_livetime=0, min_num_pointings=1) == None
 
-    assert SpacecraftAttitudeExposureTable.analyze_orientation(ori, nside=nside, start=ori.get_time()[0], stop=None, min_livetime=0, min_num_pointings=1) == None
-
+    assert SpacecraftAttitudeExposureTable.analyze_orientation(ori, nside=nside, start=ori.obstime[0], stop=None, min_livetime=0, min_num_pointings=1) == None
 
     exposure_table = SpacecraftAttitudeExposureTable.from_orientation(ori, nside=nside,
-                                                                      start=ori.get_time()[0], stop=ori.get_time()[-1],
+                                                                      start=ori.obstime[0], stop=ori.obstime[-1],
                                                                       min_livetime=0, min_num_pointings=1)
 
     exposure_table_nest = SpacecraftAttitudeExposureTable.from_orientation(ori, nside=nside, scheme = 'nested',
-                                                                           start=ori.get_time()[0], stop=ori.get_time()[-1],
+                                                                           start=ori.obstime[0], stop=ori.obstime[-1],
                                                                            min_livetime=0, min_num_pointings=1)
 
     exposure_table_badscheme = SpacecraftAttitudeExposureTable.from_orientation(ori, nside=nside, scheme = None,
-                                                                                start=ori.get_time()[0], stop=ori.get_time()[-1],
+                                                                                start=ori.obstime[0], stop=ori.obstime[-1],
                                                                                 min_livetime=0, min_num_pointings=1)
 
     exposure_table.save_as_fits(tmp_path / "exposure_table_test_nside1_ring.fits")
@@ -70,7 +69,7 @@ def test_scatt_exposure_table(tmp_path):
     assert np.all(binned_signal.contents == binned_signal_ref.contents)
 
 def test_time_binned_exposure_table(tmp_path):
-    ori = SpacecraftFile.open(test_data.path / "20280301_first_10sec.fits")
+    ori = SpacecraftHistory.open(test_data.path / "20280301_first_10sec.fits")
 
     tstart_list = Time([1835478000.0], scale='utc', format='unix')
     tstop_list  = Time([1835478005.0], scale='utc', format='unix')

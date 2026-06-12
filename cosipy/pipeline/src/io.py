@@ -1,7 +1,9 @@
-from cosipy import BinnedData
-from cosipy.spacecraftfile import SpacecraftFile
-from astropy.time import Time
 import numpy as np
+
+from astropy.time import Time
+
+from cosipy import BinnedData
+from cosipy.spacecraftfile import SpacecraftHistory
 
 
 def load_binned_data(yaml_path, data_path):
@@ -41,7 +43,7 @@ def load_ori(ori_path):
     ori: cosipy.spacecraftfile.SpacecraftFile.SpacecraftFile
         The SpacecraftFile Object.
     """
-    ori = SpacecraftFile.open(ori_path)
+    ori = SpacecraftHistory.open(ori_path)
     return ori
 
 

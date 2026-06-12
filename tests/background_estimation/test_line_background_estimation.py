@@ -75,3 +75,50 @@ def test_line_background_estimation():
     background_region_2 = (3500.0, 6310.0) * u.keV #background counts estimation before the line
 
     bkg_model_histogram = instance.generate_bkg_model_histogram(source_range, [background_region_1, background_region_2])
+
+    ## Case 5: smoothing
+    bkg_model_histogram_smoothing = instance.generate_bkg_model_histogram(
+        source_range, [background_region_1, background_region_2],
+        smoothing_fwhm=20 * u.deg)
+
+    ### total counts should be preserved after smoothing
+    assert np.isclose(np.sum(bkg_model_histogram_smoothing), np.sum(bkg_model_histogram), rtol=1e-3)
+
+    ## Case 6: l_cut
+    bkg_model_histogram_l_cut = instance.generate_bkg_model_histogram(
+        source_range, [background_region_1, background_region_2],
+        l_cut=3)
+
+    ### shape should be unchanged after l_cut filtering
+    assert bkg_model_histogram_l_cut.shape == bkg_model_histogram.shape
+
+    ## Case 7: smoothing_fwhm and l_cut cannot be specified at the same time
+    with pytest.raises(ValueError):
+        instance.generate_bkg_model_histogram(
+            source_range, [background_region_1, background_region_2],
+            smoothing_fwhm=20 * u.deg, l_cut=3)
+
+    ## Case 8: rebin_phi + smoothing
+    bkg_model_histogram_rebin_smoothing = instance.generate_bkg_model_histogram(
+        source_range, [background_region_1, background_region_2],
+        smoothing_fwhm=20 * u.deg, rebin_phi=5)
+
+    ### shape should be unchanged after rebin+unbin
+    assert bkg_model_histogram_rebin_smoothing.shape == bkg_model_histogram.shape
+
+    ### total counts per Phi bin should be preserved (rebin_phi only changes spatial pattern)
+    phi_original = np.sum(bkg_model_histogram[:],       axis=-1)  # sum over PsiChi
+    phi_rebin    = np.sum(bkg_model_histogram_rebin_smoothing[:], axis=-1)
+    assert np.allclose(phi_original, phi_rebin, rtol=1e-5)
+
+    ## Case 9: rebin_phi + l_cut
+    bkg_model_histogram_rebin_l_cut = instance.generate_bkg_model_histogram(
+        source_range, [background_region_1, background_region_2],
+        l_cut=3, rebin_phi=5)
+
+    ### shape should be unchanged
+    assert bkg_model_histogram_rebin_l_cut.shape == bkg_model_histogram.shape
+
+    ### total counts per Phi bin should be preserved
+    phi_rebin_l_cut = np.sum(bkg_model_histogram_rebin_l_cut[:], axis=-1)
+    assert np.allclose(phi_original, phi_rebin_l_cut, rtol=1e-5)

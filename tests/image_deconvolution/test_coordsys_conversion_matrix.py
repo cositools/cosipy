@@ -3,7 +3,7 @@ import numpy as np
 
 from cosipy import test_data
 from cosipy.response import FullDetectorResponse
-from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.spacecraftfile import SpacecraftHistory
 from cosipy.image_deconvolution import SpacecraftAttitudeExposureTable
 
 from cosipy.image_deconvolution import CoordsysConversionMatrix
@@ -12,7 +12,7 @@ from cosipy.image_deconvolution import CoordsysConversionMatrix
 #
 #    full_detector_response = FullDetectorResponse.open(test_data.path / "test_full_detector_response.h5")
 #
-#    ori = SpacecraftFile.open(test_data.path / "20280301_first_10sec.fits")
+#    ori = SpacecraftHistory.open(test_data.path / "20280301_first_10sec.fits")
 #
 #    ccm = CoordsysConversionMatrix.time_binning_ccm(full_detector_response, ori, [ori.get_time()[0].value, ori.get_time()[-1].value] * u.s)
 #
@@ -21,7 +21,7 @@ from cosipy.image_deconvolution import CoordsysConversionMatrix
 #    ccm_test = CoordsysConversionMatrix.open(test_data.path / "image_deconvolution/ccm_time_test.hdf5")
 #
 #    assert ccm.axes     == ccm_test.axes
-#    assert np.allclose(ccm.contents.todense(), ccm_test.contents.todense())
+#    assert np.allclose(ccm.contents.to_dense(copy=False), ccm_test.contents.to_dense(copy=False))
 #    assert ccm.unit     == ccm_test.unit
 
 def test_coordsys_conversion_matrix_scatt(tmp_path):
@@ -37,7 +37,7 @@ def test_coordsys_conversion_matrix_scatt(tmp_path):
     ccm_test = CoordsysConversionMatrix.open(test_data.path / "image_deconvolution/ccm_scatt_use_averaged_pointing_False_test.hdf5")
 
     assert ccm.axes     == ccm_test.axes
-    assert np.allclose(ccm.contents.todense(), ccm_test.contents.todense())
+    assert np.allclose(ccm.to_dense(copy=False).contents, ccm_test.to_dense(copy=False).contents)
     assert ccm.unit     == ccm_test.unit
 
     ccm = CoordsysConversionMatrix.from_exposure_table(exposure_table, full_detector_response, use_averaged_pointing = True)
@@ -47,7 +47,7 @@ def test_coordsys_conversion_matrix_scatt(tmp_path):
     ccm_test = CoordsysConversionMatrix.open(test_data.path / "image_deconvolution/ccm_scatt_use_averaged_pointing_True_test.hdf5")
 
     assert ccm.axes     == ccm_test.axes
-    assert np.allclose(ccm.contents.todense(), ccm_test.contents.todense())
+    assert np.allclose(ccm.to_dense(copy=False).contents, ccm_test.to_dense(copy=False).contents)
     assert ccm.unit     == ccm_test.unit
 
     assert np.all(ccm.calc_exposure_map(full_detector_response).nbins == np.array([1,12,10]))

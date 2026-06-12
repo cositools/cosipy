@@ -3,8 +3,8 @@ from astropy.coordinates import Angle, SkyCoord
 from astropy import units as u
 from scoords import SpacecraftFrame
 
-from cosipy.polarization.polarization_stokes import PolarizationStokes, rotate_points_to_x_axis
-from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.polarization_fitting.polarization_stokes import PolarizationStokes, rotate_points_to_x_axis
+from cosipy.spacecraftfile import SpacecraftHistory
 from cosipy import UnBinnedData
 from cosipy.threeml.custom_functions import Band_Eflux
 from cosipy import test_data
@@ -12,14 +12,14 @@ from cosipy import test_data
 analysis = UnBinnedData(test_data.path / 'polarization_data.yaml')
 data = analysis.get_dict_from_hdf5(test_data.path / 'polarization_data.hdf5')
 response_path = test_data.path / 'test_polarization_response.h5'
-sc_orientation = SpacecraftFile.open(test_data.path / 'polarization_ori.fits')
-attitude = sc_orientation.get_attitude()[0]
+sc_orientation = SpacecraftHistory.open(test_data.path / 'polarization_ori.fits')
+attitude = sc_orientation.attitude[0]
 
 a = 10. * u.keV
 b = 10000. * u.keV
 alpha = -1.
 beta = -2.
-ebreak = 350. * u.keV 
+ebreak = 350. * u.keV
 K = 50. / u.cm / u.cm / u.s
 spectrum = Band_Eflux(a = a.value,
                       b = b.value,
@@ -37,10 +37,10 @@ source_direction = SkyCoord(0, 70, representation_type='spherical', frame=Spacec
 def test_stokes_polarization():
 
     bin_edges = Angle(np.linspace(-np.pi, np.pi, 10), unit=u.rad)
-    source_photons = PolarizationStokes(source_direction, spectrum, data, 
-                                        response_path, sc_orientation, background=None, 
-                                        response_convention='RelativeZ', asad_bin_edges=bin_edges, show_plots=False)
-    
+    source_photons = PolarizationStokes(source_direction, spectrum, data,
+                                        response_path, sc_orientation, background=None,
+                                        asad_bin_edges=bin_edges, show_plots=False)
+
     average_mu = source_photons._mu100['mu']
     mdp99 = source_photons._mdp99
     bkg_duration = source_photons.get_background_duration()

@@ -1,4 +1,3 @@
-from .polarization_asad import PolarizationASAD
-from .polarization_stokes import PolarizationStokes
 from .conventions import PolarizationConvention, OrthographicConvention, StereographicConvention, IAUPolarizationConvention
 from .polarization_angle import PolarizationAngle
+from .polarization_axis import PolarizationAxis

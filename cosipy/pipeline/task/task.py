@@ -1,15 +1,11 @@
-import logging
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-import os
+from pathlib import Path
+import argparse, textwrap
 import subprocess
 
-import argparse, textwrap
+from astromodels.core.model_parser import ModelParser
 
 from yayc import Configurator
+
 from cosipy import UnBinnedData
 
 from cosipy.pipeline.src.io import *
@@ -17,9 +13,11 @@ from cosipy.pipeline.src.preprocessing import *
 from cosipy.pipeline.src.fitting import *
 from cosipy.pipeline.src.plotting import *
 
-from pathlib import Path
-
-from astromodels.core.model_parser import ModelParser
+import logging
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def cosi_bindata(argv=None):
@@ -31,12 +29,14 @@ def cosi_bindata(argv=None):
             """),
         description=textwrap.dedent(
             """
-            Bins an unbinned dataset matching the given response matrix
-            and within the time interval of the given orientation file.
-            Uses the given time bin size (dt) and coordinate system (either "local" or "galactic").
-            Optionally, applies a time selection tmin-tmax to the data before binning.
-            Data, response and orientation files paths in the config file should be relative to the config file.
-            Outputs the input_yaml describing the binning and the binned dataset.
+            Bins an unbinned dataset matching the given response matrix and
+            within the time interval of the given orientation file.
+            Uses the given time bin size (dt) and coordinate system
+            (either "local" or "galactic").  Optionally, applies a
+            time selection tmin-tmax to the data before binning.
+            Data, response and orientation files paths in the config
+            file should be relative to the config file.  Outputs the
+            input_yaml describing the binning and the binned dataset.
             """),
         formatter_class=argparse.RawTextHelpFormatter)
 
@@ -97,8 +97,8 @@ def cosi_bindata(argv=None):
     ori_path=config.absolute_path(config["sc_file"])
 
     # Time info
-    ori = SpacecraftFile.open(ori_path)
-    ori_time=ori.get_time()
+    ori = SpacecraftHistory.open(ori_path)
+    ori_time=ori.obstime
     tmin=config.get("tmin")
     tmax=config.get("tmax")
     if  config.get("tmin")==None:
@@ -164,11 +164,12 @@ def cosi_threemlfit(argv=None):
             """),
         description=textwrap.dedent(
             """
-            Fits a source at l,b and optionally in a time window tstart-tstop using the given model.
-            Data, response and orientation files paths in the config file should be relative to the config file.
-            Outputs fit results in a fits file and a pdf plot of the fits. The fitted parameter
-            are also printed to stdout.
-            """),
+            Fits a source at l,b and optionally in a time window tstart-tstop
+            using the given model.  Data, response and orientation
+            files paths in the config file should be relative to the
+            config file.  Outputs fit results in a fits file and a pdf
+            plot of the fits. The fitted parameter are also printed to
+            stdout.  """),
         formatter_class=argparse.RawTextHelpFormatter)
 
     apar.add_argument('--config',
@@ -214,7 +215,7 @@ def cosi_threemlfit(argv=None):
 
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
-    result_name="results.fits" if not args.suffix else str("results_"+args.suffix+".fits")
+    result_name="results.h5" if not args.suffix else str("results_"+args.suffix+".h5")
     plot_name="raw_spectrum.pdf" if not args.suffix else str("raw_spectrum_"+args.suffix+".pdf")
 
     # Parse model
@@ -242,21 +243,28 @@ def cosi_threemlfit(argv=None):
 
         tstart = Time(tstart, format='unix')
         tstop = Time(tstop, format='unix')
+        tfrac = (tstop - tstart).to_value('s')*0.5
 
         sliced_data=tslice_binned_data(binned_data, tstart, tstop)
         binned_data=sliced_data
-        bk_sliced_data = tslice_binned_data(bk_binned_data, tstart - 100, tstop + 100)
+        bk_sliced_data = tslice_binned_data(bk_binned_data, tstart - tfrac, tstop + tfrac)
         bk_binned_data=bk_sliced_data
-        ori_sliced = ori.source_interval(tstart, tstop)
-        ori=ori_sliced
+
+    tmin_sou = Time(binned_data.axes['Time'].edges.min(), format='unix')
+    tmax_sou = Time(binned_data.axes['Time'].edges.max(), format='unix')
+    tmin_bk = Time(bk_binned_data.axes['Time'].edges.min(), format='unix')
+    tmax_bk = Time(bk_binned_data.axes['Time'].edges.max(), format='unix')
+    ori_sliced_sou = ori.select_interval(tmin_sou, tmax_sou)
+    ori_sliced_bk = ori.select_interval(tmin_bk, tmax_bk)
+
 
     # Calculation
-    results, cts_exp = get_fit_results(binned_data, bk_binned_data, resp_path, ori, "cosi_bkg", model)
+    results, cts_exp = get_fit_results(binned_data, bk_binned_data, resp_path, ori_sliced_sou, ori_sliced_bk, model)
 
 
     # Results
     results.display()
-    results.write_to(odir/result_name, overwrite=args.overwrite)
+    results.write_to(odir/result_name, overwrite=args.overwrite, as_hdf=True)
 
     print("Median and errors:")
     fitted_par_err = get_fit_par(results)

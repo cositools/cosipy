@@ -19,8 +19,8 @@ import h5py
 from scoords import Attitude, SpacecraftFrame
 
 import cosipy
+from cosipy.spacecraftfile import SpacecraftHistory
 from cosipy.data_io import DataIO
-from cosipy.spacecraftfile import SpacecraftFile
 
 import logging
 logger = logging.getLogger(__name__)
@@ -472,11 +472,11 @@ class UnBinnedData(DataIO):
             but it does not explicitly return them.
         """
 
-        # Get orientation info
-        ori = SpacecraftFile.open(self.ori_file)
-        time_tags = ori.get_time().to_value(format="unix")
-        x_pointings = ori.x_pointings
-        z_pointings = ori.z_pointings
+        # Get ori info:
+        ori = SpacecraftHistory.open(self.ori_file)
+        time_tags = ori.obstime.to_value(format="unix")
+
+        x_pointings, _, z_pointings = ori.attitude.as_axes()
 
         # Interpolate:
         self.xl_interp = interpolate.interp1d(time_tags, x_pointings.l.rad, kind='linear')
@@ -905,10 +905,10 @@ class UnBinnedData(DataIO):
             self.cosi_dataset = self.get_dict(unbinned_data)
 
         # Get orientation info
-        ori = SpacecraftFile.open(self.ori_file)
+        ori = SpacecraftHistory.open(self.ori_file)
 
         # Get bad time intervals
-        bti = self.find_bad_intervals(ori._time, ori.livetime)
+        bti = self.find_bad_intervals(ori.obstime, ori.livetime)
 
         # Get indices for good photons
         time_keep_index = self.filter_good_data(self.cosi_dataset['TimeTags'], bti)

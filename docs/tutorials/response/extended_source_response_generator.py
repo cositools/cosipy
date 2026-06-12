@@ -7,7 +7,7 @@ logger = logging.getLogger('cosipy')
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
-from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.spacecraftfile import SpacecraftHistory
 from cosipy.response import FullDetectorResponse, ExtendedSourceResponse
 
 # file path
@@ -16,7 +16,7 @@ orientation_path = "20280301_3_month_with_orbital_info.fits"
 
 # load response and orientation
 full_detector_response = FullDetectorResponse.open(full_detector_response_path)
-orientation = SpacecraftFile.open(orientation_path)
+orientation = SpacecraftHistory.open(orientation_path)
 
 # generate your extended source response
 extended_source_response = full_detector_response.get_extended_source_response(orientation,

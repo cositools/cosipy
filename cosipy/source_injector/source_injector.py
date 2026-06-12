@@ -1,16 +1,21 @@
 import numpy as np
+
+import matplotlib.pyplot as plt
+
 from cosipy.response import (
     GalacticResponse,
     FullDetectorResponse,
     PointSourceResponse,
     ExtendedSourceResponse
 )
+
 import logging
 logger = logging.getLogger(__name__)
 
 class SourceInjector():
 
-    def __init__(self, response_path, response_frame="spacecraftframe", pa_convention=None):
+    def __init__(self, response_path, response_frame="spacecraftframe",
+                 pa_convention=None):
         """
         `SourceInjector` convolve response, source model(s) and
         orientation to produce a mocked simulated data. The data can
@@ -27,9 +32,8 @@ class SourceInjector():
             the CDS is in the detector frame.)
         pa_convention : str, optional
             Polarization angle convention for polarization-enabled
-            detector-frame responses. Must be one of ('RelativeX',
-            'RelativeY', 'RelativeZ') when the response includes a
-            `Pol` axis and `response_frame="spacecraftframe"`.
+            detector-frame responses that do not specify their own
+            convention.
 
         """
 
@@ -75,7 +79,8 @@ class SourceInjector():
                             make_PsiChi_plot=False,
                             data_save_path=None,
                             project_axes=None,
-                            polarization=None):
+                            polarization=None,
+                            earth_occ=True):
         """
         Get the expected counts for a point source.
 
@@ -85,11 +90,9 @@ class SourceInjector():
             The spectrum model defined from `astromodels`.
         coordinate : astropy.coordinates.SkyCoord
             The coordinate of the point source.
-        orientation : cosipy.spacecraftfile.SpacecraftFile, optional
+        orientation : cosipy.spacecraftfile.SpacecraftHistory, optional
             The orientation of the telescope during the mock
-            simulation. This is needed when using a detector
-            response. (the default is `None`, which means a galactic
-            response is used.
+            simulation. This is needed when using a detector response. (the default is `None`, which means a galactic response is used.
         source_name : str, optional
             The name of the source (the default is `point_source`).
         make_spectrum_plot : bool, optional
@@ -109,6 +112,9 @@ class SourceInjector():
             assumed to have the same convention as the point source
             response. If the response does not include a `Pol` axis,
             the injector will fall back to an unpolarized expectation.
+        earth_occ : bool, optional
+            Option to include Earth occultation in scatt map calculation.
+            Default is True.
 
         Returns
         -------
@@ -127,17 +133,17 @@ class SourceInjector():
                                 "be provided to compute the "
                                 "expected counts.")
 
-            # If the response includes a polarization axis, FullDetectorResponse requires an explicit polarization-angle convention.
-            if self.pa_convention is None:
-                response = FullDetectorResponse.open(self.response_path)
-            else:
-                response = FullDetectorResponse.open(self.response_path, pa_convention=self.pa_convention)
+            # If the response includes a polarization axis but does
+            # not specify its convention, FullDetectorResponse
+            # requires an explicit polarization-angle convention.
+            response = FullDetectorResponse.open(self.response_path,
+                                                 pa_convention=self.pa_convention)
 
             with response as response:
 
                 scatt_map = orientation.get_scatt_map(response.nside * 2,
                                                       target_coord=coordinate,
-                                                      earth_occ=True)
+                                                      earth_occ=earth_occ)
 
                 psr = response.get_point_source_response(coord=coordinate,
                                                          scatt_map=scatt_map)
@@ -182,11 +188,17 @@ class SourceInjector():
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
+            plt.show()
+            plt.close()
+
         if make_PsiChi_plot:
             plot, ax = injected.project('PsiChi').plot(coord='G',
                                                        ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
+
+            plt.show()
+            plt.close()
 
         if data_save_path is not None:
             injected.write(data_save_path)
@@ -270,7 +282,7 @@ class SourceInjector():
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
         if make_PsiChi_plot:
-            plot, ax = injected.project('PsiChi').plot(coord='G',
+            ax, plot = injected.project('PsiChi').plot(coord='G',
                                                        ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
@@ -287,8 +299,9 @@ class SourceInjector():
                      make_PsiChi_plot=False,
                      data_save_path=None,
                      project_axes=None,
+                     fluctuate=True,
                      polarization=None,
-                     fluctuate=True):
+                     earth_occ=True):
         """
         Build an injected source by combining all the sources in a
         model.  Each injected source is stored by name in a dictionary
@@ -322,8 +335,11 @@ class SourceInjector():
             point sources. If a given point source response does not
             include a `Pol` axis, the injector will fall back to an
             unpolarized expectation for that source.
+        earth_occ : bool, optional
+            Option to include Earth occultation in scatt map calculation.
+            Default is True.
         fluctuate : bool,optional
-            Add poisson fluctuations on the injected source. 
+            Add poisson fluctuations on the injected source.
             The default value is set to True.
 
         Returns
@@ -355,7 +371,8 @@ class SourceInjector():
                                                 orientation=orientation,
                                                 source_name=name,
                                                 project_axes=project_axes,
-                                                polarization=polarization)
+                                                polarization=polarization,
+                                                earth_occ=earth_occ)
 
             # set to log scale manually. This inconsistency is from
             # the detector response module
@@ -387,7 +404,7 @@ class SourceInjector():
 
         if fluctuate :
             injected_all[:] = np.random.poisson(injected_all)
-                         
+
         if data_save_path is not None:
             injected_all.write(data_save_path)
 
@@ -399,10 +416,16 @@ class SourceInjector():
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
+            plt.show()
+            plt.close()
+
         if make_PsiChi_plot:
             plot, ax = injected_all.project('PsiChi').plot(coord='G',
                                                            ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
-            
+
+            plt.show()
+            plt.close()
+
         return injected_all

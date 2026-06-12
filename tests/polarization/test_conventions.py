@@ -17,10 +17,22 @@ def test_orthographic_projection_default():
     assert np.isclose(py.separation(SkyCoord(ra = 0*u.deg, dec = 0*u.deg)), 0)
 
 def test_stereographic_projection_default():
-    
+
     stereo_convention = StereographicConvention()
-    px, py = stereo_convention.get_basis(source_direction)
-    
+
+    # StereographicConvention default to SC coordinates, without attitude,
+    # so get_basis() from an inertial system will fail
+    with pytest.raises(RuntimeError):
+        px, py = stereo_convention.get_basis(source_direction)
+
+    # StereographicConvention is undefined at -z
+    source_direction_sc = SkyCoord(lat=-90 * u.deg, lon=0 * u.deg, frame=SpacecraftFrame())  # -z
+    with pytest.raises(RuntimeError):
+        px, py = stereo_convention.get_basis(source_direction_sc)
+
+    source_direction_sc = SkyCoord(lon=-90 * u.deg, lat=0 * u.deg, frame=SpacecraftFrame())  # -y
+    px, py = stereo_convention.get_basis(source_direction_sc)
+
     assert np.isclose(px.separation(SkyCoord(lon = 0*u.deg, lat = 0*u.deg,
                                              frame = SpacecraftFrame())), 0)
     assert np.isclose(py.separation(SkyCoord(lon = 0*u.deg, lat = -90*u.deg,

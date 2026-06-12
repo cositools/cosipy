@@ -9,9 +9,11 @@ from histpy import Histogram, HealpixAxis, Axis
 
 from cosipy import test_data
 from cosipy.response import FullDetectorResponse
-from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.spacecraftfile import SpacecraftHistory
 
 response_path = test_data.path / "test_full_detector_response.h5"
+rel_response_path = test_data.path / "test_full_detector_response_rel.h5"
+pol_response_path = test_data.path / "test_polarization_response.h5"
 orientation_path = test_data.path / "20280301_first_10sec.fits"
 
 def test_open():
@@ -24,6 +26,9 @@ def test_open():
 
         assert response.shape == tuple(response.axes.nbins)
 
+        assert not response.is_relative_cds
+        assert response.pa_convention is None
+
         assert response.eff_area_correction.dtype == np.float32
         assert len(response.eff_area_correction) == response.axes['Ei'].nbins
 
@@ -35,6 +40,56 @@ def test_open():
         hdr = response.headers
 
         for tag in ('Version', 'NM', 'OD', 'TS', 'SA', 'SP', 'BE', 'CE'):
+            assert tag in hdr
+
+    with FullDetectorResponse.open(rel_response_path, dtype=np.float32) as response:
+
+        assert response.filename == rel_response_path
+
+        assert response.ndim == 6
+
+        assert response.shape == tuple(response.axes.nbins)
+
+        assert response.is_relative_cds
+        assert response.pa_convention is not None
+
+        assert response.eff_area_correction.dtype == np.float32
+        assert len(response.eff_area_correction) == response.axes['Ei'].nbins
+
+        assert arr_eq(response.axes.labels,
+                      ['NuLambda', 'Ei', 'Epsilon', 'Phi', 'Theta', 'Zeta'])
+
+        assert response.unit.is_equivalent('m2')
+
+        hdr = response.headers
+
+        for tag in ('Version', 'NM', 'OD', 'TS', 'SA', 'SP', 'BE', 'CE', 'PO'):
+            assert tag in hdr
+
+    with FullDetectorResponse.open(pol_response_path, dtype=np.float32) as response:
+
+        assert response.filename == pol_response_path
+
+        assert response.ndim == 6
+
+        assert response.shape == tuple(response.axes.nbins)
+
+        assert not response.is_relative_cds
+        assert response.pa_convention is not None
+
+        assert response.eff_area_correction.dtype == np.float32
+        assert len(response.eff_area_correction) == response.axes['Ei'].nbins
+
+        assert arr_eq(response.axes.labels,
+                      ['NuLambda', 'Ei', 'Pol', 'Em', 'Phi', 'PsiChi'])
+
+        assert response.pa_convention.registered_name == response.axes['Pol'].convention.registered_name
+
+        assert response.unit.is_equivalent('m2')
+
+        hdr = response.headers
+
+        for tag in ('Version', 'NM', 'OD', 'TS', 'SA', 'SP', 'BE', 'CE', 'PO'):
             assert tag in hdr
 
 def test_get_item():
@@ -86,14 +141,13 @@ def test_get_interp_response():
 
 def test_get_point_source_response():
 
-    orientation = SpacecraftFile.open(orientation_path)
+    orientation = SpacecraftHistory.open(orientation_path)
     coord = SkyCoord(l=0,b=0,unit=u.deg,frame="galactic")
 
     with FullDetectorResponse.open(response_path) as response:
 
         # test call with dwell_map
-        src_path = orientation.get_target_in_sc_frame(coord)
-        exp_map = orientation.get_dwell_map(response, src_path)
+        exp_map = orientation.get_dwell_map(coord, base = response)
 
         psr = response.get_point_source_response(exposure_map = exp_map)
 
@@ -110,7 +164,7 @@ def test_get_point_source_response():
                                                  scatt_map=scatt_map)
 def test_get_extended_source_response():
 
-    orientation = SpacecraftFile.open(orientation_path)
+    orientation = SpacecraftHistory.open(orientation_path)
 
     with FullDetectorResponse.open(response_path) as response:
 
@@ -129,7 +183,7 @@ def test_get_extended_source_response():
 
 def test_merge_psr_to_extended_source_response(tmp_path):
 
-    orientation = SpacecraftFile.open(orientation_path)
+    orientation = SpacecraftHistory.open(orientation_path)
 
     with FullDetectorResponse.open(response_path) as response:
 

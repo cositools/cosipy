@@ -3,13 +3,16 @@ from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 from scoords import SpacecraftFrame
 
-from .conventions import PolarizationConvention
+from .conventions import (
+    PolarizationConvention,
+    IAUPolarizationConvention,
+)
 
 class PolarizationAngle:
 
-    def __init__(self, angle, source,
-                 convention = 'iau',
-                 *args, **kwargs):
+    def __init__(self, angle,
+                 source: SkyCoord = None,
+                 convention = IAUPolarizationConvention()):
         """
         Defines a polarization angle in the context of a source direction and
         polarization angle convention.
@@ -18,24 +21,25 @@ class PolarizationAngle:
         angle : :py:class:`astropy.coordinates.Angle
             Polarization angle
         source : :py:class:`astropy.coordinates.SkyCoord`
-            Source direction
+            Source direction. Optional, but needed to use vector() and transform_to()
         convention : PolarizationConvention
             Convention the defined the polarization basis and direction in
             the polarization plane (for which the source direction is normal)
-        *args, **kwargs
-            Passed to convention class.
         """
 
         # Ensure pa is an Angle object
         self._angle = Angle(angle)
 
-        self._convention = PolarizationConvention.get_convention(convention,
-                                                                 *args, **kwargs)
+        if not isinstance(convention, PolarizationConvention):
+            convention = PolarizationConvention.get_convention(convention)
 
-        if source.size > 1:
-            raise ValueError("Only single source location is allowed")
-        elif source.ndim > 0:
-            source = np.ravel(source)[0]
+        self._convention = convention
+
+        if source is not None:
+            if source.size > 1:
+                raise ValueError("Only single source location is allowed")
+            elif source.ndim > 0:
+                source = np.ravel(source)[0]
 
         self._source = source
 
@@ -47,6 +51,10 @@ class PolarizationAngle:
         return self._angle
 
     @property
+    def value(self):
+        return self._angle.value
+
+    @property
     def convention(self):
         return self._convention
 
@@ -54,11 +62,18 @@ class PolarizationAngle:
     def source(self):
         return self._source
 
+    @source.setter
+    def source(self, coord: SkyCoord):
+        self._source = coord
+
     @property
     def vector(self):
         """
         Direction of the electric field vector
         """
+
+        if self._source is None:
+            raise RuntimeError("Set source first")
 
         # Get the projection vectors for the source direction in the
         # current convention
@@ -84,18 +99,23 @@ class PolarizationAngle:
 
         return v
 
-    def transform_to(self, convention, *args, **kwargs):
+    def transform_to(self, convention):
 
-        # Standarize convention
-        convention = PolarizationConvention.get_convention(convention, *args, **kwargs)
+        if self._source is None:
+            raise RuntimeError("Set source first")
 
-        # Get the projection vectors for the source direction in the new convention
+        # Standardize convention
+        if not isinstance(convention, PolarizationConvention):
+            convention = PolarizationConvention.get_convention(convention)
+
+        # Get the projection vectors for the source direction in the
+        # new convention
         px, py = convention.get_basis(self._source)
 
         px = px.cartesian.xyz
         py = py.cartesian.xyz
 
-        # Calculate the polarization vector in the current convention
+        # Calculate the polarization vector in the new convention
         pol_vec = self.vector.transform_to(convention.frame).cartesian.xyz
 
         # Compute the dot products for the transformation

@@ -3,6 +3,8 @@
 import logging
 import traceback
 
+from nbclient.exceptions import CellExecutionError
+
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
                     level=logging.INFO)
@@ -15,8 +17,8 @@ import timeit
 from pathlib import Path
 
 import nbformat
-from nbconvert.preprocessors import ExecutePreprocessor
-from nbconvert import HTMLExporter
+from nbconvert.preprocessors import ExecutePreprocessor, RegexRemovePreprocessor
+from nbconvert import HTMLExporter, PythonExporter
 from nbconvert.writers import FilesWriter
 
 import numpy as np
@@ -47,6 +49,8 @@ def main():
                          'and then exit.'))
     p.add_argument('--tutorial', nargs='*', default = None,
                    help = "Which tutorials to run. All by default.")
+    p.add_argument('--exclude', nargs='*', default=None,
+                   help="Which tutorials to exclude.")
     p.add_argument('--log-level', default='info',
                     help='Set the logging level (debug, info, warning, error, critical)')
     p.add_argument('--dry', action='store_true', default=False,
@@ -102,6 +106,9 @@ def main():
 
     if tutorials is None:
         tutorials = list(config['tutorials'].keys())
+
+    if args.exclude is not None:
+        tutorials = [t for t in tutorials if t not in args.exclude]
 
     # Common convenient functions
     def get_unzip_output(output, file_args):
@@ -220,21 +227,62 @@ def main():
                         os.symlink(local_copy, wdir/local_copy.name)
 
         # Run
-        if not args.dry:
-            for notebook in notebooks:
-                source_nb_path = config.absolute_path(notebook)
-                nb_path = wdir/source_nb_path.name
+        failed = False
+        for notebook in notebooks:
+            source_nb_path = config.absolute_path(notebook)
+            nb_path = wdir/source_nb_path.name
 
-                with (open(nb_path) as nb_file):
-                    nb = nbformat.read(nb_file, as_version=nbformat.NO_CONVERT)
+            with (open(nb_path) as nb_file):
+                nb = nbformat.read(nb_file, as_version=nbformat.NO_CONVERT)
 
+                # Remove magic, which can make a failing notebook look
+                # like it succeeded.
+                for cell in nb.cells:
+                    if cell.cell_type == 'code':
+                        lines = cell.source.split("\n")
+
+                        new_lines = []
+                        for line in lines:
+                            if line.strip().startswith("%") or line.strip().startswith("%%"):
+                                line = "#[magic commented out by run_tutorials.py] " + line
+                            new_lines.append(line)
+
+                        cell.source = "\n".join(new_lines)
+
+                # As script
+                script_path = nb_path.with_suffix('.py')
+                script_exporter = PythonExporter()
+                (body, resources) = script_exporter.from_notebook_node(nb)
+                script_writer = FilesWriter()
+                script_writer.write(body, resources, notebook_name=str(script_path.with_suffix('')))
+
+                # As HTML
+                html_path = nb_path.with_suffix('.html')
+                html_exporter = HTMLExporter(template_name="classic")
+                (body, resources) = html_exporter.from_notebook_node(nb)
+                html_writer = FilesWriter()
+                html_writer.write(body, resources, notebook_name=str(html_path.with_suffix('')))
+
+                if not args.dry:
                     logger.info(f"Executing notebook {source_nb_path}...")
                     start_time = timeit.default_timer()
                     ep = ExecutePreprocessor(timeout=config['globals:timeout'], kernel_name=config['globals:kernel'])
-                    ep_out = ep.preprocess(nb, {'metadata': {'path': str(wdir)}})
-                    elapsed = timeit.default_timer() - start_time
-                    logger.info(f"Notebook {source_nb_path} took {elapsed} seconds to finish.")
 
+                    try:
+                        ep_out = ep.preprocess(nb, {'metadata': {'path': str(wdir)}})
+                    except CellExecutionError as e:
+                        # Will re-raise after output and cleaning
+                        cell_exception = e
+                        failed = True
+
+                    elapsed = timeit.default_timer() - start_time
+
+                    if failed:
+                        logger.error(f"Notebook {source_nb_path} failed after {elapsed} seconds")
+                    else:
+                        logger.info(f"Notebook {source_nb_path} took {elapsed} seconds to finish.")
+
+                    # Save output
                     nb_exec_path = nb_path.with_name(nb_path.stem + "_executed" + nb_path.suffix)
                     with open(nb_exec_path, 'w', encoding='utf-8') as exec_nb_file:
                         nbformat.write(nb, exec_nb_file)
@@ -248,6 +296,10 @@ def main():
 
         # Remove file logger
         logger.removeHandler(file_handler)
+
+        # Re-raise if failed
+        if failed:
+            raise cell_exception
 
     # Loop through each tutorial
     summary = {}
@@ -277,7 +329,11 @@ def main():
         if succeeded:
             logger.info(colorama.Fore.GREEN + "SUCCEEDED " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
         else:
-            logger.info(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
+            color = colorama.Fore.RED
+            if "test_must_fail" in tutorial:
+                # Failed succesfully!
+                color = colorama.Fore.GREEN
+            logger.info(color               + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
 
     # Overall summary log
     logger.info(f"cosipy version: {cosipy.__version__}")
@@ -290,7 +346,11 @@ def main():
         if succeeded:
             logger.info(colorama.Fore.GREEN + "SUCCEEDED " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
         else:
-            logger.info(colorama.Fore.RED   + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
+            color = colorama.Fore.RED
+            if "test_must_fail" in tutorial:
+                # Failed succesfully!
+                color = colorama.Fore.GREEN
+            logger.info(color               + "FAILED    " + colorama.Style.RESET_ALL + f"({elapsed:.1f} s) {tutorial}")
 
 
 if __name__ == "__main__":

@@ -24,18 +24,18 @@ def get_data (wasabipath,outpath,unzip):
 
 
 #
-#Get Response from the develop folder in wasabi (new version)
+#Get Response from the DC4 folder in wasabi (new version)
 #
 filename='ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5'
-wasabipath=os.path.join('COSI-SMEX/develop/Data/Responses',filename)
+wasabipath=os.path.join('COSI-SMEX/DC4/Data/Responses',filename)
 outpath=os.path.join(indir,filename)
 get_data(wasabipath,outpath,False)
 
 #
 #Get Orientation files
 #
-filename="DC3_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits"
-wasabipath=os.path.join('COSI-SMEX/develop/Data/Orientation',filename)
+filename="DC4_final_530km_3_month_with_slew_1sbins_GalacticEarth_SAA.fits"
+wasabipath=os.path.join('COSI-SMEX/DC4/Data/Orientation',filename)
 outpath=os.path.join(indir,filename)
 get_data(wasabipath,outpath,False)
 

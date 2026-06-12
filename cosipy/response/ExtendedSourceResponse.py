@@ -52,7 +52,7 @@ class ExtendedSourceResponse(Histogram):
         self._exp_unit = (u.s * u.cm**2 * u.sr)**(-1)
 
     @classmethod
-    def _open(cls, name='hist'):
+    def _open(cls, name='hist', **kwargs):
         """
         Load response from an HDF5 group.
 
@@ -72,12 +72,11 @@ class ExtendedSourceResponse(Histogram):
             If the shape of the contents does not match the axes.
         """
 
-        resp = super()._open(name)
+        resp = super()._open(name, **kwargs)
 
         resp.track_overflow(False)
 
-        if resp.is_sparse:
-            resp = resp.to_dense()
+        resp = resp.to_dense(copy=False)
 
         resp.post_init()
 

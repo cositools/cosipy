@@ -8,6 +8,7 @@ from cosipy import test_data
 from cosipy.response import GalacticResponse
 
 response_path = test_data.path / "test_precomputed_response.h5"
+orientation_path = test_data.path / "20280301_first_10sec.fits"
 
 def test_open():
 

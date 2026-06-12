@@ -10,10 +10,12 @@ from mhealpy import HealpixMap, HealpixBase
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from histpy import Histogram, HealpixAxis, Axis, Axes
+from histpy import Histogram, Axis, Axes, HealpixAxis
 from scoords import SpacecraftFrame
 
 from cosipy.data_io import UnBinnedData
+
+from cosipy.interfaces import BinnedDataInterface
 
 import logging
 logger = logging.getLogger(__name__)
@@ -25,7 +27,7 @@ class BinnedData(UnBinnedData):
     def get_binned_data(self, unbinned_data=None, output_name=None,
                         make_binning_plots=False, show_plots=False,
                         psichi_binning="galactic", event_range=None,
-                        weights=None):
+                        weights=None, sparse=True, track_overflow=None):
 
         """Bin the data using histpy and mhealpy.
 
@@ -49,6 +51,11 @@ class BinnedData(UnBinnedData):
         weights : value or array of values, optional
             weight to use when filling the Histogram, if not set histpy will
             use weight of 1
+        sparse : bool, optional
+            'True' for sparse binning, or
+            'False' for dense binning (default is True).
+        track_overflow: bool, optional
+            option to track under/overflow bin (default is False).
 
         Returns
         -------
@@ -119,7 +126,7 @@ class BinnedData(UnBinnedData):
                      Axis(energy_bin_edges, unit=u.keV, label='Em'),
                      Axis(phi_bin_edges, unit=u.deg, label='Phi'),
                      psichi_axis], copy_axes=False)
-        self.binned_data = Histogram(axes, sparse=True)
+        self.binned_data = Histogram(axes, sparse=sparse, track_overflow=track_overflow)
 
         # Fill histogram:
         if event_range is None:
@@ -188,7 +195,8 @@ class BinnedData(UnBinnedData):
             logger.info(f"{each.label} unit: {each.unit}")
 
         # Get time binning information:
-        self.time_hist = self.binned_data.project('Time').contents.todense()
+        self.time_hist = self.binned_data.project('Time').to_dense(copy=False).contents
+
         self.num_time_bins = self.binned_data.axes['Time'].nbins
         self.time_bin_centers = self.binned_data.axes['Time'].centers
         self.time_bin_edges = self.binned_data.axes['Time'].edges
@@ -196,21 +204,24 @@ class BinnedData(UnBinnedData):
         self.total_time = self.time_bin_edges[-1] - self.time_bin_edges[0]
 
         # Get energy binning information:
-        self.energy_hist = self.binned_data.project('Em').contents.todense()
+        self.energy_hist = self.binned_data.project('Em').to_dense(copy=False).contents
+
         self.num_energy_bins = self.binned_data.axes['Em'].nbins
         self.energy_bin_centers = self.binned_data.axes['Em'].centers
         self.energy_bin_edges = self.binned_data.axes['Em'].edges
         self.energy_bin_widths = self.binned_data.axes['Em'].widths
 
         # Get Phi binning information:
-        self.phi_hist = self.binned_data.project('Phi').contents.todense()
+        self.phi_hist = self.binned_data.project('Phi').to_dense(copy=False).contents
+
         self.num_phi_bins = self.binned_data.axes['Phi'].nbins
         self.phi_bin_centers = self.binned_data.axes['Phi'].centers
         self.phi_bin_edges = self.binned_data.axes['Phi'].edges
         self.phi_bin_widths = self.binned_data.axes['Phi'].widths
 
         # Get PsiChi binning information:
-        self.psichi_hist = self.binned_data.project('PsiChi').contents.todense()
+        self.psichi_hist = self.binned_data.project('PsiChi').to_dense(copy=False).contents
+
         self.num_psichi_bins = self.binned_data.axes['PsiChi'].nbins
         self.psichi_bin_centers = self.binned_data.axes['PsiChi'].centers
         self.psichi_bin_edges = self.binned_data.axes['PsiChi'].edges
@@ -320,8 +331,8 @@ class BinnedData(UnBinnedData):
             self.load_binned_data_from_hdf5(binned_data)
 
         # Make healpix map with binned data slice:
-        h = self.binned_data.project('Em', 'Phi', 'PsiChi').slice[{'Em':Em, 'Phi':phi}].project('PsiChi')
-        m = HealpixMap(base = HealpixBase(npix = h.nbins), data = h.contents.todense())
+        h = self.binned_data.slice[{'Em':Em, 'Phi':phi}].project('PsiChi').to_dense(copy=False)
+        m = HealpixMap(base = HealpixBase(npix = h.nbins), data = h.contents)
 
         # Plot standard view:
         plot,ax = m.plot('mollview')
@@ -443,7 +454,7 @@ class BinnedData(UnBinnedData):
 
         # Plot:
         plot_kwargs = {"label":"raw spectrum", "ls":"", "marker":"o", "color":"black"}
-        fig_kwargs = {"xlabel":"Energy [keV]", "ylabel":ylabel}
+        fig_kwargs = {"xlabel":"Energy [keV]", "ylabel":ylabel, "xlim":(1e2,5e3)}
         self.make_basic_plot(self.energy_bin_centers, raw_rate,
                              x_error=self.energy_bin_widths/2.0,
                              output_name=output_name,
@@ -453,14 +464,16 @@ class BinnedData(UnBinnedData):
 
         # Write data:
         if output_name is not None:
-            d = {"Energy[keV]":self.energy_bin_centers,data_label:raw_rate}
+            d = {"Energy[keV]":self.energy_bin_centers,"Xerror[keV]":self.energy_bin_widths/2.0,data_label:raw_rate}
             df = pd.DataFrame(data=d)
             df.to_csv(f"{output_name}.dat",float_format='%10.5e',index=False,
-                      sep="\t",columns=["Energy[keV]",data_label])
+                      sep="\t",columns=["Energy[keV]","Xerror[keV]",data_label])
 
     def get_raw_lightcurve(self, binned_data=None, output_name=None, show_plots=False):
 
-        """Calculates raw lightcurve of binned data, plots, and writes data to file.
+        """
+        Calculates raw lightcurve of binned data, plots, and writes data
+        to file.
 
         Parameters
         ----------
@@ -470,6 +483,7 @@ class BinnedData(UnBinnedData):
             Prefix of output files. Writes both pdf and dat file.
         show_plots : bool, optional
             Wether or not to show plot (default is False).
+
         """
 
         # Log message:
@@ -496,3 +510,40 @@ class BinnedData(UnBinnedData):
             d = {"Time[UTC]":self.time_bin_centers,"Rate[ct/s]":self.time_hist/self.time_bin_widths}
             df = pd.DataFrame(data=d)
             df.to_csv(f"{output_name}.dat",index=False,sep="\t",columns=["Time[UTC]","Rate[ct/s]"])
+
+    def get_em_cds(self):
+        return EmCDSBinnedData(self.binned_data.project('Em', 'Phi', 'PsiChi'))
+
+class EmCDSBinnedData(BinnedDataInterface):
+    """
+    Measured energy (Em), Compton polar scattering angle (Phi), and
+    the scattering direction (PsiChi).
+    Phi and PsiChi are the Compton Data Space (CDS). No time dependence
+
+    """
+    def __init__(self, data:Histogram):
+
+        # Checks
+        if set(data.axes.labels) != {'Em', 'Phi', 'PsiChi'}:
+            raise ValueError(f"Wrong axes. 'Em', 'Psi', 'PsiChi' expected.")
+
+        if not data.axes['Em'].unit.is_equivalent(u.keV):
+            raise ValueError(f"Em axis should have units of energy")
+
+        if not data.axes['Phi'].unit.is_equivalent(u.deg):
+            raise ValueError(f"Psi axis should have angle units")
+
+        if not isinstance(data.axes['PsiChi'],HealpixAxis):
+            raise ValueError(f"PsiChi must be of type {HealpixAxis}.")
+
+        if data.axes['PsiChi'].coordsys is None:
+            raise ValueError(f"PsiChi axes must have a coordinate system.")
+
+        self._data = data
+
+    @property
+    def data(self) -> Histogram:
+        return self._data
+    @property
+    def axes(self) -> Axes:
+        return self._data.axes

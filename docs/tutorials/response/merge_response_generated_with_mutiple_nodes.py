@@ -7,7 +7,7 @@ logger = logging.getLogger('cosipy')
 logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
-from cosipy.spacecraftfile import SpacecraftFile
+from cosipy.spacecraftfile import SpacecraftHistory
 from cosipy.response import FullDetectorResponse, ExtendedSourceResponse
 
 # load full detector response 

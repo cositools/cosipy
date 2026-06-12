@@ -1,4 +1,4 @@
-from cosipy import SpacecraftFile, SourceInjector
+from cosipy import SpacecraftHistory, SourceInjector
 from astropy.coordinates import SkyCoord
 from threeML import Powerlaw
 from pathlib import Path
@@ -15,7 +15,7 @@ def test_inject_point_source():
     # defind the response and orientation
     response_path = test_data.path / "test_full_detector_response.h5"
     orientation_path = test_data.path / "20280301_2s.fits"
-    ori = SpacecraftFile.open(orientation_path)
+    ori = SpacecraftHistory.open(orientation_path)
 
     # powerlaw model
     index = -2.2
@@ -37,12 +37,14 @@ def test_inject_point_source():
     # Get the data of the injected source
     injected_crab_signal = injector.inject_point_source(spectrum = spectrum, coordinate = source_coord,
                                                         orientation = ori, source_name = "point_source",
-                                                        make_spectrum_plot = False, make_PsiChi_plot = False ,data_save_path = None,
+                                                        make_spectrum_plot = True,
+                                                        make_PsiChi_plot = True,
+                                                        data_save_path = None,
                                                         project_axes = None)
 
-    results = injected_crab_signal.project("Em").to_dense().contents
+    results = injected_crab_signal.project("Em").contents
 
-    assert isinstance(results, u.quantity.Quantity) == True
+    assert isinstance(results, u.quantity.Quantity)
 
     assert np.allclose(results.value,
                        [5.18769386e-01, 1.07545259e+00, 8.66760819e-01, 4.54548331e-01,
@@ -75,12 +77,14 @@ def test_inject_point_source_galactic():
     # Get the data of the injected source
     injected_crab_signal = injector.inject_point_source(spectrum = spectrum, coordinate = source_coord,
                                                         source_name = "point_source",
-                                                        make_spectrum_plot = True, make_PsiChi_plot=True , data_save_path = None,
+                                                        make_spectrum_plot = True,
+                                                        make_PsiChi_plot=True,
+                                                        data_save_path = None,
                                                         project_axes = None)
 
-    results = injected_crab_signal.project("Em").to_dense().contents
+    results = injected_crab_signal.project("Em").contents
 
-    assert isinstance(results, u.quantity.Quantity) == True
+    assert isinstance(results, u.quantity.Quantity)
 
     assert np.allclose(results.value,
                        [8.00446239e-02, 2.39541274e-01, 3.06395646e-01, 2.90215536e-01,
@@ -113,7 +117,9 @@ def test_inject_point_source_saving():
     # Get the data of the injected source
     injected_crab_signal = injector.inject_point_source(spectrum = spectrum, coordinate = source_coord,
                                                         source_name = "point_source",
-                                                        make_spectrum_plot = False, make_PsiChi_plot=False ,data_save_path = Path("./galactic_rsp.h5"),
+                                                        make_spectrum_plot = True,
+                                                        make_PsiChi_plot = False,
+                                                        data_save_path = Path("./galactic_rsp.h5"),
                                                         project_axes = "Em")
 
     hist= Histogram.open(Path("./galactic_rsp.h5"))
@@ -162,7 +168,9 @@ def test_orientation_error():
         # Get the data of the injected source
         injected_crab_signal = injector.inject_point_source(spectrum = spectrum, coordinate = source_coord,
                                                             source_name = "point_source",
-                                                            make_spectrum_plot = False, make_PsiChi_plot=False ,data_save_path = None,
+                                                            make_spectrum_plot = True,
+                                                            make_PsiChi_plot = True,
+                                                            data_save_path = None,
                                                             project_axes = None)
 
 
@@ -204,9 +212,9 @@ def test_inject_extended_source():
         project_axes=None,
     )
 
-    hist = injected.project("Em").to_dense().contents
+    hist = injected.project("Em").to_dense(copy=False).contents
 
-    assert isinstance(hist, u.quantity.Quantity) == True
+    assert isinstance(hist, u.quantity.Quantity)
     assert np.sum(hist.value) > 0  # ensure there is some non-zero expectation
 
 
@@ -243,8 +251,8 @@ def test_inject_extended_source_saving():
     # Get the data of the injected source
     injected = injector.inject_extended_source(
         source_model=model,
-        make_spectrum_plot=False,
-        make_PsiChi_plot=False,
+        make_spectrum_plot=True,
+        make_PsiChi_plot=True,
         data_save_path=file_path,
         project_axes=None,
     )
@@ -290,7 +298,7 @@ def test_inject_model():
     # Define the response
     response_path = test_data.path / "test_precomputed_response.h5"
     orientation_path = test_data.path / "20280301_2s.fits"
-    ori = SpacecraftFile.open(orientation_path)
+    ori = SpacecraftHistory.open(orientation_path)
 
     K = 17 / u.cm / u.cm / u.s / u.keV
     piv = 1 * u.keV
@@ -333,6 +341,8 @@ def test_inject_model():
 
     # Get the data of the injected source
     injected = injector.inject_model(model,
+                                     make_spectrum_plot=True,
+                                     make_PsiChi_plot=True,
                                      data_save_path=file_path)
 
     hist = Histogram.open(file_path)

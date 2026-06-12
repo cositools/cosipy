@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import healpy as hp
 from mhealpy import HealpixBase
 
-from cosipy import SpacecraftFile
+from cosipy import SpacecraftHistory
 from cosipy.response import FullDetectorResponse, GalacticResponse
 from cosipy.response.functions import get_integrated_spectral_model
 
@@ -40,13 +40,17 @@ class FastTSMap():
             Model used to estimate background counts in observed data.
         response_path : str or pathlib.Path
             Path to response file.
-        orientation : cosipy.SpacecraftFile, optional
+        orientation : cosipy.SpacecraftHistory, optional
             Orientation history of spacecraft; required for "local"
             cds_frame, not used if frame is "galactic"
         cds_frame : str, optional
             frame of directions used for PsiChi axis of CDS.  One of
             "local" (frame attached to spacecraft) or "galactic".
             Default is local.
+
+        Note: the floating-point precision used for mapping is determined
+        by the precision of the 'data' argument.  Use single precision
+        if desired for faster performance.
 
         """
 
@@ -59,6 +63,8 @@ class FastTSMap():
                 raise TypeError(f"Unrecognized frame {cds_frame}, "
                                 "must be 'local' or 'galactic'")
 
+        # open response with same dtype (in particular, same FP
+        # precision) as data
         if self._cds_frame == Frame.LOCAL:
             if orientation is None:
                 raise TypeError("When data are binned in local frame, "
@@ -66,10 +72,12 @@ class FastTSMap():
 
             self._orientation = orientation
 
-            self._response = FullDetectorResponse.open(response_path)
+            self._response = FullDetectorResponse.open(response_path,
+                                                       dtype=data.dtype)
         else:
 
-            self._response = GalacticResponse.open(response_path)
+            self._response = GalacticResponse.open(response_path,
+                                                   dtype=data.dtype)
 
         labels = self._response.axes.labels
 
@@ -88,8 +96,9 @@ class FastTSMap():
             raise ValueError("Response CDS axes must be Em/Phi/PsiChi")
 
         # make sure data and background CDS are ordered to match response
-        self._data = data.todense().project(cds_order)
-        self._bkg_model = bkg_model.todense().project(cds_order)
+        # and share its dtype
+        self._data = data.to_dense(copy=False).project(cds_order).astype(self._response.dtype)
+        self._bkg_model = bkg_model.to_dense(copy=False).project(cds_order).astype(self._response.dtype)
 
         self._fnf = fnf(max_iter=1000)
 
@@ -186,15 +195,13 @@ class FastTSMap():
 
         if self._cds_frame == Frame.LOCAL:
 
-            # convert source direction to path in local frame
-            lons, colats = self._orientation.get_target_in_sc_frame(source)
-
-            # get list of HEALPix pixels with nonzero exposure on path
+            # get list of HEALPix pixels with nonzero exposure of source
             pixels, exposures = \
-                self._orientation.get_exposure(base = self._response,
-                                               theta = colats,
-                                               phi = lons,
-                                               lonlat = False)
+                self._orientation.get_exposure(source = source,
+                                               base = self._response,
+                                               earth_occ = False)
+            exposures = exposures.value
+
         else: # galactic frame
 
             # convert source vector to polar coords
@@ -306,7 +313,8 @@ class FastTSMap():
         """
 
         if cpu_cores is not None:
-            numba.set_num_threads(cpu_cores)
+            numba.set_num_threads(min(cpu_cores,
+                                      numba.config.NUMBA_NUM_THREADS))
 
         data_cds_array, bkg_model_cds_array, psr_cache = \
             self._prepare_inputs(energy_channel, spectrum, max_cache_size)
@@ -314,7 +322,7 @@ class FastTSMap():
         if self._cds_frame == Frame.LOCAL:
             # compute possible source dirs in same frame
             # we will use to translate them to local-frame paths
-            hyp_frame = self._orientation.frame
+            hyp_frame = self._orientation.attitude.frame
         else: # galactic frame
             hyp_frame = "galactic"
 
@@ -479,7 +487,7 @@ class PSRCache:
         self.em_slice = em_slice
         self.valid_cells = valid_cells
 
-        self.ei_weights = flux.contents.value * response.eff_area_correction
+        self.ei_weights = flux.contents.value.astype(response.dtype) * response.eff_area_correction
 
         #self.nLookups = 0
         #self.nMisses = 0

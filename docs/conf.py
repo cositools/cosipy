@@ -20,10 +20,6 @@ project = 'cosipy'
 copyright = '2022, COSI Team'
 author = 'COSI Team'
 
-# The full version, including alpha/beta/rc tags
-with open('../cosipy/_version.py') as f:
-    release = f.readline()
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
