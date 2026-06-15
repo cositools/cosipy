@@ -12,6 +12,10 @@ __all__ = [
     "EventInterface",
     "TimeTagEventInterface",
     "EventWithEnergyInterface",
+    "EventWithScatteringAngleInterface",
+    "ComptonDataSpaceInSCFrameEventInterface",
+    "EmCDSEventInSCFrameInterface",
+    "TimeTagEmCDSEventInSCFrameInterface"
 ]
 
 @runtime_checkable
