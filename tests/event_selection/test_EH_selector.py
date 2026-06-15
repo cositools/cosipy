@@ -5,7 +5,7 @@ from cosipy.spacecraftfile import SpacecraftHistory
 
 
 def test_EHevent_selector():
-    data_file = test_data.path+"unbinned_data_MEGAlib_calc.hdf5"
-    ori = SpacecraftHistory.open(test_data.path+"20280301_first_10sec.fits")
+    data_file = test_data.path / "unbinned_data_MEGAlib_calc.hdf5"
+    ori = SpacecraftHistory.open(test_data.path / "20280301_first_10sec.fits")
     EH_selector = EHSelector(ori,cutvalue=0.4,plotfsky=True)
     data = TimeTagEmCDSEventDataInSCFrameFromDC3Fits(data_file, selection=EH_selector)
