@@ -704,8 +704,9 @@ class TimeTagEmCDSEventDataInSCFrameFromDC3Fits(TimeTagEmCDSEventDataInSCFrameFr
             data_path = [Path(data_path)]
 
         for file in data_path:
-            # get_dict_from_fits is really a static method, no config file needed
-            data_dict = UnBinnedData.get_dict_from_fits(None, str(file))
+            # get_dict is really a static method, no config file needed
+            # You can pass either hdf5 or fits file
+            data_dict = UnBinnedData.get_dict(None, str(file))
 
             time = np.append(time, data_dict['TimeTags'])
             energy = np.append(energy, data_dict['Energies'])
@@ -746,8 +747,9 @@ class TimeTagEmCDSEventDataInSCAndGalFrameFromDC3Fits(TimeTagEmCDSEventDataInSCA
             data_path = [Path(data_path)]
 
         for file in data_path:
-            # get_dict_from_fits is really a static method, no config file needed
-            data_dict = UnBinnedData.get_dict_from_fits(None, str(file))
+            # get_dict is really a static method, no config file needed
+            # You can pass either hdf5 or fits file
+            data_dict = UnBinnedData.get_dict(None, str(file))
 
             time = np.append(time, data_dict['TimeTags'])
             energy = np.append(energy, data_dict['Energies'])
