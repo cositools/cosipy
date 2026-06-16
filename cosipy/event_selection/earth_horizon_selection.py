@@ -9,7 +9,7 @@ from astropy.coordinates import SkyCoord, Galactic, GCRS, CartesianRepresentatio
 import astropy.units as u
 from astropy.time import Time
 
-from cosipy.interfaces import TimeTagEmCDSEventInSCFrameInterface
+from cosipy.interfaces import TimeTagEmCDSEventInSCAndGalFrameInterface
 from cosipy.interfaces.event_selection import EventSelectorInterface
 from cosipy.util.iterables import itertools_batched, asarray
 from cosipy.spacecraftfile import SpacecraftHistory
@@ -51,11 +51,11 @@ class EHSelector(EventSelectorInterface):
         self._cutvalue = cutvalue
         self._plotfsky = plotfsky
     
-    def _select(self, events:TimeTagEmCDSEventInSCFrameInterface, early_stop:bool = True) -> Iterable[bool]:
+    def _select(self, events:TimeTagEmCDSEventInSCAndGalFrameInterface, early_stop:bool = True) -> Iterable[bool]:
         
-        def process_chunk(jd1: np.ndarray, phi: np.ndarray):
+        def process_chunk(jd1: np.ndarray, phi: np.ndarray, psi_gal: np.ndarray, chi_gal: np.ndarray):
 
-            costheta, theta_max = self.Angle_PsiChi_Ez(jd1)
+            costheta, theta_max = self.Angle_PsiChi_Ez(jd1, psi_gal, chi_gal)
             fsky = self.calculate_sky_fraction(costheta, phi, theta_max)
 
             result = ( fsky >= self._cutvalue)
@@ -68,7 +68,7 @@ class EHSelector(EventSelectorInterface):
                 ax.set_ylabel("a.u")
                 ax.set_yscale("log")
                 plt.show()
-                #print(list(count))
+                print(list(count))
                 
             # Stop further loading of event
             stop = early_stop
@@ -81,31 +81,38 @@ class EHSelector(EventSelectorInterface):
 
                 jd1 = []
                 phi = []
+                psi_gal = []
+                chi_gal = []
                 
                 for event in chunk:
                     jd1.append(events.jd1)
                     phi.append(events.scattering_angle_rad)
-                    
+                    psi_gal.append(events.scattered_lon_deg_gal)
+                    chi_gal.append(events.scattered_lat_deg_gal)
+
                 # Cache in memory
                 jd1 = asarray(jd1, dtype=np.float64, force_dtype=False)
                 phi = asarray(phi, dtype=np.float64, force_dtype=False)
-                
+                psi_gal = asarray(psi_gal, dtype=np.float64, force_dtype=False)
+                chi_gal = asarray(chi_gal, dtype=np.float64, force_dtype=False)
 
-                result, stop = process_chunk(jd1, phi)
+
+                result, stop = process_chunk(jd1, phi, psi_gal, chi_gal)
 
                 yield from result
 
                 if stop:
                     return
 
-        if (self._batch_size is None) or (isinstance(events.jd1, np.ndarray) and isinstance(events.scattering_angle_rad, np.ndarray)):
-            results, _ = process_chunk(events.jd1, events.scattering_angle_rad)
+        if (self._batch_size is None) or (isinstance(events.jd1, np.ndarray) and isinstance(events.scattering_angle_rad, np.ndarray)
+                and isinstance(events.scattered_lon_deg_gal, np.ndarray) and isinstance(events.scattered_lat_deg_gal, np.ndarray) ):
+            results, _ = process_chunk(events.jd1, events.scattering_angle_rad, events.scattered_lon_deg_gal, events.scattered_lat_deg_gal)
             return results
         else:
             return process_in_chunks(events)
 
        
-    def Angle_PsiChi_Ez(self, jd1):
+    def Angle_PsiChi_Ez(self, jd1, psi_gal, chi_gal):
         """
         Calculates the angle between PsiChi and the Earth zenith for each event.
     
@@ -113,7 +120,10 @@ class EHSelector(EventSelectorInterface):
         -----------
         jd1 : array-like
             obstime of the events
-        
+        psi_gal : array-like
+            scattered direction of the events in galactic frame (lon)
+        chi_gal : array-like
+            scattered direction of the events in galactic frame (lat)
         Returns:
         --------
         costheta : array-like
@@ -144,13 +154,18 @@ class EHSelector(EventSelectorInterface):
         closer_than_right = np.abs(event_times - ori_times[left_idx]) < np.abs(event_times - ori_times[right_idx])
         nearest_idx = np.where(closer_than_right, left_idx, right_idx)
     
-        # Get the Earth zenith, gal z pointing and max angle for each event
+        # Get the Earth zenith and max angle for each event
         # ori._ez_cart has a shape of (3, N). Slicing the columns via [:, nearest_idx] 
         # and transposing (.T) instantly yields a clean (N, 3) vector array.
         earth_zenith_vector = self._ori._ez_cart[:, nearest_idx].T
-        source_vector_gal = self._ori._attitude.rot.as_matrix()[nearest_idx,2] #only get gal z-pointing
         max_ang = self._ori._min_angle_cos[nearest_idx] 
-    
+
+        # Standard spherical to cartesian unit vectors (Galactic Frame)
+        x_gal = np.cos(np.radians(psi_gal)) * np.cos(np.radians(chi_gal))
+        y_gal = np.cos(np.radians(psi_gal)) * np.sin(np.radians(chi_gal))
+        z_gal = np.sin(np.radians(psi_gal))
+        source_vector_gal = np.vstack([x_gal, y_gal, z_gal]).T 
+       
         # Compute the 3x3 rotation matrix from Galactic to GCRS (ICRS/Equatorial aligned)
         # This is a trick to not use directly astropy.transform_to for every event
         # because this would be very slow for millions of events
