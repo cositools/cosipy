@@ -1,20 +1,30 @@
 from pathlib import Path
-from typing import Iterable, Iterator, Optional, Tuple, Union, List
+from typing import Iterable, Iterator, Optional, Union, List
 
 import numpy as np
-from astropy.coordinates import BaseCoordinateFrame, Angle, SkyCoord, UnitSphericalRepresentation
+from astropy.coordinates import Angle, SkyCoord, UnitSphericalRepresentation
 from astropy.time import Time
 from astropy.units import Quantity
-from numpy._typing import ArrayLike
 from scoords import SpacecraftFrame
 
 from cosipy.data_io.UnBinnedData import UnBinnedData
-from cosipy.interfaces import EventWithEnergyInterface, EventDataInterface, EventDataWithEnergyInterface
-from cosipy.interfaces.data_interface import TimeTagEmCDSEventDataInSCFrameInterface, EmCDSEventDataInSCFrameInterface, \
-    TimeTagEmCDSEventDataInSCAndGalFrameInterface, EmCDSEventDataInSCAndGalFrameInterface
-from cosipy.interfaces.event import  TimeTagEmCDSEventInSCFrameInterface, \
-    EmCDSEventInSCFrameInterface , TimeTagEmCDSEventInSCAndGalFrameInterface, EmCDSEventInSCAndGalFrameInterface
-
+from cosipy.interfaces import (
+    EventWithEnergyInterface, 
+    EventDataInterface, 
+    EventDataWithEnergyInterface
+)
+from cosipy.interfaces.data_interface import (
+    TimeTagEmCDSEventDataInSCFrameInterface, 
+    EmCDSEventDataInSCFrameInterface, 
+    TimeTagEmCDSEventDataInSCAndGalFrameInterface, 
+    EmCDSEventDataInSCAndGalFrameInterface
+)
+from cosipy.interfaces.event import  (
+    TimeTagEmCDSEventInSCFrameInterface, 
+    EmCDSEventInSCFrameInterface , 
+    TimeTagEmCDSEventInSCAndGalFrameInterface, 
+    EmCDSEventInSCAndGalFrameInterface
+)
 import astropy.units as u
 
 from cosipy.interfaces.event_selection import EventSelectorInterface
