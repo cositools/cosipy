@@ -91,8 +91,8 @@ class EmCDSEventInSCAndGalFrame(EmCDSEventInSCAndGalFrameInterface):
         scatt_angle: scattering angle radians
         scatt_lon_sc: scattering longitude radians (SC frame)
         scatt_lat_sc: scattering latitude radians (SC frame)
-        scatt_lon_gal: scattering longitude radians (Gal frame)
-        scatt_lat_gal: scattering latitude radians (Gal frame)
+        scatt_lon_gal: scattering longitude deg (Gal frame)
+        scatt_lat_gal: scattering latitude deg (Gal frame)
         """
         self._id = event_id
         self._energy = energy
