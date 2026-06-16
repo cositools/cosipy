@@ -704,9 +704,14 @@ class TimeTagEmCDSEventDataInSCFrameFromDC3Fits(TimeTagEmCDSEventDataInSCFrameFr
             data_path = [Path(data_path)]
 
         for file in data_path:
-            # get_dict is really a static method, no config file needed
+            # get_dict_fits or hdf5 is really a static method, no config file needed
             # You can pass either hdf5 or fits file
-            data_dict = UnBinnedData.get_dict(None, str(file))
+            if "hdf5" in str(file).split("."):
+                data_dict = UnBinnedData.get_dict_from_hdf5(None, str(file))
+            elif "fits" in str(file).split("."):
+                data_dict = UnBinnedData.get_dict_from_fits(None, str(file))
+            else:
+                raise ValueError("You should pass a fits or hdf5 file.")
 
             time = np.append(time, data_dict['TimeTags'])
             energy = np.append(energy, data_dict['Energies'])
@@ -747,10 +752,15 @@ class TimeTagEmCDSEventDataInSCAndGalFrameFromDC3Fits(TimeTagEmCDSEventDataInSCA
             data_path = [Path(data_path)]
 
         for file in data_path:
-            # get_dict is really a static method, no config file needed
+            # get_dict_fits or hdf5 is really a static method, no config file needed
             # You can pass either hdf5 or fits file
-            data_dict = UnBinnedData.get_dict(None, str(file))
-
+            if "hdf5" in str(file).split("."):
+                data_dict = UnBinnedData.get_dict_from_hdf5(None, str(file))
+            elif "fits" in str(file).split("."):
+                data_dict = UnBinnedData.get_dict_from_fits(None, str(file))
+            else:
+                raise ValueError("You should pass a fits or hdf5 file.")
+            
             time = np.append(time, data_dict['TimeTags'])
             energy = np.append(energy, data_dict['Energies'])
             phi = np.append(phi, data_dict['Phi'])
