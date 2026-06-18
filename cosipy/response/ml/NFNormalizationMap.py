@@ -46,33 +46,33 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
     def map_nside(self):
         return self._map_nside
     @map_nside.setter
-    def map_nside(self, val: int): self._set_integration_parameters(map_nside=val) 
+    def map_nside(self, val: int): self.set_integration_parameters(map_nside=val) 
     
     @property
     def range_ienergy_keV(self):
         return self._range_intvar
     @range_ienergy_keV.setter
-    def range_ienergy_keV(self, val: Tuple[float, float]): self._set_integration_parameters(range_intvar=val)
+    def range_ienergy_keV(self, val: Tuple[float, float]): self.set_integration_parameters(range_intvar=val)
     
     @property
     def ienergy_keV_resolution(self):
         return self._intvar_resolution
     @ienergy_keV_resolution.setter
-    def ienergy_keV_resolution(self, val: float): self._set_integration_parameters(intvar_resolution=val)
+    def ienergy_keV_resolution(self, val: float): self.set_integration_parameters(intvar_resolution=val)
     
     @property
     def Em_peak_widths(self):
         return self._Em_peak_widths
     @Em_peak_widths.setter
-    def Em_peak_widths(self, val: Tuple[float, float, float]): self._set_integration_parameters(Em_peak_widths=val)
+    def Em_peak_widths(self, val: Tuple[float, float, float]): self.set_integration_parameters(Em_peak_widths=val)
     
     @property
     def Em_peak_nums(self):
         return self._Em_peak_nums
     @Em_peak_nums.setter
-    def Em_peak_nums(self, val: Tuple[int, int, int]): self._set_integration_parameters(Em_peak_nums=val)
+    def Em_peak_nums(self, val: Tuple[int, int, int]): self.set_integration_parameters(Em_peak_nums=val)
     
-    def _set_integration_parameters(self,
+    def set_integration_parameters(self,
                                    map_nside: Optional[int] = -1,
                                    intvar_resolution: Optional[float] = -1.0,
                                    menergy_keV_resolution: Optional[float] = -1.0,
@@ -81,7 +81,7 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
                                    Em_peak_widths: Optional[Tuple[float, float, float]] = None,
                                    Em_peak_nums: Optional[Tuple[int, int, int]] = None):
         
-        super()._set_integration_parameters(intvar_resolution=intvar_resolution,
+        super().set_integration_parameters(intvar_resolution=intvar_resolution,
                                             menergy_keV_resolution=menergy_keV_resolution,
                                             range_intvar=range_intvar,
                                             atol=atol)
@@ -112,6 +112,7 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
             self.clear_cache()
         
         self._map_nside = new_map_nside
+        self._map_npix = hp.nside2npix(new_map_nside)
         self._Em_peak_nums = new_Em_peak_nums
         self._Em_peak_widths = new_Em_peak_widths
 

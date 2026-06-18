@@ -34,7 +34,11 @@ logger = logging.getLogger(__name__)
 
 import torch
 from cosipy.response.ml.nf_instrument_response_function import UnpolarizedNFFarFieldInstrumentResponseFunction
+from cosipy.response.ml.NFNormalizationBase import IEnergyList
 
+
+PeakNodeList = Union[Tuple[int, int], List[Tuple[int, int]]]
+DensityNodeList = Union[int, List[int], Tuple[int, ...]]
 
 class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceResponseInterface):
     
@@ -64,23 +68,25 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self.force_energy_node_caching = force_energy_node_caching
         
         # Default parameters for irf energy node placement
-        self._density_integration_nodes = 60
+        self._density_integration_nodes = [60,]
         self._total_expectation_resolution = 18.
-        self._peak_nodes = (18, 12)
-        self._peak_widths = (0.04, 0.1)
-        self._energy_range = (100., 10_000.)
+        self._peak_nodes = [[18, 12],]
+        self._peak_widths: Tuple[float, float] = (0.04, 0.1)
+        self._energy_range = [[100., 10_000.],]
+        self._n_intervals = 1
         self._cache_batch_size = 1_000_000
         self._integration_batch_size = 1_000_000
         self._offset: Optional[float] = 1e-12
         
         # Placeholder for node pool - stored as Tensors
         self._width_tensor: Optional[torch.Tensor] = None
-        self._nodes_primary: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
-        self._nodes_secondary: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
+        self._nodes_primary: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None
+        self._nodes_secondary: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None
         
-        self._nodes_bkg_1: Optional[Tuple[torch.Tensor, torch.Tensor]] = None
-        self._nodes_bkg_2: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None
-        self._nodes_bkg_3: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None
+        self._nodes_bkg_0: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None
+        self._nodes_bkg_1: Optional[List[Tuple[torch.Tensor, torch.Tensor]]] = None
+        self._nodes_bkg_2: Optional[List[List[Tuple[torch.Tensor, torch.Tensor]]]] = None
+        self._nodes_bkg_3: Optional[List[List[Tuple[torch.Tensor, torch.Tensor]]]] = None
         
         # Checks to avoid unecessary recomputations
         self._last_convolved_source_skycoord = None
@@ -154,44 +160,47 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._force_energy_node_caching = val
     
     @property
-    def density_integration_nodes(self) -> int: return self._density_integration_nodes
+    def density_integration_nodes(self): return self._density_integration_nodes
     @density_integration_nodes.setter
-    def density_integration_nodes(self, val): self._set_integration_parameters(density_integration_nodes=val)
+    def density_integration_nodes(self, val): self.set_integration_parameters(density_integration_nodes=val)
 
     @property
     def total_expectation_resolution(self) -> float: return self._total_expectation_resolution
     @total_expectation_resolution.setter
-    def total_expectation_resolution(self, val): self._set_integration_parameters(total_expectation_resolution=val)
+    def total_expectation_resolution(self, val): self.set_integration_parameters(total_expectation_resolution=val)
 
     @property
-    def peak_nodes(self) -> Tuple[int, int]: return self._peak_nodes
+    def peak_nodes(self): return [tuple(x) for x in self._peak_nodes]
     @peak_nodes.setter
-    def peak_nodes(self, val): self._set_integration_parameters(peak_nodes=val)
+    def peak_nodes(self, val): self.set_integration_parameters(peak_nodes=val)
 
     @property
     def peak_widths(self) -> Tuple[float, float]: return self._peak_widths
     @peak_widths.setter
-    def peak_widths(self, val): self._set_integration_parameters(peak_widths=val)
+    def peak_widths(self, val): self.set_integration_parameters(peak_widths=val)
 
     @property
-    def energy_range(self) -> Tuple[float, float]: return self._energy_range
+    def energy_range(self): return [tuple(x) if isinstance(x, list) else x for x in self._energy_range]
     @energy_range.setter
-    def energy_range(self, val): self._set_integration_parameters(energy_range=val)
+    def energy_range(self, val): self.set_integration_parameters(energy_range=val)
+
+    @property
+    def n_intervals(self) -> int: return self._n_intervals
 
     @property
     def cache_batch_size(self) -> Optional[int]: return self._cache_batch_size
     @cache_batch_size.setter
-    def cache_batch_size(self, val): self._set_integration_parameters(cache_batch_size=val)
+    def cache_batch_size(self, val): self.set_integration_parameters(cache_batch_size=val)
     
     @property
     def integration_batch_size(self) -> Optional[int]: return self._integration_batch_size
     @integration_batch_size.setter
-    def integration_batch_size(self, val): self._set_integration_parameters(integration_batch_size=val)
+    def integration_batch_size(self, val): self.set_integration_parameters(integration_batch_size=val)
 
     @property
     def offset(self) -> Optional[float]: return self._offset
     @offset.setter
-    def offset(self, val): self._set_integration_parameters(offset=val)
+    def offset(self, val): self.set_integration_parameters(offset=val)
     
     @property
     def show_progress(self) -> bool: return self._show_progress
@@ -202,7 +211,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._show_progress = val
     
     def _check_memory_savings(self):
-        inefficient = (self._integration_batch_size > (self._n_events * self._density_integration_nodes/2))
+        inefficient = (self._integration_batch_size > (self._n_events * self.total_density_integration_nodes/2))
         if inefficient & self._reduce_memory:
             logger.warning(f"Since integration_batch_size is too large reduce_memory will increase the memory usage! Disable it if this behavior is not desired.")
     @property
@@ -226,26 +235,104 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
     
     @property
     def total_expectation_integration_nodes(self) -> int:
-        return self._total_expectation_integration_nodes(self._total_expectation_resolution, self._energy_range[1] - self._energy_range[0])
+        total = 0
+        for x in self._energy_range:
+            if isinstance(x, float):
+                total += 1
+            else:
+                total += self._total_expectation_integration_nodes(self._total_expectation_resolution, x[1] - x[0])
+        return total
+    
+    @property
+    def total_density_integration_nodes(self) -> int:
+        total = 0
+        for x in self._energy_range:
+            if isinstance(x, float):
+                total += 1
+        return sum(self._density_integration_nodes) + total
     
     def _total_expectation_integration_nodes(self, resolution: float, diff: float) -> int:
         return int(np.ceil(diff / resolution)) + 1
     
-    def _set_integration_parameters(self,
-                                   density_integration_nodes: int = -1,
+    def _set_integration_ranges(self,
+                                density_integration_nodes: Optional[DensityNodeList] = None,
+                                peak_nodes: Optional[PeakNodeList] = None,
+                                energy_range: Optional[IEnergyList] = None):
+        if energy_range is not None:
+            if not isinstance(energy_range, list):
+                raise ValueError("The energy range must be a list.")
+            else:
+                energy_range_list = []
+                for x in energy_range:
+                    if not ((isinstance(x, tuple) and len(x) == 2) or isinstance(x, (float, int, np.number))):
+                        raise ValueError("Each element in the energy range must be either a tuple of length 2 or a float.")
+                    else:
+                        energy_range_list.append([float(x[0]), float(x[1])] if isinstance(x, tuple) else float(x))
+                n_intervals = sum(1 for x in energy_range if isinstance(x, tuple) and len(x) == 2)
+        else:
+            n_intervals = self._n_intervals
+            energy_range_list = None
+        
+        if density_integration_nodes is not None:
+            if isinstance(density_integration_nodes, (int, np.integer)):
+                density_integration_nodes_list = [int(density_integration_nodes)] * n_intervals
+            else:
+                if not isinstance(density_integration_nodes, (list, tuple)) or len(density_integration_nodes) != n_intervals or not all(isinstance(n, (int, np.integer)) for n in density_integration_nodes):
+                    raise ValueError("If density_integration_nodes is not an integer, it must be a list of integers of the same length as the number of energy intervals.")
+                else:
+                    density_integration_nodes_list = [int(n) for n in density_integration_nodes]
+        else:
+            if energy_range is not None and hasattr(self, '_density_integration_nodes'):
+                if n_intervals == 0:
+                    density_integration_nodes_list = []
+                elif len(self._density_integration_nodes) == 1:
+                    density_integration_nodes_list = [int(self._density_integration_nodes[0])] * n_intervals
+                elif len(self._density_integration_nodes) == n_intervals:
+                    density_integration_nodes_list = [int(n) for n in self._density_integration_nodes]
+                else:
+                    raise ValueError(f"Energy range changed to {n_intervals} intervals, but current density_integration_nodes has length {len(self._density_integration_nodes)}. Please provide a matching list.")
+            else:
+                density_integration_nodes_list = None
+        
+        if peak_nodes is not None:
+            if isinstance(peak_nodes, tuple) and len(peak_nodes) == 2 and all(isinstance(x, (int, np.integer)) for x in peak_nodes):
+                peak_nodes_list = [[int(peak_nodes[0]), int(peak_nodes[1])]] * n_intervals
+            else:
+                if not all(isinstance(x, tuple) and len(x) == 2 and all(isinstance(y, (int, np.integer)) for y in x) for x in peak_nodes) or (len(peak_nodes) != n_intervals):
+                    raise ValueError("Each element in peak_nodes must be a tuple of length 2 containing integers, totalling to the number of energy intervals.")
+                peak_nodes_list = [list(int(y) for y in x) for x in peak_nodes]
+        else:
+            if energy_range is not None and hasattr(self, '_peak_nodes'):
+                if n_intervals == 0:
+                    peak_nodes_list = []
+                elif len(self._peak_nodes) == 1:
+                    peak_nodes_list = [list(self._peak_nodes[0])] * n_intervals
+                elif len(self._peak_nodes) == n_intervals:
+                    peak_nodes_list = [list(x) for x in self._peak_nodes]
+                else:
+                    raise ValueError(f"Energy range changed to {n_intervals} intervals, but current peak_nodes has length {len(self._peak_nodes)}. Please provide a matching list.")
+            else:
+                peak_nodes_list = None
+            
+        return density_integration_nodes_list, peak_nodes_list, energy_range_list, n_intervals
+
+    def set_integration_parameters(self, # TODO: Check that intervals dont overlap
+                                   density_integration_nodes: Optional[DensityNodeList] = None,
                                    total_expectation_resolution: float = -1.0,
-                                   peak_nodes: Optional[Tuple[int, int]] = None,
+                                   peak_nodes: Optional[PeakNodeList] = None,
                                    peak_widths: Optional[Tuple[float, float]] = None,
-                                   energy_range: Optional[Tuple[float, float]] = None,
+                                   energy_range: Optional[IEnergyList] = None,
                                    cache_batch_size: Optional[int] = -1,
                                    integration_batch_size: Optional[int] = -1,
                                    offset: float = -1.0):
         
-        new_density_integration_nodes = density_integration_nodes if density_integration_nodes != -1 else self._density_integration_nodes
+        density_integration_nodes, peak_nodes, energy_range, n_intervals = self._set_integration_ranges(density_integration_nodes, peak_nodes, energy_range)
+        
+        new_density_integration_nodes = density_integration_nodes if density_integration_nodes is not None else self._density_integration_nodes
         new_total_expectation_resolution = total_expectation_resolution if total_expectation_resolution != -1.0 else self._total_expectation_resolution
-        new_peak_nodes = peak_nodes or self._peak_nodes
-        new_peak_widths = peak_widths or self._peak_widths
-        new_range = energy_range or self._energy_range
+        new_peak_nodes = peak_nodes if peak_nodes is not None else self._peak_nodes
+        new_peak_widths = peak_widths if peak_widths is not None else self._peak_widths
+        new_range = energy_range if energy_range is not None else self._energy_range
         new_cache_batch = cache_batch_size if cache_batch_size != -1 else self._cache_batch_size
         new_integration_batch = integration_batch_size if integration_batch_size != -1 else self._integration_batch_size
         new_offset = offset if offset != -1.0 else self._offset
@@ -265,25 +352,32 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         if irf_affected:
             self._irf_cache = self._irf_energy_node_cache = self._width_tensor = None
             self._nodes_primary = self._nodes_secondary = None
-            self._nodes_bkg_1 = self._nodes_bkg_2 = self._nodes_bkg_3 = None
+            self._nodes_bkg_0 = self._nodes_bkg_1 = self._nodes_bkg_2 = self._nodes_bkg_3 = None
         
         if area_affected:
             self._area_cache = self._area_energy_node_cache = None
-            
-        if new_density_integration_nodes < (new_peak_nodes[0] + 2 * new_peak_nodes[1] + 3):
-            raise ValueError("Too many nodes per peak compared to the total number or peaks!")
-            
-        if (new_density_integration_nodes < 1) or any(n < 1 for n in new_peak_nodes):
-            raise ValueError("The number of energy nodes must be at least 1.")
         
-        if (new_total_expectation_resolution > (new_range[1] - new_range[0])) or (new_total_expectation_resolution <= 0):
-            raise ValueError("The total expectation resolution must be positive and smaller than the energy range.")
+        if n_intervals > 0:
+            if any(new_density_integration_nodes[i] < (new_peak_nodes[i][0] + 2 * new_peak_nodes[i][1] + 3) for i in range(n_intervals)):
+                raise ValueError("Too many nodes per peak compared to the total number or peaks!")
 
-        if new_range[0] >= new_range[1]:
-            raise ValueError("The initial energy interval needs to be increasing!")
+            if any(n < 1 for n in new_density_integration_nodes) or any(n < 1 for n in np.hstack(new_peak_nodes)):
+                raise ValueError("The number of energy nodes must be at least 1.")
         
-        new_total_expectation_integration_nodes = self._total_expectation_integration_nodes(new_total_expectation_resolution, new_range[1] - new_range[0])
-        new_max_nodes = max(new_total_expectation_integration_nodes, new_density_integration_nodes)
+        energy_intervals = [i for i in new_range if isinstance(i, list)]
+        
+        if n_intervals > 0:
+            smallest_interval = min((energy_intervals[i][1] - energy_intervals[i][0]) for i in range(n_intervals))
+            if (new_total_expectation_resolution > smallest_interval) or (new_total_expectation_resolution <= 0):
+                raise ValueError("The total expectation resolution must be positive and smaller than the energy range.")
+            if any(i[1] <= i[0] for i in energy_intervals):
+                raise ValueError("The initial energy interval needs to be increasing!")
+        else:
+            if new_total_expectation_resolution <= 0:
+                raise ValueError("The total expectation resolution must be positive.")
+        
+        new_total_expectation_integration_nodes = sum(self._total_expectation_integration_nodes(new_total_expectation_resolution, i[1] - i[0]) for i in energy_intervals)
+        new_max_nodes = max(new_total_expectation_integration_nodes, sum(new_density_integration_nodes)) + (len(new_range) - n_intervals)
         
         if (new_cache_batch is not None) and (new_cache_batch < new_max_nodes):
             raise ValueError(f"The cache batch size cannot be smaller than the number of integration nodes ({new_max_nodes}).")
@@ -302,6 +396,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._cache_batch_size = new_cache_batch if new_cache_batch is not None else (self._n_events * new_max_nodes)
         self._integration_batch_size = new_integration_batch if new_integration_batch is not None else (self._n_events * new_max_nodes)
         self._offset = new_offset
+        self._n_intervals = n_intervals
         self._check_memory_savings()
     
     @staticmethod
@@ -314,21 +409,38 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         return [self._build_nodes(q + (1 if i < r else 0)) for i in range(groups)]
     
     def _init_node_pool(self):
-        self._width_tensor = torch.tensor([self._peak_widths[0], self._peak_widths[0],
-                                           self._peak_widths[1], self._peak_widths[1]], dtype=torch.float32)
+        self._width_tensor = []
+        self._nodes_primary = []
+        self._nodes_secondary = []
+        self._nodes_bkg_0 = []
+        self._nodes_bkg_1 = []
+        self._nodes_bkg_2 = []
+        self._nodes_bkg_3 = []
         
-        self._nodes_primary = self._build_nodes(self._peak_nodes[0])
-        self._nodes_secondary = self._build_nodes(self._peak_nodes[1])
+        for k in range(len(self._density_integration_nodes)):
+            n_density = self._density_integration_nodes[k]
+            p_nodes = self._peak_nodes[k]
+            w = self._peak_widths
+        
+            w_tensor = torch.tensor([w[0], w[0], w[1], w[1]], dtype=torch.float32)
+            self._width_tensor.append(w_tensor)
 
-        self._nodes_bkg_1 = self._build_nodes(self._density_integration_nodes - self._peak_nodes[0])
+            self._nodes_primary.append(self._build_nodes(p_nodes[0]))
+            self._nodes_secondary.append(self._build_nodes(p_nodes[1]))
+            
+            self._nodes_bkg_0.append(self._build_nodes(n_density))
 
-        self._nodes_bkg_2 = self._build_split_nodes(
-            self._density_integration_nodes - self._peak_nodes[0] - self._peak_nodes[1], 2
-        )
+            self._nodes_bkg_1.append(self._build_nodes(n_density - p_nodes[0]))
 
-        self._nodes_bkg_3 = self._build_split_nodes(
-            self._density_integration_nodes - self._peak_nodes[0] - 2 * self._peak_nodes[1], 3
-        )
+            self._nodes_bkg_2.append((
+                self._build_split_nodes(n_density - p_nodes[0] - p_nodes[1], 2), # has_photopeak
+                self._build_split_nodes(n_density - p_nodes[1], 2),             # ~has_photopeak
+                ))
+
+            self._nodes_bkg_3.append((
+                self._build_split_nodes(n_density - p_nodes[0] - 2 * p_nodes[1], 3), # has_photopeak
+                self._build_split_nodes(n_density - 2 * p_nodes[1], 3),             # ~has_photopeak
+                ))
 
     @staticmethod
     def _scale_nodes_exp(E1: torch.Tensor, E2: torch.Tensor, 
@@ -353,12 +465,24 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         out_w = nodes_u.pow(2).mul(3).mul(weights_u).mul(scale)
 
         return out_n, out_w
-    
+
+    @staticmethod
+    def _scale_nodes_log(E1: torch.Tensor, E2: torch.Tensor,
+                         nodes_u: torch.Tensor, weights_u: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        log_E1 = torch.log10(E1)
+        log_E2 = torch.log10(E2)
+        scale = 0.5 * (log_E2 - log_E1)
+
+        out_n = torch.pow(10, nodes_u.mul(scale).add(0.5 * (log_E1 + log_E2)))
+        out_w = out_n.mul(weights_u).mul(scale).mul(torch.log(torch.tensor(10.0)))
+
+        return out_n, out_w
+        
     def _get_escape_peak(self, energy_m_keV: torch.Tensor, phi_rad: torch.Tensor) -> torch.Tensor:
         E2 = 511.0 / (1.0 + 511.0 / energy_m_keV - torch.cos(phi_rad))
         energy = energy_m_keV + 1022.0 - E2
         
-        accept = (energy < self._energy_range[1]) & (energy > self._energy_range[0]) & (energy > 1600.0) & (energy_m_keV < energy)
+        accept = (energy > 1600.0) & (energy_m_keV < energy)
         return torch.where(accept, energy, torch.tensor(float('nan'), dtype=torch.float32))
     
     def _get_missing_energy_peak(self, phi_geo_rad: torch.Tensor, energy_m_keV: torch.Tensor, 
@@ -376,7 +500,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                               ((1022.0 + energy_m_keV)**2 - energy_m_keV * (2044.0 + energy_m_keV) * cos_phi - 2 * energy_m_keV**2 * cos_geo * torch.sin(phi_rad/2)**2))
             energy = (energy_m_keV**2 * (1 - cos_geo - cos_phi + cos_phi * cos_geo) + root) / denom
 
-        accept = (energy < self._energy_range[1]) & (energy > self._energy_range[0]) & (energy > energy_m_keV) & (energy_m_keV/energy - 1 < -0.2)
+        accept = (energy > energy_m_keV) & (energy_m_keV/energy - 1 < -0.2)
         return torch.where(accept, energy, torch.tensor(float('nan'), dtype=torch.float32))
     
     def init_cache(self):
@@ -428,18 +552,30 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
     def _compute_area(self):
         coord = self._source.position.sky_coord
         n_energy = self.total_expectation_integration_nodes
-
-        log_E_min = np.log10(self._energy_range[0])
-        log_E_max = np.log10(self._energy_range[1])
-
-        x, w = np.polynomial.legendre.leggauss(n_energy)
-
-        scale = 0.5 * (log_E_max - log_E_min)
-        y_nodes = scale * x + 0.5 * (log_E_max + log_E_min)
-        self._area_energy_node_cache = 10**y_nodes
         
-        e_w = (np.log(10) * self._area_energy_node_cache * (w * scale)).astype(np.float32).reshape(1, -1)
+        e_n, e_w = [], []
+
+        for x in self._energy_range:
+            if isinstance(x, (float, int)):
+                e_n.append([float(x)])
+                e_w.append([1.0])
+            else:
+                E1, E2 = torch.tensor(x[0]), torch.tensor(x[1])
+                n_nodes = self._total_expectation_integration_nodes(self._total_expectation_resolution, E2 - E1)
+
+                n_np, w_np = np.polynomial.legendre.leggauss(n_nodes)
+
+                n_torch = torch.from_numpy(n_np)
+                w_torch = torch.from_numpy(w_np)
+
+                n, w = self._scale_nodes_log(E1, E2, n_torch, w_torch)
+
+                e_n.append(n.numpy())
+                e_w.append(w.numpy())
+
+        self._area_energy_node_cache = np.concatenate(e_n).astype(np.float64)
         e_n = self._area_energy_node_cache.astype(np.float32)
+        e_w = np.concatenate(e_w).astype(np.float32)
 
         # Midpoint
         sc_coord_sph = self._get_target_in_sc_frame(coord, self._sc_ori_center)
@@ -497,12 +633,22 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._area_cache = total_area
     
     def _fill_nodes(self, nodes_out: torch.Tensor, weights_out: torch.Tensor, 
-                    indices: torch.Tensor, mode: int, 
-                    sorted_peaks: torch.Tensor, delta: torch.Tensor):
+                    indices: torch.Tensor, mode: int, has_photopeak: torch.Tensor,
+                    sorted_peaks: torch.Tensor, delta: torch.Tensor,
+                    intervals_idx: int, current_offset: int, Emin: float, Emax: float):
         
-        Emin, Emax = self._energy_range
+        Emin_t = torch.full((len(indices), 1), Emin, dtype=torch.float32)
+        Emax_t = torch.full((len(indices), 1), Emax, dtype=torch.float32)
         
-        if mode == 1:
+        if mode == 0:
+            # [Background]
+            c = 0
+            w = self._nodes_bkg_0[intervals_idx][0].shape[1]
+            n_res, w_res = self._scale_nodes_exp(Emin_t, Emax_t, *self._nodes_bkg_0[intervals_idx])
+            nodes_out[indices, current_offset + c : current_offset + c + w] = n_res
+            weights_out[indices, current_offset + c : current_offset + c + w] = w_res
+        
+        elif mode == 1:
             E1 = (sorted_peaks[:, 0] - delta[:, 0]).clamp(min=Emin)
             E2 = (sorted_peaks[:, 0] + delta[:, 0]).clamp(max=Emax)
             
@@ -510,17 +656,39 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             
             E1, E2, EC = [E.view(-1, 1) for E in (E1, E2, EC)]
             
-            c = 0
-            w = self._nodes_primary[0].shape[1]
-            n_res, w_res = self._scale_nodes_center(E1, E2, EC, *self._nodes_primary)
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+            # [Photopeak + Background]
+            if torch.any(has_photopeak):
+                c = 0
+                w = self._nodes_primary[intervals_idx][0].shape[1]
+                n_res, w_res = self._scale_nodes_center(E1[has_photopeak], E2[has_photopeak], EC[has_photopeak], *self._nodes_primary[intervals_idx])
+                nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
-            c += w
-            w = self._nodes_bkg_1[0].shape[1]
-            n_res, w_res = self._scale_nodes_exp(E2, Emax, *self._nodes_bkg_1)
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+                c += w
+                w = self._nodes_bkg_1[intervals_idx][0].shape[1]
+                n_res, w_res = self._scale_nodes_exp(E2[has_photopeak], Emax_t[has_photopeak], *self._nodes_bkg_1[intervals_idx])
+                nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
+            
+            # [Background + Secondary Peak + Background]
+            if torch.any(~has_photopeak):
+                c = 0
+                w = self._nodes_bkg_2[intervals_idx][1][0][0].shape[1]
+                n_res, w_res = self._scale_nodes_exp(Emin_t[~has_photopeak], E1[~has_photopeak], *self._nodes_bkg_2[intervals_idx][1][0])
+                nodes_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = w_res
+                
+                c += w
+                w = self._nodes_secondary[intervals_idx][0].shape[1]
+                n_res, w_res = self._scale_nodes_center(E1[~has_photopeak], E2[~has_photopeak], EC[~has_photopeak], *self._nodes_secondary[intervals_idx])
+                nodes_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = w_res
+                
+                c += w
+                w = self._nodes_bkg_2[intervals_idx][1][1][0].shape[1]
+                n_res, w_res = self._scale_nodes_exp(E2[~has_photopeak], Emax_t[~has_photopeak], *self._nodes_bkg_2[intervals_idx][1][1])
+                nodes_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = w_res
         
         elif mode == 2:
             center_peak = (sorted_peaks[:, 0] + sorted_peaks[:, 1]) / 2
@@ -535,30 +703,64 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             
             E1, E2, E3, E4, EC1, EC2 = [E.view(-1, 1) for E in (E1, E2, E3, E4, EC1, EC2)]
             
-            c = 0
-            w = self._nodes_primary[0].shape[1]
-            n_res, w_res = self._scale_nodes_center(E1, E2, EC1, *self._nodes_primary)
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+            # [Photopeak + Background + Secondary Peak + Background]
+            if torch.any(has_photopeak):
+                c = 0
+                w = self._nodes_primary[intervals_idx][0].shape[1]
+                n_res, w_res = self._scale_nodes_center(E1[has_photopeak], E2[has_photopeak], EC1[has_photopeak], *self._nodes_primary[intervals_idx])
+                nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
-            c += w
-            w = self._nodes_bkg_2[0][0].shape[1]
-            n_res, w_res = self._scale_nodes_exp(E2, E3, *self._nodes_bkg_2[0])
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+                c += w
+                w = self._nodes_bkg_2[intervals_idx][0][0][0].shape[1]
+                n_res, w_res = self._scale_nodes_exp(E2[has_photopeak], E3[has_photopeak], *self._nodes_bkg_2[intervals_idx][0][0])
+                nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
-            c += w
-            w = self._nodes_secondary[0].shape[1]
-            n_res, w_res = self._scale_nodes_center(E3, E4, EC2, *self._nodes_secondary)
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+                c += w
+                w = self._nodes_secondary[intervals_idx][0].shape[1]
+                n_res, w_res = self._scale_nodes_center(E3[has_photopeak], E4[has_photopeak], EC2[has_photopeak], *self._nodes_secondary[intervals_idx])
+                nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
-            c += w
-            w = self._nodes_bkg_2[1][0].shape[1]
-            n_res, w_res = self._scale_nodes_exp(E4, Emax, *self._nodes_bkg_2[1])
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+                c += w
+                w = self._nodes_bkg_2[intervals_idx][0][1][0].shape[1]
+                n_res, w_res = self._scale_nodes_exp(E4[has_photopeak], Emax_t[has_photopeak], *self._nodes_bkg_2[intervals_idx][0][1])
+                nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
+            
+            # [Background + Secondary Peak + Background + Secondary Peak + Background]
+            if torch.any(~has_photopeak):
+                c = 0
+                w = self._nodes_bkg_3[intervals_idx][1][0][0].shape[1]
+                n_res, w_res = self._scale_nodes_exp(Emin_t[~has_photopeak], E1[~has_photopeak], *self._nodes_bkg_3[intervals_idx][1][0])
+                nodes_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
+                c += w
+                w = self._nodes_secondary[intervals_idx][0].shape[1]
+                n_res, w_res = self._scale_nodes_center(E1[~has_photopeak], E2[~has_photopeak], EC1[~has_photopeak], *self._nodes_secondary[intervals_idx])
+                nodes_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = w_res
+                
+                c += w
+                w = self._nodes_bkg_3[intervals_idx][1][1][0].shape[1]
+                n_res, w_res = self._scale_nodes_exp(E2[~has_photopeak], E3[~has_photopeak], *self._nodes_bkg_3[intervals_idx][1][1])
+                nodes_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = w_res
+                
+                c += w
+                w = self._nodes_secondary[intervals_idx][0].shape[1]
+                n_res, w_res = self._scale_nodes_center(E3[~has_photopeak], E4[~has_photopeak], EC2[~has_photopeak], *self._nodes_secondary[intervals_idx])
+                nodes_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = w_res
+                
+                c += w
+                w = self._nodes_bkg_3[intervals_idx][1][2][0].shape[1]
+                n_res, w_res = self._scale_nodes_exp(E4[~has_photopeak], Emax_t[~has_photopeak], *self._nodes_bkg_3[intervals_idx][1][2])
+                nodes_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = n_res
+                weights_out[indices[~has_photopeak], current_offset + c : current_offset + c + w] = w_res
+            
         elif mode == 3:
             center_peak_1 = (sorted_peaks[:, 0] + sorted_peaks[:, 1]) / 2
             center_peak_2 = (sorted_peaks[:, 1] + sorted_peaks[:, 2]) / 2
@@ -574,44 +776,44 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             
             E1, E2, E3, E4, E5, E6, EC1, EC2, EC3 = [E.view(-1, 1) for E in (E1, E2, E3, E4, E5, E6, EC1, EC2, EC3)]
             
+            # [Photopeak + Background + Secondary Peak + Background + Secondary Peak + Background]
             c = 0
-            w = self._nodes_primary[0].shape[1]
-            n_res, w_res = self._scale_nodes_center(E1, E2, EC1, *self._nodes_primary)
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+            w = self._nodes_primary[intervals_idx][0].shape[1]
+            n_res, w_res = self._scale_nodes_center(E1[has_photopeak], E2[has_photopeak], EC1[has_photopeak], *self._nodes_primary[intervals_idx])
+            nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+            weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
             c += w
-            w = self._nodes_bkg_3[0][0].shape[1]
-            n_res, w_res = self._scale_nodes_exp(E2, E3, *self._nodes_bkg_3[0])
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+            w = self._nodes_bkg_3[intervals_idx][0][0][0].shape[1]
+            n_res, w_res = self._scale_nodes_exp(E2[has_photopeak], E3[has_photopeak], *self._nodes_bkg_3[intervals_idx][0][0])
+            nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+            weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
             c += w
-            w = self._nodes_secondary[0].shape[1]
-            n_res, w_res = self._scale_nodes_center(E3, E4, EC2, *self._nodes_secondary)
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+            w = self._nodes_secondary[intervals_idx][0].shape[1]
+            n_res, w_res = self._scale_nodes_center(E3[has_photopeak], E4[has_photopeak], EC2[has_photopeak], *self._nodes_secondary[intervals_idx])
+            nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+            weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
             c += w
-            w = self._nodes_bkg_3[1][0].shape[1]
-            n_res, w_res = self._scale_nodes_exp(E4, E5, *self._nodes_bkg_3[1])
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+            w = self._nodes_bkg_3[intervals_idx][0][1][0].shape[1]
+            n_res, w_res = self._scale_nodes_exp(E4[has_photopeak], E5[has_photopeak], *self._nodes_bkg_3[intervals_idx][0][1])
+            nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+            weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
             c += w
-            w = self._nodes_secondary[0].shape[1]
-            n_res, w_res = self._scale_nodes_center(E5, E6, EC3, *self._nodes_secondary)
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+            w = self._nodes_secondary[intervals_idx][0].shape[1]
+            n_res, w_res = self._scale_nodes_center(E5[has_photopeak], E6[has_photopeak], EC3[has_photopeak], *self._nodes_secondary[intervals_idx])
+            nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+            weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
 
             c += w
-            w = self._nodes_bkg_3[2][0].shape[1]
-            n_res, w_res = self._scale_nodes_exp(E6, Emax, *self._nodes_bkg_3[2])
-            nodes_out[indices, c:c+w] = n_res
-            weights_out[indices, c:c+w] = w_res
+            w = self._nodes_bkg_3[intervals_idx][0][2][0].shape[1]
+            n_res, w_res = self._scale_nodes_exp(E6[has_photopeak], Emax_t[has_photopeak], *self._nodes_bkg_3[intervals_idx][0][2])
+            nodes_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = n_res
+            weights_out[indices[has_photopeak], current_offset + c : current_offset + c + w] = w_res
         else:
             raise ValueError(f"Unknown folding mode {mode}")
-
     
     def _get_nodes(self, energy_m_keV: torch.Tensor, phi_rad: torch.Tensor, 
                    phi_geo_rad: torch.Tensor, phi_igeo_rad: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -622,49 +824,120 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         phi_igeo_rad = phi_igeo_rad.view(-1, 1)
         
         batch_size = energy_m_keV.shape[0]
+        total_nodes = self.total_density_integration_nodes
         
-        nodes = torch.zeros((batch_size, self._density_integration_nodes), dtype=torch.float32)
+        nodes = torch.zeros((batch_size, total_nodes), dtype=torch.float32)
         weights = torch.zeros_like(nodes)
         
-        peaks = torch.zeros((batch_size, 4), dtype=torch.float32)
-        peaks[:, 0] = energy_m_keV.squeeze()
-        peaks[:, 1] = self._get_escape_peak(energy_m_keV, phi_rad).squeeze()
-        peaks[:, 2] = self._get_missing_energy_peak(phi_geo_rad, energy_m_keV, phi_rad).squeeze()
-        peaks[:, 3] = self._get_missing_energy_peak(phi_igeo_rad, energy_m_keV, phi_rad, inverse=True).squeeze()
+        raw_peaks = torch.zeros((batch_size, 4), dtype=torch.float32)
+        raw_peaks[:, 0] = energy_m_keV.squeeze()
+        raw_peaks[:, 1] = self._get_escape_peak(energy_m_keV, phi_rad).squeeze()
+        raw_peaks[:, 2] = self._get_missing_energy_peak(phi_geo_rad, energy_m_keV, phi_rad).squeeze()
+        raw_peaks[:, 3] = self._get_missing_energy_peak(phi_igeo_rad, energy_m_keV, phi_rad, inverse=True).squeeze()
         
-        diffs = peaks * self._width_tensor[None, ...]
+        intervals_idx = 0
+        current_offset = 0
         
-        n_peaks = torch.sum(~torch.isnan(peaks), dim=1)
-        
-        indices_1 = torch.where(n_peaks == 1)[0]
-        indices_2 = torch.where(n_peaks == 2)[0]
-        indices_3 = torch.where(n_peaks == 3)[0]
-        
-        if len(indices_1) > 0:
-            self._fill_nodes(nodes, weights, indices_1, 1, 
-                                      peaks[indices_1, :1], diffs[indices_1, :1])
+        for item in self._energy_range:
+            if not isinstance(item, list):
+                line_energy = float(item)
+                nodes[:, current_offset] = line_energy
+                weights[:, current_offset] = 1.0
+                current_offset += 1
+                continue
             
-        if len(indices_2) > 0:
-            p_sub = peaks[indices_2]
-            d_sub = diffs[indices_2]
-            mask = ~torch.isnan(p_sub)
-            p_comp = p_sub[mask].view(-1, 2)
-            d_comp = d_sub[mask].view(-1, 2)
-            self._fill_nodes(nodes, weights, indices_2, 2, p_comp, d_comp)
+            Emin, Emax = item
+            size = self._density_integration_nodes[intervals_idx]
             
-        if len(indices_3) > 0:
-            p_sub = peaks[indices_3]
-            d_sub = diffs[indices_3]
-            mask = ~torch.isnan(p_sub)
-            p_comp = p_sub[mask].view(-1, 3)
-            d_comp = d_sub[mask].view(-1, 3)
+            interval_peaks = torch.where(
+                (raw_peaks >= Emin) & (raw_peaks <= Emax),
+                raw_peaks,
+                torch.tensor(float('nan'), dtype=torch.float32)
+            )
             
-            p_sorted, idx = torch.sort(p_comp, dim=1)
-            d_sorted = torch.gather(d_comp, 1, idx)
+            w_tensor = self._width_tensor[intervals_idx]
+            interval_diffs = interval_peaks * w_tensor[None, ...]
             
-            self._fill_nodes(nodes, weights, indices_3, 3, p_sorted, d_sorted)
-        
+            n_peaks = torch.sum(~torch.isnan(interval_peaks), dim=1)
+            
+            for mode in range(4): 
+                indices = torch.where(n_peaks == mode)[0]
+                if len(indices) == 0:
+                    continue
+                
+                has_photopeak = ~torch.isnan(interval_peaks[:, 0][indices])
+                p_sub = interval_peaks[indices]
+                d_sub = interval_diffs[indices]
+                
+                if mode == 0:
+                    self._fill_nodes(nodes, weights, indices, 0, has_photopeak, None, None, 
+                                     intervals_idx, current_offset, Emin, Emax)
+                elif mode == 1:
+                    mask = ~torch.isnan(p_sub)
+                    p_comp = p_sub[mask].view(-1, 1)
+                    d_comp = d_sub[mask].view(-1, 1)
+                    
+                    self._fill_nodes(nodes, weights, indices, 1, has_photopeak, p_comp, d_comp, 
+                                     intervals_idx, current_offset, Emin, Emax)
+                elif mode == 2:
+                    mask = ~torch.isnan(p_sub)
+                    p_comp = p_sub[mask].view(-1, 2)
+                    d_comp = d_sub[mask].view(-1, 2)
+                    
+                    p_sorted, idx = torch.sort(p_comp, dim=1)
+                    d_sorted = torch.gather(d_comp, 1, idx)
+                    
+                    self._fill_nodes(nodes, weights, indices, 2, has_photopeak, p_sorted, d_sorted, 
+                                     intervals_idx, current_offset, Emin, Emax)
+                elif mode == 3:
+                    mask = ~torch.isnan(p_sub)
+                    p_comp = p_sub[mask].view(-1, 3)
+                    d_comp = d_sub[mask].view(-1, 3)
+                    
+                    p_sorted, idx = torch.sort(p_comp, dim=1)
+                    d_sorted = torch.gather(d_comp, 1, idx)
+                    
+                    self._fill_nodes(nodes, weights, indices, 3, has_photopeak, p_sorted, d_sorted, 
+                                     intervals_idx, current_offset, Emin, Emax)
+            
+            current_offset += size
+            intervals_idx += 1
+            
         return nodes, weights
+        
+        #diffs = peaks * self._width_tensor[None, ...]
+        #
+        #n_peaks = torch.sum(~torch.isnan(peaks), dim=1)
+        #
+        #indices_1 = torch.where(n_peaks == 1)[0]
+        #indices_2 = torch.where(n_peaks == 2)[0]
+        #indices_3 = torch.where(n_peaks == 3)[0]
+        #
+        #if len(indices_1) > 0:
+        #    self._fill_nodes(nodes, weights, indices_1, 1, 
+        #                              peaks[indices_1, :1], diffs[indices_1, :1])
+        #    
+        #if len(indices_2) > 0:
+        #    p_sub = peaks[indices_2]
+        #    d_sub = diffs[indices_2]
+        #    mask = ~torch.isnan(p_sub)
+        #    p_comp = p_sub[mask].view(-1, 2)
+        #    d_comp = d_sub[mask].view(-1, 2)
+        #    self._fill_nodes(nodes, weights, indices_2, 2, p_comp, d_comp)
+        #    
+        #if len(indices_3) > 0:
+        #    p_sub = peaks[indices_3]
+        #    d_sub = diffs[indices_3]
+        #    mask = ~torch.isnan(p_sub)
+        #    p_comp = p_sub[mask].view(-1, 3)
+        #    d_comp = d_sub[mask].view(-1, 3)
+        #    
+        #    p_sorted, idx = torch.sort(p_comp, dim=1)
+        #    d_sorted = torch.gather(d_comp, 1, idx)
+        #    
+        #    self._fill_nodes(nodes, weights, indices_3, 3, p_sorted, d_sorted)
+        #
+        #return nodes, weights
     
     def _get_CDS_coordinates(self, lon_src_rad: torch.Tensor, lat_src_rad: torch.Tensor, indices=None) -> Tuple[torch.Tensor, torch.Tensor]:
         cos_lat_src = torch.cos(lat_src_rad)
@@ -722,7 +995,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         phi_geo_rad, phi_igeo_rad = self._get_CDS_coordinates(torch.as_tensor(lon_ph_rad), torch.as_tensor(lat_ph_rad), indices=indices)
         
         nodes, weights = self._get_nodes(e_sl, p_sl, phi_geo_rad, phi_igeo_rad)
-        n_energy = self._density_integration_nodes
+        n_energy = self.total_density_integration_nodes
         
         current_total = current_n * n_energy
         
@@ -770,7 +1043,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
     
     def _compute_density(self):
         coord = self._source.position.sky_coord
-        n_energy = self._density_integration_nodes
+        n_energy = self.total_density_integration_nodes
         batch_size_events = self._cache_batch_size // n_energy
         
         torch_memory_dtype = torch.float32 if self._reduce_memory else torch.float64
@@ -922,17 +1195,29 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         if node_caching:
             self._compute_nodes()
     
-    def cache_to_file(self, filename: Union[str, Path]):
+    def cache_to_file(self, filename: Union[str, Path]): 
         with h5py.File(str(filename), 'w') as f:
-            f.attrs['density_integration_nodes'] = self._density_integration_nodes
+            def processed_energy_range():
+                e_range = []
+                for x in self._energy_range:
+                    if isinstance(x, list):
+                        e_range.append(x)
+                    else:
+                        e_range.append([x, x])
+                return np.array(e_range, dtype=np.float64)
+            
             f.attrs['total_expectation_resolution'] = self._total_expectation_resolution
-            f.attrs['peak_widths'] = self._peak_widths
-            f.attrs['energy_range'] = self._energy_range
+            f.attrs['peak_widths'] = self._peak_widths 
             f.attrs['cache_batch_size'] = self._cache_batch_size
             f.attrs['integration_batch_size'] = self._integration_batch_size
             f.attrs['show_progress'] = self._show_progress
             f.attrs['force_energy_node_caching'] = self._force_energy_node_caching
             f.attrs['reduce_memory'] = self._reduce_memory
+            f.attrs['n_intervals'] = self._n_intervals
+            
+            f.create_dataset('energy_range', data=processed_energy_range())
+            f.create_dataset('peak_nodes', data=np.array(self._peak_nodes, dtype=np.int32))
+            f.create_dataset('density_integration_nodes', data=np.array(self._density_integration_nodes, dtype=np.int32))
             
             if self._offset is not None:
                 f.attrs['offset'] = self._offset
@@ -942,7 +1227,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             
             if self._irf_cache is not None:
                 f.create_dataset('irf_cache', data=self._irf_cache.numpy(), 
-                               compression='gzip', compression_opts=4)
+                               compression='gzip')
             
             if self._irf_energy_node_cache is not None:
                 f.create_dataset('irf_energy_node_cache', data=self._irf_energy_node_cache,
@@ -988,15 +1273,26 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             raise FileNotFoundError(f"Cache file {str(filename)} not found.")
 
         with h5py.File(str(filename), 'r') as f:
-            self._density_integration_nodes = int(f.attrs['density_integration_nodes'])
+            def processed_energy_range(input):
+                e_range = []
+                for x in input:
+                    if (x[0] != x[1]):
+                        e_range.append([float(x[0]), float(x[1])])
+                    else:
+                        e_range.append(float(x[0]))
+                return e_range
+            
             self._total_expectation_resolution = float(f.attrs['total_expectation_resolution'])
             self._peak_widths = tuple(f.attrs['peak_widths'])
-            self._energy_range = tuple(f.attrs['energy_range'])
             self._cache_batch_size = int(f.attrs['cache_batch_size'])
             self._integration_batch_size = int(f.attrs['integration_batch_size'])
             self._show_progress = bool(f.attrs['show_progress'])
             self._force_energy_node_caching = bool(f.attrs['force_energy_node_caching'])
             self._reduce_memory = bool(f.attrs['reduce_memory'])
+            self._n_intervals = int(f.attrs['n_intervals'])
+            self._density_integration_nodes = f['density_integration_nodes'][:].tolist()
+            self._energy_range = processed_energy_range(f['energy_range'][:].tolist())
+            self._peak_nodes = f['peak_nodes'][:].tolist()
             
             if 'offset' in f.attrs:
                 self._offset = f.attrs['offset']
@@ -1098,7 +1394,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
 
     def _integrate_single_event_density(self, event_idx: int, occ_val: float, live_val: float, 
                                         lon_val: float, lat_val: float, 
-                                        relerr: float, abserr: float, maxEval: int) -> tuple[float, bool]:
+                                        relerr: float, abserr: float, maxEval: int) -> tuple[float, bool]: 
         from cubature import cubature
         
         if np.isclose(0.0, occ_val * live_val):
@@ -1127,14 +1423,25 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             flux = asarray(self._source(energies), dtype=np.float64)
             return diff_area * occ_val * live_val * flux
 
-        res, err = cubature(
-            density_integrand, ndim=1, fdim=1,
-            xmin=[self._energy_range[0]], xmax=[self._energy_range[1]],
-            vectorized=True, relerr=relerr, abserr=abserr, maxEval=maxEval
-        )
-        res_val = res[0]
-        allowed_err = max(abserr, relerr * abs(res_val))
-        return res_val, bool(err[0] <= allowed_err)
+        total_res_val = 0.0
+        total_err = 0.0
+        
+        for x in self._energy_range:
+            if isinstance(x, list):
+                res, err = cubature(
+                    density_integrand, ndim=1, fdim=1,
+                    xmin=[x[0]], xmax=[x[1]],
+                    vectorized=True, relerr=relerr, abserr=abserr, maxEval=maxEval
+                )
+                total_res_val += res[0]
+                total_err += err[0]
+            else:
+                Ei = np.array([[float(x)]], dtype=np.float64)
+                val = density_integrand(Ei)
+                total_res_val += val[0]
+        
+        allowed_err = max(abserr, relerr * abs(total_res_val))
+        return total_res_val, bool(total_err <= allowed_err)
 
     def _integrate_total_counts(self, coord, relerr: float, abserr: float, maxEval: int) -> tuple[float, bool]:
         from cubature import cubature
@@ -1161,14 +1468,25 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 
             return total_counts_for_energies
 
-        res_total, err_total = cubature(
-            total_counts_integrand, ndim=1, fdim=1,
-            xmin=[self._energy_range[0]], xmax=[self._energy_range[1]],
-            vectorized=True, relerr=relerr, abserr=abserr, maxEval=maxEval
-        )
-        high_prec_total_counts = float(res_total[0])
+        high_prec_total_counts = 0.0
+        total_err_total = 0.0
+
+        for x in self._energy_range:
+            if isinstance(x, list):
+                res_total, err_total = cubature(
+                    total_counts_integrand, ndim=1, fdim=1,
+                    xmin=[x[0]], xmax=[x[1]],
+                    vectorized=True, relerr=relerr, abserr=abserr, maxEval=maxEval
+                )
+                high_prec_total_counts += float(res_total[0])
+                total_err_total += float(err_total[0])
+            else:
+                Ei = np.array([[float(x)]], dtype=np.float64)
+                val_total = total_counts_integrand(Ei)
+                high_prec_total_counts += float(val_total[0])
+
         allowed_err_total = max(abserr, relerr * abs(high_prec_total_counts))
-        return high_prec_total_counts, bool(err_total[0] <= allowed_err_total)
+        return high_prec_total_counts, bool(total_err_total <= allowed_err_total)
 
     def validate_integration(self, 
                              n_events: int, 
@@ -1371,7 +1689,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         if (source_dict != self._last_convolved_source_dict_density) or (self._exp_density is None):
             self._exp_density = torch.zeros(self._n_events, dtype=torch.float64)
             
-            n_energy = self._density_integration_nodes
+            n_energy = self.total_density_integration_nodes
             batch_size = self._integration_batch_size // n_energy
 
             if (self._irf_energy_node_cache is not None) & (batch_size >= self._valid_events):
