@@ -60,13 +60,13 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
     def atol(self):
         return self._atol
     @atol.setter
-    def atol(self, val: float): self._set_integration_parameters(atol=val)
+    def atol(self, val: float): self.set_integration_parameters(atol=val)
     
     @property
     def norm_dimensions(self):
         return self._norm_dimensions
     
-    def _set_integration_parameters(self,
+    def set_integration_parameters(self,
                                    intvar_resolution: Optional[float] = -1.0,
                                    range_intvar: Optional[Tuple[float, float]] = None,
                                    atol: Optional[float] = -1.0):
@@ -336,15 +336,15 @@ class NFNormalizationMapEmBase(NFNormalizationMapBase[T_IntVarList, T_NormDensit
     def menergy_keV_resolution(self):
         return self._menergy_keV_resolution
     @menergy_keV_resolution.setter
-    def menergy_keV_resolution(self, val: float): self._set_integration_parameters(menergy_keV_resolution=val)
+    def menergy_keV_resolution(self, val: float): self.set_integration_parameters(menergy_keV_resolution=val)
     
-    def _set_integration_parameters(self,
+    def set_integration_parameters(self,
                                    intvar_resolution: Optional[float] = -1.0,
                                    menergy_keV_resolution: Optional[float] = -1.0,
                                    range_intvar: Optional[Tuple[float, float]] = None,
                                    atol: Optional[float] = -1.0):
         
-        super()._set_integration_parameters(intvar_resolution=intvar_resolution,
+        super().set_integration_parameters(intvar_resolution=intvar_resolution,
                                             range_intvar=range_intvar,
                                             atol=atol)
         
