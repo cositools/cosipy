@@ -5,6 +5,8 @@ from typing import Tuple, Dict
 
 from .NFBackgroundModels import TotalBackgroundDensityCMLPDGaussianCARQSFlow
 
+from cosipy.response.ml.NFBase import NNDensityInferenceWrapper, RQSplineTransform
+
 class TotalBackground2DDensityCMLPDGaussianCARQSFlow(TotalBackgroundDensityCMLPDGaussianCARQSFlow):
     @property
     def source_dim(self) -> int: 
@@ -95,5 +97,73 @@ class TotalBackground1EMDDensityCMLPDGaussianCARQSFlow(TotalBackgroundDensityCML
         valid_mask = (nem  >= 0.0) & \
                      (nem  >= (np.log10(self._menergy_cuts[0])/2 - 1)) & \
                      (nem  <= (np.log10(self._menergy_cuts[1])/2 - 1))
+                     
+        return valid_mask
+
+class TotalBackground1EMDDensityECDFSplineCMLPDGaussianCARQSFlow(TotalBackground1EMDDensityCMLPDGaussianCARQSFlow):
+    def _init_model(self, input: Dict):
+        self._snapshot          = input["model_state_dict"]
+        self._bins              = input["bins"]
+        self._hidden_units      = input["hidden_units"]
+        self._residual_blocks   = input["residual_blocks"]
+        self._total_layers      = input["total_layers"]
+        self._context_size      = input["context_size"]
+        self._mlp_hidden_units  = input["mlp_hidden_units"]
+        self._mlp_hidden_layers = input["mlp_hidden_layers"]
+        self._menergy_cuts      = input["menergy_cuts"]
+        
+        self._start_time: float     = input["start_time"]
+        self._total_time: float     = input["total_time"]
+        self._period: float         = input["period"]
+        self._slew_duration: float  = input["slew_duration"]
+        self._obs_duration: float   = input["obs_duration"]
+        self._outlocs: torch.Tensor = input["outlocs"].to(self._worker_device)
+        self._coefficients: Dict    = input["coefficients"]
+        
+        return self._load_model()
+    
+    def _load_model(self) -> NNDensityInferenceWrapper:
+        model = self._build_model()
+        
+        model.load_state_dict(self._snapshot)
+        model = NNDensityInferenceWrapper(model)
+        model.eval()
+        model.to(self._worker_device)
+        
+        self._rqs_splines = RQSplineTransform(self._coefficients)
+        self._rqs_splines.to(self._worker_device)
+        
+        return model
+    
+    def _inverse_transform_coordinates(self, *args: torch.Tensor) -> torch.Tensor:
+        nem, _ = args
+        
+        em  = self._rqs_splines.backward(nem)[0]
+
+        return torch.stack([em,], dim=1)
+    
+    def _transform_coordinates(self, *args: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        time, em = args
+        
+        nem, jac_part = self._rqs_splines.forward(em)
+
+        jac = jac_part
+
+        ctx = self._transform_context(time)
+
+        src = torch.cat([
+            (nem).unsqueeze(1),
+        ], dim=1)
+
+        return ctx.to(torch.float32), src.to(torch.float32), jac.to(torch.float32)
+    
+    def _valid_samples(self, *args: torch.Tensor) -> torch.Tensor:
+        nem, _ = args
+        
+        em = self._rqs_splines.backward(nem)[0]
+        
+        valid_mask = (nem  >= 0.0) & (nem  <= 1.0) & \
+                     (em   >= self._menergy_cuts[0]) & \
+                     (em   <= self._menergy_cuts[1])
                      
         return valid_mask

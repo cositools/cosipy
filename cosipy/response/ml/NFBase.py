@@ -34,6 +34,99 @@ def build_c_arqs_flow(base: nf.distributions.BaseDistribution, num_layers: int,
                 
         return nf.ConditionalNormalizingFlow(base, flows)
 
+class RQSplineTransform:
+    def __init__(self, coefficients):
+        self.x_knots = coefficients["x_knots"]
+        self.y_knots = coefficients["y_knots"]
+        self.derivatives = coefficients["derivatives"]
+        self.num_bins = len(self.x_knots) - 1
+
+    def to(self, device):
+        self.x_knots = self.x_knots.to(device)
+        self.y_knots = self.y_knots.to(device)
+        self.derivatives = self.derivatives.to(device)
+        return self
+
+    def forward(self, x):
+        orig_shape = x.shape
+        x = x.reshape(-1).to(dtype=torch.float64)
+        
+        left_mask = (x < self.x_knots[0])
+        right_mask = (x > self.x_knots[-1])
+        inside_mask = ~left_mask & ~right_mask
+        
+        idx = torch.searchsorted(self.x_knots, x)
+        idx = torch.clamp(idx, 1, self.num_bins)
+        k = idx - 1
+        
+        x_k, x_k1 = self.x_knots[k], self.x_knots[k + 1]
+        y_k, y_k1 = self.y_knots[k], self.y_knots[k + 1]
+        d_k, d_k1 = self.derivatives[k], self.derivatives[k + 1]
+        
+        w_k = x_k1 - x_k
+        h_k = y_k1 - y_k
+        s_k = h_k / w_k
+        
+        xi = (x - x_k) / w_k
+        
+        denom = s_k + (d_k1 + d_k - 2.0 * s_k) * xi * (1.0 - xi)
+        num = h_k * (s_k * xi**2 + d_k * xi * (1.0 - xi))
+        y = y_k + num / denom
+        
+        jac = (s_k**2 * (d_k1 * xi**2 + 2.0 * s_k * xi * (1.0 - xi) + d_k * (1.0 - xi)**2)) / (denom**2)
+        
+        y[left_mask] = self.y_knots[0] + 1.0 * (x[left_mask] - self.x_knots[0])
+        jac[left_mask] = 1.0
+        
+        y[right_mask] = self.y_knots[-1] + 1.0 * (x[right_mask] - self.x_knots[-1])
+        jac[right_mask] = 1.0
+        
+        return y.reshape(orig_shape), jac.reshape(orig_shape)
+
+    def backward(self, y):
+        orig_shape = y.shape
+        y = y.reshape(-1).to(dtype=torch.float64)
+        
+        left_mask = (y < self.y_knots[0])
+        right_mask = (y > self.y_knots[-1])
+        inside_mask = ~left_mask & ~right_mask
+        
+        idx = torch.searchsorted(self.y_knots, y)
+        idx = torch.clamp(idx, 1, self.num_bins)
+        k = idx - 1
+        
+        x_k, x_k1 = self.x_knots[k], self.x_knots[k + 1]
+        y_k, y_k1 = self.y_knots[k], self.y_knots[k + 1]
+        d_k, d_k1 = self.derivatives[k], self.derivatives[k + 1]
+        
+        w_k = x_k1 - x_k
+        h_k = y_k1 - y_k
+        s_k = h_k / w_k
+        
+        a = h_k * (s_k - d_k) + (y - y_k) * (d_k1 + d_k - 2.0 * s_k)
+        b = h_k * d_k - (y - y_k) * (d_k1 + d_k - 2.0 * s_k)
+        c = -s_k * (y - y_k)
+        
+        discriminant = b**2 - 4.0 * a * c
+        discriminant = torch.clamp(discriminant, min=0.0)
+        
+        xi = 2.0 * c / (-b - torch.sqrt(discriminant))
+        xi = torch.clamp(xi, 0.0, 1.0)
+        
+        x = x_k + xi * w_k
+        
+        denom = s_k + (d_k1 + d_k - 2.0 * s_k) * xi * (1.0 - xi)
+        jac_fwd = (s_k**2 * (d_k1 * xi**2 + 2.0 * s_k * xi * (1.0 - xi) + d_k * (1.0 - xi)**2)) / (denom**2)
+        jac = 1.0 / jac_fwd
+        
+        x[left_mask] = self.x_knots[0] + 1.0 * (y[left_mask] - self.y_knots[0])
+        jac[left_mask] = 1.0
+        
+        x[right_mask] = self.x_knots[-1] + 1.0 * (y[right_mask] - self.y_knots[-1])
+        jac[right_mask] = 1.0
+        
+        return x.reshape(orig_shape), jac.reshape(orig_shape)
+
 class NNDensityInferenceWrapper(nn.Module):
     def __init__(self, model: nn.Module):
         super().__init__()

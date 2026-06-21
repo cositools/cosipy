@@ -4,7 +4,7 @@ from pathlib import Path
 import torch
 import torch.multiprocessing as mp
 from cosipy.response.ml.NFBase import DensityApproximation, CompileMode, NFBase, init_density_worker, update_density_worker_settings, DensityModel
-from .NFBkgNormalizationDensityModels import TotalBackground1EMDDensityCMLPDGaussianCARQSFlow, TotalBackground2DDensityCMLPDGaussianCARQSFlow
+from .NFBkgNormalizationDensityModels import TotalBackground1EMDDensityCMLPDGaussianCARQSFlow, TotalBackground2DDensityCMLPDGaussianCARQSFlow, TotalBackground1EMDDensityECDFSplineCMLPDGaussianCARQSFlow
 
 
 class BkgNormalizationDensityApproximation(DensityApproximation):
@@ -12,7 +12,8 @@ class BkgNormalizationDensityApproximation(DensityApproximation):
     def _setup_model(self):
         version_map: Dict[int, DensityModel] = {
             1: TotalBackground2DDensityCMLPDGaussianCARQSFlow,
-            2: TotalBackground1EMDDensityCMLPDGaussianCARQSFlow
+            2: TotalBackground1EMDDensityCMLPDGaussianCARQSFlow,
+            3: TotalBackground1EMDDensityECDFSplineCMLPDGaussianCARQSFlow
         }
         if self._major_version not in version_map:
             raise ValueError(f"Unsupported major version {self._major_version} for Density Approximation")
