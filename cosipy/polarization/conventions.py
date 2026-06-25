@@ -48,6 +48,7 @@ class PolarizationConvention:
         except KeyError as e:
             raise Exception(f"No polarization convention by name '{name}'") from e
 
+    @classmethod
     def get_convention_registered_name(cls, convention_class):
         """
         Opposite of get_convention. Returns None if not found.
