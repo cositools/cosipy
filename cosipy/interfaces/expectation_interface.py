@@ -1,12 +1,10 @@
-import operator
-from typing import Protocol, runtime_checkable, Dict, Any, Generator, Iterable, Optional, Union, Iterator, ClassVar, \
-    Type, Tuple
+from typing import Protocol, runtime_checkable, Iterable, Optional, Type, Tuple
 
-import histpy
+
 import numpy as np
-from histpy import Axes
+from histpy import Histogram, Axes
 
-from cosipy.interfaces import BinnedDataInterface, EventDataInterface, DataInterface, EventInterface
+from cosipy.interfaces import EventDataInterface, EventInterface
 from cosipy.util.iterables import asarray
 
 __all__ = [
@@ -23,20 +21,19 @@ class ExpectationInterface(Protocol):
 class BinnedExpectationInterface(ExpectationInterface, Protocol):
 
     @property
-    def axes(self) -> histpy.Axes:
+    def axes(self) -> Axes:
         """
         Axes of expectation
         """
 
-    def expectation(self, copy: Optional[bool])->histpy.Histogram:
+    def expectation(self, copy: Optional[bool]) -> Histogram:
         """
-
         Parameters
         ----------
         copy:
-            If True (default), it will return an array that the user if free to modify.
-            Otherwise, it will result a reference, possible to the cache, that
-            the user should not modify
+            If True (default), it will return an array that the user
+            if free to modify.  Otherwise, it will result a reference,
+            possible to the cache, that the user should not modify
 
         Returns
         -------
@@ -60,21 +57,25 @@ class ExpectationDensityInterface(ExpectationInterface, Protocol):
 
     def event_probability(self) -> Iterable[float]:
         """
-        Return the probability of obtaining the observed set of measurement of each event,
-        given that the event was detected. It equals the expectation density times ncounts
+        Return the probability of obtaining the observed set of
+        measurement of each event, given that the event was
+        detected. It equals the expectation density times ncounts
 
-        The units of the output the inverse of the phase space of the event_type data space.
-        e.g. if the event measured energy in keV, the units of output of this function are implicitly 1/keV
+        The units of the output are the inverse of the phase space of
+        the event_type data space. E.g., if the event measured energy
+        in keV, the units of output of this function are implicitly
+        1/keV
 
-        This is provided as a helper function assuming the child classes implemented expectation_density
+        This is provided as a helper function assuming the child
+        classes implemented expectation_density
+
         """
 
         # Guard to avoid infinite recursion in incomplete child classes
         cls = type(self)
-        if (
-                cls.event_probability is ExpectationDensityInterface.event_probability
-                and
-                cls.expectation_density is ExpectationDensityInterface.expectation_density):
+        if (cls.event_probability is ExpectationDensityInterface.event_probability
+            and
+            cls.expectation_density is ExpectationDensityInterface.expectation_density):
             raise NotImplementedError("Implement event_probability and/or expectation_density")
 
         ncounts = self.expected_counts()
@@ -82,10 +83,12 @@ class ExpectationDensityInterface(ExpectationInterface, Protocol):
 
     def expectation_density(self) -> Iterable[float]:
         """
-        Return the expected number of counts density from the start-th event
-        to the stop-th event. This equals the event probabiliy times the number of events
+        Return the expected number of counts density from the start-th
+        event to the stop-th event. This equals the event probabiliy
+        times the number of events
 
-        This is provided as a helper function assuming the child classes implemented event_probability
+        This is provided as a helper function assuming the child
+        classes implemented event_probability
 
         Parameters
         ----------
@@ -98,10 +101,9 @@ class ExpectationDensityInterface(ExpectationInterface, Protocol):
         """
         # Guard to avoid infinite recursion in incomplete child classes
         cls = type(self)
-        if (
-                cls.event_probability is ExpectationDensityInterface.event_probability
-                and
-                cls.expectation_density is ExpectationDensityInterface.expectation_density):
+        if (cls.event_probability is ExpectationDensityInterface.event_probability
+            and
+            cls.expectation_density is ExpectationDensityInterface.expectation_density):
             raise NotImplementedError("Implement event_probability and/or expectation_density")
 
         ncounts = self.expected_counts()
@@ -109,7 +111,9 @@ class ExpectationDensityInterface(ExpectationInterface, Protocol):
 
 class SumExpectationDensity(ExpectationDensityInterface):
     """
-    Convenience class to sum multiple ExpectationDensityInterface implementation
+    Convenience class to sum multiple ExpectationDensityInterface
+    implementation
+
     """
 
     def __init__(self, *expectations:Tuple[ExpectationDensityInterface, None], vectorize:bool = True):
@@ -117,15 +121,19 @@ class SumExpectationDensity(ExpectationDensityInterface):
         Parameters
         ----------
         expectations: Other ExpectationDensityInterface implementations
-        vectorize: If True (default), it will first cache all the individual expectations on numpy arrays, and then it will sum
-        them up using numpy's method. The output will also be a numpy. If False, it will query one element from each
-        expectation object a time and sum them up. The output in this case is an Generator.
+        vectorize: If True (default), it will first cache all the
+        individual expectations on numpy arrays, and then it will sum
+        them up using numpy's method. The output will also be a
+        numpy array. If False, it will query one element from each
+        expectation object at a time and sum them up. The output in this
+        case is a Generator.
+
         """
         # Allow None for convenience, we  should remove it
         self._expectations = tuple(ex for ex in expectations if ex is not None)
 
         self._event_type = expectations[0].event_type
-        
+
         self._vectorize = vectorize
 
         for ex in expectations:
@@ -148,7 +156,7 @@ class SumExpectationDensity(ExpectationDensityInterface):
     def _expectation_density_gen(self) -> Iterable[float]:
         for exdensity in zip(*[ex.expectation_density() for ex in self._expectations]):
             yield sum(exdensity)
-    
+
     def expectation_density(self) -> Iterable[float]:
         if self._vectorize:
             if not self._expectations:
@@ -158,6 +166,3 @@ class SumExpectationDensity(ExpectationDensityInterface):
                 return np.add.reduce(densities)
         else:
             return self._expectation_density_gen()
-
-
-

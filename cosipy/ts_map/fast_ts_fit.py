@@ -48,6 +48,10 @@ class FastTSMap():
             "local" (frame attached to spacecraft) or "galactic".
             Default is local.
 
+        Note: the floating-point precision used for mapping is determined
+        by the precision of the 'data' argument.  Use single precision
+        if desired for faster performance.
+
         """
 
         match cds_frame:
@@ -59,6 +63,8 @@ class FastTSMap():
                 raise TypeError(f"Unrecognized frame {cds_frame}, "
                                 "must be 'local' or 'galactic'")
 
+        # open response with same dtype (in particular, same FP
+        # precision) as data
         if self._cds_frame == Frame.LOCAL:
             if orientation is None:
                 raise TypeError("When data are binned in local frame, "
@@ -66,10 +72,12 @@ class FastTSMap():
 
             self._orientation = orientation
 
-            self._response = FullDetectorResponse.open(response_path)
+            self._response = FullDetectorResponse.open(response_path,
+                                                       dtype=data.dtype)
         else:
 
-            self._response = GalacticResponse.open(response_path)
+            self._response = GalacticResponse.open(response_path,
+                                                   dtype=data.dtype)
 
         labels = self._response.axes.labels
 
@@ -88,8 +96,9 @@ class FastTSMap():
             raise ValueError("Response CDS axes must be Em/Phi/PsiChi")
 
         # make sure data and background CDS are ordered to match response
-        self._data = data.to_dense(copy=False).project(cds_order)
-        self._bkg_model = bkg_model.to_dense(copy=False).project(cds_order)
+        # and share its dtype
+        self._data = data.to_dense(copy=False).project(cds_order).astype(self._response.dtype)
+        self._bkg_model = bkg_model.to_dense(copy=False).project(cds_order).astype(self._response.dtype)
 
         self._fnf = fnf(max_iter=1000)
 
@@ -478,7 +487,7 @@ class PSRCache:
         self.em_slice = em_slice
         self.valid_cells = valid_cells
 
-        self.ei_weights = flux.contents.value * response.eff_area_correction
+        self.ei_weights = flux.contents.value.astype(response.dtype) * response.eff_area_correction
 
         #self.nLookups = 0
         #self.nMisses = 0

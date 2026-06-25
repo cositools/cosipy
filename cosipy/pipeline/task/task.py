@@ -1,15 +1,11 @@
-import logging
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-import os
+from pathlib import Path
+import argparse, textwrap
 import subprocess
 
-import argparse, textwrap
+from astromodels.core.model_parser import ModelParser
 
 from yayc import Configurator
+
 from cosipy import UnBinnedData
 
 from cosipy.pipeline.src.io import *
@@ -17,9 +13,11 @@ from cosipy.pipeline.src.preprocessing import *
 from cosipy.pipeline.src.fitting import *
 from cosipy.pipeline.src.plotting import *
 
-from pathlib import Path
-
-from astromodels.core.model_parser import ModelParser
+import logging
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s',
+                    datefmt='%Y-%m-%d %H:%M:%S',
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def cosi_bindata(argv=None):
@@ -31,12 +29,14 @@ def cosi_bindata(argv=None):
             """),
         description=textwrap.dedent(
             """
-            Bins an unbinned dataset matching the given response matrix
-            and within the time interval of the given orientation file.
-            Uses the given time bin size (dt) and coordinate system (either "local" or "galactic").
-            Optionally, applies a time selection tmin-tmax to the data before binning.
-            Data, response and orientation files paths in the config file should be relative to the config file.
-            Outputs the input_yaml describing the binning and the binned dataset.
+            Bins an unbinned dataset matching the given response matrix and
+            within the time interval of the given orientation file.
+            Uses the given time bin size (dt) and coordinate system
+            (either "local" or "galactic").  Optionally, applies a
+            time selection tmin-tmax to the data before binning.
+            Data, response and orientation files paths in the config
+            file should be relative to the config file.  Outputs the
+            input_yaml describing the binning and the binned dataset.
             """),
         formatter_class=argparse.RawTextHelpFormatter)
 
@@ -164,11 +164,12 @@ def cosi_threemlfit(argv=None):
             """),
         description=textwrap.dedent(
             """
-            Fits a source at l,b and optionally in a time window tstart-tstop using the given model.
-            Data, response and orientation files paths in the config file should be relative to the config file.
-            Outputs fit results in a fits file and a pdf plot of the fits. The fitted parameter
-            are also printed to stdout.
-            """),
+            Fits a source at l,b and optionally in a time window tstart-tstop
+            using the given model.  Data, response and orientation
+            files paths in the config file should be relative to the
+            config file.  Outputs fit results in a fits file and a pdf
+            plot of the fits. The fitted parameter are also printed to
+            stdout.  """),
         formatter_class=argparse.RawTextHelpFormatter)
 
     apar.add_argument('--config',

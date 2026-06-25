@@ -1,7 +1,9 @@
+import numpy as np
+
+from astropy.time import Time
+
 from cosipy import BinnedData
 from cosipy.spacecraftfile import SpacecraftHistory
-from astropy.time import Time
-import numpy as np
 
 
 def load_binned_data(yaml_path, data_path):

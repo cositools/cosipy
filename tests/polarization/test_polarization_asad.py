@@ -57,7 +57,6 @@ def test_spacecraft_fit():
                                                spectrum, bin_edges,
                                                unbinned_data, background,
                                                sc_orientation, response_path,
-                                               response_convention='RelativeZ',
                                                fit_convention=MEGAlibRelativeZ(attitude=attitude))
 
     polarization_fit_spacecraft = polarization_spacecraft.fit()
@@ -75,7 +74,6 @@ def test_spacecraft_fit():
                                                spectrum, bin_edges,
                                                binned_data, background,
                                                sc_orientation, response_path,
-                                               response_convention='RelativeZ',
                                                fit_convention=MEGAlibRelativeZ(attitude=attitude))
 
     polarization_fit_spacecraft = polarization_spacecraft.fit()
@@ -94,8 +92,7 @@ def test_icrs_fit():
     polarization_icrs = PolarizationASAD(source_direction.transform_to('galactic'),
                                          spectrum, bin_edges,
                                          unbinned_data, background,
-                                         sc_orientation, response_path,
-                                         response_convention='RelativeZ')
+                                         sc_orientation, response_path)
 
     polarization_fit_icrs = polarization_icrs.fit()
 
@@ -111,8 +108,7 @@ def test_icrs_fit():
     polarization_icrs = PolarizationASAD(source_direction.transform_to('galactic'),
                                          spectrum, bin_edges,
                                          binned_data, background,
-                                         sc_orientation, response_path,
-                                         response_convention='RelativeZ')
+                                         sc_orientation, response_path)
 
     polarization_fit_icrs = polarization_icrs.fit()
 

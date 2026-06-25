@@ -1,9 +1,8 @@
-# Import
-from cosipy.data_io import UnBinnedData 
-import matplotlib.pyplot as plt
-import numpy as np
 import sys
-import pandas as pd
+import numpy as np
+
+from cosipy.data_io import UnBinnedData
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -15,22 +14,22 @@ try:
     # Initialize MEGAlib
     G = M.MGlobal()
     G.Initialize()
-    
+
 except:
     pass
 
 class ReadTraTest(UnBinnedData):
 
     """Old method for reading tra file, used for unit testing."""
-    
+
     def read_tra_old(self, output_name, make_plots=True):
-        
+
         """Reads in MEGAlib .tra (or .tra.gz) file.
-       
-        This method uses MEGAlib to read events from the tra file. 
-        This is used to compare to the new event reader, which is 
-        independent of MEGAlib. 
-        
+
+        This method uses MEGAlib to read events from the tra file.
+        This is used to compare to the new event reader, which is
+        independent of MEGAlib.
+
 
         Parameters
         ----------
@@ -56,11 +55,11 @@ class ReadTraTest(UnBinnedData):
                         'Chi galactic':chi_gal,\
                         'Psi galactic':psi_gal,\
                         'Compton Seq':CO_seq}
-        
+
         Note
         ----
-        This method sets the instance attribute, cosi_dataset, 
-        but it does not explicitly return this.  
+        This method sets the instance attribute, cosi_dataset,
+        but it does not explicitly return this.
         """
 
         # tra file to use:
@@ -68,8 +67,8 @@ class ReadTraTest(UnBinnedData):
 
         # Log message:
         logger.info("Read tra test...")
-        
-         
+
+
         # Check if file exists:
         Reader = M.MFileEventsTra()
         if Reader.Open(M.MString(tra_file)) == False:
@@ -77,7 +76,7 @@ class ReadTraTest(UnBinnedData):
             sys.exit()
 
         # Initialise empty lists:
-            
+
         # Total photon energy
         erg = []
         # Time tag in UNIX time
@@ -103,11 +102,11 @@ class ReadTraTest(UnBinnedData):
         # Measured gal angle chi (lon direction)
         chi_gal = []
         # Measured gal angle psi (lat direction)
-        psi_gal = [] 
+        psi_gal = []
         # Compton seq
         CO_seq = []
 
-        
+
         # Browse through tra file, select events, and sort into corresponding list:
         # Note: The Reader class from MEGAlib knows where an event starts and ends and
         # returns the Event object which includes all information of an event.
@@ -116,11 +115,11 @@ class ReadTraTest(UnBinnedData):
         # /MEGAlib/src/response/src/MResponseImagingBinnedMode.cxx.
 
         while True:
-            
+
             Event = Reader.GetNextEvent()
             if not Event:
                 break
-                
+
             # Total Energy:
             erg.append(Event.Ei())
             # Time tag in UNIX seconds:
@@ -134,9 +133,9 @@ class ReadTraTest(UnBinnedData):
             # z axis of space craft pointing at GAL latitude:
             latZ.append(Event.GetGalacticPointingZAxisLatitude())
             # z axis of space craft pointing at GAL longitude:
-            lonZ.append(Event.GetGalacticPointingZAxisLongitude())    
+            lonZ.append(Event.GetGalacticPointingZAxisLongitude())
             # Compton scattering angle:
-            phi.append(Event.Phi()) 
+            phi.append(Event.Phi())
             # Data space angle chi (azimuth):
             chi_loc.append((-Event.Dg()).Phi())
             # Data space angle psi (polar):
@@ -147,17 +146,17 @@ class ReadTraTest(UnBinnedData):
             chi_gal.append((Event.GetGalacticPointingRotationMatrix()*Event.Dg()).Phi())
             # Gal longitude angle corresponding to chi:
             psi_gal.append((Event.GetGalacticPointingRotationMatrix()*Event.Dg()).Theta())
-            # Compton sequence (nb of interaction) 
+            # Compton sequence (nb of interaction)
             CO_seq.append(Event.SequenceLength())
 
-            
+
         # Initialize arrays:
         erg = np.array(erg)
         tt = np.array(tt)
         et = np.array(et)
 
         CO_seq = np.array(CO_seq)
-        
+
         latX = np.array(latX)
         lonX = np.array(lonX)
         # Change longitudes to from 0..360 deg to -180..180 deg
@@ -178,9 +177,9 @@ class ReadTraTest(UnBinnedData):
 
         psi_loc = np.array(psi_loc)
         self.psi_loc_old = psi_loc
-        
+
         # For comparing chi_loc, psi_loc=0 values are arbitrary,
-        # so we exclude them from the comparison. 
+        # so we exclude them from the comparison.
         psi_zero_index = psi_loc == 0
 
         dist = np.array(dist)
@@ -189,7 +188,7 @@ class ReadTraTest(UnBinnedData):
         psi_gal = np.array(psi_gal)
         self.chi_gal_old = chi_gal
         self.psi_gal_old = psi_gal
-         
+
         # Construct Y direction from X and Z direction
         lonlatY = self.construct_scy(np.rad2deg(lonX),np.rad2deg(latX),
                                 np.rad2deg(lonZ),np.rad2deg(latZ))
@@ -198,7 +197,7 @@ class ReadTraTest(UnBinnedData):
 
         # Avoid negative zeros
         chi_loc[np.where(chi_loc == 0.0)] = np.abs(chi_loc[np.where(chi_loc == 0.0)])
-       
+
         # Make observation dictionary
         cosi_dataset = {'Energies':erg,
                         'TimeTags':tt,
@@ -211,11 +210,8 @@ class ReadTraTest(UnBinnedData):
                         'Distance':dist,
                         'Chi galactic':self.chi_gal_old,
                         'Psi galactic':self.psi_gal_old,
-                       'Compton Seq':CO_seq} 
+                       'Compton Seq':CO_seq}
         self.cosi_dataset = cosi_dataset
 
         # Write unbinned data to file (either fits or hdf5):
-        self.write_unbinned_output(output_name) 
-        
-        return 
-
+        self.write_unbinned_output(output_name)

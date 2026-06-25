@@ -1,15 +1,12 @@
-from cosipy.pipeline.src.io import load_binned_data
-from astropy.time import Time
 from astropy.io.misc import yaml
-from cosipy.response import FullDetectorResponse
+
 from cosipy import BinnedData
-
-import numpy as np
-
+from cosipy.response import FullDetectorResponse
 
 def write_yaml(udata_path, ori_path, resp_path, dt, tmin, tmax, bin_yaml_path):
     """
-    Write a .yaml file that contains the information to bin a dataset according to a response file.
+    Write a .yaml file that contains the information to bin a dataset
+    according to a response file.
 
     Parameters
     ----------
@@ -58,12 +55,15 @@ def get_binned_data(yaml_path, udata_path, bdata_name, psichi_coo):
     yaml_path : str
         Path to the .yaml file that contains the binning information.
     udata_path : str
-        Path to the unbinned data file to use. Input file is either .fits or .hdf5.
+        Path to the unbinned data file to use. Input file is either
+        .fits or .hdf5.
     bdata_name: str
         Name of the binned dataset
+
     """
     data = BinnedData(yaml_path)
-    data.get_binned_data(unbinned_data=udata_path, output_name=bdata_name, psichi_binning=psichi_coo,
-                         make_binning_plots=False)
+    data.get_binned_data(unbinned_data=udata_path,
+                         output_name=bdata_name,
+                         psichi_binning=psichi_coo,
+                         make_binning_plots = False)
     return ()
-

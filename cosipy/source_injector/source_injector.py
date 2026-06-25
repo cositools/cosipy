@@ -1,16 +1,21 @@
 import numpy as np
+
+import matplotlib.pyplot as plt
+
 from cosipy.response import (
     GalacticResponse,
     FullDetectorResponse,
     PointSourceResponse,
     ExtendedSourceResponse
 )
+
 import logging
 logger = logging.getLogger(__name__)
 
 class SourceInjector():
 
-    def __init__(self, response_path, response_frame="spacecraftframe", pa_convention=None):
+    def __init__(self, response_path, response_frame="spacecraftframe",
+                 pa_convention=None):
         """
         `SourceInjector` convolve response, source model(s) and
         orientation to produce a mocked simulated data. The data can
@@ -27,9 +32,8 @@ class SourceInjector():
             the CDS is in the detector frame.)
         pa_convention : str, optional
             Polarization angle convention for polarization-enabled
-            detector-frame responses. Must be one of ('RelativeX',
-            'RelativeY', 'RelativeZ') when the response includes a
-            `Pol` axis and `response_frame="spacecraftframe"`.
+            detector-frame responses that do not specify their own
+            convention.
 
         """
 
@@ -129,11 +133,11 @@ class SourceInjector():
                                 "be provided to compute the "
                                 "expected counts.")
 
-            # If the response includes a polarization axis, FullDetectorResponse requires an explicit polarization-angle convention.
-            if self.pa_convention is None:
-                response = FullDetectorResponse.open(self.response_path)
-            else:
-                response = FullDetectorResponse.open(self.response_path, pa_convention=self.pa_convention)
+            # If the response includes a polarization axis but does
+            # not specify its convention, FullDetectorResponse
+            # requires an explicit polarization-angle convention.
+            response = FullDetectorResponse.open(self.response_path,
+                                                 pa_convention=self.pa_convention)
 
             with response as response:
 
@@ -184,11 +188,17 @@ class SourceInjector():
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
+            plt.show()
+            plt.close()
+
         if make_PsiChi_plot:
             plot, ax = injected.project('PsiChi').plot(coord='G',
                                                        ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
+
+            plt.show()
+            plt.close()
 
         if data_save_path is not None:
             injected.write(data_save_path)
@@ -272,7 +282,7 @@ class SourceInjector():
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
         if make_PsiChi_plot:
-            plot, ax = injected.project('PsiChi').plot(coord='G',
+            ax, plot = injected.project('PsiChi').plot(coord='G',
                                                        ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
@@ -406,10 +416,16 @@ class SourceInjector():
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
+            plt.show()
+            plt.close()
+
         if make_PsiChi_plot:
             plot, ax = injected_all.project('PsiChi').plot(coord='G',
                                                            ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
+
+            plt.show()
+            plt.close()
 
         return injected_all

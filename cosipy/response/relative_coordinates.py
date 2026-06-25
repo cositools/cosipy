@@ -3,9 +3,9 @@ from typing import Union
 import numpy as np
 from astropy.coordinates import SkyCoord, Angle
 from astropy.units import Quantity
-from cosipy.polarization import PolarizationConvention, StereographicConvention
-
 from astropy import units as u
+
+from cosipy.polarization import PolarizationConvention
 
 class RelativeCDSCoordinates:
 
@@ -53,16 +53,18 @@ class RelativeCDSCoordinates:
         return np.asarray(direction)
 
     def to_cds(self, phi, az):
-        """
-        From coordinate relative to the source direction to the gamma-ray scattered direction.
+        """From coordinate relative to the source direction to the gamma-ray
+        scattered direction.
 
         Parameters
         ----------
         phi:
-        Angular distance with respect to the source direction. Can have shape (N,) or (N,M).
+           Angular distance with respect to the source direction. Can
+           have shape (N,) or (N,M).
         az:
-        Azimuthal angle around the source direction, with a 0-direction defined by the
-        polarization convention. Same size as phi or broadcastable.
+           Azimuthal angle around the source direction, with a
+           0-direction defined by the polarization convention. Same
+           size as phi or broadcastable.
 
         Returns
         -------
@@ -70,6 +72,7 @@ class RelativeCDSCoordinates:
         Shape:
         If working with pure vectors: (3, N, M) (or broadcastable, e.g. (3,1,M)
         If working with SkyCoord: (N, M)
+
         """
 
         # 1. Convert to a numpy array of radians
@@ -109,8 +112,7 @@ class RelativeCDSCoordinates:
             return psichi_vec
 
     def to_relative(self, psichi:Union[SkyCoord, np.ndarray[float]]):
-        """
-        From the absolute scattered direction, to the coordinates relative
+        """From the absolute scattered direction, to the coordinates relative
         to the source direction.
 
         Parameters
@@ -125,9 +127,10 @@ class RelativeCDSCoordinates:
         -------
         phi,az:
         phi: Angular distance with respect to the source direction.
-        az: Azimuthal angle around the source direction, with a 0-direction defined by the
-        polarization convention.
+        az: Azimuthal angle around the source direction, with a
+            0-direction defined by the polarization convention.
         Each with shape (N,M). Angles.
+
         """
 
         psichi_vec = self._standardize_vector(psichi)
@@ -154,29 +157,36 @@ class RelativeCDSCoordinates:
         return Angle(phi, unit=u.rad, copy=False), Angle(az, unit=u.rad, copy=False)
 
     @staticmethod
-    def get_relative_cds_phase_space(phi_min = None, phi_max = None, arm_min = None, arm_max = None, az_min = None, az_max = None):
+    def get_relative_cds_phase_space(phi_min = None, phi_max = None,
+                                     arm_min = None, arm_max = None,
+                                     az_min = None, az_max = None):
         """
         The CDS is described by:
         phi: the polar scattering angle
         psichi: the direction of the scattered gamma
 
         Given a source direction, psichi can be parametrized with
-        - arm equals the minimum angular distance between the psichi and a cone centered at the source direction
-        with hald-opening angle equal to phi
+        - arm equals the minimum angular distance between the psichi
+          and a cone centered at the source direction with hald-opening
+          angle equal to phi
         - az: the azimuthal angle around the source direction
 
-        The total phase space of psichi is that of the sphere. If psi is the colatitude and chi the longitude, then
+        The total phase space of psichi is that of the sphere. If psi
+        is the colatitude and chi the longitude, then
         dV = sin(psi) dphi dpsi dchi
 
-        The total phase space is pi (from phi) time 4*pi (from psichi, that is the sphere area)
+        The total phase space is pi (from phi) time 4*pi (from psichi,
+        that is the sphere area)
 
         In the reparametrization, this is
         dV = sin(phi + arm) dphi darm daz
 
-        While the total phase space remains unchanged, in order to integrate this volume in arbitrary limits
-        you need take into account the fact that phi+arm range is limited to [0,pi].
+        While the total phase space remains unchanged, in order to
+        integrate this volume in arbitrary limits you need take into
+        account the fact that phi+arm range is limited to [0,pi].
 
-        This function performs such integration by checking all possible integration limit cases.
+        This function performs such integration by checking all
+        possible integration limit cases.
 
         Parameters
         ----------
@@ -190,6 +200,7 @@ class RelativeCDSCoordinates:
         Returns
         -------
         Phase space
+
         """
 
         if phi_min is None:
@@ -235,7 +246,8 @@ class RelativeCDSCoordinates:
         # Note the (phi1 + arm1) and (phi2 + arm2) masks in front
 
         # Lower left corner (low phi, low arm)
-        # Integrate[Sin[phi+arm],{phi,phi1,phi2},{arm,arm1, -phi}]//FullSimplify
+        # Integrate[Sin[phi+arm],{phi,phi1,phi2},{arm,arm1, -phi}]
+        #     //FullSimplify
         phil = np.maximum(-arm_max, phi_min)
         phih = np.minimum(-arm_min, phi_max)
         unphys_lowerleft_integral = -phih + phil + np.sin(arm_min + phih) - np.sin(arm_min + phil)
@@ -243,7 +255,8 @@ class RelativeCDSCoordinates:
         integral = integral_rect - (az_max - az_min) * unphys_lowerleft_integral
 
         # Upper right corner (high phi, high arm)
-        # Integrate[Sin[phi+arm],{phi,phi1,phi2}, {arm, \[Pi]-phi, arm2}]//FullSimplify
+        # Integrate[Sin[phi+arm],{phi,phi1,phi2}, {arm, \[Pi]-phi, arm2}]
+        #     //FullSimplify
         phil = np.maximum(np.pi - arm_max, phi_min)
         phih = np.minimum(np.pi - arm_min, phi_max)
         unphys_upperright_integral = phil - phih + np.sin(arm_max + phil) - np.sin(arm_max + phih)
@@ -255,8 +268,7 @@ class RelativeCDSCoordinates:
         fully_unphys = (phi_max + arm_max <= 0) | (phi_min + arm_min >= np.pi)
 
         # Mathematica: Integrate[Sin[phi+arm], {phi,phi1,phi2} , {arm,arm1,arm2}]//FullSimplify
-        integral_full = (az_max - az_min) * (
-                -np.sin(arm_min + phi_min) + np.sin(arm_max + phi_min) + np.sin(arm_min + phi_max) - np.sin(arm_max + phi_max))
+        integral_full = (az_max - az_min) * (-np.sin(arm_min + phi_min) + np.sin(arm_max + phi_min) + np.sin(arm_min + phi_max) - np.sin(arm_max + phi_max))
 
         if integral.ndim == 0:
             if fully_phys:
@@ -268,4 +280,3 @@ class RelativeCDSCoordinates:
             integral[fully_unphys] = 0
 
         return integral
-

@@ -79,9 +79,9 @@ class RspArfRmfConverter:
 
         # get the effective area and matrix
         logger.info("Getting the effective area ...")
-        self.arf = np.float32(psr.project('Ei').to_dense(copy=False).contents.value) / self.ori.livetime.to_value(u.s).sum()
-        spectral_response = np.float32(psr.project(('Ei', 'Em')).to_dense(copy=False).contents.value)
-        self.rmf = np.float32(np.zeros((self.Ei_lo.size, self.Em_lo.size)))  # initialize the matrix
+        self.arf = psr.project('Ei').astype(np.float32).contents.value / self.ori.livetime.to_value(u.s).sum()
+        spectral_response = psr.project('Ei', 'Em').astype(np.float32).contents.value
+        self.rmf = np.zeros((self.Ei_lo.size, self.Em_lo.size), dtype=np.float32)  # initialize the matrix
 
         logger.info("Getting the energy redistribution matrix ...")
         for i in range(self.Ei_lo.size):
@@ -374,7 +374,7 @@ class RspArfRmfConverter:
         Parameters
         ----------
         ax: Optional(matpltlib.axes)
-            Matplotlib axes to use for plotting. We'll create new one if not privided.
+            Matplotlib axes to use for plotting. We'll create new one if not provided.
         file_name: str, optional
             The directory if the arf fits file (the default is `None`,
             which implies the file name will be read from the
@@ -419,7 +419,7 @@ class RspArfRmfConverter:
 
         return  ax
 
-    def plot_rmf(self, ax = None,  file_name=None):
+    def plot_rmf(self, ax = None, file_name=None):
 
         """Read the rmf fits file, plot and save it.
 

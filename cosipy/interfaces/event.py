@@ -1,11 +1,8 @@
-from abc import ABC, abstractmethod
-from symtable import Class
-from typing import Sequence, Union, Protocol, ClassVar
-
-import numpy as np
-from astropy.coordinates import Angle, SkyCoord, BaseCoordinateFrame
-from scoords import SpacecraftFrame
+from typing import Union, Protocol, ClassVar
 from typing_extensions import runtime_checkable
+
+from astropy.coordinates import Angle, SkyCoord
+from scoords import SpacecraftFrame
 
 from astropy.time import Time
 from astropy.units import Quantity, Unit
@@ -24,7 +21,7 @@ class EventInterface(Protocol):
     """
 
     # This makes sure that all PDFs have the same units
-    data_space_units = ClassVar[Union[u.Unit, None]]
+    data_space_units = ClassVar[Union[Unit, None]]
 
     @property
     def id(self) -> int:
@@ -116,8 +113,3 @@ class TimeTagEmCDSEventInSCFrameInterface(TimeTagEventInterface,
                                           EmCDSEventInSCFrameInterface,
                                           Protocol):
     data_space_units = EmCDSEventInSCFrameInterface.data_space_units * TimeTagEventInterface.data_space_units
-
-
-
-
-

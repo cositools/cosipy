@@ -207,8 +207,6 @@ def test_moc_ts_fit():
                         strategy=MOCTSMap.ContainmentStrategy(0.9))
 
     ts_values, pixels = ts_results
-    print(pixels)
-    print(ts_values)
 
     assert all(pixels == [
         16, 20, 24, 28, 32,

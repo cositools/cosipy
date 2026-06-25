@@ -73,11 +73,11 @@ bkg = FreeNormBinnedBackground(bkg_dist, sc_history = sc_orientation, copy = Fal
 instrument_response = BinnedInstrumentResponse(dr, data)
 
 psr = BinnedThreeMLPointSourceResponse(data = data,
-									   instrument_response = instrument_response,
-									   sc_history = sc_orientation,
-									   energy_axis = dr.axes['Ei'],
-									   polarization_axis = PolarizationAxis(dr.axes['Pol'], convention='RelativeZ'),
-									   nside = 2*data.axes['PsiChi'].nside)
+                                       instrument_response = instrument_response,
+                                       sc_history = sc_orientation,
+                                       energy_axis = dr.axes['Ei'],
+                                       polarization_axis = dr.axes['Pol'],
+                                       nside = 2*data.axes['PsiChi'].nside)
 
 response = BinnedThreeMLModelFolding(data = data, point_source_response = psr)
 
@@ -90,12 +90,12 @@ def test_polarization_fit():
 								  response,
 								  bkg)
 
-	cosi.bkg_parameter['total_bkg'] = Parameter('total_bkg',
-												0.0016,  
-												min_value=0,  
-												max_value=100,  
-												delta=0.05,  
-												unit = u.Hz)
+    cosi.bkg_parameter['total_bkg'] = Parameter('total_bkg',
+                                                0.0016,
+                                                min_value=0,
+                                                max_value=100,
+                                                delta=0.05,
+                                                unit = u.Hz)
 
 	cosi.bkg_parameter['total_bkg'].fix = True
 
