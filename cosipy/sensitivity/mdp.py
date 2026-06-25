@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 def compute_mdp(n, model, background, bkg_parameter, sc_orientation, response_file, 
-				response_pa_convention, response_frame='spacecraftframe', confidence=99):
+				response_pa_convention=None, response_frame='spacecraftframe', confidence=99):
 	"""
 	Calculates the minimum detectable polarization using the maximum 
 	likelihood method.
@@ -34,7 +34,7 @@ def compute_mdp(n, model, background, bkg_parameter, sc_orientation, response_fi
 		Spacecraft history.
 	response_file : :py:class:`pathlib.PosixPath`
 		Path to response file.
-	response_pa_convention : str
+	response_pa_convention : str, optional
 		Polarization angle convention of response.
 	response_frame : str, optional
 		Frame of response file.
@@ -53,7 +53,10 @@ def compute_mdp(n, model, background, bkg_parameter, sc_orientation, response_fi
 	degrees = []
 	failed_fits = 0
 
-	dr = FullDetectorResponse.open(response_file, pa_convention=response_pa_convention)
+	if response_pa_convention:
+		dr = FullDetectorResponse.open(response_file, pa_convention=response_pa_convention)
+	else:
+		dr = FullDetectorResponse.open(response_file)
 	
 	for i in range(n):
 
