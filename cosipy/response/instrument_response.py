@@ -217,6 +217,8 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
             # Since we're doing a 0-th order interpolation, the only thing that matter are the bin centers,
             # so we're placing them at the input polarization angles
 
+            print(polarization.convention)
+
             if np.any(polarization.centers.angle.value[1:] - polarization.centers.angle.value[:-1] < 0):
                 raise ValueError("This implementation requires strictly monotonically increasing polarization angles")
 
@@ -281,7 +283,7 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
 
         if self.is_polarization_response:
 
-            from cosipy.polarization.conventions import IAUPolarizationConvention, PolarizationConvention
+            from cosipy.polarization.conventions import IAUPolarizationConvention#, PolarizationConvention
 
             # angles in IAU convention's frame corresponding to
             # each bin on Pol axis in source's frame
@@ -292,7 +294,8 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
 
             # rotate each bin's polarization angle from IAU to
             # local convention
-            loc_pol_angles = iau_pol_angles.transform_to(PolarizationConvention.get_convention_registered_name(polarization.convention), attitude)
+            print(polarization.convention.registered_name)
+            loc_pol_angles = iau_pol_angles.transform_to(polarization.convention.registered_name, attitude)
 
             # wrap 180-degree polarization angles to keep them
             # within bin range
