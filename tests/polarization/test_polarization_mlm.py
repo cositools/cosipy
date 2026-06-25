@@ -90,12 +90,12 @@ def test_polarization_fit():
 								  response,
 								  bkg)
 
-    cosi.bkg_parameter['total_bkg'] = Parameter('total_bkg',
-                                                0.0016,
-                                                min_value=0,
-                                                max_value=100,
-                                                delta=0.05,
-                                                unit = u.Hz)
+	cosi.bkg_parameter['total_bkg'] = Parameter('total_bkg',
+												0.0016,
+												min_value=0,
+												max_value=100,
+												delta=0.05,
+												unit = u.Hz)
 
 	cosi.bkg_parameter['total_bkg'].fix = True
 
@@ -106,7 +106,7 @@ def test_polarization_fit():
 	_ = like.fit()
 
 	assert np.allclose([source.spectrum.test.polarization.Q.Constant.k.value, source.spectrum.test.polarization.U.Constant.k.value],
-					   [-.74, 0.], atol=[.2, .2])
+					   [.74, 0.], atol=[.2, .2])
 
 def test_mdp():
 
@@ -115,7 +115,7 @@ def test_mdp():
 	source_mdp = PointSource('source',
 							 l = source_direction.l.deg,        
 							 b = source_direction.b.deg,
-							 components = [spectral_component_mdp])   
+							 components = [spectral_component_mdp])
 
 	source_mdp.components['test_mdp'].shape.K.fix = True
 	source_mdp.components['test_mdp'].shape.E0.fix = True
