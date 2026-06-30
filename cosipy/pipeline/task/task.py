@@ -215,7 +215,7 @@ def cosi_threemlfit(argv=None):
 
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
-    plot_name="raw_spectrum.pdf" if not args.suffix else str("raw_spectrum_"+args.suffix+".pdf")
+    plot_name="raw_spectrum.png" if not args.suffix else str("raw_spectrum_"+args.suffix+".png")
 
     # Parse model
     model = ModelParser(model_dict = config['model']).get_model()
@@ -407,6 +407,7 @@ def  cosi_tsdetect(argv=None):
         tstart=Time(np.min(data_full.axes['Time'].edges), format='unix')
         tstop=Time(np.max (data_full.axes['Time'].edges), format='unix')
         binned_data = data_full.project(['Em', 'Phi', 'PsiChi'])
+
     # Slice the ori file in the time interval of the data:
     #grb_ori = ori_full.select_interval(Time(grb_tmin, format="unix"), Time(grb_tmax, format="unix"))
     ori_sliced = ori.select_interval(Time(tstart,format="unix"), Time(tstop, format="unix"))
