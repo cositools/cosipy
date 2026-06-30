@@ -331,7 +331,7 @@ class FastTSMap():
         return np.array(results)
 
     @staticmethod
-    def plot_ts(m_ts, skycoord = None, containment = None, scheme="nested",
+    def plot_ts(m_ts, skycoord = None, mark_center=False, containment = None, scheme="nested",
                 save_plot = False, save_dir = "",
                 save_name = "ts_map.png", dpi = 300):
         """
@@ -385,16 +385,18 @@ class FastTSMap():
                            label = f"True location at l={lon}, b={lat}",
                            color = "fuchsia")
 
-        hp.projscatter(0, 0, marker = "o",
-                       linewidths = 0.5,
-                       lonlat=True,
-                       coord = "G",
-                       color = "red")
+        if mark_center==True:
 
-        hp.projtext(350, 0, "(l=0, b=0)",
-                    lonlat=True,
-                    coord = "G",
-                    color = "red")
+            hp.projscatter(0, 0, marker = "o",
+                           linewidths = 0.5,
+                           lonlat=True,
+                           coord = "G",
+                           color = "red")
+
+            hp.projtext(350, 0, "(l=0, b=0)",
+                        lonlat=True,
+                        coord = "G",
+                        color = "red")
 
         if save_plot:
             fig.savefig(Path(save_dir)/save_name, dpi = dpi)
