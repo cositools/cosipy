@@ -117,6 +117,7 @@ def plot_fit(sou, cts_exp, figname):
     #
     ax[0].set_xscale("log")
     ax[0].set_yscale("log")
+    ax[0].set_xlim(5e1, 2e4)
     ax[0].set_ylabel("Counts")
     ax[0].legend()
     #
@@ -127,6 +128,7 @@ def plot_fit(sou, cts_exp, figname):
     ax[1].axhline(y=0, color='black')
     ax[1].set_xscale("log")
     ax[1].set_yscale("linear")
+    ax[1].set_xlim(5e1, 2e4)
     ax[1].set_ylabel("Obs-Model/Err")
     ax[1].set_xlabel("Energy (keV)")
     #
