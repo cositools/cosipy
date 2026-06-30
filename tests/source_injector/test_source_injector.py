@@ -37,7 +37,9 @@ def test_inject_point_source():
     # Get the data of the injected source
     injected_crab_signal = injector.inject_point_source(spectrum = spectrum, coordinate = source_coord,
                                                         orientation = ori, source_name = "point_source",
-                                                        make_spectrum_plot = False, make_PsiChi_plot = False ,data_save_path = None,
+                                                        make_spectrum_plot = True,
+                                                        make_PsiChi_plot = True,
+                                                        data_save_path = None,
                                                         project_axes = None)
 
     results = injected_crab_signal.project("Em").contents
@@ -75,7 +77,9 @@ def test_inject_point_source_galactic():
     # Get the data of the injected source
     injected_crab_signal = injector.inject_point_source(spectrum = spectrum, coordinate = source_coord,
                                                         source_name = "point_source",
-                                                        make_spectrum_plot = True, make_PsiChi_plot=True , data_save_path = None,
+                                                        make_spectrum_plot = True,
+                                                        make_PsiChi_plot=True,
+                                                        data_save_path = None,
                                                         project_axes = None)
 
     results = injected_crab_signal.project("Em").contents
@@ -113,7 +117,9 @@ def test_inject_point_source_saving():
     # Get the data of the injected source
     injected_crab_signal = injector.inject_point_source(spectrum = spectrum, coordinate = source_coord,
                                                         source_name = "point_source",
-                                                        make_spectrum_plot = False, make_PsiChi_plot=False ,data_save_path = Path("./galactic_rsp.h5"),
+                                                        make_spectrum_plot = True,
+                                                        make_PsiChi_plot = False,
+                                                        data_save_path = Path("./galactic_rsp.h5"),
                                                         project_axes = "Em")
 
     hist= Histogram.open(Path("./galactic_rsp.h5"))
@@ -162,7 +168,9 @@ def test_orientation_error():
         # Get the data of the injected source
         injected_crab_signal = injector.inject_point_source(spectrum = spectrum, coordinate = source_coord,
                                                             source_name = "point_source",
-                                                            make_spectrum_plot = False, make_PsiChi_plot=False ,data_save_path = None,
+                                                            make_spectrum_plot = True,
+                                                            make_PsiChi_plot = True,
+                                                            data_save_path = None,
                                                             project_axes = None)
 
 
@@ -243,8 +251,8 @@ def test_inject_extended_source_saving():
     # Get the data of the injected source
     injected = injector.inject_extended_source(
         source_model=model,
-        make_spectrum_plot=False,
-        make_PsiChi_plot=False,
+        make_spectrum_plot=True,
+        make_PsiChi_plot=True,
         data_save_path=file_path,
         project_axes=None,
     )
@@ -333,6 +341,8 @@ def test_inject_model():
 
     # Get the data of the injected source
     injected = injector.inject_model(model,
+                                     make_spectrum_plot=True,
+                                     make_PsiChi_plot=True,
                                      data_save_path=file_path)
 
     hist = Histogram.open(file_path)

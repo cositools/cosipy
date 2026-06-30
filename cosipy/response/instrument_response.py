@@ -139,9 +139,9 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
                 raise RuntimeError(
                     "Currently, the probed polarization angles need to match the underlying response matrix Pol centers.")
 
-        # Get the pixel as is since we already checked that the requested
-        # energy and polarization points match the underlying response centers
-        # Matches the v0.3 behaviour
+        # Get the pixel as is since we already checked that the
+        # requested energy and polarization points match the
+        # underlying response centers. Matches the v0.3 behaviour
         pix = self._dr.ang2pix(direction)
 
         # TODO: Update after Pr364. get_pixel(pix, weight) should make
@@ -215,7 +215,7 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
 
         """
 
-        # Generate axes that will allow us to use _sum_rot_hist,
+        # Generate axes that will allow us to use _rot_psr,
         # and obtain the same results as in v3.x
         out_axes = [self._dr.axes['Ei']]
 
@@ -226,16 +226,18 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
             # Since we're doing a 0-th order interpolation, the only
             # thing that matter are the bin centers, so we're placing
             # them at the input polarization angles
+            center_angles = polarization.centers.angle.to_value(u.deg)
 
-            if np.any(polarization.centers.angle.value[1:] - polarization.centers.angle.value[:-1] < 0):
+            if np.any(np.diff(center_angles) < 0):
                 raise ValueError("This implementation requires strictly monotonically increasing polarization angles")
 
-            pol_edges = (polarization.centers.angle[:-1] + polarization.centers.angle[1:]).to_value(u.deg)/2
+            pol_edges = 0.5*(center_angles[:-1] + center_angles[1:])
 
-            pol_edges = np.concatenate((np.array([pol_edges[0] - 2*(pol_edges[0] - polarization.centers.angle.to_value(u.deg)[0])]), pol_edges))
-            pol_edges = np.concatenate((pol_edges, np.array([pol_edges[-1] + 2 * (polarization.centers.angle.to_value(u.deg)[-1] - pol_edges[-1])])))
+            pol_edges = np.r_[ pol_edges[0]  - 2 * (pol_edges[0] - center_angles[0]),
+                               pol_edges,
+                               pol_edges[-1] + 2 * (center_angles[-1] - pol_edges[-1]) ]
 
-            out_axes += [PolarizationAxis(pol_edges*u.deg, convention = polarization.convention)]
+            out_axes.append( PolarizationAxis(pol_edges, unit=u.deg, convention = polarization.convention, copy=False) )
 
         out_axes += list(axes)
         out_axes = Axes(out_axes)
@@ -282,10 +284,9 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
 
         # Either initialize a new or clear cache
         if out is None:
-            out = Quantity(np.zeros(out_axes.shape), dr_pix.unit)
-        else:
-            if not add_inplace:
-                out[:] = 0
+            out = Quantity(np.zeros(out_axes.shape), dr_pix.unit, copy = None)
+        elif not add_inplace:
+            out.value[:] = 0
 
         if isinstance(weight, Quantity):
             weight_unit = weight.unit
@@ -294,8 +295,8 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
             weight_unit = None
 
         out.value[:] += self._dr._rot_psr(out_axes, weight,
-                                  loc_psichi_pixels,
-                                  (loc_src_pixels,))
+                                          loc_psichi_pixels,
+                                          (loc_src_pixels,))
 
         if weight_unit is not None:
             out = Quantity(out.value, weight_unit*out.unit, copy = None)

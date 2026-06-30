@@ -596,7 +596,7 @@ class FullDetectorResponse(HealpixBase):
             if isinstance(source.frame, SpacecraftFrame):
                 raise ValueError("scatt_map is not supported for source in local coordinate frame")
 
-            has_pol = ('Pol' in self._axes.labels and source.frame != 'spacecraftframe')
+            has_pol = ('Pol' in self._axes.labels)
 
             if source.ndim > 0:
                 source = source[0]

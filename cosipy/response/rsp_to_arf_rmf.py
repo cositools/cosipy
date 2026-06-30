@@ -374,7 +374,7 @@ class RspArfRmfConverter:
         Parameters
         ----------
         ax: Optional(matpltlib.axes)
-            Matplotlib axes to use for plotting. We'll create new one if not privided.
+            Matplotlib axes to use for plotting. We'll create new one if not provided.
         file_name: str, optional
             The directory if the arf fits file (the default is `None`,
             which implies the file name will be read from the
@@ -419,7 +419,7 @@ class RspArfRmfConverter:
 
         return  ax
 
-    def plot_rmf(self, ax = None,  file_name=None):
+    def plot_rmf(self, ax = None, file_name=None):
 
         """Read the rmf fits file, plot and save it.
 

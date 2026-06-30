@@ -1,9 +1,11 @@
 from typing import Iterable
+import warnings
 
 import numpy as np
 import pytest
 from astropy.time import Time
 from astropy.utils.metadata.utils import dtype
+from erfa import ErfaWarning
 
 from cosipy.event_selection import GoodTimeInterval
 from cosipy.event_selection.time_selection import TimeSelector
@@ -11,7 +13,7 @@ from cosipy.interfaces import TimeTagEventInterface, TimeTagEventDataInterface
 from cosipy.util.iterables import asarray
 
 # Dummy events
-times = Time(60000 + np.arange(0,15), format = 'jd')
+times = Time(60000. + np.arange(0,15), format = 'jd')
 
 class DummyTimeTagEventData(TimeTagEventDataInterface):
 
@@ -47,6 +49,8 @@ events = DummyTimeTagEventData()
 events_iter = DummyTimeTagEventDataIterable()
 
 def test_time_selector():
+
+    warnings.filterwarnings("ignore", category=ErfaWarning)
 
     tstart = Time(60000. + np.asarray([0, 5]), format='jd')
     tstop = Time(60000. + np.asarray([1, 10]), format='jd')
@@ -140,6 +144,3 @@ def test_time_selector():
 
     with pytest.raises(ValueError):
         TimeSelector(tstart, None)
-
-
-

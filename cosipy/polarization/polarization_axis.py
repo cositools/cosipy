@@ -1,11 +1,14 @@
 import numpy as np
-from .conventions import PolarizationConvention
-from astropy import units as u
 
-from .polarization_angle import PolarizationAngle
+from astropy import units as u
 
 from histpy import Axis
 
+from .polarization_angle import PolarizationAngle
+from .conventions import (
+    PolarizationConvention,
+    IAUPolarizationConvention,
+)
 
 class PolarizationAxis(Axis):
     """
@@ -28,7 +31,7 @@ class PolarizationAxis(Axis):
 
     def __init__(self,
                  edges,
-                 convention = 'iau',
+                 convention = IAUPolarizationConvention(),
                  label = None,
                  unit = None,
                  copy = True):

@@ -1,10 +1,14 @@
 import numpy as np
+
+import matplotlib.pyplot as plt
+
 from cosipy.response import (
     GalacticResponse,
     FullDetectorResponse,
     PointSourceResponse,
     ExtendedSourceResponse
 )
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -184,11 +188,17 @@ class SourceInjector():
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
+            plt.show()
+            plt.close()
+
         if make_PsiChi_plot:
             plot, ax = injected.project('PsiChi').plot(coord='G',
                                                        ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
+
+            plt.show()
+            plt.close()
 
         if data_save_path is not None:
             injected.write(data_save_path)
@@ -272,7 +282,7 @@ class SourceInjector():
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
         if make_PsiChi_plot:
-            plot, ax = injected.project('PsiChi').plot(coord='G',
+            ax, plot = injected.project('PsiChi').plot(coord='G',
                                                        ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
@@ -406,10 +416,16 @@ class SourceInjector():
             ax.set_xlabel("Em [keV]", fontsize=14, fontweight="bold")
             ax.set_ylabel("Counts", fontsize=14, fontweight="bold")
 
+            plt.show()
+            plt.close()
+
         if make_PsiChi_plot:
             plot, ax = injected_all.project('PsiChi').plot(coord='G',
                                                            ax_kw={'coord': 'G'})
             ax.get_figure().set_figwidth(4)
             ax.get_figure().set_figheight(3)
+
+            plt.show()
+            plt.close()
 
         return injected_all
