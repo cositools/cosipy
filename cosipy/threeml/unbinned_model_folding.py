@@ -14,7 +14,7 @@ from cosipy.util.iterables import itertools_batched
 class UnbinnedThreeMLModelFolding(UnbinnedThreeMLModelFoldingInterface, ThreeMLModelFoldingCacheSourceResponsesMixin):
 
     def __init__(self,
-                 point_source_response = UnbinnedThreeMLSourceResponseInterface,
+                 point_source_response: UnbinnedThreeMLSourceResponseInterface = None,
                  extended_source_response: UnbinnedThreeMLSourceResponseInterface = None,
                  batch_size: Optional[int] = None):
 
@@ -29,7 +29,11 @@ class UnbinnedThreeMLModelFolding(UnbinnedThreeMLModelFoldingInterface, ThreeMLM
         if (self._psr is not None) and (self._esr is not None) and self._psr.event_type != self._esr.event_type:
             raise RuntimeError("Point and Extended Source Response must handle the same event type")
 
-        self._event_type = self._psr.event_type
+        if (self._psr is not None):
+            self._event_type = self._psr.event_type
+
+        if (self._esr is not None):
+            self._event_type = self._esr.event_type
 
         # Cache
         # Each source has its own cache.
