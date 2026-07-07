@@ -71,12 +71,16 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._density_integration_nodes = [60,]
         self._total_expectation_resolution = 18.
         self._peak_nodes = [[18, 12],]
-        self._peak_widths: Tuple[float, float] = (0.04, 0.1)
+        # (photopeak_offset, photopeak_scale, escape_width, missing_energy_scale)
+        # half-widths: photopeak = sqrt(Ei + photopeak_offset) * photopeak_scale
+        #              escape    = escape_width (constant)
+        #              missing_energy (both) = Ei * missing_energy_scale
+        self._peak_width_params: Tuple[float, float, float, float] = (1000., 0.60, 120., 0.12)
         self._energy_range = [[100., 10_000.],]
         self._n_intervals = 1
         self._cache_batch_size = 1_000_000
         self._integration_batch_size = 1_000_000
-        self._offset: Optional[float] = 1e-12
+        self._offset: Optional[float] = 1e-15
         
         # Placeholder for node pool - stored as Tensors
         self._width_tensor: Optional[torch.Tensor] = None
@@ -175,9 +179,9 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
     def peak_nodes(self, val): self.set_integration_parameters(peak_nodes=val)
 
     @property
-    def peak_widths(self) -> Tuple[float, float]: return self._peak_widths
-    @peak_widths.setter
-    def peak_widths(self, val): self.set_integration_parameters(peak_widths=val)
+    def peak_width_params(self) -> Tuple[float, float, float, float]: return self._peak_width_params
+    @peak_width_params.setter
+    def peak_width_params(self, val): self.set_integration_parameters(peak_width_params=val)
 
     @property
     def energy_range(self): return [tuple(x) if isinstance(x, list) else x for x in self._energy_range]
@@ -320,7 +324,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                                    density_integration_nodes: Optional[DensityNodeList] = None,
                                    total_expectation_resolution: float = -1.0,
                                    peak_nodes: Optional[PeakNodeList] = None,
-                                   peak_widths: Optional[Tuple[float, float]] = None,
+                                   peak_width_params: Optional[Tuple[float, float, float, float]] = None,
                                    energy_range: Optional[IEnergyList] = None,
                                    cache_batch_size: Optional[int] = -1,
                                    integration_batch_size: Optional[int] = -1,
@@ -331,7 +335,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         new_density_integration_nodes = density_integration_nodes if density_integration_nodes is not None else self._density_integration_nodes
         new_total_expectation_resolution = total_expectation_resolution if total_expectation_resolution != -1.0 else self._total_expectation_resolution
         new_peak_nodes = peak_nodes if peak_nodes is not None else self._peak_nodes
-        new_peak_widths = peak_widths if peak_widths is not None else self._peak_widths
+        new_peak_width_params = peak_width_params if peak_width_params is not None else self._peak_width_params
         new_range = energy_range if energy_range is not None else self._energy_range
         new_cache_batch = cache_batch_size if cache_batch_size != -1 else self._cache_batch_size
         new_integration_batch = integration_batch_size if integration_batch_size != -1 else self._integration_batch_size
@@ -339,7 +343,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         
         irf_affected = (
             new_peak_nodes != self._peak_nodes or 
-            new_peak_widths != self._peak_widths or 
+            new_peak_width_params != self._peak_width_params or 
             new_density_integration_nodes != self._density_integration_nodes or
             new_range != self._energy_range
         )
@@ -356,6 +360,12 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         
         if area_affected:
             self._area_cache = self._area_energy_node_cache = None
+        
+        if len(new_peak_width_params) != 4:
+            raise ValueError("peak_width_params must have exactly 4 entries: "
+                              "(photopeak_offset, photopeak_scale, escape_width, missing_energy_scale).")
+        if any(v < 0 for v in new_peak_width_params):
+            raise ValueError("peak_width_params entries must be non-negative.")
         
         if n_intervals > 0:
             if any(new_density_integration_nodes[i] < (new_peak_nodes[i][0] + 2 * new_peak_nodes[i][1] + 3) for i in range(n_intervals)):
@@ -391,7 +401,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._density_integration_nodes = new_density_integration_nodes
         self._total_expectation_resolution = new_total_expectation_resolution
         self._peak_nodes = new_peak_nodes
-        self._peak_widths = new_peak_widths
+        self._peak_width_params = new_peak_width_params
         self._energy_range = new_range
         self._cache_batch_size = new_cache_batch if new_cache_batch is not None else (self._n_events * new_max_nodes)
         self._integration_batch_size = new_integration_batch if new_integration_batch is not None else (self._n_events * new_max_nodes)
@@ -420,9 +430,8 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         for k in range(len(self._density_integration_nodes)):
             n_density = self._density_integration_nodes[k]
             p_nodes = self._peak_nodes[k]
-            w = self._peak_widths
-        
-            w_tensor = torch.tensor([w[0], w[0], w[1], w[1]], dtype=torch.float32)
+            
+            w_tensor = torch.tensor(self._peak_width_params, dtype=torch.float32)
             self._width_tensor.append(w_tensor)
 
             self._nodes_primary.append(self._build_nodes(p_nodes[0]))
@@ -855,8 +864,13 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 torch.tensor(float('nan'), dtype=torch.float32)
             )
             
-            w_tensor = self._width_tensor[intervals_idx]
-            interval_diffs = interval_peaks * w_tensor[None, ...]
+            photopeak_offset, photopeak_scale, escape_width, missing_energy_scale = self._width_tensor[intervals_idx]
+            
+            interval_diffs = torch.empty_like(interval_peaks)
+            interval_diffs[:, 0] = torch.sqrt(interval_peaks[:, 0] + photopeak_offset) * photopeak_scale
+            interval_diffs[:, 1] = escape_width
+            interval_diffs[:, 2] = interval_peaks[:, 2] * missing_energy_scale
+            interval_diffs[:, 3] = interval_peaks[:, 3] * missing_energy_scale
             
             n_peaks = torch.sum(~torch.isnan(interval_peaks), dim=1)
             
@@ -870,8 +884,18 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 d_sub = interval_diffs[indices]
                 
                 if mode == 0:
-                    self._fill_nodes(nodes, weights, indices, 0, has_photopeak, None, None, 
-                                     intervals_idx, current_offset, Emin, Emax)
+                    Em_sub = raw_peaks[indices, 0]
+                    Em_sub = Em_sub - 1.5 * interval_diffs[indices, 0]
+                    forbidden = Em_sub > Emax
+                    valid_indices = indices[~forbidden]
+                    
+                    if len(valid_indices) > 0:
+                        self._fill_nodes(nodes, weights, valid_indices, 0, has_photopeak[~forbidden], None, None,
+                                         intervals_idx, current_offset, Emin, Emax)
+                    forbidden_indices = indices[forbidden]
+                    if len(forbidden_indices) > 0:
+                        nodes[forbidden_indices, current_offset : current_offset + size] = Emin
+                    
                 elif mode == 1:
                     mask = ~torch.isnan(p_sub)
                     p_comp = p_sub[mask].view(-1, 1)
@@ -1207,7 +1231,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 return np.array(e_range, dtype=np.float64)
             
             f.attrs['total_expectation_resolution'] = self._total_expectation_resolution
-            f.attrs['peak_widths'] = self._peak_widths 
+            f.attrs['peak_width_params'] = self._peak_width_params
             f.attrs['cache_batch_size'] = self._cache_batch_size
             f.attrs['integration_batch_size'] = self._integration_batch_size
             f.attrs['show_progress'] = self._show_progress
@@ -1283,7 +1307,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 return e_range
             
             self._total_expectation_resolution = float(f.attrs['total_expectation_resolution'])
-            self._peak_widths = tuple(f.attrs['peak_widths'])
+            self._peak_width_params = tuple(f.attrs['peak_width_params'])
             self._cache_batch_size = int(f.attrs['cache_batch_size'])
             self._integration_batch_size = int(f.attrs['integration_batch_size'])
             self._show_progress = bool(f.attrs['show_progress'])
@@ -1490,7 +1514,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
 
     def validate_integration(self, 
                              n_events: int, 
-                             relerr: float = 2e-4, 
+                             relerr: float = 4e-4, 
                              abserr: float = 1e-30, 
                              maxEval: int = 1000000,
                              save_path: Optional[Union[str, Path]] = None) -> dict:
