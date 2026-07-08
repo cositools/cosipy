@@ -16,6 +16,18 @@ from astromodels.functions.function import (
 import healpy as hp
 import hashlib
 
+from astromodels.core.memoization import use_astromodels_memoization
+from astromodels.core.parameter import Parameter
+from astromodels.core.sky_direction import SkyDirection
+from astromodels.core.spectral_component import SpectralComponent
+from astromodels.core.tree import Node
+from astromodels.core.units import get_units
+from astromodels.functions.function import Function1D
+from astromodels.sources.source import Source, SourceType
+from astromodels.utils.logging import setup_logger
+from astromodels.utils.pretty_list import dict_to_list
+from typing import Optional, Dict 
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -440,3 +452,394 @@ class SpatialTemplate_2D_Healpix(Function2D, metaclass=FunctionMeta):
         if isinstance(z, u.Quantity):
             z = z.value
         return np.multiply(self.K.value, np.ones_like(z))
+
+
+class PointSource(Source, Node):
+    """A point source. You can instance this class in many ways.
+
+
+
+    - with Equatorial position and a function as spectrum (the component will be
+
+    automatically called 'main')::
+
+
+
+        >>> from astromodels import *
+
+        >>> point_source = PointSource('my_source', 125.6, -75.3, Powerlaw())
+
+
+
+    - with Galactic position and a function as spectrum (the component will be
+
+    automatically called 'main')::
+
+
+
+        >>> point_source = PointSource(
+
+                    'my_source', l=15.67, b=80.75, spectral_shape=Powerlaw()
+
+                )
+
+
+
+    - with Equatorial position or Galactic position and a list of spectral components::
+
+
+
+        >>> c1 = SpectralComponent("component1", Powerlaw())
+
+        >>> c2 = SpectralComponent("component2", Powerlaw())
+
+        >>> point_source = PointSource("test_source",125.6, -75.3,components=[c1,c2])
+
+
+
+        Or with Galactic position:
+
+
+
+        >>> point_source = PointSource(
+
+                    "test_source",l=15.67, b=80.75,components=[c1,c2]
+
+                )
+
+
+
+    NOTE: by default the position of the source is fixed (i.e., its positional
+
+    parameters are fixed)
+
+
+
+    :param source_name: name for the source
+
+    :param ra: Equatorial J2000 Right Ascension (ICRS)
+
+    :param dec: Equatorial J2000 Declination (ICRS)
+
+    :param spectral_shape: a 1d function representing the spectral shape of the source
+
+    :param l: Galactic latitude
+
+    :param b: Galactic longitude
+
+    :param components: list of spectral components (instances of SpectralComponent)
+
+    :param sky_position: an instance of SkyDirection
+
+    :return:
+
+    """
+
+    def __init__(
+        self,
+        source_name: str,
+        ra: Optional[float] = None,
+        dec: Optional[float] = None,
+        spectral_shape: Optional[Function1D] = None,
+        l: Optional[float] = None,
+        b: Optional[float] = None,
+        components=None,
+        sky_position: Optional[SkyDirection] = None,
+        polarization=None,
+    ):
+
+        # Check that we have all the required information
+
+        # (the '^' operator acts as XOR on booleans)
+
+        # Check that we have one and only one specification of the position
+
+        if not (
+            (ra is not None and dec is not None)
+            ^ (l is not None and b is not None)
+            ^ (sky_position is not None)
+        ):
+
+            log.error(
+                "You have to provide one and only one specification for the position"
+            )
+
+            raise AssertionError()
+
+        # Gather the position
+
+        if not isinstance(sky_position, SkyDirection):
+
+            if (ra is not None) and (dec is not None):
+
+                # Check that ra and dec are actually numbers
+
+                try:
+
+                    ra = float(ra)
+
+                    dec = float(dec)
+
+                except (TypeError, ValueError):
+
+                    log.error(
+                        "RA and Dec must be numbers. If you are confused by this "
+                        "message, you are likely using the constructor in the wrong "
+                        "way. Check the documentation."
+                    )
+
+                    raise AssertionError()
+
+                sky_position = SkyDirection(ra=ra, dec=dec)
+
+            else:
+
+                sky_position = SkyDirection(l=l, b=b)
+
+        self._sky_position: SkyDirection = sky_position
+
+        # Now gather the component(s)
+
+        # We need either a single component, or a list of components, but not both
+
+        # (that's the ^ symbol)
+
+        if not (spectral_shape is not None) ^ (components is not None):
+
+            log.error(
+                "You have to provide either a single component, or a list of components"
+                " (but not both)."
+            )
+
+            raise AssertionError()
+
+        # If the user specified only one component, make a list of one element with a
+
+        # default name ("main")
+
+        if spectral_shape is not None:
+
+            components = [SpectralComponent("main", spectral_shape, polarization)]
+
+        Source.__init__(self, components, src_type=SourceType.POINT_SOURCE)
+
+        # A source is also a Node in the tree
+
+        Node.__init__(self, source_name)
+
+        # Add the position as a child node, with an explicit name
+
+        self._add_child(self._sky_position)
+
+        # Add a node called 'spectrum'
+
+        spectrum_node = Node("spectrum")
+
+        spectrum_node._add_children(list(self._components.values()))
+
+        self._add_child(spectrum_node)
+
+        # Now set the units
+
+        # Now sets the units of the parameters for the energy domain
+
+        current_units = get_units()
+
+        # Components in this case have energy as x and differential flux as y
+
+        x_unit = current_units.energy
+
+        y_unit = (current_units.energy * current_units.area * current_units.time) ** (
+            -1
+        )
+
+        # Now set the units of the components
+
+        for component in list(self._components.values()):
+
+            component.shape.set_units(x_unit, y_unit)
+
+    def __call__(self, x, tag=None, stokes=None):
+
+        is_scalar = np.isscalar(x)
+
+        x = np.atleast_1d(x)
+
+        if tag is None:
+
+            # No integration nor time-varying or whatever-varying
+
+            # create result from first component so it
+
+            # has the right type/unit, then add the
+
+            # results for any other components
+
+            # (self.components() must be non-empty)
+
+            components = iter(self.components.values())
+
+            results = next(components)(x, stokes)
+
+            for component in components:
+
+                results += component(x, stokes)
+
+        else:
+
+            # Time-varying or energy-varying or whatever-varying
+
+            integration_variable, a, b = tag
+
+            # Suspend memoization because the memoization gets
+
+            # confused when integrating
+
+            with use_astromodels_memoization(False):
+
+                if b is None:
+
+                    # Evaluate at a, do not integrate
+
+                    integration_variable.value = a
+
+                    results = self.__call__(x, tag=None)
+
+                else:
+
+                    # Integrate between a and b
+
+                    reentrant_call = self.__call__
+
+                    def integral(y):
+
+                        integration_variable.value = y
+
+                        return reentrant_call(x, tag=None)
+
+                    # Now integrate
+
+                    integrals = sp_int.quad_vec(integral, a, b, epsrel=1e-5)[0]
+
+                    results = integrals / (b - a)
+
+        if is_scalar:
+
+            results = results.item()
+
+        return results
+
+    @property
+    def has_free_parameters(self) -> bool:
+        """Returns True or False whether there is any parameter in this source.
+
+
+
+        :return:
+
+        """
+
+        for component in list(self._components.values()):
+
+            for par in list(component.shape.parameters.values()):
+
+                if par.free:
+
+                    return True
+
+        for par in list(self.position.parameters.values()):
+
+            if par.free:
+
+                return True
+
+        return False
+
+    @property
+    def free_parameters(self) -> Dict[str, Parameter]:
+        """Returns a dictionary of free parameters for this source. We use the
+
+        parameter path as the key because it's guaranteed to be unique, unlike
+
+        the parameter name.
+
+
+
+        :return:
+
+        """
+
+        free_parameters = collections.OrderedDict()
+
+        for component in list(self._components.values()):
+
+            for par in list(component.shape.parameters.values()):
+
+                if par.free:
+
+                    free_parameters[par.path] = par
+
+        for par in list(self.position.parameters.values()):
+
+            if par.free:
+
+                free_parameters[par.path] = par
+
+        return free_parameters
+
+    @property
+    def parameters(self) -> Dict[str, Parameter]:
+        """Returns a dictionary of all parameters for this source. We use the
+
+        parameter path as the key because it's guaranteed to be unique, unlike
+
+        the parameter name.
+
+
+
+        :return:
+
+        """
+
+        all_parameters = collections.OrderedDict()
+
+        for component in self._components.values():
+
+            for par in component.shape.parameters.values():
+
+                all_parameters[par.path] = par
+
+        for par in self.position.parameters.values():
+
+            all_parameters[par.path] = par
+
+        return all_parameters
+
+    def _repr__base(self, rich_output=False):
+        """Representation of the object.
+
+
+
+        :param rich_output: if True, generates HTML, otherwise text
+
+        :return: the representation
+
+        """
+
+        # Make a dictionary which will then be transformed in a list
+
+        repr_dict = collections.OrderedDict()
+
+        key = "%s (point source)" % self.name
+
+        repr_dict[key] = collections.OrderedDict()
+
+        repr_dict[key]["position"] = self._sky_position.to_dict(minimal=True)
+
+        repr_dict[key]["spectrum"] = collections.OrderedDict()
+
+        for component_name, component in list(self.components.items()):
+
+            repr_dict[key]["spectrum"][component_name] = component.to_dict(minimal=True)
+
+        return dict_to_list(repr_dict, rich_output)
