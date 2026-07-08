@@ -453,7 +453,7 @@ class SpatialTemplate_2D_Healpix(Function2D, metaclass=FunctionMeta):
             z = z.value
         return np.multiply(self.K.value, np.ones_like(z))
 
-
+log = setup_logger(__name__)
 class PointSource(Source, Node):
     """A point source. You can instance this class in many ways.
 
