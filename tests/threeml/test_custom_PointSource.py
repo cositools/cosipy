@@ -10,17 +10,17 @@ from unittest.mock import MagicMock, patch
 @pytest.fixture(autouse=True)
 def mock_external_dependencies():
     """Patches all global framework dependencies required by PointSource."""
-    with patch('point_source.log') as mock_log, \
-         patch('point_source.SkyDirection') as mock_sky_dir, \
-         patch('point_source.SpectralComponent') as mock_spectral_comp, \
-         patch('point_source.SourceType') as mock_src_type, \
-         patch('point_source.get_units') as mock_get_units, \
-         patch('point_source.use_astromodels_memoization') as mock_memo, \
-         patch('point_source.dict_to_list') as mock_dict_to_list, \
-         patch('point_source.sp_int') as mock_sp_int, \
-         patch('point_source.Source.__init__') as mock_source_init, \
-         patch('point_source.Node.__init__') as mock_node_init, \
-         patch('point_source.Node._add_child') as mock_add_child:
+    with patch('cosipy.threeml.custom_functions.log') as mock_log, \
+         patch('cosipy.threeml.custom_functions.SkyDirection') as mock_sky_dir, \
+         patch('cosipy.threeml.custom_functions.SpectralComponent') as mock_spectral_comp, \
+         patch('cosipy.threeml.custom_functions.SourceType') as mock_src_type, \
+         patch('cosipy.threeml.custom_functions.get_units') as mock_get_units, \
+         patch('cosipy.threeml.custom_functions.use_astromodels_memoization') as mock_memo, \
+         patch('cosipy.threeml.custom_functions.dict_to_list') as mock_dict_to_list, \
+         patch('cosipy.threeml.custom_functions.sp_int') as mock_sp_int, \
+         patch('cosipy.threeml.custom_functions.Source.__init__') as mock_source_init, \
+         patch('cosipy.threeml.custom_functions.Node.__init__') as mock_node_init, \
+         patch('cosipy.threeml.custom_functions.Node._add_child') as mock_add_child:
         
         # Configure default behavior for unit settings
         mock_units = MagicMock()
