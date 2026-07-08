@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 # FIXTURES & STUBS FOR EXTERNAL DEPENDENCIES
 # ==========================================
 @pytest.fixture(autouse=True)
-def mock_external_dependencies(dummy_shape, mock_external_dependencies):
+def mock_external_dependencies():
     """Patches all global framework dependencies required by PointSource."""
     with patch('point_source.log') as mock_log, \
          patch('point_source.SkyDirection') as mock_sky_dir, \
