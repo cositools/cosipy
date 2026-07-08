@@ -170,21 +170,22 @@ class SpecFromDat(Function1D, metaclass=FunctionMeta):
 
                 self._dat_file = self.dat.value
 
-                data = np.genfromtxt(self.dat.value,comments = "#",
-                                     usecols = (1,2),
-                                     skip_footer=1,
-                                     skip_header=5)
-                dataEn = data[:,0]
-                dataFlux = data[:,1]
+                with open(self.dat.value, 'r') as f:
+                    #only look at the line with DP
+                    dp_lines = (line for line in f if line.strip().startswith('DP'))
+                
+                    data = np.genfromtxt(dp_lines, usecols=(1, 2))
+                    
+                    dataEn = data[:,0]
+                    dataFlux = data[:,1]
 
-                # Calculate the widths of the energy bins
-                ewidths = np.diff(dataEn, append=dataEn[-1])
+                    # Calculate the widths of the energy bins
+                    ewidths = np.diff(dataEn, append=dataEn[-1])
 
-                # Normalize dataFlux using the energy bin widths
-                dataFlux /= np.sum(dataFlux * ewidths)
+                    # Normalize dataFlux using the energy bin widths
+                    dataFlux /= np.sum(dataFlux * ewidths)
 
-                self._fun = interp1d(dataEn, dataFlux, fill_value=0, bounds_error=False)
-
+                    self._fun = interp1d(dataEn, dataFlux, fill_value=0, bounds_error=False)
             return K * self._fun(x)
 
 
