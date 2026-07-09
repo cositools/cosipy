@@ -1,7 +1,9 @@
 from cosipy.threeml.custom_functions import PointSource
 import numpy as np
 import pytest
-from astromodels import PointSource, SpectralComponent, SkyDirection, Powerlaw
+from astromodels import Powerlaw
+from astromodels.core.sky_direction import SkyDirection
+from astromodels.core.spectral_component import SpectralComponent
 
 def test_construct_with_equatorial_position():
         src = PointSource("test_source", ra=125.6, dec=-75.3, spectral_shape=Powerlaw())
