@@ -101,7 +101,7 @@ def test_call_scalar_input_returns_scalar():
         result = src(1.0)
         assert np.isscalar(result) or np.ndim(result) == 0
  
-def test_call_array_input_returns_array(self):
+def test_call_array_input_returns_array():
         src = PointSource("test_source", ra=125.6, dec=-75.3, spectral_shape=Powerlaw())
         x = np.array([1.0, 2.0, 3.0])
         result = src(x)
