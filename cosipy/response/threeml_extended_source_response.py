@@ -105,7 +105,7 @@ class BinnedThreeMLExtendedSourceResponse(BinnedThreeMLSourceResponseInterface):
         the user called expectation.
 
         """
-        if not isinstance(source, ExtendedSource) or not isinstance(source, CosipyExtendedSource):
+        if not (isinstance(source, ExtendedSource) or isinstance(source, CosipyExtendedSource)):
             raise TypeError("I only know how to handle extended sources!")
 
         polarization = to_linear_polarization(source.spectrum.main.polarization)
