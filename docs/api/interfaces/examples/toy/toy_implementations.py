@@ -24,7 +24,8 @@ from histpy import Axis, Axes, Histogram
 import numpy as np
 from scipy.stats import norm, uniform
 
-from threeML import Constant, PointSource, Model, JointLikelihood, DataList
+from threeML import Constant, Model, JointLikelihood, DataList
+from cosipy.threeml.custom_functions import PointSource
 
 from matplotlib import pyplot as plt
 
