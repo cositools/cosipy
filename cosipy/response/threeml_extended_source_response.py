@@ -1,7 +1,7 @@
 import copy
 
-from astromodels.sources import Source, ExtendedSource
-
+from astromodels.sources import Source
+from cosipy.threeml.custom_functions import ExtendedSource 
 from histpy import Axes, Histogram
 
 from cosipy.data_io import EmCDSBinnedData
