@@ -7,7 +7,8 @@ from tqdm.auto import tqdm
 
 import numpy as np
 import h5py
-from cosipy.threeml.custom_functions import PointSource
+from astromodels import PointSource
+from cosipy.threeml.custom_functions import CosipyPointSource
 from astropy.coordinates import CartesianRepresentation
 from executing import Source
 from scoords import SpacecraftFrame
@@ -371,7 +372,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._sc_coord_sph_cache = None
     
     def set_source(self, source: Source):
-        if not isinstance(source, PointSource):
+        if not (isinstance(source, PointSource) or isinstance(source, CosipyPointSource)):
             raise TypeError("Please provide a PointSource!")
 
         self._source = source
