@@ -2,7 +2,7 @@ import copy
 from typing import Optional, Iterable, Type
 
 import numpy as np
-from astromodels import PointSource
+from cosipy.threeml.custom_functions import PointSource
 from astropy.coordinates import UnitSphericalRepresentation, CartesianRepresentation
 from astropy.units import Quantity
 from executing import Source
