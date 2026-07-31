@@ -1,7 +1,7 @@
 import copy
 
-from astromodels.sources import Source
-from cosipy.threeml.custom_functions import PointSource
+from astromodels.sources import Source, PointSource
+from cosipy.threeml.custom_functions import CosipyPointSource
 from scoords import SpacecraftFrame
 from histpy import Axis, Axes, Histogram
 
@@ -131,7 +131,7 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
         the user called expectation.
 
         """
-        if not isinstance(source, PointSource):
+        if not (isinstance(source, PointSource) or isinstance(source, CosipyPointSource)):
             raise TypeError("I only know how to handle point sources!")
 
         if not hasattr(source.spectrum, 'main'):
