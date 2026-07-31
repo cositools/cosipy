@@ -8,7 +8,7 @@ from cosipy.interfaces import BinnedThreeMLModelFoldingInterface, BinnedThreeMLS
     BinnedDataInterface, DataInterface, ThreeMLSourceResponseInterface
 
 from astromodels import Model
-from astromodels.sources import PointSource, ExtendedSource
+from cosipy.threeml.custom_functions import PointSource, ExtendedSource
 
 from histpy import Axes, Histogram
 
