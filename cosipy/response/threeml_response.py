@@ -7,8 +7,8 @@ from numba.typed.dictobject import DictModel
 from cosipy.interfaces import BinnedThreeMLModelFoldingInterface, BinnedThreeMLSourceResponseInterface, \
     BinnedDataInterface, DataInterface, ThreeMLSourceResponseInterface
 
-from astromodels import Model
-from cosipy.threeml.custom_functions import PointSource, ExtendedSource
+from astromodels import Model, PointSource, ExtendedSource
+from cosipy.threeml.custom_functions import CosipyPointSource, CosipyExtendedSource
 
 from histpy import Axes, Histogram
 
@@ -61,7 +61,7 @@ class ThreeMLModelFoldingCacheSourceResponsesMixin:
                 new_source_responses[name] = self._source_responses[name]
                 continue
 
-            if isinstance(source, PointSource):
+            if (isinstance(source, PointSource) or isinstance(source, CosipyPointSource)):
 
                 if self._psr is None:
                     raise RuntimeError("The model includes a point source but no point source response was provided")
@@ -69,7 +69,7 @@ class ThreeMLModelFoldingCacheSourceResponsesMixin:
                 psr_copy = self._psr.copy()
                 psr_copy.set_source(source)
                 new_source_responses[name] = psr_copy
-            elif isinstance(source, ExtendedSource):
+            elif (isinstance(source, ExtendedSource) or isinstance(source, CosipyExtendedSource)):
 
                 if self._esr is None:
                     raise RuntimeError("The model includes an extended source but no extended source response was provided")
