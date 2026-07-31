@@ -7,7 +7,7 @@ from tqdm.auto import tqdm
 
 import numpy as np
 import h5py
-from astromodels import PointSource
+from cosipy.threeml.custom_functions import PointSource
 from astropy.coordinates import CartesianRepresentation
 from executing import Source
 from scoords import SpacecraftFrame
