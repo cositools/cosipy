@@ -28,8 +28,7 @@ import astropy.units as u
 
 import numpy as np
 
-from threeML import Band, Model, JointLikelihood, DataList
-from cosipy.threeml.custom_functions import PointSource
+from threeML import Band, Model, PointSource, JointLikelihood, DataList
 
 from astromodels import Parameter
 
