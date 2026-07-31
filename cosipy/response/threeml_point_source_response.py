@@ -1,6 +1,7 @@
 import copy
 
-from astromodels.sources import Source, PointSource
+from astromodels.sources import Source
+from cosipy.threeml.custom_functions import PointSource
 from scoords import SpacecraftFrame
 from histpy import Axis, Axes, Histogram
 
