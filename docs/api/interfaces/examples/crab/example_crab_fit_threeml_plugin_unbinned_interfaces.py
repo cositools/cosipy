@@ -47,7 +47,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from threeML import Band, PointSource, Model, JointLikelihood, DataList
-
 from astromodels import Parameter, Powerlaw
 
 from pathlib import Path
