@@ -64,7 +64,8 @@ import astropy.units as u
 import numpy as np
 import matplotlib.pyplot as plt
 
-from threeML import Band, PointSource, Model, JointLikelihood, DataList
+from threeML import Band, Model, JointLikelihood, DataList
+from cosipy.threeml.custom_functions import PointSource
 from astromodels import Parameter, Powerlaw
 
 from pathlib import Path
