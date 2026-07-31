@@ -1,4 +1,4 @@
-from cosipy.threeml.custom_functions import PointSource
+from cosipy.threeml.custom_functions import CosipyPointSource
 import numpy as np
 import pytest
 from astromodels import Powerlaw
