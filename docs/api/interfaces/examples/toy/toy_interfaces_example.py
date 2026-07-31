@@ -12,7 +12,7 @@ from cosipy.interfaces import ThreeMLPluginInterface
 from histpy import Axis, Histogram
 import numpy as np
 
-from threeML import Constant, Model, PointSource, JointLikelihood, DataList
+from threeML import Constant, PointSource, Model, JointLikelihood, DataList
 
 from matplotlib import pyplot as plt
 
