@@ -968,7 +968,7 @@ class CosipyExtendedSource(Source, Node):
             cube = np.broadcast_to(differential_flux,
                                    (n_points, n_energies), subok=True)
 
-            result = cube * brightness.T
+            result = (cube * brightness).T
 
             # The following is a little obscure, but it is 6x faster than doing a for
             # loop
