@@ -62,19 +62,19 @@ def _make_2d_source(spectral_shape=None, components=None):
     spatial = Gaussian_on_sphere()
     if spectral_shape is None and components is None:
         spectral_shape = Powerlaw()
-    return ExtendedSource(
+    return CosipyExtendedSource(
         "test_ext_source", spatial, spectral_shape=spectral_shape, components=components
     )
 
 
 def _make_3d_template_source():
     spatial = _FakeSpatialShape3D()
-    return ExtendedSource("test_ext_source", spatial)
+    return CosipyExtendedSource("test_ext_source", spatial)
 
 
 def _make_3d_with_spectrum_source():
     spatial = _FakeSpatialShape3D()
-    return ExtendedSource("test_ext_source", spatial, spectral_shape=Powerlaw())
+    return CosipyExtendedSource("test_ext_source", spatial, spectral_shape=Powerlaw())
 
 
 # ---------------------------------------------------------------------------
@@ -102,7 +102,7 @@ def test_2d_both_shape_and_components_raises():
 
 def test_2d_neither_shape_nor_components_raises():
     with pytest.raises(AssertionError):
-        ExtendedSource("test_ext_source", Gaussian_on_sphere())
+        CosipyExtendedSource("test_ext_source", Gaussian_on_sphere())
 
 
 def test_2d_spatial_shape_stored_and_added_as_child():
@@ -130,7 +130,7 @@ def test_3d_with_explicit_spectral_shape():
 def test_3d_both_shape_and_components_raises():
     c1 = SpectralComponent("component1", Powerlaw())
     with pytest.raises(AssertionError):
-        ExtendedSource(
+        CosipyExtendedSource(
             "test_ext_source",
             _FakeSpatialShape3D(),
             spectral_shape=Powerlaw(),
@@ -141,7 +141,7 @@ def test_3d_both_shape_and_components_raises():
 def test_3d_components_list():
     c1 = SpectralComponent("component1", Powerlaw())
     c2 = SpectralComponent("component2", Powerlaw())
-    src = ExtendedSource("test_ext_source", _FakeSpatialShape3D(), components=[c1, c2])
+    src = CosipyExtendedSource("test_ext_source", _FakeSpatialShape3D(), components=[c1, c2])
     assert set(src.components.keys()) == {"component1", "component2"}
 
 
@@ -149,7 +149,7 @@ def test_invalid_ndim_raises_runtime_error():
     bad_shape = _FakeSpatialShape3D()
     bad_shape.n_dim = 1
     with pytest.raises(RuntimeError):
-        ExtendedSource("test_ext_source", bad_shape, spectral_shape=Powerlaw())
+        CosipyExtendedSource("test_ext_source", bad_shape, spectral_shape=Powerlaw())
 
 
 # ---------------------------------------------------------------------------
