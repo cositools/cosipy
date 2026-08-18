@@ -968,7 +968,10 @@ class CosipyExtendedSource(Source, Node):
             cube = np.broadcast_to(differential_flux,
                                    (n_points, n_energies), subok=True)
 
-            result = (cube * brightness).T
+            if brightness.ndim == 1:
+                result = cube * brightness[:, None]  # Shapes: (n_points, n_energies) * (n_points, 1)
+            else:
+                result = cube * brightness.T         # Shapes: (n_points, n_energies) * (n_points, n_energies)
 
             # The following is a little obscure, but it is 6x faster than doing a for
             # loop
