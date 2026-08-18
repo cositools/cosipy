@@ -959,33 +959,12 @@ class CosipyExtendedSource(Source, Node):
 
         if self._spatial_shape.n_dim == 2:
 
-            brightness = self._spatial_shape(lon, lat)
+            brightness = self._spatial_shape(lon, lat)
+            result = np.outer(brightness, differential_flux)
+        else:
 
-            # In this case the spectrum is the same everywhere
-            n_points = lat.shape[0]
-            n_energies = differential_flux.shape[0]
-
-            cube = np.broadcast_to(differential_flux,
-                                   (n_points, n_energies), subok=True)
-
-            if brightness.ndim == 1:
-                result = cube * brightness[:, None]  # Shapes: (n_points, n_energies) * (n_points, 1)
-            else:
-                result = cube * brightness.T         # Shapes: (n_points, n_energies) * (n_points, n_energies)
-
-            # The following is a little obscure, but it is 6x faster than doing a for
-            # loop
-
-            # FIXME: there is probably a way to avoid actually repeating
-            # with appropriate numpy magic
-            #cube = (
-            #    np.repeat(differential_flux, n_points).reshape(n_energies, n_points)
-            #       )
-            #result = (cube * brightness).T
-
-        else:
-
-            result = self._spatial_shape(lon, lat, energies) * differential_flux
+            brightness = self._spatial_shape(lon, lat, energies)
+            result = brightness * differential_flux
 
         # Do not clip the output, otherwise it will not be possible to use ext. sources
         # with negative fluxes
