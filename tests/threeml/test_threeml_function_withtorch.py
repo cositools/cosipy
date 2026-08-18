@@ -4,7 +4,7 @@ import cosipy
 if not cosipy.with_ml:
     pytest.skip(reason="Optional [ml] dependencies not installed", allow_module_level=True) 
 
-from cosipy.threeml.ml.function_torch import FastPowerlawPyTorch, FastGaussianPyTorch, FastCutoffPowerlawPyTorch
+from cosipy.threeml.ml.function_torch import FastPowerlawPyTorch, FastGaussianPyTorch, FastCutoffPowerlawPyTorch, FastSuperCutoffPowerlawPyTorch
 import astropy.units as u
 import numpy as np
 import torch 
@@ -310,3 +310,207 @@ def test_output_length_matches_input_length():
     assert result.shape[0] == len(x)
     
         
+# ==========================================
+# Tests for FastSuperCutoffPowerlawPyTorch
+# ==========================================
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+ 
+def make_function(K=1.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0):
+    f = FastSuperCutoffPowerlawPyTorch()
+    f.K = K
+    f.piv = piv
+    f.index = index
+    f.xc = xc
+    f.gamma = gamma
+    return f
+ 
+ 
+def analytic_cutoff_powerlaw(x, K, piv, index, xc, gamma):
+    return K * np.exp( index * np.log(x / piv) - np.pow(x / xc, gamma) )
+
+ 
+# ---------------------------------------------------------------------------
+# Parameter defaults / metadata (from the docstring YAML block)
+# ---------------------------------------------------------------------------
+ 
+def test_default_parameter_values():
+    f = FastSuperCutoffPowerlawPyTorch()
+    assert pytest.approx(f.K.value) == 1.0
+    assert pytest.approx(f.piv.value) == 1.0
+    assert pytest.approx(f.index.value) == -2.0
+    assert pytest.approx(f.xc.value) == 10.0
+    assert pytest.approx(f.gamma.value) == 1.0
+ 
+def test_piv_is_fixed_by_default():
+    f = FastSuperCutoffPowerlawPyTorch()
+    assert f.piv.free is False
+ 
+ 
+def test_K_is_normalization():
+    f = FastSuperCutoffPowerlawPyTorch()
+    assert f.K.is_normalization is True
+ 
+ 
+def test_parameter_bounds():
+    f = FastSuperCutoffPowerlawPyTorch()
+    assert f.K.min_value == pytest.approx(1e-50)
+    assert f.index.min_value == pytest.approx(-10)
+    assert f.index.max_value == pytest.approx(10)
+    assert f.xc.min_value == pytest.approx(1.0)
+    assert f.gamma.min_value == pytest.approx(0.1)
+    assert f.gamma.max_value == pytest.approx(10.0)
+
+def test_devices_property_defaults_to_cpu():
+    f = FastSuperCutoffPowerlawPyTorch()
+    assert f.devices.value == "cpu"
+ 
+ 
+# ---------------------------------------------------------------------------
+# _set_units
+# ---------------------------------------------------------------------------
+ 
+def test_set_units_assigns_expected_units():
+    f = FastSuperCutoffPowerlawPyTorch()
+    x_unit = u.keV
+    y_unit = 1 / (u.keV * u.cm ** 2 * u.s)
+ 
+    f.set_units(x_unit, y_unit)
+ 
+    assert f.index.unit == u.dimensionless_unscaled
+    assert f.piv.unit == x_unit
+    assert f.xc.unit == x_unit
+    assert f.K.unit == y_unit
+    assert f.gamma.unit == u.dimensionless_unscaled
+ 
+# ---------------------------------------------------------------------------
+# evaluate: plain (non-Quantity) input
+# ---------------------------------------------------------------------------
+ 
+def test_evaluate_matches_analytic_formula():
+    f = make_function(K=2.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    x = np.array([1.0, 2.0, 5.0, 10.0])
+ 
+    result = f.evaluate(x, K=2.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    expected = analytic_cutoff_powerlaw(x, K=2.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+ 
+    # NOTE: evaluate() currently returns shape (N, 1) due to `.view(-1, 1)`
+    assert result.shape == (len(x), 1)
+    np.testing.assert_allclose(result.ravel(), expected, rtol=1e-6)
+ 
+ 
+def test_evaluate_scalar_input():
+    f = make_function()
+    result = f.evaluate(5.0, K=1.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    expected = analytic_cutoff_powerlaw(5.0, K=1.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    np.testing.assert_allclose(np.ravel(result), np.ravel(expected), rtol=1e-6)
+ 
+ 
+def test_evaluate_returns_numpy_array():
+    f = make_function()
+    result = f.evaluate(np.array([1.0, 2.0]), K=1.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    assert isinstance(result, np.ndarray)
+ 
+ 
+def test_evaluate_no_units_applied_when_plain_input():
+    # When x is not an astropy Quantity, the result should be a bare
+    # array (unit_ == 1.0 branch), not multiplied by any astropy unit.
+    f = make_function()
+    result = f.evaluate(np.array([1.0, 2.0]), K=1.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    assert not hasattr(result, "unit")
+ 
+ 
+# ---------------------------------------------------------------------------
+# evaluate: Quantity input
+# ---------------------------------------------------------------------------
+ 
+def test_evaluate_with_quantity_input_returns_quantity():
+    f = make_function(K=1.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    f.set_units(
+        u.keV,
+        1 / (u.keV * u.cm ** 2 * u.s),
+    )
+
+    x = np.array([1.0, 2.0, 5.0]) * u.keV
+    result = f.evaluate(
+        x,
+        K=f.K.as_quantity,
+        piv=f.piv.as_quantity,
+        index=f.index.as_quantity,
+        xc=f.xc.as_quantity,
+        gamma=f.gamma.as_quantity
+    )
+ 
+    assert hasattr(result, "unit")
+    assert result.unit == f.y_unit
+ 
+ 
+def test_evaluate_quantity_matches_plain_evaluation_numerically():
+    f = make_function(K=3.0, piv=2.0, index=-1.5, xc=7.0, gamma=2.0)
+    f.set_units(
+        u.keV,
+        1 / (u.keV * u.cm ** 2 * u.s),
+    )
+    
+ 
+    x_val = np.array([1.0, 3.0, 6.0])
+    x_q = x_val * u.keV
+ 
+    plain_result = f.evaluate(x_val, K=3.0, piv=2.0, index=-1.5, xc=7.0, gamma=2.0)
+    quantity_result = f.evaluate(
+        x_q,
+        K=f.K.as_quantity,
+        piv=f.piv.as_quantity,
+        index=f.index.as_quantity,
+        xc=f.xc.as_quantity,
+        gamma=f.gamma.as_quantity
+    )
+ 
+    np.testing.assert_allclose(
+        plain_result.ravel(), quantity_result.value.ravel(), rtol=1e-6
+    )
+ 
+ 
+# ---------------------------------------------------------------------------
+# Physical / shape behavior
+# ---------------------------------------------------------------------------
+ 
+def test_value_at_pivot_equals_K_times_cutoff_term():
+    f = make_function(K=5.0, piv=2.0, index=-2.0, xc=10.0, gamma=2.0)
+    result = f.evaluate(np.array([2.0]), K=5.0, piv=2.0, index=-2.0, xc=10.0, gamma=2.0)
+    expected = analytic_cutoff_powerlaw(np.array([2.0]), K=5.0, piv=2.0, index=-2.0, xc=10.0, gamma=2.0)
+    np.testing.assert_allclose(result.ravel()[0], expected, rtol=1e-6)
+ 
+ 
+def test_decreasing_with_negative_index_before_cutoff_dominates():
+    # For a steep negative index and a cutoff far away, flux should
+    # decrease as x increases (power-law term dominates).
+    f = make_function(K=1.0, piv=1.0, index=-2.0, xc=1e6, gamma=2.0)
+    x = np.array([1.0, 2.0, 4.0])
+    result = f.evaluate(x, K=1.0, piv=1.0, index=-2.0, xc=1e6, gamma=2.0).ravel()
+    assert result[0] > result[1] > result[2]
+ 
+ 
+def test_cutoff_suppresses_flux_well_above_xc():
+    f = make_function(K=1.0, piv=1.0, index=0.0, xc=1.0, gamma=2.0)
+    x = np.array([0.1, 1.0, 10.0, 50.0])
+    result = f.evaluate(x, K=1.0, piv=1.0, index=0.0, xc=1.0, gamma=2.0).ravel()
+    # Well beyond the cutoff energy, flux should be strongly suppressed
+    assert result[-1] < result[0] * 1e-10
+ 
+ 
+def test_result_is_non_negative():
+    f = make_function(K=1.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    x = np.linspace(0.5, 20, 10)
+    result = f.evaluate(x, K=1.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    assert np.all(result >= 0)
+ 
+ 
+def test_output_length_matches_input_length():
+    f = make_function()
+    x = np.linspace(1, 100, 25)
+    result = f.evaluate(x, K=1.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
+    assert result.shape[0] == len(x)

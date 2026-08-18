@@ -84,6 +84,10 @@ class PolarizationASAD(PolarizationFitting):
                                            asads['background_scaled'],
                                            self._mu100['mu'])
 
+        if self._mdp > 1.:
+            logger.warning("The minimum detectable polarization (MDP) exceeds 100%, " 
+                            "so it is not possible to measure the polarization.")
+
         if show_plots:
 
             uncertainty = np.sqrt(asads['source_and_background'].bin_error.contents**2 +
