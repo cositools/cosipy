@@ -45,12 +45,12 @@ class Band_Eflux(Function1D, metaclass=FunctionMeta):
             initial value : 1.e-5
             min : 1e-50
             is_normalization : False
-            transformation : 10
+            transformation : log10
         E0 :
             desc : $\frac{xp}{2+\alpha}$ where xp is peak in the x * x * N (nuFnu if x is an energy)
             initial value : 500
             min : 1
-            transformation : 10
+            transformation : log10
         alpha :
             desc : low-energy photon index
             initial value : -1.0
