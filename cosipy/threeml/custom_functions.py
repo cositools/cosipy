@@ -26,6 +26,7 @@ from astromodels.functions.function import Function1D
 from astromodels.sources.source import Source, SourceType
 from astromodels.utils.logging import setup_logger
 from astromodels.utils.pretty_list import dict_to_list
+from astromodels.functions import Constant
 from typing import Optional, Dict 
 import scipy.integrate as sp_int
 import collections
