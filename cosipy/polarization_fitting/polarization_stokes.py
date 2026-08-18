@@ -272,6 +272,8 @@ class PolarizationStokes(PolarizationFitting):
 
         # All equation numbers below are from Kislat & Spooner, 2022
         # https://doi.org/10.1007/978-981-16-4544-0_146-1
+        #
+        # We sub in the sample variance estimates 1/(I-1) in place of 1/I
 
         has_background = self._background_scattering_angles is not None
 
@@ -316,7 +318,7 @@ class PolarizationStokes(PolarizationFitting):
 
             # sigma(I)^2 = I, hence sigma(I) = sqrt(I)
             bkg_Mod = np.hypot(bkg_QN, bkg_UN)
-            bkg_sMod = 1/mu * np.sqrt((2 - bkg_Mod**2) / bkg_I) # eqn 10b, 13
+            bkg_sMod = 1/mu * np.sqrt((2 - bkg_Mod**2) / (bkg_I - 1)) # eqn 10b, 13
 
             # remove est. background contrib from data I, Q, and U
             src_I = data_I - self._backscal * bkg_I
@@ -331,8 +333,8 @@ class PolarizationStokes(PolarizationFitting):
         src_Uc = src_UN / mu  # eqn 12b
 
         # sigma(I)^2 = I, hence sigma(I) = sqrt(I)
-        src_sQc = 1/mu * np.sqrt((2 - src_QN**2)/src_I) # eqn 10b, 13
-        src_sUc = 1/mu * np.sqrt((2 - src_UN**2)/src_I) # eqn 10c, 13
+        src_sQc = 1/mu * np.sqrt((2 - src_QN**2)/(src_I - 1)) # eqn 10b, 13
+        src_sUc = 1/mu * np.sqrt((2 - src_UN**2)/(src_I - 1)) # eqn 10c, 13
 
         # polarization degree
         PF = np.hypot(src_Qc, src_Uc) # eqn 14
@@ -342,7 +344,9 @@ class PolarizationStokes(PolarizationFitting):
         PA = np.mod(PA, np.pi)                # make range of pa [0, pi)
 
         # uncertainties in PF and PA
-        sPF = np.sqrt((1 - 0.5 * (mu * PF)**2)/src_I) # eqn 16
+
+        # corrected: eqn 16 leaves out a factor of sqrt(2)/mu
+        sPF = np.sqrt((2/mu**2 - PF**2)/(src_I - 1)) # eqn 16
         sPA = sPF / (2 * PF) # eqn 17
 
         PA_out = PolarizationAngle(Angle(np.degrees(PA), unit=u.deg),
