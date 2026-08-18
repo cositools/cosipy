@@ -528,6 +528,9 @@ class PolarizationFitting():
 
         logger.info(f'Minimum detectable polarization (MDP) of source: {mdp99:.3f}')
 
+        if mdp99 > 1.:
+            logger.warning("MDP exceeds 100%, so polarization cannot be measured.")
+
         return mdp99
 
     @classmethod
