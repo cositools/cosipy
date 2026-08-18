@@ -200,10 +200,10 @@ class PolarizationStokes(PolarizationFitting):
         """
 
         def stokes_q(phi):
-            return np.cos(phi * 2) * 2
+            return np.cos(phi * 2)
 
         def stokes_u(phi):
-            return np.sin(phi * 2) * 2
+            return np.sin(phi * 2)
 
         angles = azimuthal_angles.value
 
@@ -270,91 +270,94 @@ class PolarizationStokes(PolarizationFitting):
 
         """
 
+        # All equation numbers below are from Kislat & Spooner, 2022
+        # https://doi.org/10.1007/978-981-16-4544-0_146-1
+
         has_background = self._background_scattering_angles is not None
 
-        src_qs, src_us = self._compute_pseudo_stokes(self._data_scattering_angles, show_plots=False)
+        data_qs, data_us = \
+            self._compute_pseudo_stokes(self._data_scattering_angles,
+                                        show_plots=False)
 
         mu = self._mu100["mu"]
 
-        pol_I = len(src_qs)          # I in eqn 10a
-        pol_Q = np.sum(src_qs) / mu  # 2/mu x Q in eqn 10b
-        pol_U = np.sum(src_us) / mu  # 2/mu x q in eqn 10c
-        logger.info(f'I, Q, U, mu: {pol_I} {pol_Q} {pol_U} {mu}')
+        data_I = len(data_qs)                  # eqn 8a, 9a
+        data_Q = 2 * np.sum(data_qs)           # eqn 8b
+        data_U = 2 * np.sum(data_us)           # eqn 8c
+
+        logger.info(f'I, Q, U, mu: {data_I} {data_Q} {data_U} {mu}')
 
         if not has_background:
             logger.info('No background data provided, assuming no background contribution.')
 
-            I = pol_I
-            QN = pol_Q/pol_I # 2/mu x mathcal{Q} in eqn 11b
-            UN = pol_U/pol_I # 2/mu x mathcal{U} in eqn 11b
-
-            logger.info(f'Q, U (unsubtracted): {QN} {UN}')
+            src_I = data_I
+            src_Q = data_Q
+            src_U = data_U
 
         else:
-            logger.info('Unpolarized bkg (or simulation) provided, subtracting its contribution.')
+            logger.info('Background provided, subtracting its contribution.')
 
-            bkg_qs, bkg_us = self._compute_pseudo_stokes(self._background_scattering_angles, show_plots=False)
+            bkg_qs, bkg_us = \
+                self._compute_pseudo_stokes(self._background_scattering_angles,
+                                            show_plots=False)
 
-            unpol_I = len(bkg_qs) * self._backscal
-            unpol_Q = np.sum(bkg_qs) * self._backscal / mu
-            unpol_U = np.sum(bkg_us) * self._backscal / mu
-            logger.info(f'Q, U unpolarized: {unpol_Q/unpol_I} {unpol_U/unpol_I}')
+            bkg_I = len(bkg_qs)                  # eqn 8a, 9a
+            bkg_Q = 2 * np.sum(bkg_qs)           # eqn 8b
+            bkg_U = 2 * np.sum(bkg_us)           # eqn 8c
 
-            I = pol_I - unpol_I
-            logger.info(f'check I(src+bkg) vs I(src): {pol_I} {I}')
+            logger.info(f'Bkg I, Q, U: {bkg_I} {bkg_Q} {bkg_U}')
 
-            QN = pol_Q/pol_I + unpol_Q/unpol_I * self._backscal
-            UN = pol_U/pol_I + unpol_U/unpol_I * self._backscal
+            # normalized Q and U sums
+            bkg_QN = bkg_Q / bkg_I # eqn 9b
+            bkg_UN = bkg_U / bkg_I # eqn 9c
 
-            logger.info(f'Q, U, subtracted: {QN} {UN}')
+            bkg_Qc = bkg_QN / mu # eqn 12a
+            bkg_Uc = bkg_UN / mu # eqn 12b
 
-            # analogous to mu * mathcal{Q_r}
-            unpol_modulation = mu * np.sqrt(unpol_Q**2 + unpol_U**2) / unpol_I
+            # sigma(I)^2 = I, hence sigma(I) = sqrt(I)
+            bkg_Mod = np.hypot(bkg_QN, bkg_UN)
+            bkg_sMod = 1/mu * np.sqrt((2 - bkg_Mod**2) / bkg_I) # eqn 10b, 13
 
-            # FIXED: analogous to eqn 28a/b of Kislat 2015
-            unpol_sI = np.sqrt(unpol_I - 1)
-            unpol_sQ = np.sqrt(2 - unpol_modulation**2) / unpol_sI / mu
-            logger.info(f'Q, U unpolarized uncertainty: {unpol_sQ*100} %')
+            # remove est. background contrib from data I, Q, and U
+            src_I = data_I - self._backscal * bkg_I
+            src_Q = data_Q - self._backscal * bkg_Q
+            src_U = data_U - self._backscal * bkg_U
 
-        # Reconstructed polarization fraction + uncertainty
+        # normalized Q and U sums
+        src_QN = src_Q / src_I # eqn 9b
+        src_UN = src_U / src_I # eqn 9c
 
-        # eqn 21 of Kislat 2015
-        polarization_fraction = np.sqrt(QN**2 + UN**2)
+        src_Qc = src_QN / mu  # eqn 12a
+        src_Uc = src_UN / mu  # eqn 12b
 
-        # eqn 36 of Kislat 2015
-        m = mu * polarization_fraction
-        polarization_fraction_uncertainty = np.sqrt((2 - m**2)/((I - 1) * mu**2))
+        # sigma(I)^2 = I, hence sigma(I) = sqrt(I)
+        src_sQc = 1/mu * np.sqrt((2 - src_QN**2)/src_I) # eqn 10b, 13
+        src_sUc = 1/mu * np.sqrt((2 - src_UN**2)/src_I) # eqn 10c, 13
 
-        # Reconstructed polarization angle + uncertainty
+        # polarization degree
+        PF = np.hypot(src_Qc, src_Uc) # eqn 14
 
-        # eqn 22 of Kislat 2015
-        pol_PA = 0.5 * np.arctan2(UN, QN)
-        # Convert to 0 to 180 deg (just the convention)
-        if pol_PA < 0:
-            pol_PA += np.pi
+        # polarization angle
+        PA = 0.5 * np.arctan2(src_Uc, src_Qc) # eqn 15
+        PA = np.mod(PA, np.pi)                # make range of pa [0, pi)
 
-        # eqn 37 of Kislat 2015
-        pol_1sigmaPA = np.degrees(1 / (m * np.sqrt(2 * (I - 1))))
+        # uncertainties in PF and PA
+        sPF = np.sqrt((1 - 0.5 * (mu * PF)**2)/src_I) # eqn 16
+        sPA = sPF / (2 * PF) # eqn 17
 
-        polarization_angle = Angle(np.degrees(pol_PA), unit=u.deg)
-        polarization_angle = PolarizationAngle(polarization_angle, self.source,
-                                               convention=self.convention).transform_to(IAUPolarizationConvention())
-        polarization_angle_uncertainty = Angle(pol_1sigmaPA, unit=u.deg)
+        PA_out = PolarizationAngle(Angle(np.degrees(PA), unit=u.deg),
+                                   self.source,
+                                   convention=self.convention).transform_to(IAUPolarizationConvention())
+        sPA_out = Angle(np.degrees(sPA), unit=u.deg)
 
-        # FIXED: eqn 28 a/b of Kislat 2015
-        pol_sI = np.sqrt(I - 1)
-        pol_sQ = np.sqrt(2 - (mu * QN)**2) / pol_sI / mu
-        pol_sU = np.sqrt(2 - (mu * UN)**2) / pol_sI / mu
-        logger.info(f'Q/I, U/I, uncertainty: {pol_sQ} {pol_sU} {np.sqrt(pol_sQ)}')
-
-        polarization = {'fraction': polarization_fraction,
-                        'angle': polarization_angle,
-                        'fraction uncertainty': polarization_fraction_uncertainty,
-                        'angle uncertainty': polarization_angle_uncertainty,
-                        'QN': QN,
-                        'UN': UN,
-                        'QN_ERR': pol_sQ,
-                        'UN_ERR': pol_sU}
+        polarization = {'fraction': PF,
+                        'angle': PA_out,
+                        'fraction uncertainty': sPF,
+                        'angle uncertainty': sPA_out,
+                        'QN': src_Qc,
+                        'UN': src_Uc,
+                        'QN_ERR': src_sQc,
+                        'UN_ERR': src_sUc,}
 
         if show_plots:
 
@@ -377,53 +380,54 @@ class PolarizationStokes(PolarizationFitting):
                              textcoords="offset points", xytext=(0,10),
                              ha='center', color='tab:green', fontsize=12)
 
-            c_mdp = plt.Circle((0, 0), radius=self._mdp99,
-                               facecolor='tab:red', alpha=0.3, linewidth=1,
-                               linestyle='--',
-                               label=rf'MDP$_{{99}}$ = {self._mdp99*100:.2f} %')
-            plt.gca().add_artist(c_mdp)
-
-            pol_PD = polarization_fraction * 100
-            pol_1sigmaPD = polarization_fraction_uncertainty * 100
-            pol_PA = polarization_angle.angle.deg
-            pol_1sigmaPA = polarization_angle_uncertainty.deg
+            circ_mdp = plt.Circle((0, 0), radius=self._mdp99,
+                                  facecolor='tab:red', alpha=0.3, linewidth=1,
+                                  linestyle='--',
+                                  label=rf'MDP$_{{99}}$ = {self._mdp99*100:.2f} %')
+            plt.gca().add_artist(circ_mdp)
 
             if not has_background:
                 label_header = ""
             else:
-                label_header = "Measured (Unpol subtracted)\n"
+                label_header = "Measured (background subtracted)\n"
 
-                plt.plot(unpol_Q/unpol_I, unpol_U/unpol_I,
+                plt.plot(bkg_Qc, bkg_Uc,
                          'o', markersize=5, color='0.4',
-                         label=rf'Unpol (PD$_{{1\sigma}}$ = {unpol_sQ*100:.0f} %)')
+                         label=rf'Bkg (PD$_{{1\sigma}}$ = {bkg_sMod*100:.0f} %)')
 
                 for r in (1, 2, 3):
-                    unpol_c  = plt.Circle((unpol_Q/unpol_I, unpol_U/unpol_I),
-                                          radius=r*unpol_sQ,
-                                          facecolor='none',
-                                          edgecolor='0.4',
-                                          linewidth=1)
+                    bkg_circle  = plt.Circle((bkg_Qc, bkg_Uc),
+                                             radius=r * bkg_sMod,
+                                             facecolor='none',
+                                             edgecolor='0.4',
+                                             linewidth=1)
 
-                    plt.gca().add_artist(unpol_c)
+                    plt.gca().add_artist(bkg_circle)
+
+            src_PD = PF * 100
+            src_1sigmaPD = sPF * 100
+            src_PA = PA_out.angle.deg
+            src_1sigmaPA = sPA_out.deg
 
             label_data = (label_header + \
-                          f"PD = ({pol_PD:.1f} ± {pol_1sigmaPD:.1f})%\n"
-                          f"PA = ({pol_PA:.1f} ± {pol_1sigmaPA:.1f}) deg")
+                          f"PD = ({src_PD:.1f} ± {src_1sigmaPD:.1f})%\n"
+                          f"PA = ({src_PA:.1f} ± {src_1sigmaPA:.1f}) deg")
 
-            plt.plot(QN, UN, 'o', markersize=5, color='red', label=label_data)
+            plt.plot(src_Qc, src_Uc, 'o', markersize=5,
+                     color='red', label=label_data)
 
             for r in (1, 2, 3):
-                pol_c = plt.Circle((QN, UN),
-                                   radius=r*polarization_fraction_uncertainty,
-                                   facecolor='none',
-                                   edgecolor='red',
-                                   linewidth=1)
-                plt.gca().add_artist(pol_c)
+                src_circle = plt.Circle((src_Qc, src_Uc),
+                                        radius=r * sPF,
+                                        facecolor='none',
+                                        edgecolor='red',
+                                        linewidth=1)
+                plt.gca().add_artist(src_circle)
 
             plt.xlim(-1, 1)
             plt.ylim(-1, 1)
-            plt.xlabel('Q/I')
-            plt.ylabel('U/I')
+            plt.xlabel('Q_c')
+            plt.ylabel('U_c')
             plt.tight_layout()
             plt.legend(fontsize=12)
 
