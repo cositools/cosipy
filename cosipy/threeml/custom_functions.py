@@ -45,12 +45,12 @@ class Band_Eflux(Function1D, metaclass=FunctionMeta):
             initial value : 1.e-5
             min : 1e-50
             is_normalization : False
-            transformation : log10
+            transformation : 10
         E0 :
             desc : $\frac{xp}{2+\alpha}$ where xp is peak in the x * x * N (nuFnu if x is an energy)
             initial value : 500
             min : 1
-            transformation : log10
+            transformation : 10
         alpha :
             desc : low-energy photon index
             initial value : -1.0
@@ -271,7 +271,7 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
 
         self._fitsfile = fits_path
         self._file_loaded = True
-        logger.info(f"loading GALPROP model: {self._fitsfile}")
+        ger.info(f"loading GALPROP model: {self._fitsfile}")
 
         with fits.open(fits_path) as hdul:
             skymap_hdu = hdul['SKYMAP']
@@ -304,7 +304,7 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
             self.load_file(self._fitsfile)
 
         if self._frame != "galactic":
-            logger.info(f"Converting input coords from {self._frame} to galactic")
+            ger.info(f"Converting input coords from {self._frame} to galactic")
             _coord = SkyCoord(ra=x, dec=y, frame=self._frame, unit="deg")
             x = _coord.transform_to("galactic").l.deg
             y = _coord.transform_to("galactic").b.deg
@@ -314,7 +314,7 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
         pix = hp.ang2pix(self.nside, theta, phi)
 
         # Get interpolated function.
-        logger.info("Interpolating GALPROP map...")
+        ger.info("Interpolating GALPROP map...")
         self._result = np.zeros((x.size, z.size))
         for i, p in enumerate(pix):
             spectrum = self.table[p]
@@ -348,14 +348,14 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
             n_pixels = hp.nside2npix(nside)
             ipix = np.arange(n_pixels)
             x, y = hp.pix2ang(nside, ipix, lonlat=True)
-            logger.info(f"using nside={nside} from user input in evaluate method")
+            ger.info(f"using nside={nside} from user input in evaluate method")
 
         else:
             # Get spatial grid from GALPROP map:
             self.load_file(self._fitsfile)
             ipix = np.arange(self.n_pixels)
             x, y = hp.pix2ang(self.nside, ipix, lonlat=True)
-            logger.info(f"using nside={self.nside} from GALPROP map in evaluate method")
+            ger.info(f"using nside={self.nside} from GALPROP map in evaluate method")
 
         intensity_3d = self.evaluate(x, y, z, self.K.value)
 
@@ -418,7 +418,7 @@ class SpatialTemplate_2D_Healpix(Function2D, metaclass=FunctionMeta):
         total = np.sum(self._hpmap) * area
 
         if not np.isclose(total, 1, rtol=1e-2):
-            log.warning("2D template is normalized to {} (expected: 1)".format(total))
+            .warning("2D template is normalized to {} (expected: 1)".format(total))
 
         # hash sum uniquely identifying the template function (defined by its 2D map
         # array and coordinate system) this is needed so that the memoization won't
@@ -524,7 +524,7 @@ class CosipyPointSource(Source, Node):
             ^ (sky_position is not None)
         ):
 
-            log.error(
+            logger.error(
                 "You have to provide one and only one specification for the position"
             )
 
@@ -545,7 +545,7 @@ class CosipyPointSource(Source, Node):
 
                 except (TypeError, ValueError):
 
-                    log.error(
+                    logger.error(
                         "RA and Dec must be numbers. If you are confused by this "
                         "message, you are likely using the constructor in the wrong "
                         "way. Check the documentation."
@@ -568,7 +568,7 @@ class CosipyPointSource(Source, Node):
 
         if not (spectral_shape is not None) ^ (components is not None):
 
-            log.error(
+            logger.error(
                 "You have to provide either a single component, or a list of components"
                 " (but not both)."
             )
@@ -846,7 +846,7 @@ class CosipyExtendedSource(Source, Node):
 
                 if not ((spectral_shape is not None) ^ (components is not None)):
 
-                    log.error(
+                    logger.error(
                         "You can provide either a single "
                         "component, or a list of components "
                         "(but not both)."
@@ -879,7 +879,7 @@ class CosipyExtendedSource(Source, Node):
 
         else:
 
-            log.error("The spatial shape must have either 2 or 3 dimensions.")
+            logger.error("The spatial shape must have either 2 or 3 dimensions.")
 
             raise RuntimeError()
 
