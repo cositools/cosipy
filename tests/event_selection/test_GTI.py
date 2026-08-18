@@ -170,6 +170,50 @@ def test_GTI(tmp_path):
     assert len(gti_intersection_no_components) == 0
 
 
+def test_gti_contains_single_interval_boundaries():
+    gti = GoodTimeInterval(
+        Time([100.0], format='unix', scale='utc'),
+        Time([102.0], format='unix', scale='utc'),
+    )
+
+    times = np.array([99.0, 100.0, 101.0, 102.0])
+
+    # Half-open convention: start included, stop excluded.
+    assert np.all(gti.contains(times) == [False, True, True, False])
+
+
+def test_gti_contains_multiple_intervals_unsorted_times():
+    gti = GoodTimeInterval(
+        Time([100.0, 200.0], format='unix', scale='utc'),
+        Time([102.0, 203.0], format='unix', scale='utc'),
+    )
+
+    times = np.array([201.0, 99.0, 101.0, 203.0, 200.0])
+
+    assert np.all(gti.contains(times) == [True, False, True, False, True])
+
+
+def test_gti_contains_empty():
+    empty_time = Time([], format='unix', scale='utc')
+    gti = GoodTimeInterval(empty_time, empty_time.copy())
+
+    times = np.array([100.0, 101.0])
+
+    assert np.all(gti.contains(times) == [False, False])
+
+
+def test_gti_contains_astropy_time_input():
+    gti = GoodTimeInterval(
+        Time([60000.0, 60002.0], format='mjd', scale='utc'),
+        Time([60001.0, 60003.0], format='mjd', scale='utc'),
+    )
+
+    times = Time([60000.5, 60001.5, 60002.5, 60003.0],
+                 format='mjd', scale='utc')
+
+    assert np.all(gti.contains(times) == [True, False, True, False])
+
+
 def test_gti_from_pointing_cut():
     sc_history = DummySpacecraftHistory(
         colatitude=np.deg2rad([80.0, 40.0, 20.0, 70.0, 50.0, 10.0])

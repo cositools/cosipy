@@ -354,6 +354,18 @@ tutorials:
     gti:
       notebook: event_selection/GTI.ipynb
 
+    pointing_cut:
+      notebook: event_selection/pointing_cut.ipynb
+      ancillary_files:
+        - event_selection/inputs.yaml
+      wasabi_files:
+        COSI-SMEX/DC4/Data/Mock_Dataset/dc4_mock_dataset_3months_unbinned_data_filtered_with_SAAcut_time_ordered.fits.gz:
+          checksum: 762b7ad849b501ddaa31799ec19d14b9
+        COSI-SMEX/DC4/Data/Backgrounds/Total_DC4_BG_3months_unbinned_data_filtered_with_SAAcut_withSAAbck.fits.gz:
+          checksum: 73c8b23e43684da3b35c25499254202b
+        COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.fits:
+          checksum: ca94ff1d7a73c1f41479aaf598807673
+
     lightcurves:
       notebook:
         - light_curves/speclc_grbdc3_prep.ipynb
