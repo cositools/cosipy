@@ -418,7 +418,7 @@ class SpatialTemplate_2D_Healpix(Function2D, metaclass=FunctionMeta):
         total = np.sum(self._hpmap) * area
 
         if not np.isclose(total, 1, rtol=1e-2):
-            .warning("2D template is normalized to {} (expected: 1)".format(total))
+            logger.warning("2D template is normalized to {} (expected: 1)".format(total))
 
         # hash sum uniquely identifying the template function (defined by its 2D map
         # array and coordinate system) this is needed so that the memoization won't
