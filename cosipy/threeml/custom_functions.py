@@ -961,11 +961,10 @@ class CosipyExtendedSource(Source, Node):
         if self._spatial_shape.n_dim == 2:
 
             brightness = self._spatial_shape(lon, lat)
-            result = np.outer(brightness, differential_flux)
-        else:
-
-            brightness = self._spatial_shape(lon, lat, energies)
-            result = brightness * differential_flux
+            result = np.outer(brightness, differential_flux)
+        else:
+            brightness = self._spatial_shape(lon, lat, energies)
+            result = brightness * differential_flux
 
         # Do not clip the output, otherwise it will not be possible to use ext. sources
         # with negative fluxes
