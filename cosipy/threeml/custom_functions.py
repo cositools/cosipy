@@ -29,6 +29,7 @@ from astromodels.utils.pretty_list import dict_to_list
 from astromodels.functions import Constant
 from typing import Optional, Dict 
 import scipy.integrate as sp_int
+import scipy.integrate.quad_vec as quad_vec
 import collections
 
 import logging
@@ -659,7 +660,7 @@ class CosipyPointSource(Source, Node):
                         return reentrant_call(x, tag=None)
 
                     # Now integrate
-                    integrals = scipy.integrate.quad_vec(
+                    integrals = quad_vec(
                         integral, a, b, epsrel=1e-5
                     )[0]
 
