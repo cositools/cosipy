@@ -372,10 +372,6 @@ class PolarizationFitting():
 
         """
 
-        def constant(x, a):
-            # constant approximation a to x
-            return a
-
         pol_axis = self._response.axes['Pol']
         pol_angles = pol_axis.centers.angle.to_value(u.deg)
 
@@ -397,12 +393,27 @@ class PolarizationFitting():
                                f'Corrected 100% Polarized ASAD ({int(pol_angles[i])} deg)',
                                coefficients=coefficients)
 
-        mu100s               = [ m['mu']          for m in mu100_vals ]
-        mu100_uncertainties  = [ m['uncertainty'] for m in mu100_vals ]
-        popt, pcov = curve_fit(constant,
-                               pol_angles, mu100s,
-                               sigma = mu100_uncertainties)
-        result = {'mu': popt[0], 'uncertainty': pcov[0][0]}
+        mu100s               = np.array([ m['mu']          for m in mu100_vals ])
+        mu100_uncertainties  = np.array([ m['uncertainty'] for m in mu100_vals ])
+
+        # variance weightings of per-angle modulation estimates
+        w = 1/mu100_uncertainties**2
+
+        # Compute variance-weighted average popt of the per-angle
+        # estimated mu100s. This average minimizes the
+        # variance-weighted sum of squared errors to the per-angle
+        # estimates.
+        popt = np.sum(w * mu100s) / np.sum(w)
+
+        # estimated variance of popt as a fcn of per-angle variances
+        # (absolute_sigma)
+        pcov = 1/np.sum(w)
+
+        # adjustment for non-absolute_sigma : multiply by weighted
+        # chi^2 objective for popt over degrees of freedom.
+        pcov *= np.sum(w * (popt - mu100s)**2)/(len(mu100s) - 1)
+
+        result = {'mu': popt, 'uncertainty': pcov}
 
         if show_plots:
             plt.scatter(pol_angles, mu100s)
