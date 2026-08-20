@@ -52,9 +52,7 @@ def fits_cube_path(tmp_path):
  
  
 def _load_3d_template(fits_path):
-    spatial = SpatialTemplate_2D()
-    spatial.load_file(fits_path)
-    assert spatial.n_dim == 3
+    spatial = SpatialTemplate_2D(fits_file=fits_path)
     return spatial
  
  
