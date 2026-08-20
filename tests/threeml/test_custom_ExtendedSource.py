@@ -13,6 +13,7 @@ from astromodels import (
     Powerlaw,
     Constant,
     Gaussian_on_sphere,
+    SpatialTemplate_2D
 )
 
 from cosipy.threeml.custom_functions import CosipyExtendedSource 
