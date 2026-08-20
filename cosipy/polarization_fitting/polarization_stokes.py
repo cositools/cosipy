@@ -430,8 +430,8 @@ class PolarizationStokes(PolarizationFitting):
 
             plt.xlim(-1, 1)
             plt.ylim(-1, 1)
-            plt.xlabel('Q_c')
-            plt.ylabel('U_c')
+            plt.xlabel('$Q_c$')
+            plt.ylabel('$U_c$')
             plt.tight_layout()
             plt.legend(fontsize=12)
 
