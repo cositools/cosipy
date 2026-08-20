@@ -78,7 +78,7 @@ def _make_fits_file(fitsfile, ra=125.6, dec=-75.3):
 
     hdu = fits.PrimaryHDU(data=data, header=header)
     hdu.writeto(fitsfile, overwrite=True)
-    return path
+    return fitsfile
  
 @pytest.fixture
 def fits_cube_path(tmp_path):
