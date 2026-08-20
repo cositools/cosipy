@@ -525,7 +525,7 @@ class CosipyPointSource(Source, Node):
             ^ (sky_position is not None)
         ):
 
-            log.error(
+            logger.error(
                 "You have to provide one and only one specification for the position"
             )
 
@@ -546,7 +546,7 @@ class CosipyPointSource(Source, Node):
 
                 except (TypeError, ValueError):
 
-                    log.error(
+                    logger.error(
                         "RA and Dec must be numbers. If you are confused by this "
                         "message, you are likely using the constructor in the wrong "
                         "way. Check the documentation."
@@ -569,7 +569,7 @@ class CosipyPointSource(Source, Node):
 
         if not (spectral_shape is not None) ^ (components is not None):
 
-            log.error(
+            logger.error(
                 "You have to provide either a single component, or a list of components"
                 " (but not both)."
             )
@@ -851,7 +851,7 @@ class CosipyExtendedSource(Source, Node):
 
                 if not ((spectral_shape is not None) ^ (components is not None)):
 
-                    log.error(
+                    logger.error(
                         "You can provide either a single "
                         "component, or a list of components "
                         "(but not both)."
@@ -884,7 +884,7 @@ class CosipyExtendedSource(Source, Node):
 
         else:
 
-            log.error("The spatial shape must have either 2 or 3 dimensions.")
+            logger.error("The spatial shape must have either 2 or 3 dimensions.")
 
             raise RuntimeError()
 
