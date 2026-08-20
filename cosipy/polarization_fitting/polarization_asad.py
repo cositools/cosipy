@@ -115,7 +115,7 @@ class PolarizationASAD(PolarizationFitting):
             list of source + background data sets
         background : list
             list of background models
-        bin_edges : astropy.units.Quantity
+        bin_edges : astropy.coordinates.angles.core.Angle
             edges of azimuthal scattering angle bins
 
         Returns

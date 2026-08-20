@@ -124,7 +124,7 @@ class PolarizationFitting():
 
         Parameters
         ----------
-        bin_edges : astropy.units.Quantity
+        bin_edges : astropy.coordinates.angles.core.Angle
             edges of azimuthal scattering angle bins
 
         Returns
@@ -190,7 +190,7 @@ class PolarizationFitting():
         ----------
         binned_data : Histogram
             Data binned in Compton data space
-        bin_edges : astropy.units.Quantity
+        bin_edges : astropy.coordinates.angles.core.Angle
             edges of azimuthal scattering angle bins
 
         Returns
@@ -286,7 +286,7 @@ class PolarizationFitting():
         ----------
         directions : SkyCoord
            scattering directions
-        bin_edges : np.array of float
+        bin_edges : astropy.coordinates.angles.core.Angle
            azimuthal angle bin edges for ASAD
         weights : np.array of float, optional
            weight for each direction

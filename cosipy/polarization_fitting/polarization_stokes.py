@@ -18,7 +18,7 @@ class PolarizationStokes(PolarizationFitting):
     """
     Stokes parameter method to fit polarization.
 
-        Parameters
+    Parameters
     ----------
     source : astropy.coordinates.sky_coordinate.SkyCoord
         Source direction
@@ -135,7 +135,7 @@ class PolarizationStokes(PolarizationFitting):
         datasets : list of dict
             Unbinned data including polar and azimuthal angles
             (radians) of scattered photon in local coordinates
-        bin_edges : array
+        bin_edges : astropy.coordinates.angles.core.Angle
             bin edges for computing ASAD
 
         Returns
