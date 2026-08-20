@@ -457,6 +457,7 @@ class SpatialTemplate_2D_Healpix(Function2D, metaclass=FunctionMeta):
         return np.multiply(self.K.value, np.ones_like(z))
 
 
+
 class CosipyPointSource(Source, Node):
     """A point source. You can instance this class in many ways.
 
@@ -524,7 +525,7 @@ class CosipyPointSource(Source, Node):
             ^ (sky_position is not None)
         ):
 
-            logger.error(
+            log.error(
                 "You have to provide one and only one specification for the position"
             )
 
@@ -545,7 +546,7 @@ class CosipyPointSource(Source, Node):
 
                 except (TypeError, ValueError):
 
-                    logger.error(
+                    log.error(
                         "RA and Dec must be numbers. If you are confused by this "
                         "message, you are likely using the constructor in the wrong "
                         "way. Check the documentation."
@@ -568,7 +569,7 @@ class CosipyPointSource(Source, Node):
 
         if not (spectral_shape is not None) ^ (components is not None):
 
-            logger.error(
+            log.error(
                 "You have to provide either a single component, or a list of components"
                 " (but not both)."
             )
@@ -595,7 +596,7 @@ class CosipyPointSource(Source, Node):
         # Add a node called 'spectrum'
 
         spectrum_node = Node("spectrum")
-        spectrum_node._add_children(list(self._components.values()))
+        spectrum_node._add_children(self._components.values())
 
         self._add_child(spectrum_node)
 
@@ -624,16 +625,23 @@ class CosipyPointSource(Source, Node):
 
             # No integration nor time-varying or whatever-varying
 
-            # using sum() combines/preserves compatible units and data
-            # types across components
-            results = sum(co(x, stokes) for co in self.components.values())
+            # Create result from first component so it has the right
+            # type/unit, then add the results for any other components.
+            # (self.components() must be non-empty!)
+            #
+            # Unlike sum(), this avoids allocating a zero array
+            # and does in-place adds for any remaining components
+
+            components = iter(self.components.values())
+            results = next(components)(x, stokes)
+            for component in components:
+                results += component(x, stokes)
 
         else:
 
             # Time-varying or energy-varying or whatever-varying
 
             integration_variable, a, b = tag
-
 
             # Suspend memoization because the memoization gets confused when
             # integrating
@@ -659,9 +667,7 @@ class CosipyPointSource(Source, Node):
                         return reentrant_call(x, tag=None)
 
                     # Now integrate
-                    integrals = sp_int.quad_vec(
-                        integral, a, b, epsrel=1e-5
-                    )[0]
+                    integrals = scipy.integrate.quad_vec(integral, a, b, epsrel=1e-5)[0]
 
                     results = integrals / (b - a)
 
@@ -765,7 +771,6 @@ class CosipyPointSource(Source, Node):
         return dict_to_list(repr_dict, rich_output)
 
 
-
 class CosipyExtendedSource(Source, Node):
     def __init__(
         self,
@@ -846,7 +851,7 @@ class CosipyExtendedSource(Source, Node):
 
                 if not ((spectral_shape is not None) ^ (components is not None)):
 
-                    logger.error(
+                    log.error(
                         "You can provide either a single "
                         "component, or a list of components "
                         "(but not both)."
@@ -879,7 +884,7 @@ class CosipyExtendedSource(Source, Node):
 
         else:
 
-            logger.error("The spatial shape must have either 2 or 3 dimensions.")
+            log.error("The spatial shape must have either 2 or 3 dimensions.")
 
             raise RuntimeError()
 
@@ -901,7 +906,7 @@ class CosipyExtendedSource(Source, Node):
         # Add a node called 'spectrum'
 
         spectrum_node = Node("spectrum")
-        spectrum_node._add_children(list(self._components.values()))
+        spectrum_node._add_children(self._components.values())
 
         self._add_child(spectrum_node)
 
@@ -927,10 +932,13 @@ class CosipyExtendedSource(Source, Node):
         # Get the differential flux from the spectral components
 
         spatial_int = self.spatial_shape.get_total_spatial_integral(energies)
-        differential_flux = sum(spatial_int * co.shape(energies)
-                                for co in self.components.values())
 
-        return differential_flux
+        components = iter(self.components.values())
+        differential_flux = next(components).shape(energies)
+        for component in components:
+            differential_flux += component.shape(energies)
+
+        return spatial_int * differential_flux
 
     def __call__(self, lon, lat, energies):
         """Returns brightness of source at the given position and energy :param
@@ -950,10 +958,17 @@ class CosipyExtendedSource(Source, Node):
 
         # Get the differential flux from the spectral components
 
-        # using sum() combines/preserves compatible units and data
-        # types across components
-        differential_flux = sum(co.shape(energies)
-                                for co in self.components.values())
+        # Create result from first component so it has the right
+        # type/unit, then add the results for any other components.
+        # (self.components() must be non-empty!)
+        #
+        # Unlike sum(), this avoids allocating a zero array
+        # and does in-place adds for any remaining components
+
+        components = iter(self.components.values())
+        differential_flux = next(components).shape(energies)
+        for component in components:
+            differential_flux += component.shape(energies)
 
         # Get brightness from spatial model
 
@@ -962,6 +977,7 @@ class CosipyExtendedSource(Source, Node):
             brightness = self._spatial_shape(lon, lat)
             result = np.outer(brightness, differential_flux)
         else:
+
             brightness = self._spatial_shape(lon, lat, energies)
             result = brightness * differential_flux
 
