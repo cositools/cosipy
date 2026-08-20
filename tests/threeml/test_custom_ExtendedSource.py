@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from astropy.io import fits
 from astropy import wcs
+import astropy.units as u
 
 from astromodels import (
     SpectralComponent,
