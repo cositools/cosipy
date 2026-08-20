@@ -7,6 +7,7 @@ import collections
 import numpy as np
 import pytest
 from astropy.io import fits
+from astropy import wcs
 
 from astromodels import (
     SpectralComponent,
@@ -21,30 +22,62 @@ from cosipy.threeml.custom_functions import CosipyExtendedSource
 # ---------------------------------------------------------------------------
 # Fake FITS cube generation for the 3D (energy-dependent template) branch
 # ---------------------------------------------------------------------------
- 
-NE, NL, NB = 3, 4, 4
- 
- 
-def _make_fits_file(path: str, ne: int = NE, nl: int = NL, nb: int = NB) -> str:
-    """Write a minimal 3-D FITS cube and return its path."""
-    data = np.random.rand(ne, nl, nb).astype(np.float64)
-    hdu = fits.PrimaryHDU(data)
-    # Mandatory WCS keys for a 3D cube
-    hdu.header["CDELT1"] = 0.5
-    hdu.header["CDELT2"] = 0.5
-    hdu.header["CDELT3"] = 0.2
-    hdu.header["CRVAL1"] = 0.0
-    hdu.header["CRVAL2"] = 0.0
-    hdu.header["CRVAL3"] = 5.0
-    hdu.header["CRPIX1"] = nl // 2
-    hdu.header["CRPIX2"] = nb // 2
-    hdu.header["CRPIX3"] = 1
-    hdu.header["NAXIS1"] = nl
-    hdu.header["NAXIS2"] = nb
-    hdu.header["NAXIS3"] = ne
-    hdu.writeto(path, overwrite=True)
+  
+def _make_fits_file(fitsfile, ra=125.6, dec=-75.3):
+
+    # Test template function: 40 pixel (0.8 deg) wide square centered approximately
+    # around a given ra, dec.
+    test_wcs = False
+    if test_wcs:
+        # this is an alternative way to build the header from WCS:
+        w = wcs.WCS(naxis=2)
+        w.wcs.crpix = [100, 100]
+        w.wcs.cdelt = np.array([-0.02, 0.02])
+        w.wcs.crval = [ra, dec]
+        w.wcs.ctype = ["RA---TAN", "DEC--TAN"]
+        dOmega = (
+            (abs(w.wcs.cdelt[0] * w.wcs.cdelt[1]) * u.degree * u.degree)
+            .to(u.steradian)
+            .value
+        )
+        header = w.to_header()
+    else:
+        cards = {
+            "SIMPLE": "T",
+            "BITPIX": -32,
+            "NAXIS": 2,
+            "NAXIS1": 200,
+            "NAXIS2": 200,
+            "DATE": "2018-11-13",
+            "CUNIT1": "deg",
+            "CRVAL1": ra,
+            "CRPIX1": 100,
+            "CDELT1": -0.02,
+            "CUNIT2": "deg",
+            "CRVAL2": dec,
+            "CRPIX2": 100,
+            "CDELT2": 0.02,
+            "CTYPE1": "RA---TAN",
+            "CTYPE2": "DEC--TAN",
+        }
+
+        dOmega = (
+            (abs(cards["CDELT1"] * cards["CDELT2"]) * u.degree * u.degree)
+            .to(u.steradian)
+            .value
+        )
+        header = fits.Header(cards)
+
+    data = np.zeros([200, 200])
+    data[80:120, 80:120] = 1
+
+    total = np.sum(data)
+
+    data = data / total / dOmega
+
+    hdu = fits.PrimaryHDU(data=data, header=header)
+    hdu.writeto(fitsfile, overwrite=True)
     return path
- 
  
 @pytest.fixture
 def fits_cube_path(tmp_path):
