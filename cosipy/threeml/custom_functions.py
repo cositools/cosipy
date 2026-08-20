@@ -271,7 +271,7 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
 
         self._fitsfile = fits_path
         self._file_loaded = True
-        ger.info(f"loading GALPROP model: {self._fitsfile}")
+        logger.info(f"loading GALPROP model: {self._fitsfile}")
 
         with fits.open(fits_path) as hdul:
             skymap_hdu = hdul['SKYMAP']
@@ -304,7 +304,7 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
             self.load_file(self._fitsfile)
 
         if self._frame != "galactic":
-            ger.info(f"Converting input coords from {self._frame} to galactic")
+            logger.info(f"Converting input coords from {self._frame} to galactic")
             _coord = SkyCoord(ra=x, dec=y, frame=self._frame, unit="deg")
             x = _coord.transform_to("galactic").l.deg
             y = _coord.transform_to("galactic").b.deg
@@ -314,7 +314,7 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
         pix = hp.ang2pix(self.nside, theta, phi)
 
         # Get interpolated function.
-        ger.info("Interpolating GALPROP map...")
+        logger.info("Interpolating GALPROP map...")
         self._result = np.zeros((x.size, z.size))
         for i, p in enumerate(pix):
             spectrum = self.table[p]
@@ -348,14 +348,14 @@ class GalpropHealpixModel(Function3D, metaclass=FunctionMeta):
             n_pixels = hp.nside2npix(nside)
             ipix = np.arange(n_pixels)
             x, y = hp.pix2ang(nside, ipix, lonlat=True)
-            ger.info(f"using nside={nside} from user input in evaluate method")
+            logger.info(f"using nside={nside} from user input in evaluate method")
 
         else:
             # Get spatial grid from GALPROP map:
             self.load_file(self._fitsfile)
             ipix = np.arange(self.n_pixels)
             x, y = hp.pix2ang(self.nside, ipix, lonlat=True)
-            ger.info(f"using nside={self.nside} from GALPROP map in evaluate method")
+            logger.info(f"using nside={self.nside} from GALPROP map in evaluate method")
 
         intensity_3d = self.evaluate(x, y, z, self.K.value)
 
