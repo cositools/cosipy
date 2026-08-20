@@ -492,7 +492,7 @@ class PolarizationFitting():
             bounds = ((0, 0, 0), (np.inf, np.inf, np.pi))
 
         popt, pcov = curve_fit(cls._asad_sinusoid,
-                               asad.axis.centers,
+                               asad.axis.centers.to_value(u.rad),
                                asad.contents,
                                p0=p0,
                                bounds=bounds,
