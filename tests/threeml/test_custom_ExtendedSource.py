@@ -6,6 +6,7 @@ import collections
 
 import numpy as np
 import pytest
+from astropy.io import fits
 
 from astromodels import (
     SpectralComponent,
