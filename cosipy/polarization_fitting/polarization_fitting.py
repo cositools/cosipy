@@ -109,7 +109,12 @@ class PolarizationFitting():
                 # unbinned data set -- apply cut
                 energies = dataset['Energies']
                 emask = ((energies >= emin) & (energies <= emax))
-                dataset_ecut = {key: dataset[key][emask] for key in dataset}
+
+                if not np.all(emask): # some events filtered
+                    dataset_ecut = {key: dataset[key][emask] for key in dataset}
+                else:
+                    dataset_ecut = dataset
+
                 data_ecut.append(dataset_ecut)
             else:
                 # binned data set -- do not apply cut
