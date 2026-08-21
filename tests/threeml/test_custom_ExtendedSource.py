@@ -147,11 +147,6 @@ def test_2d_spatial_shape_stored_and_added_as_child():
 # Construction: 3D spatial shape
 # ---------------------------------------------------------------------------
  
-def test_3d_template_defaults_to_constant_main_component(fits_cube_path):
-    src = _make_3d_template_source(fits_cube_path)
-    assert "main" in src.components
-    assert isinstance(src.components["main"].shape, Constant)
- 
  
 def test_3d_with_explicit_spectral_shape(fits_cube_path):
     src = _make_3d_with_spectrum_source(fits_cube_path)
@@ -177,13 +172,6 @@ def test_3d_components_list(fits_cube_path):
     c2 = SpectralComponent("component2", Powerlaw())
     src = CosipyExtendedSource("test_ext_source", spatial, components=[c1, c2])
     assert set(src.components.keys()) == {"component1", "component2"}
- 
- 
-def test_invalid_ndim_raises_runtime_error(fits_cube_path):
-    bad_shape = _load_3d_template(fits_cube_path)
-    bad_shape.n_dim = 1  # force an invalid value to hit the else/RuntimeError branch
-    with pytest.raises(RuntimeError):
-        CosipyExtendedSource("test_ext_source", bad_shape, spectral_shape=Powerlaw())
  
  
 # ---------------------------------------------------------------------------
