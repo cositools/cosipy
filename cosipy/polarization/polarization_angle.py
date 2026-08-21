@@ -77,10 +77,7 @@ class PolarizationAngle:
 
         # Get the projection vectors for the source direction in the
         # current convention
-        px, py = self._convention.get_basis(self._source)
-
-        px = px.cartesian.xyz
-        py = py.cartesian.xyz
+        px, py = self._convention.get_basis_vecs(self._source)
 
         # Calculate the cosine and sine of the polarization angle
         a = self._angle.rad
@@ -111,10 +108,7 @@ class PolarizationAngle:
 
         # Get the projection vectors for the source direction in the
         # new convention
-        px, py = convention.get_basis(self._source)
-
-        px = px.cartesian.xyz
-        py = py.cartesian.xyz
+        px, py = convention.get_basis_vecs(self._source)
 
         # Calculate the polarization vector in the new convention
         pol_vec = self.vector.transform_to(convention.frame).cartesian.xyz
@@ -154,11 +148,10 @@ class PolarizationAngle:
         source_coord = source_coord.transform_to(convention.frame)
         psichi = psichi.transform_to(convention.frame)
 
-        reference_coord, _ = convention.get_basis(source_coord)
+        reference_vector_cartesian, _ = convention.get_basis_vecs(source_coord)
 
         source_vector_cartesian = source_coord.cartesian.xyz.value
         scattered_photon_vector = psichi.cartesian.xyz.value.T
-        reference_vector_cartesian = reference_coord.cartesian.xyz.value
 
         # Project scattered photon vector onto plane perpendicular to
         # source direction
@@ -168,7 +161,9 @@ class PolarizationAngle:
         # Calculate angle between scattered photon vector & reference
         # vector on plane perpendicular to source direction
         cross_product = np.cross(projection, reference_vector_cartesian)
-        sign = np.where(np.dot(cross_product, source_vector_cartesian) < 0, -1, 1)
+
+        dp = np.dot(cross_product, source_vector_cartesian)
+        sign = np.sign(dp) + (dp == 0) # treat sign of 0 as +1
 
         normalization = np.linalg.norm(projection, axis=-1) * np.linalg.norm(reference_vector_cartesian)
 

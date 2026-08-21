@@ -68,8 +68,8 @@ class PolarizationConvention:
 
     def get_basis_local(self, source_vector: np.ndarray):
         """
-        Get the px,py unit vectors that define the polarization plane on
-        this convention, and in the convention's frame.
+        Get the px,py unit vectors that define the polarization plane
+        on this convention, and in the convention's frame.
 
         Polarization angle increments from px to py.
 
@@ -82,14 +82,42 @@ class PolarizationConvention:
         -------
         px,py : np.ndarray
             Polarization angle increases from px to py. pz is always
-            the opposite of the source direction --i.e. in the direction of the
-            particle.
+            the opposite of the source direction --i.e. in the
+            direction of the particle.
+
         """
+
+    def get_basis_vecs(self, source_direction: SkyCoord):
+        """
+        Get the px,py unit vectors that define the polarization plane
+        on this convention. Polarization angle increments from px to
+        py.
+
+        Parameters
+        ----------
+        source_direction : SkyCoord
+            The direction of the source
+
+        Return
+        ------
+        px,py : np.ndarray
+            Polarization angle increases from px to py. pz is always
+            the opposite of the source direction --i.e. in the
+            direction of the particle.
+
+        """
+
+        # To the convention's frame
+        source_vector = source_direction.transform_to(self.frame).cartesian.xyz.value
+
+        # Bare basis
+        return self.get_basis_local(source_vector)
 
     def get_basis(self, source_direction: SkyCoord):
         """
-        Get the px,py unit vectors that define the polarization plane on
-        this convention. Polarization angle increments from px to py.
+        Get the px,py unit vectors that define the polarization plane
+        on this convention. Polarization angle increments from px to
+        py.
 
         Parameters
         ----------
@@ -100,15 +128,13 @@ class PolarizationConvention:
         ------
         px,py : SkyCoord
             Polarization angle increases from px to py. pz is always
-            the opposite of the source direction --i.e. in the direction of the
-            particle.
+            the opposite of the source direction --i.e. in the
+            direction of the particle.
+
         """
 
-        # To the convention's frame
-        source_vector = source_direction.transform_to(self.frame).cartesian.xyz.value
-
         # Bare basis
-        px,py = self.get_basis_local(source_vector)
+        px, py = self.get_basis_vecs(source_direction)
 
         # To SkyCoord
         px = SkyCoord(*px, representation_type='cartesian', frame=self.frame)
