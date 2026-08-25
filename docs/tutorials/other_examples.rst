@@ -14,6 +14,8 @@ Other examples
 
    Good time intervals <event_selection/GTI.ipynb>
 
+   Pointing cut event selection <event_selection/pointing_cut.ipynb>
+
    Extended source injector <source_injector/Extended_source_injector.ipynb>
 
    Polarization (maximum likelihood method) <polarization/maximum_likelihood_method.ipynb>
