@@ -223,7 +223,7 @@ class PhotonListWithDirectionInSCFrameInterface(PhotonListWithDirectionInterface
 
     @property
     def direction_lat_rad_sc(self) -> Iterable[float]:
-        return [e.directdirection_lat_rad_scion_lon_rad_sc for e in self]
+        return [e.direction_lat_rad_sc for e in self]
 
     @property
     def direction(self) -> SkyCoord:
