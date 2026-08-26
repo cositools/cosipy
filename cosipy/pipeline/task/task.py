@@ -371,11 +371,16 @@ def  cosi_tsdetect(argv=None):
     # Default output
     odir = Path.cwd() if not args.output_dir else Path(args.output_dir)
     plot_name="raw_ts.png" if not args.suffix else str("raw_ts_"+args.suffix+".png")
+    map_name="raw_ts.fits" if not args.suffix else str("raw_ts_"+args.suffix+".fits")
 
     #Setup of the tsmap search
     coo_sys=config.get('coo_sys')
     nside_search=config.get('nside')
     multiresolution=config.get('multiresolution')
+    energy_channels=config.get('energy_channels')
+    cpu_cores=config.get('cpu_cores')
+    moc_init_nside=config.get('moc_init_nside')
+    moc_containment_strategy=config.get('moc_containment_strategy')
 
     # Parse template spectrum
     model = ModelParser(model_dict = config['model']).get_model()
@@ -409,7 +414,6 @@ def  cosi_tsdetect(argv=None):
         binned_data = data_full.project(['Em', 'Phi', 'PsiChi'])
 
     # Slice the ori file in the time interval of the data:
-    #grb_ori = ori_full.select_interval(Time(grb_tmin, format="unix"), Time(grb_tmax, format="unix"))
     ori_sliced = ori.select_interval(Time(tstart,format="unix"), Time(tstop, format="unix"))
     ori=ori_sliced
 
@@ -425,6 +429,15 @@ def  cosi_tsdetect(argv=None):
     bkg_model /= (bkg_full_duration / delta)+1E-12
     del bkg_full
 
+    #Check for previous running
+
+    plot_filename = odir / plot_name
+    if plot_filename.exists() and not args.overwrite:
+        raise RuntimeError(f"{plot_filename} already exists. If you mean to replace it then use --overwrite.")
+
+    map_filename = odir / map_name
+    if plot_filename.exists() and not args.overwrite:
+        raise RuntimeError(f"{map_filename} already exists. If you mean to replace it then use --overwrite.")
     # Calculation
 
     if multiresolution==False:
@@ -432,22 +445,35 @@ def  cosi_tsdetect(argv=None):
         ts = FastTSMap(data=binned_data, bkg_model=bkg_model, orientation=ori,
                    response_path=resp_path, cds_frame=coo_sys)
 
-        ts_results = ts.fit(nside=nside_search, energy_channel=[2, 3],
-                        spectrum=spectrum, cpu_cores=8)
-        max_ts,max_coo,max_l,max_b,pixel_mean_spacing=get_ts_results(ts_results,multiresolution=multiresolution,nside=nside_search)
+        ts_results = ts.fit(nside=nside_search, energy_channel=energy_channels,
+                        spectrum=spectrum, cpu_cores=cpu_cores)
+        max_ts,max_coo,max_l,max_b,pixel_mean_spacing=get_ts_results(map_filename, ts_results,multiresolution,nside=nside_search)
         print("Maximum TS= %f" % max_ts)
         print("Galactic coordinate at maximum TS: l=%f, b=%f" %(max_l, max_b))
         print("Linear Size of TS map pixel: %f" % (pixel_mean_spacing))
 
         # Results and plot
+
         ts.plot_ts(ts_results, skycoord=max_coo, save_dir=odir, save_plot=True, save_name=plot_name)
 
     elif multiresolution==True:
 
         moc_ts = MOCTSMap(data = binned_data, bkg_model = bkg_model, response_path = resp_path, orientation = ori, cds_frame = coo_sys)
-        moc_results, moc_uniq = moc_ts.fit(max_nside = nside_search, energy_channel = [2,3],spectrum = spectrum)
 
-        max_ts, max_coo, max_l, max_b, pixel_mean_spacing = get_ts_results(moc_results,moc_uniq, multiresolution=multiresolution)
+        strategy = MOCTSMap.PaddingStrategy(
+            MOCTSMap.ContainmentStrategy(moc_containment_strategy)
+        )
+
+        moc_results, moc_uniq = moc_ts.fit(
+            max_nside=nside_search,
+            init_nside=moc_init_nside,
+            energy_channel=energy_channels,
+            spectrum=spectrum,
+            cpu_cores=cpu_cores,
+            strategy=strategy,
+        )
+
+        max_ts, max_coo, max_l, max_b, pixel_mean_spacing = get_ts_results(map_filename,moc_results,moc_uniq, multiresolution=multiresolution)
         print("Maximum TS= %f" % max_ts)
         print("Galactic coordinate at maximum TS: l=%f, b=%f" % (max_l, max_b))
         print("Linear Size of MOC map max_nside_pixel: %f" % (pixel_mean_spacing))

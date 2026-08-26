@@ -296,9 +296,14 @@ tsdetect:
     kwargs:
       tstart: null
       tstop: null
+  multiresolution: true
   coo_sys: "local"
-  nside: 8
-  multiresolution: false
+  nside: 8  #nside of ts map /max nside for moc_ts_map
+  energy_channels: [2, 3]
+  cpu_cores: null #If set to null, default is max_cores-1
+  moc_init_nside: 1 # can be null if multiresolution=false
+  moc_containment_strategy: 0.92  # can be null if multiresolution=false
+
 
 threemlfit_pw:
   model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
