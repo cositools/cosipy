@@ -1,0 +1,12 @@
+# Peak_l Peak_b INR_l INR_b Center_lon Center_lat Semi_major_axis Semi_minor_axis Equivalent_radius Theta Region_score_peak
+175.60546875
+-8.98929935
+175.54439480
+-8.94900599
+175.56001137
+-9.04084014
+1.90830399
+1.98037348
+1.94400479
+28.63451258
+266.27627525
