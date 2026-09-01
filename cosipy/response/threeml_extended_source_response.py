@@ -1,7 +1,7 @@
 from copy import copy as shallow_copy, deepcopy
 
 from astromodels.sources import Source, ExtendedSource
-
+from cosipy.threeml.custom_functions import CosipyExtendedSource 
 from histpy import Axes, Histogram
 
 from cosipy.data_io import EmCDSBinnedData
@@ -123,7 +123,7 @@ class BinnedThreeMLExtendedSourceResponse(BinnedThreeMLSourceResponseInterface):
         the user called expectation.
 
         """
-        if not isinstance(source, ExtendedSource):
+        if not (isinstance(source, ExtendedSource) or isinstance(source, CosipyExtendedSource)):
             raise TypeError("I only know how to handle extended sources!")
 
         polarization = to_linear_polarization(source.spectrum.main.polarization)

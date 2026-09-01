@@ -3,6 +3,7 @@ from typing import Optional, Iterable, Type
 
 import numpy as np
 from astromodels import PointSource
+from cosipy.threeml.custom_functions import CosipyPointSource
 from astropy.coordinates import UnitSphericalRepresentation, CartesianRepresentation
 from astropy.units import Quantity
 from executing import Source
@@ -93,7 +94,7 @@ class UnbinnedThreeMLPointSourceResponseTrapz(UnbinnedThreeMLSourceResponseInter
         can change. Remember to check if it changed since the
         last time the user called expectation.
         """
-        if not isinstance(source, PointSource):
+        if not isinstance(source, PointSource) or not isinstance(source, CosipyPointSource):
             raise TypeError("I only know how to handle point sources!")
 
         self._source = source

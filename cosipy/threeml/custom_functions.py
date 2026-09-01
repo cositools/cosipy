@@ -16,6 +16,21 @@ from astromodels.functions.function import (
 import healpy as hp
 import hashlib
 
+from astromodels.core.memoization import use_astromodels_memoization
+from astromodels.core.parameter import Parameter
+from astromodels.core.sky_direction import SkyDirection
+from astromodels.core.spectral_component import SpectralComponent
+from astromodels.core.tree import Node
+from astromodels.core.units import get_units
+from astromodels.functions.function import Function1D
+from astromodels.sources.source import Source, SourceType
+from astromodels.utils.logging import setup_logger
+from astromodels.utils.pretty_list import dict_to_list
+from astromodels.functions import Constant
+from typing import Optional, Dict 
+import scipy.integrate as sp_int
+import collections
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -403,7 +418,7 @@ class SpatialTemplate_2D_Healpix(Function2D, metaclass=FunctionMeta):
         total = np.sum(self._hpmap) * area
 
         if not np.isclose(total, 1, rtol=1e-2):
-            log.warning("2D template is normalized to {} (expected: 1)".format(total))
+            logger.warning("2D template is normalized to {} (expected: 1)".format(total))
 
         # hash sum uniquely identifying the template function (defined by its 2D map
         # array and coordinate system) this is needed so that the memoization won't
@@ -440,3 +455,634 @@ class SpatialTemplate_2D_Healpix(Function2D, metaclass=FunctionMeta):
         if isinstance(z, u.Quantity):
             z = z.value
         return np.multiply(self.K.value, np.ones_like(z))
+
+
+
+class CosipyPointSource(Source, Node):
+    """A point source. You can instance this class in many ways.
+
+    - with Equatorial position and a function as spectrum (the component will be
+    automatically called 'main')::
+
+        >>> from astromodels import *
+        >>> point_source = PointSource('my_source', 125.6, -75.3, Powerlaw())
+
+    - with Galactic position and a function as spectrum (the component will be
+    automatically called 'main')::
+
+        >>> point_source = PointSource(
+                    'my_source', l=15.67, b=80.75, spectral_shape=Powerlaw()
+                )
+
+    - with Equatorial position or Galactic position and a list of spectral components::
+
+        >>> c1 = SpectralComponent("component1", Powerlaw())
+        >>> c2 = SpectralComponent("component2", Powerlaw())
+        >>> point_source = PointSource("test_source",125.6, -75.3,components=[c1,c2])
+
+        Or with Galactic position:
+
+        >>> point_source = PointSource(
+                    "test_source",l=15.67, b=80.75,components=[c1,c2]
+                )
+
+    NOTE: by default the position of the source is fixed (i.e., its positional
+    parameters are fixed)
+
+    :param source_name: name for the source
+    :param ra: Equatorial J2000 Right Ascension (ICRS)
+    :param dec: Equatorial J2000 Declination (ICRS)
+    :param spectral_shape: a 1d function representing the spectral shape of the source
+    :param l: Galactic latitude
+    :param b: Galactic longitude
+    :param components: list of spectral components (instances of SpectralComponent)
+    :param sky_position: an instance of SkyDirection
+    :return:
+    """
+
+    def __init__(
+        self,
+        source_name: str,
+        ra: Optional[float] = None,
+        dec: Optional[float] = None,
+        spectral_shape: Optional[Function1D] = None,
+        l: Optional[float] = None,
+        b: Optional[float] = None,
+        components=None,
+        sky_position: Optional[SkyDirection] = None,
+        polarization=None,
+    ):
+
+        # Check that we have all the required information
+
+        # (the '^' operator acts as XOR on booleans)
+
+        # Check that we have one and only one specification of the position
+
+        if not (
+            (ra is not None and dec is not None)
+            ^ (l is not None and b is not None)
+            ^ (sky_position is not None)
+        ):
+
+            logger.error(
+                "You have to provide one and only one specification for the position"
+            )
+
+            raise AssertionError()
+
+        # Gather the position
+
+        if not isinstance(sky_position, SkyDirection):
+
+            if (ra is not None) and (dec is not None):
+
+                # Check that ra and dec are actually numbers
+
+                try:
+
+                    ra = float(ra)
+                    dec = float(dec)
+
+                except (TypeError, ValueError):
+
+                    logger.error(
+                        "RA and Dec must be numbers. If you are confused by this "
+                        "message, you are likely using the constructor in the wrong "
+                        "way. Check the documentation."
+                    )
+
+                    raise AssertionError()
+
+                sky_position = SkyDirection(ra=ra, dec=dec)
+
+            else:
+
+                sky_position = SkyDirection(l=l, b=b)
+
+        self._sky_position: SkyDirection = sky_position
+
+        # Now gather the component(s)
+
+        # We need either a single component, or a list of components, but not both
+        # (that's the ^ symbol)
+
+        if not (spectral_shape is not None) ^ (components is not None):
+
+            logger.error(
+                "You have to provide either a single component, or a list of components"
+                " (but not both)."
+            )
+
+            raise AssertionError()
+
+        # If the user specified only one component, make a list of one element with a
+        # default name ("main")
+
+        if spectral_shape is not None:
+
+            components = [SpectralComponent("main", spectral_shape, polarization)]
+
+        Source.__init__(self, components, src_type=SourceType.POINT_SOURCE)
+
+        # A source is also a Node in the tree
+
+        Node.__init__(self, source_name)
+
+        # Add the position as a child node, with an explicit name
+
+        self._add_child(self._sky_position)
+
+        # Add a node called 'spectrum'
+
+        spectrum_node = Node("spectrum")
+        spectrum_node._add_children(self._components.values())
+
+        self._add_child(spectrum_node)
+
+        # Now set the units of the parameters for the energy domain
+
+        current_units = get_units()
+
+        # Components in this case have energy as x and differential flux as y
+
+        x_unit = current_units.energy
+        y_unit = (current_units.energy * current_units.area * current_units.time) ** (
+            -1
+        )
+
+        # Now set the units of the components
+        for component in self._components.values():
+
+            component.shape.set_units(x_unit, y_unit)
+
+    def __call__(self, x, tag=None, stokes=None):
+
+        is_scalar = np.isscalar(x)
+        x = np.atleast_1d(x)
+
+        if tag is None:
+
+            # No integration nor time-varying or whatever-varying
+
+            # Create result from first component so it has the right
+            # type/unit, then add the results for any other components.
+            # (self.components() must be non-empty!)
+            #
+            # Unlike sum(), this avoids allocating a zero array
+            # and does in-place adds for any remaining components
+
+            components = iter(self.components.values())
+            results = next(components)(x, stokes)
+            for component in components:
+                results += component(x, stokes)
+
+        else:
+
+            # Time-varying or energy-varying or whatever-varying
+
+            integration_variable, a, b = tag
+
+            # Suspend memoization because the memoization gets confused when
+            # integrating
+
+            with use_astromodels_memoization(False):
+
+                if b is None:
+
+                    # Evaluate at a; do not integrate
+
+                    integration_variable.value = a
+
+                    results = self.__call__(x, tag=None)
+
+                else:
+
+                    # Integrate between a and b
+
+                    reentrant_call = self.__call__
+
+                    def integral(y):
+                        integration_variable.value = y
+                        return reentrant_call(x, tag=None)
+
+                    # Now integrate
+                    integrals = scipy.integrate.quad_vec(integral, a, b, epsrel=1e-5)[0]
+
+                    results = integrals / (b - a)
+
+        if is_scalar:
+            results = results.item()
+
+        return results
+
+    @property
+    def has_free_parameters(self) -> bool:
+        """Returns True or False whether there is any parameter in this source.
+
+        :return:
+        """
+
+        for component in self._components.values():
+
+            for par in component.shape.parameters.values():
+
+                if par.free:
+
+                    return True
+
+        for par in self.position.parameters.values():
+
+            if par.free:
+
+                return True
+
+        return False
+
+    @property
+    def free_parameters(self) -> Dict[str, Parameter]:
+        """Returns a dictionary of free parameters for this source. We use the
+        parameter path as the key because it's guaranteed to be unique, unlike
+        the parameter name.
+
+        :return:
+        """
+        free_parameters = dict()
+
+        for component in self._components.values():
+
+            for par in component.shape.parameters.values():
+
+                if par.free:
+
+                    free_parameters[par.path] = par
+
+        for par in self.position.parameters.values():
+
+            if par.free:
+
+                free_parameters[par.path] = par
+
+        return free_parameters
+
+    @property
+    def parameters(self) -> Dict[str, Parameter]:
+        """Returns a dictionary of all parameters for this source. We use the
+        parameter path as the key because it's guaranteed to be unique, unlike
+        the parameter name.
+
+        :return:
+        """
+        all_parameters = dict()
+
+        for component in self._components.values():
+
+            for par in component.shape.parameters.values():
+
+                all_parameters[par.path] = par
+
+        for par in self.position.parameters.values():
+
+            all_parameters[par.path] = par
+
+        return all_parameters
+
+    def _repr__base(self, rich_output=False):
+        """Representation of the object.
+
+        :param rich_output: if True, generates HTML, otherwise text
+        :return: the representation
+        """
+
+        # Make a dictionary which will then be transformed in a list
+
+        repr_dict = dict()
+
+        key = "%s (point source)" % self.name
+
+        repr_dict[key] = dict()
+        repr_dict[key]["position"] = self._sky_position.to_dict(minimal=True)
+        repr_dict[key]["spectrum"] = dict()
+
+        for component_name, component in self.components.items():
+
+            repr_dict[key]["spectrum"][component_name] = component.to_dict(minimal=True)
+
+        return dict_to_list(repr_dict, rich_output)
+
+
+class CosipyExtendedSource(Source, Node):
+    def __init__(
+        self,
+        source_name,
+        spatial_shape,
+        spectral_shape=None,
+        components=None,
+        polarization=None,
+    ):
+        # Check that we have all the required information
+        # and set the units
+
+        current_u = get_units()
+
+        if spatial_shape.n_dim == 2:
+
+            # Now gather the component(s)
+
+            # We need either a single component, or a list of components, but not both
+            # (that's the ^ symbol)
+
+            assert (spectral_shape is not None) ^ (components is not None), (
+                "You have to provide either a single "
+                "component, or a list of components "
+                "(but not both)."
+            )
+
+            # If the user specified only one component, make a list of one element with
+            # a default name ("main")
+
+            if spectral_shape is not None:
+
+                components = [SpectralComponent("main", spectral_shape, polarization)]
+
+            # Components in this case have energy as x and differential flux as y
+
+            diff_flux_units = (current_u.energy * current_u.area * current_u.time) ** (
+                -1
+            )
+
+            # Now set the units of the components
+            for component in components:
+
+                component.shape.set_units(current_u.energy, diff_flux_units)
+
+            # Set the units of the brightness
+            spatial_shape.set_units(current_u.angle, current_u.angle, u.sr**-1)
+
+        elif spatial_shape.n_dim == 3:
+
+            # If there is no spectral component then assume that the input is a
+            # template, which will provide the spectrum by itself. We just use a
+            # renormalization (a bias)
+
+            if spectral_shape is None and components is None:
+
+                # This is a template. Add a component which is just a renormalization
+
+                spectral_shape = Constant()
+                components = [SpectralComponent("main", spectral_shape)]
+
+                # set the units
+                diff_flux_units = (
+                    current_u.energy * current_u.area * current_u.time * u.sr
+                ) ** (-1)
+                spatial_shape.set_units(
+                    current_u.angle,
+                    current_u.angle,
+                    current_u.energy,
+                    diff_flux_units,
+                )
+
+            else:
+
+                # the spectral shape has been given, so this is a case where the spatial
+                # template gives an energy-dependent shape and the spectral components
+                # give the spectrum
+
+                if not ((spectral_shape is not None) ^ (components is not None)):
+
+                    logger.error(
+                        "You can provide either a single "
+                        "component, or a list of components "
+                        "(but not both)."
+                    )
+
+                    raise AssertionError()
+
+                if spectral_shape is not None:
+
+                    components = [
+                        SpectralComponent("main", spectral_shape, polarization)
+                    ]
+
+                # Assign units
+                diff_flux_units = (
+                    current_u.energy * current_u.area * current_u.time
+                ) ** (-1)
+
+                # Now set the units of the components
+                for component in components:
+                    component.shape.set_units(current_u.energy, diff_flux_units)
+
+                # Set the unit of the spatial template
+                spatial_shape.set_units(
+                    current_u.angle,
+                    current_u.angle,
+                    current_u.energy,
+                    u.sr**-1,
+                )
+
+        else:
+
+            logger.error("The spatial shape must have either 2 or 3 dimensions.")
+
+            raise RuntimeError()
+
+        # Here we have a list of components
+
+        Source.__init__(self, components, SourceType.EXTENDED_SOURCE)
+
+        # A source is also a Node in the tree
+
+        Node.__init__(self, source_name)
+
+        # Add the spatial shape as a child node, with an explicit name
+        self._spatial_shape = spatial_shape
+        self._add_child(self._spatial_shape)
+
+        # Add the same node also with the name of the function
+        # self._add_child(self._shape, self._shape.__name__)
+
+        # Add a node called 'spectrum'
+
+        spectrum_node = Node("spectrum")
+        spectrum_node._add_children(self._components.values())
+
+        self._add_child(spectrum_node)
+
+    @property
+    def spatial_shape(self):
+        """A generic name for the spatial shape.
+
+        :return: the spatial shape instance
+        """
+
+        return self._spatial_shape
+
+    def get_spatially_integrated_flux(self, energies):
+        """Returns total flux of source at the given energy :param energies:
+
+        energies (array or float)
+        :return: differential flux at given energy.
+        """
+
+        if not isinstance(energies, np.ndarray):
+            energies = np.array(energies, ndmin=1)
+
+        # Get the differential flux from the spectral components
+
+        spatial_int = self.spatial_shape.get_total_spatial_integral(energies)
+
+        components = iter(self.components.values())
+        differential_flux = next(components).shape(energies)
+        for component in components:
+            differential_flux += component.shape(energies)
+
+        return spatial_int * differential_flux
+
+    def __call__(self, lon, lat, energies):
+        """Returns brightness of source at the given position and energy :param
+        lon: longitude (array or float) :param lat: latitude (array or float)
+        :param energies: energies (array or float) :return: differential flux
+        at given position and energy."""
+
+        assert type(lat) is type(lon) and type(lon) is type(
+            energies
+        ), "Type mismatch in input of call"
+
+        if not isinstance(lat, np.ndarray):
+
+            lat = np.array(lat, ndmin=1)
+            lon = np.array(lon, ndmin=1)
+            energies = np.array(energies, ndmin=1)
+
+        # Get the differential flux from the spectral components
+
+        # Create result from first component so it has the right
+        # type/unit, then add the results for any other components.
+        # (self.components() must be non-empty!)
+        #
+        # Unlike sum(), this avoids allocating a zero array
+        # and does in-place adds for any remaining components
+
+        components = iter(self.components.values())
+        differential_flux = next(components).shape(energies)
+        for component in components:
+            differential_flux += component.shape(energies)
+
+        # Get brightness from spatial model
+
+        if self._spatial_shape.n_dim == 2:
+
+            brightness = self._spatial_shape(lon, lat)
+            result = np.outer(brightness, differential_flux)
+        else:
+
+            brightness = self._spatial_shape(lon, lat, energies)
+            result = brightness * differential_flux
+
+        # Do not clip the output, otherwise it will not be possible to use ext. sources
+        # with negative fluxes
+
+        return np.squeeze(result)
+
+    @property
+    def has_free_parameters(self):
+        """Returns True or False whether there is any parameter in this source.
+
+        :return:
+        """
+
+        for component in self._components.values():
+
+            for par in component.shape.parameters.values():
+
+                if par.free:
+
+                    return True
+
+        for par in self.spatial_shape.parameters.values():
+
+            if par.free:
+
+                return True
+
+        return False
+
+    @property
+    def free_parameters(self):
+        """Returns a dictionary of free parameters for this source We use the
+        parameter path as the key because it's guaranteed to be unique, unlike
+        the parameter name.
+
+        :return:
+        """
+        free_parameters = dict()
+
+        for component in self._components.values():
+
+            for par in component.shape.parameters.values():
+
+                if par.free:
+
+                    free_parameters[par.path] = par
+
+        for par in self.spatial_shape.parameters.values():
+
+            if par.free:
+
+                free_parameters[par.path] = par
+
+        return free_parameters
+
+    @property
+    def parameters(self):
+        """Returns a dictionary of all parameters for this source. We use the
+        parameter path as the key because it's guaranteed to be unique, unlike
+        the parameter name.
+
+        :return:
+        """
+        all_parameters = dict()
+
+        for component in self._components.values():
+
+            for par in component.shape.parameters.values():
+
+                all_parameters[par.path] = par
+
+        for par in self.spatial_shape.parameters.values():
+
+            all_parameters[par.path] = par
+
+        return all_parameters
+
+    def _repr__base(self, rich_output=False):
+        """Representation of the object.
+
+        :param rich_output: if True, generates HTML, otherwise text
+        :return: the representation
+        """
+
+        # Make a dictionary which will then be transformed in a list
+
+        repr_dict = dict()
+
+        key = "%s (extended source)" % self.name
+
+        repr_dict[key] = dict()
+        repr_dict[key]["shape"] = self._spatial_shape.to_dict(minimal=True)
+        repr_dict[key]["spectrum"] = dict()
+
+        for component_name, component in self.components.items():
+            repr_dict[key]["spectrum"][component_name] = component.to_dict(minimal=True)
+
+        return dict_to_list(repr_dict, rich_output)
+
+    def get_boundaries(self):
+        """Returns the boundaries for this extended source.
+
+        :return: a tuple of tuples ((min. lon, max. lon), (min lat, max
+            lat))
+        """
+        return self._spatial_shape.get_boundaries()

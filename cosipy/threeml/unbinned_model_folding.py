@@ -3,6 +3,7 @@ from typing import Optional, Iterable, Union
 
 import numpy as np
 from astromodels import Model, PointSource, ExtendedSource
+from cosipy.threeml.custom_functions import CosipyPointSource, CosipyExtendedSource
 from pathlib import Path
 
 from cosipy.interfaces import UnbinnedThreeMLModelFoldingInterface, UnbinnedThreeMLSourceResponseInterface
