@@ -5,14 +5,20 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)
 logger = logging.getLogger(__name__)
 
 import subprocess
+from astropy.time import Time
+import numpy as np
 import argparse, textwrap
 from yayc import Configurator
 from cosipy import UnBinnedData
-
-from cosipy.pipeline.src.io import *
-from cosipy.pipeline.src.preprocessing import *
-from cosipy.pipeline.src.fitting import *
-from cosipy.pipeline.src.plotting import *
+from cosipy.pipeline.src.fitting import (
+    get_fit_fluxes,
+    get_fit_par,
+    get_fit_results,
+    get_ts_results,
+)
+from cosipy.pipeline.src.io import load_binned_data, load_ori, tslice_binned_data
+from cosipy.pipeline.src.plotting import plot_fit
+from cosipy.pipeline.src.preprocessing import get_binned_data, write_yaml
 
 from pathlib import Path
 from histpy import Histogram
@@ -390,7 +396,7 @@ def  cosi_tsdetect(argv=None):
     data_path = config.absolute_path(config["data:args"][0])
     bk_data_path = config.absolute_path(config["background:args"][0])
     resp_path = config.absolute_path(config["response:args"][0])
-    ori = load_ori(config.absolute_path(config["sc_file"]))
+    ori_full = load_ori(config.absolute_path(config["sc_file"]))
 
     #Open the data histogram
     data_full = Histogram.open(data_path)
@@ -414,7 +420,7 @@ def  cosi_tsdetect(argv=None):
         binned_data = data_full.project(['Em', 'Phi', 'PsiChi'])
 
     # Slice the ori file in the time interval of the data:
-    ori_sliced = ori.select_interval(Time(tstart,format="unix"), Time(tstop, format="unix"))
+    ori_sliced = ori_full.select_interval(Time(tstart,format="unix"), Time(tstop, format="unix"))
     ori=ori_sliced
 
     # Prepare the background model.
@@ -422,21 +428,24 @@ def  cosi_tsdetect(argv=None):
 
     delta = tstop - tstart
     delta = delta.to_value('s')
+    #
     bkg_full=Histogram.open(bk_data_path)
-    bkg_times = bkg_full.axes['Time'].edges.value
-    bkg_full_duration = np.ptp(bkg_times)  # max - min
+    bk_tstart=np.min(bkg_full.axes['Time'].edges.value)
+    bk_tstop=np.max(bkg_full.axes['Time'].edges.value)
+    ori_bkg = ori_full.select_interval(Time(bk_tstart,format="unix"), Time(bk_tstop, format="unix"))
+    bkg_full_livetime = ori_bkg.cumulative_livetime().to_value("s")
+    #
     bkg_model = bkg_full.project(['Em', 'Phi', 'PsiChi'])
-    bkg_model /= (bkg_full_duration / delta)+1E-12
+    bkg_model /= (bkg_full_livetime / delta)
     del bkg_full
 
     #Check for previous running
-
     plot_filename = odir / plot_name
     if plot_filename.exists() and not args.overwrite:
         raise RuntimeError(f"{plot_filename} already exists. If you mean to replace it then use --overwrite.")
 
     map_filename = odir / map_name
-    if plot_filename.exists() and not args.overwrite:
+    if map_filename.exists() and not args.overwrite:
         raise RuntimeError(f"{map_filename} already exists. If you mean to replace it then use --overwrite.")
     # Calculation
 
@@ -447,14 +456,14 @@ def  cosi_tsdetect(argv=None):
 
         ts_results = ts.fit(nside=nside_search, energy_channel=energy_channels,
                         spectrum=spectrum, cpu_cores=cpu_cores)
-        max_ts,max_coo,max_l,max_b,pixel_mean_spacing=get_ts_results(map_filename, ts_results,multiresolution,nside=nside_search)
+        max_ts,max_coo,max_l,max_b,pixel_mean_spacing=get_ts_results(map_filename, ts_results,multiresolution,nside=nside_search,overwrite_map=args.overwrite)
         print("Maximum TS= %f" % max_ts)
         print("Galactic coordinate at maximum TS: l=%f, b=%f" %(max_l, max_b))
         print("Linear Size of TS map pixel: %f" % (pixel_mean_spacing))
 
         # Results and plot
 
-        ts.plot_ts(ts_results, skycoord=max_coo, save_dir=odir, save_plot=True, save_name=plot_name)
+        ts.plot_ts(ts_results, skycoord=max_coo, save_dir=odir, save_plot=True, save_name=plot_name, mark_center=False)
 
     elif multiresolution==True:
 
@@ -473,7 +482,7 @@ def  cosi_tsdetect(argv=None):
             strategy=strategy,
         )
 
-        max_ts, max_coo, max_l, max_b, pixel_mean_spacing = get_ts_results(map_filename,moc_results,moc_uniq, multiresolution=multiresolution)
+        max_ts, max_coo, max_l, max_b, pixel_mean_spacing = get_ts_results(map_filename,moc_results,moc_uniq, multiresolution=multiresolution, overwrite_map=args.overwrite)
         print("Maximum TS= %f" % max_ts)
         print("Galactic coordinate at maximum TS: l=%f, b=%f" % (max_l, max_b))
         print("Linear Size of MOC map max_nside_pixel: %f" % (pixel_mean_spacing))

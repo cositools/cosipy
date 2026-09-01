@@ -144,9 +144,10 @@ def get_fit_fluxes(results):
     return (fl, e_low_fl, e_hi_fl)
 
 
-def get_ts_results(map_filename, ts_results, ts_uniq=None, multiresolution=False, nside=None):
+def get_ts_results(map_filename, ts_results, ts_uniq=None, multiresolution=False, nside=None, overwrite_map=False):
     """
     Extract peak TS values, coordinates, and pixel spacing from TS map results.
+    Save the TS map in fits format.
 
     Parameters
     ----------
@@ -158,6 +159,8 @@ def get_ts_results(map_filename, ts_results, ts_uniq=None, multiresolution=False
         If True, process as a MOC map. Default is False.
     nside : int, optional
         HEALPix resolution parameter (required if multiresolution=False).
+    overwrite_map : bool, optional
+        If True, overwrite the .fits map. Default is False.
 
     Returns
     -------
@@ -182,7 +185,7 @@ def get_ts_results(map_filename, ts_results, ts_uniq=None, multiresolution=False
         max_coo = m.pix2skycoord(highest_idx)
         pixel_area = m.pixarea()
         pixel_mean_spacing = np.degrees(np.sqrt(pixel_area.value))
-        m.write_map(map_filename, overwrite=True)
+        m.write_map(map_filename, overwrite=overwrite_map)
     else:
         if ts_uniq is None:
             raise ValueError("ts_uniq must be provided when multiresolution is True")
@@ -193,7 +196,7 @@ def get_ts_results(map_filename, ts_results, ts_uniq=None, multiresolution=False
         max_coo = m.pix2skycoord(highest_idx)
         pixel_area = np.min(m.pixarea())
         pixel_mean_spacing = np.degrees(np.sqrt(pixel_area.value))
-        m.write_map(map_filename, overwrite=True)
+        m.write_map(map_filename, overwrite=overwrite_map)
 
     max_l = float(max_coo.l.value)
     max_b = float(max_coo.b.value)

@@ -2,6 +2,10 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
+#from docs.tutorials.spectral_fits.extended_source_fit.diffuse_511_spectral_fit import skymap
+#from docs.tutorials.apps.grbs_dc4_withbkestimation import save_path
+
+
 ##### PLOTTING
 def get_ene(data):
     """
@@ -136,3 +140,4 @@ def plot_fit(sou, cts_exp, figname):
     # plt.show()
     plt.close(fig)
     return ()
+

@@ -296,7 +296,7 @@ tsdetect:
     kwargs:
       tstart: null
       tstop: null
-  multiresolution: true
+  multiresolution: false
   coo_sys: "local"
   nside: 8  #nside of ts map /max nside for moc_ts_map
   energy_channels: [2, 3]
