@@ -1,3 +1,5 @@
+from inspect import signature
+
 import numpy as np
 
 import astropy.units as u
@@ -227,8 +229,16 @@ def test_get_dwell_map():
 
 def test_get_scatt_map():
 
+    assert "earth_occ" not in signature(
+        SpacecraftHistory.get_scatt_map).parameters
+
     ori_path = test_data.path / "20280301_first_10sec.fits"
     ori = SpacecraftHistory.open(ori_path)
+
+    scatt_map = ori.get_scatt_map(nside=16)
+    assert scatt_map.source is None
+    assert np.isclose(np.sum(scatt_map.weights),
+                      ori.cumulative_livetime())
 
     # Crab
     target_coord = SkyCoord(l=184.5551, b = -05.7877,
@@ -237,14 +247,16 @@ def test_get_scatt_map():
     # With this orientation file, Crab is entirely occluded, so
     # scatt map is empty!  But the code should still work.
     scatt_map = ori.get_scatt_map(target_coord=target_coord,
-                                  nside=16, earth_occ=True)
+                                  nside=16)
+    assert scatt_map.source is target_coord
+    assert scatt_map.weights.size == 0
     ax_map = scatt_map.get_axes_map(nside=16)
 
     # This orientation file does not occlude the Crab.
     ori_path = test_data.path / "DC3-3mo-arbitrary-10s.fits"
     ori = SpacecraftHistory.open(ori_path)
     scatt_map = ori.get_scatt_map(target_coord=target_coord,
-                                  nside=16, earth_occ=True)
+                                  nside=16)
     ax_map = scatt_map.get_axes_map(nside=16)
 
     # Test caching behavior for earth occultation
@@ -252,7 +264,7 @@ def test_get_scatt_map():
     assert ori.cache_earth_occ
 
     scatt_map2 = ori.get_scatt_map(target_coord=target_coord,
-                                   nside=16, earth_occ=True)
+                                   nside=16)
     assert np.all(scatt_map2.attitudes.as_quat() == \
                   scatt_map.attitudes.as_quat()) and \
             np.all(scatt_map2.weights == scatt_map.weights)
@@ -261,7 +273,7 @@ def test_get_scatt_map():
     assert not ori.cache_earth_occ
 
     scatt_map3 = ori.get_scatt_map(target_coord=target_coord,
-                                   nside=16, earth_occ=True)
+                                   nside=16)
     assert np.all(scatt_map3.attitudes.as_quat() == \
                   scatt_map.attitudes.as_quat()) and \
             np.all(scatt_map3.weights == scatt_map.weights)
