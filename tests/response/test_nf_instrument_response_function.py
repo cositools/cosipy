@@ -8,8 +8,13 @@ import numpy as np
 import torch
 from unittest.mock import MagicMock, patch
 
-from cosipy.response.ml.nf_instrument_response_function import UnpolarizedNFFarFieldInstrumentResponseFunction
+from cosipy.response.ml.nf_instrument_response_function import (
+    UnpolarizedNFFarFieldInstrumentResponseFunction,
+    IRFRelativeHistWithNFAeffUnpolarized,
+)
 from cosipy.response.ml.NFResponse import NFResponse
+from cosipy.response.relative_irf_hist import IRFRelativeHistUnpolarized
+from cosipy.interfaces.data_interface import EmCDSEventDataInSCFrameInterface
 from cosipy.interfaces.photon_parameters import PhotonListWithDirectionAndEnergyInSCFrameInterface
 from cosipy.data_io.EmCDSUnbinnedData import EmCDSEventDataInSCFrameFromArrays
 
@@ -167,3 +172,81 @@ class TestUnpolarizedNFFarFieldInstrumentResponseFunction:
         np.testing.assert_allclose(events.scattering_angle_rad, [0.5, 1.0, 1.5], atol=1e-7)
         np.testing.assert_allclose(events.scattered_lon_rad_sc, [0.1, 0.2, 0.3], atol=1e-7)
         np.testing.assert_allclose(events.scattered_lat_rad_sc, [0.0, np.pi/4, -np.pi/2], atol=1e-7)
+
+
+@pytest.fixture
+def mock_aeff_irf():
+    """Mock an UnpolarizedNFFarFieldInstrumentResponseFunction, with the
+    photon/event types it actually declares (needed for
+    IRFRelativeHistWithNFAeffUnpolarized's __init__ compatibility check)."""
+    mock = MagicMock(spec=UnpolarizedNFFarFieldInstrumentResponseFunction)
+    mock.photon_list_type = PhotonListWithDirectionAndEnergyInSCFrameInterface
+    mock.event_data_type = EmCDSEventDataInSCFrameInterface
+    return mock
+
+@pytest.fixture
+def mock_diff_aeff_irf():
+    """Mock an IRFRelativeHistUnpolarized, with the photon/event types it
+    actually declares."""
+    mock = MagicMock(spec=IRFRelativeHistUnpolarized)
+    mock.photon_list_type = PhotonListWithDirectionAndEnergyInSCFrameInterface
+    mock.event_data_type = EmCDSEventDataInSCFrameInterface
+    return mock
+
+
+class TestIRFRelativeHistWithNFAeffUnpolarized:
+
+    def test_initialization(self, mock_aeff_irf, mock_diff_aeff_irf):
+        irf = IRFRelativeHistWithNFAeffUnpolarized(mock_aeff_irf, mock_diff_aeff_irf)
+        assert irf._aeff_irf is mock_aeff_irf
+        assert irf._diff_aeff_irf is mock_diff_aeff_irf
+
+    def test_initialization_mismatched_aeff_photon_type_raises(self, mock_aeff_irf, mock_diff_aeff_irf):
+        mock_aeff_irf.photon_list_type = object()
+        with pytest.raises(ValueError, match="aeff_irf"):
+            IRFRelativeHistWithNFAeffUnpolarized(mock_aeff_irf, mock_diff_aeff_irf)
+
+    def test_initialization_mismatched_diff_aeff_event_type_raises(self, mock_aeff_irf, mock_diff_aeff_irf):
+        mock_diff_aeff_irf.event_data_type = object()
+        with pytest.raises(ValueError, match="diff_aeff_irf"):
+            IRFRelativeHistWithNFAeffUnpolarized(mock_aeff_irf, mock_diff_aeff_irf)
+
+    def test_effective_area_delegates_to_aeff_irf_only(self, mock_aeff_irf, mock_diff_aeff_irf, mock_photons):
+        irf = IRFRelativeHistWithNFAeffUnpolarized(mock_aeff_irf, mock_diff_aeff_irf)
+
+        mock_aeff_irf._effective_area_cm2.return_value = np.array([1.0, 2.0, 3.0])
+
+        result = irf._effective_area_cm2(mock_photons)
+
+        mock_aeff_irf._effective_area_cm2.assert_called_once_with(mock_photons)
+        mock_diff_aeff_irf._effective_area_cm2.assert_not_called()
+        np.testing.assert_array_equal(result, [1.0, 2.0, 3.0])
+
+    def test_differential_effective_area_delegates_to_diff_aeff_irf_only(self, mock_aeff_irf, mock_diff_aeff_irf, mock_photons, mock_events):
+        irf = IRFRelativeHistWithNFAeffUnpolarized(mock_aeff_irf, mock_diff_aeff_irf)
+
+        mock_diff_aeff_irf._differential_effective_area_cm2.return_value = np.array([0.1, 0.2, 0.3])
+
+        result = irf._differential_effective_area_cm2(mock_photons, mock_events)
+
+        mock_diff_aeff_irf._differential_effective_area_cm2.assert_called_once_with(mock_photons, mock_events)
+        mock_aeff_irf._differential_effective_area_cm2.assert_not_called()
+        np.testing.assert_array_equal(result, [0.1, 0.2, 0.3])
+
+    def test_pool_delegation_uses_aeff_irf(self, mock_aeff_irf, mock_diff_aeff_irf):
+        irf = IRFRelativeHistWithNFAeffUnpolarized(mock_aeff_irf, mock_diff_aeff_irf)
+
+        irf.init_compute_pool(['cpu'])
+        mock_aeff_irf.init_compute_pool.assert_called_once_with(['cpu'])
+
+        irf.shutdown_compute_pool()
+        mock_aeff_irf.shutdown_compute_pool.assert_called_once()
+
+        mock_aeff_irf.active_pool = True
+        assert irf.active_pool is True
+
+    def test_random_events_not_implemented(self, mock_aeff_irf, mock_diff_aeff_irf, mock_photons):
+        irf = IRFRelativeHistWithNFAeffUnpolarized(mock_aeff_irf, mock_diff_aeff_irf)
+
+        with pytest.raises(NotImplementedError):
+            irf._random_events(mock_photons)
