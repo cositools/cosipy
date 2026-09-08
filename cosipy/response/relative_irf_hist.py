@@ -275,10 +275,19 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         file that stores the response histogram under the group
         ``"IRF"``.
 
+        If the file also has a group named ``"AEFF"``, it is read as
+        well and passed to :meth:`__init__` as the ``aeff`` argument
+        (see the class docstring), unless ``aeff`` was already provided
+        via ``*args``/``**kwargs``, in which case that value takes
+        precedence and the file is not checked for an ``"AEFF"``
+        group.
+
         Parameters
         ----------
         filename : str or path-like
-            Path to the HDF5 file containing the response histogram.
+            Path to the HDF5 file containing the response histogram
+            (and, optionally, the separate total effective area
+            histogram).
         *args, **kwargs
             Extra arguments forwarded verbatim to
             :meth:`__init__` (e.g. ``aeff``, ``copy`` or
@@ -287,8 +296,14 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         Returns
         -------
         IRFRelativeHistUnpolarized
-            Initialized instance with the histogram loaded from disk.
+            Initialized instance with the histogram(s) loaded from
+            disk.
         """
+
+        if 'aeff' not in kwargs and len(args) == 0:
+            with h5.File(filename, 'r') as f:
+                if 'AEFF' in f:
+                    kwargs['aeff'] = Histogram.open(filename, 'AEFF')
 
         return cls(Histogram.open(filename, "IRF"), *args, **kwargs)
 

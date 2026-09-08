@@ -66,8 +66,11 @@ projecting it out of the full 6D histogram. Since the total effective area
 only requires NFResponse.evaluate_effective_area() (no density model calls),
 it is far cheaper to evaluate than the full differential response, and is
 therefore often worth building on its own, finer grid.
-build_relative_hist_aeff() builds that standalone histogram; see the
-USE_SEPARATE_AEFF_GRID / AEFF_ONLY options in `__main__` below.
+build_relative_hist_aeff() builds that standalone histogram, by default
+under an "AEFF" HDF5 group; see the USE_SEPARATE_AEFF_GRID / AEFF_ONLY
+options in `__main__` below. If it is written into the same file as the
+main "IRF" histogram, IRFRelativeHistUnpolarized.from_h5() picks it up
+automatically -- no need to pass `aeff` explicitly.
 """
 
 import logging
@@ -393,7 +396,7 @@ def build_relative_hist_aeff(nf_response: NFResponse,
                              devices: Optional[List] = ("cpu",),
                              grid_batch_size: int = 200_000,
                              overwrite: bool = False,
-                             group: str = "aeff") -> Path:
+                             group: str = "AEFF") -> Path:
     """
     Build a standalone total-effective-area histogram (axes ['NuLambda',
     'Ei'], contents in cm^2) from an
@@ -415,14 +418,20 @@ def build_relative_hist_aeff(nf_response: NFResponse,
     ei_axis : histpy.Axis
         Target true-energy grid, with units of energy.
     output_path : str or Path
-        Where to write the resulting HDF5 file. Load it back with
-        histpy.Histogram.open(output_path, group) and pass the result as
-        IRFRelativeHistUnpolarized(..., aeff=<that histogram>).
+        Where to write the resulting HDF5 file. If this is the same file
+        a build_relative_hist_irf() call also writes its "IRF" group to
+        (HDF5 groups coexist fine in one file, and Histogram.write() only
+        ever touches the group it is writing, per its own `name`/`group`),
+        IRFRelativeHistUnpolarized.from_h5() picks this histogram up
+        automatically -- no need to pass `aeff` explicitly. Otherwise,
+        load it back with histpy.Histogram.open(output_path, group) and
+        pass the result as IRFRelativeHistUnpolarized(..., aeff=<that
+        histogram>).
     devices, grid_batch_size, overwrite : see build_relative_hist_irf().
     group : str, optional
         HDF5 group name the histogram is written under. Defaults to
-        "aeff" (IRFRelativeHistUnpolarized.from_h5() only looks for "IRF",
-        so this is just a label for your own bookkeeping).
+        "AEFF", the group name IRFRelativeHistUnpolarized.from_h5() looks
+        for automatically.
 
     Returns
     -------
@@ -527,7 +536,8 @@ if __name__ == "__main__":
     # already have the differential response from elsewhere).
     AEFF_ONLY = False
 
-    aeff_path = None
+    irf_output_path = data_path / "relative_hist_irf_from_nf_response.h5"
+
     if USE_SEPARATE_AEFF_GRID or AEFF_ONLY:
         if USE_SEPARATE_AEFF_GRID:
             aeff_nulambda_axis = HealpixAxis(nside=32, scheme='ring', coordsys=SpacecraftFrame(), label='NuLambda')
@@ -536,11 +546,17 @@ if __name__ == "__main__":
             aeff_nulambda_axis = axes['NuLambda']
             aeff_ei_axis = axes['Ei']
 
+        # Write into the same file build_relative_hist_irf() below writes
+        # its "IRF" group to (or, in AEFF_ONLY mode, its own dedicated
+        # file, since there will be no "IRF" group at all), so
+        # IRFRelativeHistUnpolarized.from_h5() picks it up automatically.
+        aeff_output_path = (data_path / "relative_hist_aeff_from_nf_response.h5") if AEFF_ONLY else irf_output_path
+
         aeff_path = build_relative_hist_aeff(
             nf_response,
             aeff_nulambda_axis,
             aeff_ei_axis,
-            output_path=data_path / "relative_hist_aeff_from_nf_response.h5",
+            output_path=aeff_output_path,
             devices=["cpu"],
             grid_batch_size=200_000,
             overwrite=True)
@@ -554,21 +570,21 @@ if __name__ == "__main__":
     output_path = build_relative_hist_irf(
         nf_response,
         axes,
-        output_path=data_path / "relative_hist_irf_from_nf_response.h5",
+        output_path=irf_output_path,
         devices=["cpu"],
         grid_batch_size=200_000,
         overwrite=True)
 
     print(f"Wrote {output_path}")
 
-    # Sanity check: load it back (with the separately-built aeff, if any) and
-    # compare against the NF response directly
+    # Sanity check: load it back (from_h5() picks up the "AEFF" group
+    # automatically, if one was written above) and compare against the NF
+    # response directly
     from cosipy.response.relative_irf_hist import IRFRelativeHistUnpolarized
     from cosipy.response.ml.nf_instrument_response_function import UnpolarizedNFFarFieldInstrumentResponseFunction
     from cosipy.response.photon_types import PhotonWithDirectionAndEnergyInSCFrame
 
-    aeff_hist = Histogram.open(aeff_path, "aeff") if aeff_path is not None else None
-    hist_irf = IRFRelativeHistUnpolarized.from_h5(output_path, aeff=aeff_hist)
+    hist_irf = IRFRelativeHistUnpolarized.from_h5(output_path)
     nf_irf = UnpolarizedNFFarFieldInstrumentResponseFunction(nf_response)
 
     test_photon = PhotonWithDirectionAndEnergyInSCFrame(0.3, 0.2, 511)
