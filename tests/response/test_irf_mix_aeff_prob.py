@@ -76,37 +76,6 @@ class TestIRFMixAeffProbUnpolarized:
         mock_aeff_source._differential_effective_area_cm2.assert_not_called()
         np.testing.assert_array_equal(result, [0.1, 0.2, 0.3])
 
-    def test_pool_delegation_when_aeff_source_supports_it(self, mock_aeff_source, mock_diff_aeff_source):
-        # A source that does expose compute-pool management (e.g. an
-        # NF-response-backed IRF), even though the interface itself
-        # doesn't require it. MagicMock(spec=...) allows setting
-        # attributes beyond the spec, it just won't auto-create them.
-        mock_aeff_source.init_compute_pool = MagicMock()
-        mock_aeff_source.shutdown_compute_pool = MagicMock()
-        mock_aeff_source.active_pool = True
-
-        irf = IRFMixAeffProbUnpolarized(mock_aeff_source, mock_diff_aeff_source)
-
-        irf.init_compute_pool(['cpu'])
-        mock_aeff_source.init_compute_pool.assert_called_once_with(['cpu'])
-
-        irf.shutdown_compute_pool()
-        mock_aeff_source.shutdown_compute_pool.assert_called_once()
-
-        assert irf.active_pool is True
-
-    def test_pool_delegation_is_noop_when_aeff_source_lacks_it(self, mock_aeff_source, mock_diff_aeff_source):
-        # A plain FarFieldSpectralInstrumentResponseFunctionInterface
-        # implementation has no compute-pool concept at all -- the mock's
-        # spec doesn't include it, and it was never set.
-        assert not hasattr(mock_aeff_source, 'init_compute_pool')
-
-        irf = IRFMixAeffProbUnpolarized(mock_aeff_source, mock_diff_aeff_source)
-
-        irf.init_compute_pool(['cpu'])  # should not raise
-        irf.shutdown_compute_pool()  # should not raise
-        assert irf.active_pool is False
-
     def test_random_events_not_implemented(self, mock_aeff_source, mock_diff_aeff_source):
         irf = IRFMixAeffProbUnpolarized(mock_aeff_source, mock_diff_aeff_source)
 

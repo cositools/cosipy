@@ -54,24 +54,6 @@ class IRFMixAeffProbUnpolarized(FarFieldSpectralInstrumentResponseFunctionInterf
         self._aeff_source = aeff_source
         self._diff_aeff_source = diff_aeff_source
 
-    def init_compute_pool(self, devices=None):
-        """
-        Best-effort delegation to ``aeff_source``, if it exposes a
-        compute-pool interface (e.g. an NF-response-backed IRF).
-        No-op otherwise.
-        """
-        if hasattr(self._aeff_source, 'init_compute_pool'):
-            self._aeff_source.init_compute_pool(devices)
-
-    def shutdown_compute_pool(self):
-        """See :meth:`init_compute_pool`."""
-        if hasattr(self._aeff_source, 'shutdown_compute_pool'):
-            self._aeff_source.shutdown_compute_pool()
-
-    @property
-    def active_pool(self) -> bool:
-        return getattr(self._aeff_source, 'active_pool', False)
-
     def _effective_area_cm2(self, photons: PhotonListInterface) -> Iterable[float]:
         return self._aeff_source._effective_area_cm2(photons)
 
