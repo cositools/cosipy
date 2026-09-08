@@ -68,10 +68,21 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
     irf : histpy.Histogram
         A 6D histogram with the axes described above and contents in
         units equivalent to area (``cm^2``).
+    aeff : histpy.Histogram, optional
+        A separate 2D histogram, with axes ``['NuLambda', 'Ei']`` and
+        contents in units equivalent to area (``cm^2``), used as the
+        total effective area instead of projecting it out of ``irf``.
+        Its ``NuLambda``/``Ei`` binning does not need to match that of
+        ``irf`` -- e.g. it can use a finer grid, since the total
+        effective area is typically cheaper to compute/store at higher
+        resolution than the full differential response. If not
+        provided (the default), the total effective area is obtained
+        by projecting ``irf`` onto its own ``NuLambda``/``Ei`` axes, as
+        before.
     copy : bool, optional
-        If True (default) the input histogram is copied before its
-        axes and contents are modified in place. Set to False to
-        avoid the copy when the caller no longer needs the original.
+        If True (default) the input histogram(s) are copied before
+        their axes and contents are modified in place. Set to False to
+        avoid the copy when the caller no longer needs the original(s).
     batch_size : int, optional
         Number of events to process per batch when the response is
         evaluated on large event lists. Defaults to ``100000``.
@@ -82,12 +93,13 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
 
     def __init__(self,
                  irf: Histogram,
+                 aeff: Histogram = None,
                  copy = True,
                  batch_size=100000):
         """
-        Validate the input histogram, standardize its axis units, and
-        pre-compute the total and differential effective area used at
-        evaluation time.
+        Validate the input histogram(s), standardize their axis units,
+        and pre-compute the total and differential effective area used
+        at evaluation time.
 
         See the class docstring for a description of the expected axes
         and units.
@@ -96,8 +108,11 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         ----------
         irf : histpy.Histogram
             Input response histogram.
+        aeff : histpy.Histogram, optional
+            Optional separate total effective area histogram. See the
+            class docstring.
         copy : bool, optional
-            Whether to copy ``irf`` before modifying it.
+            Whether to copy ``irf``/``aeff`` before modifying them.
         batch_size : int, optional
             Event batch size used by downstream evaluators.
 
@@ -124,16 +139,16 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         if not isinstance(axes['NuLambda'], HealpixAxis):
             raise ValueError("IRF NuLambda axis is expected to be of HealpixAxis type")
 
-        if not axes['Ei'].unit.is_equivalent('keV'):
+        if axes['Ei'].unit is None or not axes['Ei'].unit.is_equivalent('keV'):
             raise ValueError("Ei axis is expected to have units of energy.")
 
-        if not axes['Epsilon'].unit.is_equivalent(''):
+        if axes['Epsilon'].unit is not None and not axes['Epsilon'].unit.is_equivalent(''):
             raise ValueError("Epsilon axis is expected to be unitless")
 
-        if not axes['Phi'].unit.is_equivalent('deg'):
+        if axes['Phi'].unit is None or not axes['Phi'].unit.is_equivalent('deg'):
             raise ValueError("Phi axis is expected to have units of angle.")
 
-        if not axes['Theta'].unit.is_equivalent('deg'):
+        if axes['Theta'].unit is None or not axes['Theta'].unit.is_equivalent('deg'):
             raise ValueError("Theta axis is expected to have units of angle.")
 
         if not isinstance(axes['Zeta'], PolarizationAxis):
@@ -162,7 +177,10 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         irf = irf.to(u.cm * u.cm, copy=False).to(None, copy=False, update=False) # To cm2 and remove units
 
         # Get the total effective area
-        self._tot_aeff = irf.project('NuLambda','Ei') # cm^2
+        if aeff is not None:
+            self._tot_aeff = self._standardize_aeff(aeff, copy) # cm^2
+        else:
+            self._tot_aeff = irf.project('NuLambda','Ei') # cm^2
 
         # Phase space
         # Final content units will be cm^2/sr/rad/keV
@@ -198,6 +216,58 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         # Extra params
         self._batch_size = batch_size
 
+    @staticmethod
+    def _standardize_aeff(aeff: Histogram, copy: bool) -> Histogram:
+        """
+        Validate a standalone total-effective-area histogram (the
+        ``aeff`` constructor argument) and standardize its axis units,
+        the same way ``irf``'s ``NuLambda``/``Ei`` axes and contents
+        are standardized in :meth:`__init__`.
+
+        Parameters
+        ----------
+        aeff : histpy.Histogram
+            2D histogram with axes ``['NuLambda', 'Ei']`` and contents
+            in units equivalent to area.
+        copy : bool
+            Whether to copy ``aeff`` before modifying it.
+
+        Returns
+        -------
+        histpy.Histogram
+            ``aeff`` with its ``Ei`` axis in keV and its contents in
+            cm^2, both unitless (implicit units), ready to be
+            interpolated on directly.
+
+        Raises
+        ------
+        ValueError
+            If the histogram contents are not area-equivalent, the
+            axis labels are not ``['NuLambda', 'Ei']``, or an axis has
+            an unexpected type or units.
+        """
+
+        if copy:
+            aeff = aeff.copy()
+
+        if not aeff.unit.is_equivalent('cm^2'):
+            raise ValueError("aeff contents are expected to have units of area.")
+
+        axes = aeff.axes
+
+        if not np.array_equal(axes.labels, ['NuLambda', 'Ei']):
+            raise ValueError("aeff axes label must be ['NuLambda', 'Ei']")
+
+        if not isinstance(axes['NuLambda'], HealpixAxis):
+            raise ValueError("aeff NuLambda axis is expected to be of HealpixAxis type")
+
+        if axes['Ei'].unit is None or not axes['Ei'].unit.is_equivalent('keV'):
+            raise ValueError("aeff Ei axis is expected to have units of energy.")
+
+        axes['Ei'] = axes['Ei'].to(u.keV, copy = False).to(None, update = False, copy = False)
+
+        return aeff.to(u.cm * u.cm, copy=False).to(None, copy=False, update=False)
+
     @classmethod
     def from_h5(cls, filename, *args, **kwargs):
         """
@@ -205,19 +275,35 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         file that stores the response histogram under the group
         ``"IRF"``.
 
+        If the file also has a group named ``"AEFF"``, it is read as
+        well and passed to :meth:`__init__` as the ``aeff`` argument
+        (see the class docstring), unless ``aeff`` was already provided
+        via ``*args``/``**kwargs``, in which case that value takes
+        precedence and the file is not checked for an ``"AEFF"``
+        group.
+
         Parameters
         ----------
         filename : str or path-like
-            Path to the HDF5 file containing the response histogram.
+            Path to the HDF5 file containing the response histogram
+            (and, optionally, the separate total effective area
+            histogram).
         *args, **kwargs
             Extra arguments forwarded verbatim to
-            :meth:`__init__` (e.g. ``copy`` or ``batch_size``).
+            :meth:`__init__` (e.g. ``aeff``, ``copy`` or
+            ``batch_size``).
 
         Returns
         -------
         IRFRelativeHistUnpolarized
-            Initialized instance with the histogram loaded from disk.
+            Initialized instance with the histogram(s) loaded from
+            disk.
         """
+
+        if 'aeff' not in kwargs and len(args) == 0:
+            with h5.File(filename, 'r') as f:
+                if 'AEFF' in f:
+                    kwargs['aeff'] = Histogram.open(filename, 'AEFF')
 
         return cls(Histogram.open(filename, "IRF"), *args, **kwargs)
 
