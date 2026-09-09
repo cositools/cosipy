@@ -89,9 +89,9 @@ from cosipy.threeml.ml.optimized_unbinned_folding import UnbinnedThreeMLPointSou
 
 if __name__ == "__main__":
 
-    #irf_mode = "nn"
+    #irf_mode = "nn" # Does not support energy cut
     irf_mode = "hist"
-    #irf_mode = "mixed"
+    #irf_mode = "mixed" # Mix between w/wo distance cut. Only for debugging.
 
     # Optional measured-energy cut -- None by default (no cut). E.g.
     # energy_cut_min = 200 * u.keV, energy_cut_max = 5000 * u.keV.
@@ -99,8 +99,19 @@ if __name__ == "__main__":
     # effective area normalization (see IRFRelativeHistUnpolarized's
     # `selections` parameter), via the same EnergySelector, so the two
     # stay consistent with each other.
+
     energy_cut_min = None
     energy_cut_max = None
+    #
+    # energy_cut_min = 500*u.keV
+    # energy_cut_max = 2*u.MeV
+    #
+    # energy_cut_min = None
+    # energy_cut_max = 500*u.keV
+    #
+    # energy_cut_min = 2*u.MeV
+    # energy_cut_max = None
+
 
     start_time = time.time()
 
@@ -400,6 +411,11 @@ if __name__ == "__main__":
     ax.plot(energy, energy**2 * flux_median, label = "Best fit")
     ax.fill_between(energy, energy**2 * flux_lo, energy*energy*flux_hi, alpha = .5, label = "Best fit (errors)")
     ax.plot(energy, energy**2 * flux_inj, color = 'black', ls = ":", label = "Injected")
+
+    if energy_cut_min is not None:
+        ax.axvline(energy_cut_min.to_value(u.keV), color = 'blue')
+    if energy_cut_max is not None:
+        ax.axvline(energy_cut_max.to_value(u.keV), color = 'red')
 
     ax.semilogx()
     ax.semilogy()
