@@ -1,11 +1,14 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
+import pytest
 
 import astropy.units as u
 from histpy import Axis, Axes, HealpixAxis, Histogram
 from scoords import SpacecraftFrame
 
+from cosipy.event_selection.distance_selection import DistanceSelector
+from cosipy.event_selection.energy_selection import EnergySelector
 from cosipy.polarization import PolarizationAxis, StereographicConvention
 from cosipy.response.relative_irf_hist import IRFRelativeHistUnpolarized
 
@@ -209,3 +212,123 @@ class TestParallelInterp:
         np.testing.assert_allclose(
             parallel_model._differential_effective_area_cm2(photons, events),
             serial_model._differential_effective_area_cm2(photons, events))
+
+
+def _make_uniform_irf_hist(nside=2, n_eps=8, eps_range=(-0.8, 0.8)):
+    """A single-Ei-bin irf histogram with all contents equal to 1 cm^2
+    and a uniform Epsilon axis, so the selection fraction for any cut
+    has an exact, hand-computable closed form (constant density ->
+    the piecewise-linear integration model is exact, not just an
+    approximation)."""
+
+    axes = Axes([
+        HealpixAxis(nside=nside, scheme='ring', coordsys=SpacecraftFrame(), label='NuLambda'),
+        Axis([100., 1000.] * u.keV, label='Ei'),
+        Axis(np.linspace(*eps_range, n_eps + 1), label='Epsilon'),
+        Axis(np.linspace(0, 180, 7) * u.deg, label='Phi'),
+        Axis(np.linspace(-90, 90, 5) * u.deg, label='Theta'),
+        PolarizationAxis(np.linspace(0, 360, 9) * u.deg, convention=StereographicConvention(), label='Zeta'),
+    ])
+
+    return Histogram(axes, contents=np.ones(axes.nbins), unit=u.cm * u.cm)
+
+
+class TestEnergySelections:
+    """selections=... on IRFRelativeHistUnpolarized should scale
+    _tot_aeff, per (NuLambda, Ei), by the fraction of effective area
+    whose measured energy falls inside the selection -- and never
+    touch _diff_aeff."""
+
+    def test_non_energy_selector_raises_type_error(self):
+        with pytest.raises(TypeError):
+            IRFRelativeHistUnpolarized(_make_irf_hist(), selections=DistanceSelector())
+
+    def test_selections_none_matches_omitting_the_parameter(self):
+        baseline = IRFRelativeHistUnpolarized(_make_irf_hist(seed=1))
+        explicit_none = IRFRelativeHistUnpolarized(_make_irf_hist(seed=1), selections=None)
+
+        np.testing.assert_array_equal(explicit_none._tot_aeff.contents, baseline._tot_aeff.contents)
+
+    def test_full_range_cut_leaves_tot_aeff_unchanged(self):
+        """A cut wide enough to enclose every Ei bin's full measured-energy
+        range should hit the exact fast path -- _tot_aeff byte-for-byte
+        unchanged, not just approximately."""
+
+        baseline = IRFRelativeHistUnpolarized(_make_irf_hist(seed=2))
+        full_range = EnergySelector(u.Quantity([0., 1e9], u.keV))
+        cut = IRFRelativeHistUnpolarized(_make_irf_hist(seed=2), selections=full_range)
+
+        np.testing.assert_array_equal(cut._tot_aeff.contents, baseline._tot_aeff.contents)
+
+    def test_uniform_binning_exact_fraction_bin_aligned_cut(self):
+        """Ei center is 550 keV; Epsilon edges are spaced by 0.2, so a
+        [330, 550) keV cut is exactly eps in [-0.4, 0.0) -- two whole
+        bins, no boundary approximation."""
+
+        n_phi, n_theta, n_zeta, n_eps = 6, 4, 8, 8
+        model = IRFRelativeHistUnpolarized(
+            _make_uniform_irf_hist(n_eps=n_eps), copy=False,
+            selections=EnergySelector(u.Quantity([330., 550.], u.keV)))
+
+        expected = 2 * n_phi * n_theta * n_zeta
+        np.testing.assert_allclose(model._tot_aeff.contents, expected)
+
+    def test_uniform_binning_exact_fraction_sub_bin_cut(self):
+        """[385, 550) keV -> eps in [-0.3, 0.0), i.e. half of the
+        [-0.4,-0.2) bin plus the whole [-0.2,0) bin. Density is uniform
+        (content=1 in every bin), so the exact answer is just
+        density * width, regardless of the boundary falling mid-bin."""
+
+        n_phi, n_theta, n_zeta = 6, 4, 8
+        model = IRFRelativeHistUnpolarized(
+            _make_uniform_irf_hist(), copy=False,
+            selections=EnergySelector(u.Quantity([385., 550.], u.keV)))
+
+        density_per_solid_angle_bin = 1 / 0.2  # content=1 per Epsilon bin of width 0.2
+        expected = density_per_solid_angle_bin * 0.3 * n_phi * n_theta * n_zeta
+        np.testing.assert_allclose(model._tot_aeff.contents, expected)
+
+    def test_tuple_of_selectors_combines_via_intersect(self):
+        wide = EnergySelector(u.Quantity([100., 900.], u.keV))
+        narrow = EnergySelector(u.Quantity([300., 600.], u.keV))
+
+        via_tuple = IRFRelativeHistUnpolarized(_make_irf_hist(seed=3), selections=(wide, narrow))
+        via_combined = IRFRelativeHistUnpolarized(_make_irf_hist(seed=3), selections=wide.intersect(narrow))
+
+        np.testing.assert_allclose(via_tuple._tot_aeff.contents, via_combined._tot_aeff.contents)
+
+    def test_multi_range_selector_sums_disjoint_windows(self):
+        """A single EnergySelector with two disjoint ranges should give
+        the same total as summing each range's own single-range cut
+        (they don't overlap, so no double-counting)."""
+
+        n_phi, n_theta, n_zeta = 6, 4, 8
+
+        range_a = EnergySelector(u.Quantity([330., 470.], u.keV))  # eps in [-0.4, -0.145...)
+        range_b = EnergySelector(u.Quantity([600., 750.], u.keV))  # eps in [0.0909..., 0.3636...)
+        both = range_a.union(range_b)
+
+        model_a = IRFRelativeHistUnpolarized(_make_uniform_irf_hist(), copy=False, selections=range_a)
+        model_b = IRFRelativeHistUnpolarized(_make_uniform_irf_hist(), copy=False, selections=range_b)
+        model_both = IRFRelativeHistUnpolarized(_make_uniform_irf_hist(), copy=False, selections=both)
+
+        np.testing.assert_allclose(model_both._tot_aeff.contents,
+                                    model_a._tot_aeff.contents + model_b._tot_aeff.contents)
+
+    def test_aeff_and_selections_together_interpolates_onto_aeff_grid(self):
+        no_cut = IRFRelativeHistUnpolarized(_make_irf_hist(seed=4), aeff=_make_aeff_hist(seed=5))
+        cut = IRFRelativeHistUnpolarized(
+            _make_irf_hist(seed=4), aeff=_make_aeff_hist(seed=5),
+            selections=EnergySelector(u.Quantity([150., 400.], u.keV)))
+
+        assert cut._tot_aeff.contents.shape == no_cut._tot_aeff.contents.shape
+        assert np.all(cut._tot_aeff.contents <= no_cut._tot_aeff.contents + 1e-9)
+        assert cut._tot_aeff.contents.sum() < no_cut._tot_aeff.contents.sum()
+
+    def test_diff_aeff_unaffected_by_selections(self):
+        no_cut = IRFRelativeHistUnpolarized(_make_irf_hist(seed=6))
+        cut = IRFRelativeHistUnpolarized(
+            _make_irf_hist(seed=6),
+            selections=EnergySelector(u.Quantity([150., 400.], u.keV)))
+
+        np.testing.assert_array_equal(cut._diff_aeff.contents, no_cut._diff_aeff.contents)

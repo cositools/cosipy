@@ -1,5 +1,6 @@
+import functools
 from concurrent.futures import ThreadPoolExecutor
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, Union
 
 import numpy as np
 from astropy import units as u
@@ -12,6 +13,7 @@ from mhealpy.plot.axes import HealpyAxes
 from cosipy.interfaces import EventDataInterface
 from cosipy.interfaces.data_interface import EmCDSEventDataInSCFrameInterface
 from cosipy.interfaces.event import EmCDSEventInSCFrameInterface
+from cosipy.interfaces.event_selection import EventSelectorInterface
 from cosipy.interfaces.instrument_response_interface import FarFieldSpectralInstrumentResponseFunctionInterface
 from cosipy.interfaces.photon_parameters import PhotonWithDirectionAndEnergyInSCFrameInterface, PhotonListInterface, \
     PhotonListWithDirectionInSCFrameInterface, PhotonListWithDirectionAndEnergyInSCFrameInterface
@@ -20,6 +22,7 @@ import h5py as h5
 
 from scoords import SpacecraftFrame
 
+from cosipy.event_selection.energy_selection import EnergySelector
 from cosipy.polarization import PolarizationAxis
 from cosipy.response.relative_coordinates import RelativeCDSCoordinates
 from cosipy.util.iterables import asarray
@@ -105,6 +108,26 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         ``nthreads`` -- fanning small workloads out across threads costs
         more than it saves. Defaults to ``1000``; only matters when
         ``nthreads`` > 1.
+    selections : cosipy.event_selection.EnergySelector or tuple thereof, optional
+        Measured-energy cut(s) to bake into the total effective area
+        (:attr:`_tot_aeff`), so it matches an equivalent cut already
+        applied to the event data being fit (e.g. via the same
+        ``EnergySelector``). Only ``EnergySelector`` is currently
+        supported; anything else raises ``TypeError``. If a tuple is
+        given, the cuts combine with AND semantics (intersected via
+        ``EnergySelector.intersect``).
+
+        For each ``(NuLambda, Ei)`` bin, ``_tot_aeff`` is scaled by the
+        fraction of that bin's effective area whose measured energy
+        ``Em = Ei*(1 + Epsilon)`` falls inside the selection. This
+        fraction is computed by linearly interpolating between
+        ``Epsilon`` bin centers -- the same interpolation model
+        ``histpy.Histogram.interp()`` uses -- so for **non-uniform**
+        ``Epsilon`` binning it is only an approximation when a cut
+        boundary lands strictly inside a bin; a cut that fully includes
+        or excludes a bin is always exact, which covers the default
+        (no cut) case exactly. ``_diff_aeff`` is never modified.
+        Defaults to ``None`` (no cut).
     """
 
     event_data_type = EmCDSEventDataInSCFrameInterface
@@ -115,7 +138,8 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
                  aeff: Histogram = None,
                  copy = True,
                  nthreads = 1,
-                 npoints_parallel_thresh = 1000):
+                 npoints_parallel_thresh = 1000,
+                 selections: Union[EventSelectorInterface, Tuple[EventSelectorInterface, ...]] = None):
         """
         Validate the input histogram(s), standardize their axis units,
         and pre-compute the total and differential effective area used
@@ -138,6 +162,9 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
             class docstring.
         npoints_parallel_thresh : int, optional
             Minimum points per thread before parallelizing. See the
+            class docstring.
+        selections : cosipy.event_selection.EnergySelector or tuple thereof, optional
+            Measured-energy cut(s) applied to ``_tot_aeff``. See the
             class docstring.
 
         Raises
@@ -205,6 +232,19 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
             self._tot_aeff = self._standardize_aeff(aeff, copy) # cm^2
         else:
             self._tot_aeff = irf.project('NuLambda','Ei') # cm^2
+
+        if selections is not None and not isinstance(selections, tuple):
+            selections = (selections,)
+
+        for sel in selections or ():
+            if not isinstance(sel, EnergySelector):
+                raise TypeError(f"IRFRelativeHistUnpolarized only supports EnergySelector "
+                                 f"selections currently, got {type(sel)}")
+
+        if selections:
+            combined_selector = functools.reduce(EnergySelector.intersect, selections)
+            self._tot_aeff = self._apply_energy_selection(irf, self._tot_aeff, combined_selector,
+                                                            same_grid = aeff is None)
 
         # Phase space
         # Final content units will be cm^2/sr/rad/keV
@@ -295,6 +335,155 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         return np.concatenate([f.result() for f in futures])
 
     @staticmethod
+    def _apply_energy_selection(irf: Histogram, tot_aeff: Histogram,
+                                 selector: EnergySelector, same_grid: bool) -> Histogram:
+        """
+        Scale ``tot_aeff`` down, per ``(NuLambda, Ei)``, by the fraction
+        of ``irf``'s effective area whose measured energy
+        ``Em = Ei*(1 + Epsilon)`` falls within ``selector``'s ranges.
+
+        The fraction can only be computed on ``irf``'s own
+        ``(NuLambda, Ei, Epsilon)`` grid -- that's the only place the
+        measured-energy distribution is known -- via linear
+        interpolation between ``Epsilon`` bin centers (see
+        :meth:`_integrate_piecewise_linear`). If ``tot_aeff`` is on a
+        different ``(NuLambda, Ei)`` grid than ``irf`` (the ``aeff``
+        constructor parameter), the fraction is interpolated onto
+        ``tot_aeff``'s own grid before being applied.
+
+        Parameters
+        ----------
+        irf : histpy.Histogram
+            The 6D response histogram, still in area (cm^2) units --
+            i.e. before the phase-space division that produces
+            ``_diff_aeff``.
+        tot_aeff : histpy.Histogram
+            The (as yet unmodified) total effective area to scale.
+        selector : EnergySelector
+            The (possibly multi-range) combined energy selection.
+        same_grid : bool
+            True if ``tot_aeff`` shares ``irf``'s own ``NuLambda``/``Ei``
+            grid (i.e. no separate ``aeff`` histogram was given), so the
+            fraction can be applied directly without interpolation.
+
+        Returns
+        -------
+        histpy.Histogram
+            ``tot_aeff``, scaled by the selection fraction.
+        """
+
+        epsilon_axis = irf.axes['Epsilon']
+        ei_centers = irf.axes['Ei'].centers
+        epsilon_centers = epsilon_axis.centers
+        epsilon_widths = epsilon_axis.widths
+        epsilon_edges = epsilon_axis.edges
+
+        irf_tot = irf.project('NuLambda', 'Ei')  # cm^2, irf's own grid
+        aeff_vs_epsilon = irf.project('NuLambda', 'Ei', 'Epsilon').contents  # cm^2
+
+        npix = irf_tot.contents.shape[0]
+        fraction = np.ones(irf_tot.contents.shape)
+
+        for i, ei in enumerate(ei_centers):
+            density_i = aeff_vs_epsilon[:, i, :] / epsilon_widths[None, :]
+
+            selected_total = np.zeros(npix)
+
+            for lo_keV, hi_keV in selector.energy_ranges_keV:
+                eps_lo = np.clip(lo_keV / ei - 1, epsilon_edges[0], epsilon_edges[-1])
+                eps_hi = np.clip(hi_keV / ei - 1, epsilon_edges[0], epsilon_edges[-1])
+
+                if eps_lo <= epsilon_edges[0] and eps_hi >= epsilon_edges[-1]:
+                    # This range alone covers the whole bin -- exact,
+                    # and no other range can add anything more.
+                    selected_total = irf_tot.contents[:, i]
+                    break
+
+                selected_total = selected_total + IRFRelativeHistUnpolarized._integrate_piecewise_linear(
+                    density_i, epsilon_centers, eps_lo, eps_hi)
+
+            with np.errstate(invalid='ignore', divide='ignore'):
+                fraction[:, i] = np.nan_to_num(selected_total / irf_tot.contents[:, i])
+
+        fraction_hist = Histogram(irf_tot.axes, contents=fraction)
+
+        if same_grid:
+            return tot_aeff * fraction_hist
+
+        nulambda_dir = tot_aeff.axes['NuLambda'].pix2skycoord(np.arange(tot_aeff.axes['NuLambda'].nbins))
+        target_ei_keV = tot_aeff.axes['Ei'].centers
+
+        lon_mesh, ei_mesh = np.meshgrid(nulambda_dir.lon.rad, target_ei_keV, indexing='ij')
+        lat_mesh, _ = np.meshgrid(nulambda_dir.lat.rad, target_ei_keV, indexing='ij')
+
+        photon_dir = UnitSphericalRepresentation(lon=Quantity(lon_mesh, 'rad', copy=False),
+                                                 lat=Quantity(lat_mesh, 'rad', copy=False))
+
+        interp_fraction = fraction_hist.interp(photon_dir, ei_mesh)
+
+        return tot_aeff * interp_fraction
+
+    @staticmethod
+    def _integrate_piecewise_linear(values: np.ndarray, x_centers: np.ndarray,
+                                     x_lo: float, x_hi: float) -> np.ndarray:
+        """
+        Definite integral, over the last axis, from ``x_lo`` to
+        ``x_hi``, of the function that equals ``values`` at each of
+        ``x_centers`` and linearly interpolates between consecutive
+        centers -- the same model ``histpy.Histogram.interp()`` uses
+        for a bin's stored value -- held flat (constant) beyond the
+        first/last center. ``x_lo``/``x_hi`` may be anywhere; they are
+        not assumed to already lie within ``[x_centers[0], x_centers[-1]]``.
+
+        Parameters
+        ----------
+        values : numpy.ndarray
+            Values sampled at ``x_centers``, along the last axis;
+            leading axes are broadcast/vectorized over.
+        x_centers : numpy.ndarray
+            Strictly increasing sample points.
+        x_lo, x_hi : float
+            Integration bounds.
+
+        Returns
+        -------
+        numpy.ndarray
+            The definite integral, with ``values``'s leading shape.
+        """
+
+        if x_hi <= x_lo:
+            return np.zeros(values.shape[:-1])
+
+        total = np.zeros(values.shape[:-1])
+
+        # Flat extrapolation below the first / above the last center.
+        lo_flat_hi = min(x_hi, x_centers[0])
+        if lo_flat_hi > x_lo:
+            total = total + values[..., 0] * (lo_flat_hi - x_lo)
+
+        hi_flat_lo = max(x_lo, x_centers[-1])
+        if x_hi > hi_flat_lo:
+            total = total + values[..., -1] * (x_hi - hi_flat_lo)
+
+        # Interior: piecewise-linear interpolation between centers.
+        interior_lo = max(x_lo, x_centers[0])
+        interior_hi = min(x_hi, x_centers[-1])
+
+        if interior_hi > interior_lo:
+            interior_points = x_centers[(x_centers > interior_lo) & (x_centers < interior_hi)]
+            breakpoints = np.concatenate(([interior_lo], interior_points, [interior_hi]))
+
+            idx = np.clip(np.searchsorted(x_centers, breakpoints, side='right') - 1,
+                          0, len(x_centers) - 2)
+            x0, x1 = x_centers[idx], x_centers[idx + 1]
+            w = (breakpoints - x0) / (x1 - x0)
+            v = values[..., idx] * (1 - w) + values[..., idx + 1] * w
+
+            total = total + np.trapezoid(v, breakpoints, axis=-1)
+
+        return total
+
+    @staticmethod
     def _standardize_aeff(aeff: Histogram, copy: bool) -> Histogram:
         """
         Validate a standalone total-effective-area histogram (the
@@ -368,8 +557,8 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
             histogram).
         *args, **kwargs
             Extra arguments forwarded verbatim to
-            :meth:`__init__` (e.g. ``aeff``, ``copy``, ``nthreads`` or
-            ``npoints_parallel_thresh``).
+            :meth:`__init__` (e.g. ``aeff``, ``copy``, ``nthreads``,
+            ``npoints_parallel_thresh`` or ``selections``).
 
         Returns
         -------

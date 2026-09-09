@@ -93,6 +93,13 @@ if __name__ == "__main__":
     irf_mode = "hist"
     #irf_mode = "mixed"
 
+    # Optional measured-energy cut, baked into the IRF's total effective
+    # area normalization (see IRFRelativeHistUnpolarized's `selections`
+    # parameter) -- None by default (no cut). E.g. energy_cut_min = 200
+    # * u.keV, energy_cut_max = 5000 * u.keV.
+    energy_cut_min = None
+    energy_cut_max = None
+
     start_time = time.time()
 
     # In[ ]:
@@ -183,10 +190,18 @@ if __name__ == "__main__":
 
     if irf_mode == 'hist':
 
+        selections = None
+        if energy_cut_min is not None or energy_cut_max is not None:
+            from cosipy.event_selection import EnergySelector
+            lo = energy_cut_min if energy_cut_min is not None else 0 * u.keV
+            hi = energy_cut_max if energy_cut_max is not None else np.inf * u.keV
+            selections = EnergySelector(u.Quantity([[lo.to_value(u.keV), hi.to_value(u.keV)]], u.keV))
+
         # Just new hist
         irf = IRFRelativeHistUnpolarized.from_h5(
             "/Users/imartin5/cosi/scratch/response_relative_coordinates/v4/ResponseContinuum.area.relative.nonsparse.h5",
-        nthreads = 10)
+        nthreads = 10,
+        selections = selections)
 
     elif irf_mode == 'mixed':
 
