@@ -288,14 +288,20 @@ class TestEnergySelections:
         expected = density_per_solid_angle_bin * 0.3 * n_phi * n_theta * n_zeta
         np.testing.assert_allclose(model._tot_aeff.contents, expected)
 
-    def test_tuple_of_selectors_combines_via_intersect(self):
-        wide = EnergySelector(u.Quantity([100., 900.], u.keV))
-        narrow = EnergySelector(u.Quantity([300., 600.], u.keV))
+    def test_tuple_of_selectors_combines_via_union(self):
+        """A tuple of EnergySelectors passed to selections= is OR'd
+        together (each entry is an acceptable window), matching
+        EnergySelector.union -- not intersected/AND'd."""
 
-        via_tuple = IRFRelativeHistUnpolarized(_make_irf_hist(seed=3), selections=(wide, narrow))
-        via_combined = IRFRelativeHistUnpolarized(_make_irf_hist(seed=3), selections=wide.intersect(narrow))
+        a = EnergySelector(u.Quantity([100., 500.], u.keV))
+        b = EnergySelector(u.Quantity([400., 900.], u.keV))  # overlaps a
 
-        np.testing.assert_allclose(via_tuple._tot_aeff.contents, via_combined._tot_aeff.contents)
+        via_tuple = IRFRelativeHistUnpolarized(_make_irf_hist(seed=3), selections=(a, b))
+        via_union = IRFRelativeHistUnpolarized(_make_irf_hist(seed=3), selections=a.union(b))
+        via_intersect = IRFRelativeHistUnpolarized(_make_irf_hist(seed=3), selections=a.intersect(b))
+
+        np.testing.assert_allclose(via_tuple._tot_aeff.contents, via_union._tot_aeff.contents)
+        assert not np.allclose(via_tuple._tot_aeff.contents, via_intersect._tot_aeff.contents)
 
     def test_multi_range_selector_sums_disjoint_windows(self):
         """A single EnergySelector with two disjoint ranges should give

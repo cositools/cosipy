@@ -114,8 +114,12 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         applied to the event data being fit (e.g. via the same
         ``EnergySelector``). Only ``EnergySelector`` is currently
         supported; anything else raises ``TypeError``. If a tuple is
-        given, the cuts combine with AND semantics (intersected via
-        ``EnergySelector.intersect``).
+        given, the cuts combine with OR semantics (unioned via
+        ``EnergySelector.union``) -- i.e. each entry is treated as an
+        acceptable energy window, and an event/bin passes if it falls
+        in any of them. For AND semantics, pass a single
+        pre-intersected ``EnergySelector`` (e.g.
+        ``sel1.intersect(sel2)``) instead of a tuple.
 
         For each ``(NuLambda, Ei)`` bin, ``_tot_aeff`` is scaled by the
         fraction of that bin's effective area whose measured energy
@@ -242,7 +246,7 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
                                  f"selections currently, got {type(sel)}")
 
         if selections:
-            combined_selector = functools.reduce(EnergySelector.intersect, selections)
+            combined_selector = functools.reduce(EnergySelector.union, selections)
             self._tot_aeff = self._apply_energy_selection(irf, self._tot_aeff, combined_selector,
                                                             same_grid = aeff is None)
 
