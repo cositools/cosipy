@@ -20,7 +20,12 @@ class ChainEventSelectors(EventSelectorInterface):
         # - The output of all selectors might be numpy arrays, so we can use masking instead
 
         events_copies = itertools.tee(events, len(self._selectors))
-        masks = [sel._select(sel.event_data_type.fromiter(events_i), early_stop)
+
+        # Materialize each branch into a list. A selector's EventDataInterface
+        # properties (e.g. jd1, jd2, distance_cm) may each iterate over the
+        # events independently, but a bare tee() branch is a single-use
+        # iterator: a second pass over it would silently come back empty.
+        masks = [sel._select(sel.event_data_type.fromiter(list(events_i)), early_stop)
                  for sel, events_i in zip(self._selectors, events_copies)]
 
         for selected in zip(*masks):
