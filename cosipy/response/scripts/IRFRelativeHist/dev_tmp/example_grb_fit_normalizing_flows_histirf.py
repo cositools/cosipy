@@ -185,7 +185,8 @@ if __name__ == "__main__":
 
         # Just new hist
         irf = IRFRelativeHistUnpolarized.from_h5(
-            "/Users/imartin5/cosi/scratch/response_relative_coordinates/v4/ResponseContinuum.area.relative.nonsparse.h5")
+            "/Users/imartin5/cosi/scratch/response_relative_coordinates/v4/ResponseContinuum.area.relative.nonsparse.h5",
+        nthreads = 10)
 
     elif irf_mode == 'mixed':
 
