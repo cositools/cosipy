@@ -95,6 +95,8 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         machines -- but only once there's enough work per thread to be
         worth the fan-out/synchronization cost, see
         ``npoints_parallel_thresh``.
+        NOTE: the bottleneck is the searchsorted algorithm, which is limited by L3 memory.
+        You'll get diminishing returns beyond 5-10 threads.
     npoints_parallel_thresh : int, optional
         Minimum number of points per thread for parallelization to be
         used. Below ``nthreads * npoints_parallel_thresh`` points,
