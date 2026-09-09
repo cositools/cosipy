@@ -93,6 +93,15 @@ if __name__ == "__main__":
     irf_mode = "hist"
     #irf_mode = "mixed"
 
+    # Optional measured-energy cut -- None by default (no cut). E.g.
+    # energy_cut_min = 200 * u.keV, energy_cut_max = 5000 * u.keV.
+    # Applied both to the event data (below) and to the IRF's total
+    # effective area normalization (see IRFRelativeHistUnpolarized's
+    # `selections` parameter), via the same EnergySelector, so the two
+    # stay consistent with each other.
+    energy_cut_min = None
+    energy_cut_max = None
+
     start_time = time.time()
 
     # In[ ]:
@@ -132,17 +141,30 @@ if __name__ == "__main__":
     data_file = [grb_data_path]
     time_selector = TimeSelector(tstart = sc_orientation.tstart, tstop = sc_orientation.tstop)
 
+    energy_selector = None
+    if energy_cut_min is not None or energy_cut_max is not None:
+        from cosipy.event_selection import EnergySelector
+        lo = energy_cut_min if energy_cut_min is not None else 0 * u.keV
+        hi = energy_cut_max if energy_cut_max is not None else np.inf * u.keV
+        energy_selector = EnergySelector(u.Quantity([[lo.to_value(u.keV), hi.to_value(u.keV)]], u.keV))
 
     if irf_mode == 'hist':
         from cosipy.event_selection import DistanceSelector, ChainEventSelectors
         distance_selector = DistanceSelector(min_distance=1 * u.cm)
-        selector = ChainEventSelectors(distance_selector, time_selector)
+        selectors = [distance_selector, time_selector]
+        if energy_selector is not None:
+            selectors.append(energy_selector)
+        selector = ChainEventSelectors(*selectors)
 
     elif irf_mode in ['nn', 'mixed']:
 
         # Mixed get the Aeff from nn, so no
 
-        selector = time_selector
+        if energy_selector is not None:
+            from cosipy.event_selection import ChainEventSelectors
+            selector = ChainEventSelectors(time_selector, energy_selector)
+        else:
+            selector = time_selector
 
     else:
         raise RuntimeError(f"irf_mode {irf_mode} is not supported.")
@@ -183,10 +205,13 @@ if __name__ == "__main__":
 
     if irf_mode == 'hist':
 
-        # Just new hist
+        # Just new hist -- same energy_selector as the event-data cut
+        # above, so the IRF's normalization and the fitted events stay
+        # consistent with each other.
         irf = IRFRelativeHistUnpolarized.from_h5(
             "/Users/imartin5/cosi/scratch/response_relative_coordinates/v4/ResponseContinuum.area.relative.nonsparse.h5",
-        nthreads = 10)
+        nthreads = 10,
+        selections = energy_selector)
 
     elif irf_mode == 'mixed':
 
