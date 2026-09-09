@@ -33,7 +33,7 @@ from cosipy.response.relative_irf_hist import IRFRelativeHistUnpolarized
 
 # Set to a path to benchmark against a real response file instead of the
 # synthetic one built by _build_synthetic_irf_hist() below.
-REAL_IRF_PATH = None  # e.g. Path("/path/to/ResponseContinuum.area.relative.nonsparse.h5")
+REAL_IRF_PATH = "/Users/imartin5/cosi/scratch/response_relative_coordinates/v4/ResponseContinuum.area.relative.nonsparse.h5"  # e.g. Path("/path/to/ResponseContinuum.area.relative.nonsparse.h5")
 
 # Synthetic histogram shape, used only if REAL_IRF_PATH is None. These are
 # in the ballpark of a real production response (see the module docstring
@@ -54,7 +54,7 @@ NTHREADS = [1, 2, 4, 8]
 # being sanity-checked -- lower it and re-run if the speedup at your
 # smallest relevant N is worse than expected, raise it if larger N are
 # still slower than nthreads=1.
-BATCH_SIZE = 20_000
+BATCH_SIZE = 1
 
 
 class _FakePhotonList:
