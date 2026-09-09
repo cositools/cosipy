@@ -93,14 +93,15 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         (fancy indexing + reduction) that releases the GIL for large
         inputs, so values > 1 can give a real speedup on multi-core
         machines -- but only once there's enough work per thread to be
-        worth the fan-out/synchronization cost, see ``batch_size``.
-    batch_size : int, optional
+        worth the fan-out/synchronization cost, see
+        ``npoints_parallel_thresh``.
+    npoints_parallel_thresh : int, optional
         Minimum number of points per thread for parallelization to be
-        used. Below ``nthreads * batch_size`` points,
+        used. Below ``nthreads * npoints_parallel_thresh`` points,
         :meth:`effective_area_cm2`/:meth:`differential_effective_area_cm2`
         call ``interp()`` directly, single-threaded, regardless of
         ``nthreads`` -- fanning small workloads out across threads costs
-        more than it saves. Defaults to ``20000``; only matters when
+        more than it saves. Defaults to ``1000``; only matters when
         ``nthreads`` > 1.
     """
 
@@ -112,7 +113,7 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
                  aeff: Histogram = None,
                  copy = True,
                  nthreads = 1,
-                 batch_size = 20000):
+                 npoints_parallel_thresh = 1000):
         """
         Validate the input histogram(s), standardize their axis units,
         and pre-compute the total and differential effective area used
@@ -133,7 +134,7 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         nthreads : int, optional
             Number of worker threads for parallel interpolation. See the
             class docstring.
-        batch_size : int, optional
+        npoints_parallel_thresh : int, optional
             Minimum points per thread before parallelizing. See the
             class docstring.
 
@@ -236,7 +237,7 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
 
         # Extra params
         self._nthreads = nthreads
-        self._batch_size = batch_size
+        self._npoints_parallel_thresh = npoints_parallel_thresh
         self._executor = ThreadPoolExecutor(max_workers=nthreads) if nthreads > 1 else None
 
     def _parallel_interp(self, hist, build_args, raw_arrays):
@@ -254,7 +255,7 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         enough points per thread. Below that, the fixed cost of fanning
         work out across threads and gathering results back dominates and
         makes it slower than calling ``interp()`` directly -- hence the
-        ``_batch_size``-based threshold below.
+        ``_npoints_parallel_thresh``-based threshold below.
 
         Parameters
         ----------
@@ -281,10 +282,10 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
 
         n = len(raw_arrays[0])
 
-        if self._executor is None or n < self._nthreads * self._batch_size:
+        if self._executor is None or n < self._nthreads * self._npoints_parallel_thresh:
             return hist.interp(*build_args(*raw_arrays))
 
-        nchunks = min(self._nthreads, max(1, n // self._batch_size))
+        nchunks = min(self._nthreads, max(1, n // self._npoints_parallel_thresh))
         chunks = zip(*(np.array_split(a, nchunks) for a in raw_arrays))
         futures = [self._executor.submit(lambda c=c: hist.interp(*build_args(*c)))
                    for c in chunks]
@@ -366,7 +367,7 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         *args, **kwargs
             Extra arguments forwarded verbatim to
             :meth:`__init__` (e.g. ``aeff``, ``copy``, ``nthreads`` or
-            ``batch_size``).
+            ``npoints_parallel_thresh``).
 
         Returns
         -------

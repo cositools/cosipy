@@ -2,16 +2,16 @@
 # coding: UTF-8
 
 """
-Benchmark IRFRelativeHistUnpolarized's nthreads/batch_size parallelization
-of effective_area_cm2()/differential_effective_area_cm2() (see
-cosipy/response/relative_irf_hist.py).
+Benchmark IRFRelativeHistUnpolarized's nthreads/npoints_parallel_thresh
+parallelization of effective_area_cm2()/differential_effective_area_cm2()
+(see cosipy/response/relative_irf_hist.py).
 
 This is a standalone timing script, not a pytest test: it prints a table
 of wall time and speedup vs. nthreads=1, and has no pass/fail assertions.
-Its purpose is to sanity-check (and, if needed, adjust) the batch_size
-default against a realistically-sized histogram -- the number that
-actually matters is the *speedup*, not the absolute times, which will vary
-with the machine this runs on.
+Its purpose is to sanity-check (and, if needed, adjust) the
+npoints_parallel_thresh default against a realistically-sized histogram --
+the number that actually matters is the *speedup*, not the absolute times,
+which will vary with the machine this runs on.
 
 By default it builds a synthetic histogram of configurable (but
 "realistic", in the sense of matching production axis sizes) shape --
@@ -50,11 +50,11 @@ SYNTHETIC_N_ZETA = 30
 N_POINTS = [100, 1_000, 10_000, 100_000, 1_000_000]
 NTHREADS = [1, 2, 4, 8]
 
-# batch_size to use for every nthreads > 1 case below. This is the number
-# being sanity-checked -- lower it and re-run if the speedup at your
-# smallest relevant N is worse than expected, raise it if larger N are
+# npoints_parallel_thresh to use for every nthreads > 1 case below. This is
+# the number being sanity-checked -- lower it and re-run if the speedup at
+# your smallest relevant N is worse than expected, raise it if larger N are
 # still slower than nthreads=1.
-BATCH_SIZE = 1
+NPOINTS_PARALLEL_THRESH = 1
 
 
 class _FakePhotonList:
@@ -149,7 +149,7 @@ def main():
         # Histogram.copy() doesn't deep-copy individual Axis objects --
         # reusing one across models would corrupt each other's axes.
         model = IRFRelativeHistUnpolarized(_load_or_build_irf_hist(), nthreads=nthreads,
-                                           batch_size=BATCH_SIZE, copy=False)
+                                           npoints_parallel_thresh=NPOINTS_PARALLEL_THRESH, copy=False)
 
         for method_name in ["effective_area_cm2", "differential_effective_area_cm2"]:
             for n in N_POINTS:

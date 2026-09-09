@@ -146,8 +146,9 @@ def _make_photons_and_events(n, seed=42):
 
 
 class TestParallelInterp:
-    """nthreads > 1 (with a small batch_size so the parallel path actually
-    triggers at small, fast-to-test N) must give the same results as
+    """nthreads > 1 (with a small npoints_parallel_thresh so the parallel
+    path actually triggers at small, fast-to-test N) must give the same
+    results as
     nthreads=1 -- chunking the input and concatenating the per-chunk
     results should be numerically transparent, since each point's
     interpolation is independent of every other point's."""
@@ -167,9 +168,9 @@ class TestParallelInterp:
         # models built from copies of the *same* underlying histogram
         # would corrupt each other's axes.
         serial_model = IRFRelativeHistUnpolarized(_make_irf_hist(), nthreads=1)
-        # batch_size=1 -> threshold is nthreads*batch_size=4 points, so the
-        # parallel path triggers well below the N used here.
-        parallel_model = IRFRelativeHistUnpolarized(_make_irf_hist(), nthreads=4, batch_size=1)
+        # npoints_parallel_thresh=1 -> threshold is nthreads*thresh=4
+        # points, so the parallel path triggers well below the N used here.
+        parallel_model = IRFRelativeHistUnpolarized(_make_irf_hist(), nthreads=4, npoints_parallel_thresh=1)
 
         # N=37: deliberately not a multiple of nthreads, to exercise
         # np.array_split's uneven-chunk behavior.
@@ -182,7 +183,7 @@ class TestParallelInterp:
 
     def test_differential_effective_area_cm2_matches_serial(self):
         serial_model = IRFRelativeHistUnpolarized(_make_irf_hist(), nthreads=1)
-        parallel_model = IRFRelativeHistUnpolarized(_make_irf_hist(), nthreads=4, batch_size=1)
+        parallel_model = IRFRelativeHistUnpolarized(_make_irf_hist(), nthreads=4, npoints_parallel_thresh=1)
 
         photons, events = _make_photons_and_events(37)
 
@@ -191,14 +192,14 @@ class TestParallelInterp:
 
         np.testing.assert_allclose(parallel_result, serial_result)
 
-    def test_matches_serial_below_batch_size_threshold(self):
-        """Same as above, but with N below nthreads*batch_size, so the
-        parallel model's _parallel_interp() takes its direct,
+    def test_matches_serial_below_npoints_parallel_thresh(self):
+        """Same as above, but with N below nthreads*npoints_parallel_thresh,
+        so the parallel model's _parallel_interp() takes its direct,
         single-threaded branch -- should trivially still match, and
         confirms that branch is exercised too."""
 
         serial_model = IRFRelativeHistUnpolarized(_make_irf_hist(), nthreads=1)
-        parallel_model = IRFRelativeHistUnpolarized(_make_irf_hist(), nthreads=4, batch_size=20000)
+        parallel_model = IRFRelativeHistUnpolarized(_make_irf_hist(), nthreads=4, npoints_parallel_thresh=1000)
 
         photons, events = _make_photons_and_events(5)
 
