@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from typing import Iterable, Tuple
 
 import numpy as np
@@ -83,9 +84,24 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         If True (default) the input histogram(s) are copied before
         their axes and contents are modified in place. Set to False to
         avoid the copy when the caller no longer needs the original(s).
+    nthreads : int, optional
+        Number of worker threads used to parallelize
+        :meth:`effective_area_cm2`/:meth:`differential_effective_area_cm2`
+        over large photon/event lists. Defaults to ``1`` (no thread pool,
+        no behavior change from before this parameter existed). The
+        underlying ``histpy.Histogram.interp()`` call is vectorized numpy
+        (fancy indexing + reduction) that releases the GIL for large
+        inputs, so values > 1 can give a real speedup on multi-core
+        machines -- but only once there's enough work per thread to be
+        worth the fan-out/synchronization cost, see ``batch_size``.
     batch_size : int, optional
-        Number of events to process per batch when the response is
-        evaluated on large event lists. Defaults to ``100000``.
+        Minimum number of points per thread for parallelization to be
+        used. Below ``nthreads * batch_size`` points,
+        :meth:`effective_area_cm2`/:meth:`differential_effective_area_cm2`
+        call ``interp()`` directly, single-threaded, regardless of
+        ``nthreads`` -- fanning small workloads out across threads costs
+        more than it saves. Defaults to ``20000``; only matters when
+        ``nthreads`` > 1.
     """
 
     event_data_type = EmCDSEventDataInSCFrameInterface
@@ -95,7 +111,8 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
                  irf: Histogram,
                  aeff: Histogram = None,
                  copy = True,
-                 batch_size=100000):
+                 nthreads = 1,
+                 batch_size = 20000):
         """
         Validate the input histogram(s), standardize their axis units,
         and pre-compute the total and differential effective area used
@@ -113,8 +130,12 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
             class docstring.
         copy : bool, optional
             Whether to copy ``irf``/``aeff`` before modifying them.
+        nthreads : int, optional
+            Number of worker threads for parallel interpolation. See the
+            class docstring.
         batch_size : int, optional
-            Event batch size used by downstream evaluators.
+            Minimum points per thread before parallelizing. See the
+            class docstring.
 
         Raises
         ------
@@ -214,7 +235,61 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         self._diff_aeff = irf
 
         # Extra params
+        self._nthreads = nthreads
         self._batch_size = batch_size
+        self._executor = ThreadPoolExecutor(max_workers=nthreads) if nthreads > 1 else None
+
+    def _parallel_interp(self, hist, build_args, raw_arrays):
+        """
+        Interpolate ``hist`` at the points described by ``raw_arrays``,
+        splitting the work across :attr:`_nthreads` worker threads when
+        there's enough of it to be worth it.
+
+        ``histpy.Histogram.interp()``'s bottleneck (fancy-indexing the
+        contents array, then a stack/reduction, done once per axis-bin
+        combination -- see ``Histogram._interp_multilinear``) is
+        vectorized numpy that releases the GIL for large inputs, so
+        splitting the input points into chunks and interpolating each in
+        its own thread gives real wall-clock speedup once there are
+        enough points per thread. Below that, the fixed cost of fanning
+        work out across threads and gathering results back dominates and
+        makes it slower than calling ``interp()`` directly -- hence the
+        ``_batch_size``-based threshold below.
+
+        Parameters
+        ----------
+        hist : histpy.Histogram
+            The histogram to interpolate (``self._tot_aeff`` or
+            ``self._diff_aeff``).
+        build_args : callable
+            Takes the (possibly chunked) raw arrays and returns the
+            positional arguments ``hist.interp()`` expects. This is
+            where e.g. a raw (lon, lat) pair gets wrapped into an
+            ``astropy.coordinates.UnitSphericalRepresentation`` for the
+            ``NuLambda`` axis -- cheaply, and once per chunk rather than
+            once for the whole input.
+        raw_arrays : tuple of numpy.ndarray
+            The flat arrays to (maybe) split across threads. All must
+            have the same length.
+
+        Returns
+        -------
+        numpy.ndarray
+            The concatenated interpolated values, in the original point
+            order.
+        """
+
+        n = len(raw_arrays[0])
+
+        if self._executor is None or n < self._nthreads * self._batch_size:
+            return hist.interp(*build_args(*raw_arrays))
+
+        nchunks = min(self._nthreads, max(1, n // self._batch_size))
+        chunks = zip(*(np.array_split(a, nchunks) for a in raw_arrays))
+        futures = [self._executor.submit(lambda c=c: hist.interp(*build_args(*c)))
+                   for c in chunks]
+
+        return np.concatenate([f.result() for f in futures])
 
     @staticmethod
     def _standardize_aeff(aeff: Histogram, copy: bool) -> Histogram:
@@ -290,7 +365,7 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
             histogram).
         *args, **kwargs
             Extra arguments forwarded verbatim to
-            :meth:`__init__` (e.g. ``aeff``, ``copy`` or
+            :meth:`__init__` (e.g. ``aeff``, ``copy``, ``nthreads`` or
             ``batch_size``).
 
         Returns
@@ -313,7 +388,8 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
 
         Interpolates the ``NuLambda``/``Ei`` projection of the full
         response at the direction and energy of each photon in the
-        list.
+        list. See :meth:`_parallel_interp` for how this is (optionally)
+        parallelized over threads.
 
         Parameters
         ----------
@@ -326,15 +402,26 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
             One effective-area value per photon, in cm^2.
         """
 
-        photon_dir, photon_energy_keV = self._photon_list_to_raw_values(photons)
+        photon_lon_rad, photon_lat_rad, photon_energy_keV = self._photon_list_to_raw_values(photons)
 
-        return self._tot_aeff.interp(photon_dir, photon_energy_keV)
+        def build_args(lon_rad, lat_rad, energy_keV):
+            photon_dir = UnitSphericalRepresentation(lon=Quantity(lon_rad, 'rad', copy=False),
+                                                     lat=Quantity(lat_rad, 'rad', copy=False))
+            return photon_dir, energy_keV
+
+        return self._parallel_interp(self._tot_aeff, build_args,
+                                     (photon_lon_rad, photon_lat_rad, photon_energy_keV))
 
     @staticmethod
     def _photon_list_to_raw_values(photons:PhotonListWithDirectionAndEnergyInSCFrameInterface):
         """
         Extract the raw arrays required to evaluate the response from
         a photon list.
+
+        Returned as plain arrays, rather than a prebuilt
+        ``UnitSphericalRepresentation``, so callers can split them into
+        chunks (e.g. for :meth:`_parallel_interp`) with ``np.array_split``
+        before building coordinate objects per chunk.
 
         Parameters
         ----------
@@ -344,8 +431,10 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
 
         Returns
         -------
-        photon_dir : astropy.coordinates.UnitSphericalRepresentation
-            Photon directions in the spacecraft frame.
+        photon_lon_rad : numpy.ndarray
+            Photon longitudes in the spacecraft frame, in radians.
+        photon_lat_rad : numpy.ndarray
+            Photon latitudes in the spacecraft frame, in radians.
         photon_energy_keV : numpy.ndarray
             Photon energies in keV, as a float array.
         """
@@ -356,12 +445,9 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         # against.
         photon_lat_rad = np.clip(asarray(photons.direction_lat_rad_sc, float), -np.pi / 2, np.pi / 2)
 
-        photon_dir = UnitSphericalRepresentation(lon=Quantity(photon_lon_rad, 'rad', copy=False),
-                                                 lat=Quantity(photon_lat_rad, 'rad', copy=False))
-
         photon_energy_keV = asarray(photons.energy_keV, float)
 
-        return photon_dir, photon_energy_keV
+        return photon_lon_rad, photon_lat_rad, photon_energy_keV
 
     def _differential_effective_area_cm2(self, photons:PhotonListWithDirectionAndEnergyInSCFrameInterface, events: EmCDSEventDataInSCFrameInterface) -> Iterable[float]:
         """
@@ -400,7 +486,10 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
             (photon, event) pair, in ``cm^2 / sr / rad / keV``.
         """
 
-        photon_dir, photon_energy_keV = self._photon_list_to_raw_values(photons)
+        photon_lon_rad, photon_lat_rad, photon_energy_keV = self._photon_list_to_raw_values(photons)
+
+        photon_dir = UnitSphericalRepresentation(lon=Quantity(photon_lon_rad, 'rad', copy=False),
+                                                 lat=Quantity(photon_lat_rad, 'rad', copy=False))
 
         psichi_lon_rad = asarray(events.scattered_lon_rad_sc, float)
 
@@ -431,12 +520,18 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
 
         theta_rad = phi_geo_rad - phi_kin_rad
 
-        return self._diff_aeff.interp(photon_dir,
-                                       photon_energy_keV,
-                                       epsilon,
-                                       phi_kin_rad,
-                                       theta_rad,
-                                       zeta_rad)
+        # The relative-coordinate math above is already fully vectorized
+        # over the whole input and cheap relative to the interpolation
+        # below, so only the interp() call itself is (optionally)
+        # parallelized -- see _parallel_interp.
+        def build_args(lon_rad, lat_rad, energy_keV, eps, phi, theta, zeta_r):
+            photon_dir_chunk = UnitSphericalRepresentation(lon=Quantity(lon_rad, 'rad', copy=False),
+                                                            lat=Quantity(lat_rad, 'rad', copy=False))
+            return photon_dir_chunk, energy_keV, eps, phi, theta, zeta_r
+
+        return self._parallel_interp(self._diff_aeff, build_args,
+                                     (photon_lon_rad, photon_lat_rad, photon_energy_keV,
+                                      epsilon, phi_kin_rad, theta_rad, zeta_rad))
 
 
     def _random_events(self, photons: PhotonListWithDirectionInSCFrameInterface) -> EventDataInterface:
