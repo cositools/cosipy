@@ -227,7 +227,6 @@ def test_binned_sed_integral():
     spectrum = BinnedSED.from_response(
         response,
         initial_fluxes=1e-6 * np.arange(1, len(x)),
-        index=-2.0,
     )
 
     v = get_integral_values(spectrum, x)
