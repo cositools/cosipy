@@ -23,6 +23,7 @@ from cosipy.pipeline.src.preprocessing import get_binned_data, write_yaml
 from pathlib import Path
 from histpy import Histogram
 from cosipy import FastTSMap,MOCTSMap
+from cosipy.spacecraftfile import SpacecraftHistory
 
 from astromodels.core.model_parser import ModelParser
 
