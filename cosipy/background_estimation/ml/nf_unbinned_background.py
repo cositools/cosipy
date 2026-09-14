@@ -3,6 +3,7 @@ from typing import Dict, Iterable, Type, Optional
 from astropy import units as u
 import numpy as np
 import torch
+import sys
 
 from cosipy import SpacecraftHistory
 from cosipy.interfaces.event import EventInterface
@@ -34,7 +35,7 @@ class FreeNormNFUnbinnedBackground(EnergySelectorNormalizationMixin, BackgroundD
 
         self._norm = 1
         self._label = label
-        self._offset: Optional[float] = 1e-12
+        self._offset: Optional[float] = sys.float_info.min
         
         self._type_map = NFBkgNormalizationMap
         self._load_selector(selector)
