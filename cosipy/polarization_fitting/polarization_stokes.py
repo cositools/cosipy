@@ -233,7 +233,8 @@ class PolarizationStokes(PolarizationFitting):
         and their associated 1-sigma uncertainties given Q and U
         measurements from both polarized and unpolarized data sets.
 
-        This implements equations (21), (22), (36), and (37) from Kislat et al. (2015).
+        This implements equations (21), (22), (36), and (37) from
+        Kislat et al. (2015).
 
         Parameters
         ----------
@@ -296,6 +297,8 @@ class PolarizationStokes(PolarizationFitting):
             src_Q = data_Q
             src_U = data_U
 
+            sI = np.sqrt(data_I) # eqn 10a
+
         else:
             logger.info('Background provided, subtracting its contribution.')
 
@@ -325,6 +328,8 @@ class PolarizationStokes(PolarizationFitting):
             src_Q = data_Q - self._backscal * bkg_Q
             src_U = data_U - self._backscal * bkg_U
 
+            sI = np.sqrt(data_I + self._backscal**2 * bkg_I)
+
         # normalized Q and U sums
         src_QN = src_Q / src_I # eqn 9b
         src_UN = src_U / src_I # eqn 9c
@@ -346,7 +351,8 @@ class PolarizationStokes(PolarizationFitting):
         # uncertainties in PF and PA
 
         # corrected: eqn 16 leaves out a factor of sqrt(2)/mu
-        sPF = np.sqrt((2/mu**2 - PF**2)/(src_I - 1)) # eqn 16
+        sPF = sI / (src_I - 1) * np.sqrt(2/mu**2 - PF**2) # eqn 16
+
         sPA = sPF / (2 * PF) # eqn 17
 
         PA_out = PolarizationAngle(Angle(np.degrees(PA), unit=u.deg),
