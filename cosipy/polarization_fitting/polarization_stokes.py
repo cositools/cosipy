@@ -297,7 +297,8 @@ class PolarizationStokes(PolarizationFitting):
             src_Q = data_Q
             src_U = data_U
 
-            sI = np.sqrt(data_I) # eqn 10a
+            # uncertainty in src_I, per eqn 10a
+            sI = np.sqrt(data_I)
 
         else:
             logger.info('Background provided, subtracting its contribution.')
@@ -328,6 +329,9 @@ class PolarizationStokes(PolarizationFitting):
             src_Q = data_Q - self._backscal * bkg_Q
             src_U = data_U - self._backscal * bkg_U
 
+            # uncertainty in src_I per eqn 10a, but account for fact
+            # that src_I is a linear combo of two values, each with
+            # its own uncertainty.
             sI = np.sqrt(data_I + self._backscal**2 * bkg_I)
 
         # normalized Q and U sums
