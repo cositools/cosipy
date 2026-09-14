@@ -36,6 +36,10 @@ def test_binned_sed_defaults_to_powerlaw_index_minus_two():
 
     assert isinstance(spectrum.spectral_shape, Powerlaw)
     assert spectrum.spectral_shape.index.value == -2.0
+    assert spectrum.spectral_shape.index.free is False
+    for i in range(spectrum.n_bins):
+        assert spectrum.bin_shape_parameters(i)["index"].value == -2.0
+        assert all(not p.free for p in spectrum.bin_shape_parameters(i).values())
     assert "index" not in spectrum.parameters
 
 
@@ -205,3 +209,225 @@ def test_response_integrals_match_direct_binned_sed_integrals():
     )
 
     assert np.allclose(values, expected)
+
+
+def test_shape_parameter_is_registered_and_free_only_in_selected_bin():
+    shape = Cutoff_powerlaw()
+    shape.index.value = -2
+    shape.xc.value = 600
+    spectrum = BinnedSED.from_response(_response(4), shape)
+    parameters = spectrum.bin_shape_parameters(1)
+    assert parameters["xc"] is spectrum.shape1_xc
+    parameters["xc"].free = True
+    parameters["index"].free = True
+    model = Model(PointSource("source", l=0, b=0, spectral_shape=spectrum))
+    assert {p.rsplit(".", 1)[-1] for p in model.free_parameters} == {
+        "K0", "K1", "K2", "K3", "shape1_xc", "shape1_index",
+    }
+    assert all(not p.free for p in spectrum.bin_shape_parameters(0).values())
+    assert all(not p.free for p in spectrum.bin_shape_parameters(2).values())
+
+
+@pytest.mark.parametrize("parameter,value", [("index", -1.2), ("xc", 900.)])
+def test_changing_one_bin_shape_changes_only_its_values_and_integrals(parameter, value):
+    shape = Cutoff_powerlaw()
+    shape.xc.value = 500
+    spectrum = BinnedSED.from_response(_response(3), shape)
+    energy = spectrum.bin_edges[:-1] * 1.1
+    before = spectrum(energy)
+    integrals_before = get_integral_values(spectrum, spectrum.bin_edges)
+    spectrum.bin_shape_parameters(1)[parameter].value = value
+    after = spectrum(energy)
+    integrals_after = get_integral_values(spectrum, spectrum.bin_edges)
+    np.testing.assert_array_equal(before[[0, 2]], after[[0, 2]])
+    np.testing.assert_array_equal(integrals_before[[0, 2]], integrals_after[[0, 2]])
+    assert not np.isclose(before[1], after[1], rtol=1e-5, atol=0)
+    assert not np.isclose(integrals_before[1], integrals_after[1], rtol=1e-5, atol=0)
+    np.testing.assert_allclose(spectrum(spectrum.pivots), [p.value for p in spectrum.normalizations])
+    changed_shape = spectrum.bin_spectral_shape(1)
+    expected = spectrum.K1.value * changed_shape(energy[1]) / changed_shape(spectrum.pivots[1])
+    np.testing.assert_allclose(after[1], expected)
+    np.testing.assert_allclose(
+        integrals_after,
+        get_integral_values(spectrum, spectrum.bin_edges, force_quad=True),
+        rtol=1e-6,
+    )
+    # The caller's shape and the original reference remain untouched.
+    assert spectrum.spectral_shape.parameters[parameter].value == shape.parameters[parameter].value
+    changed_shape.parameters[parameter].value = shape.parameters[parameter].value
+    assert spectrum.bin_shape_parameters(1)[parameter].value == pytest.approx(value)
+
+
+def test_per_bin_parameters_survive_model_clone_with_units_and_bounds():
+    shape = Cutoff_powerlaw()
+    shape.xc.value = 700
+    shape.xc.bounds = (100, 2000)
+    shape.xc.delta = 10
+    spectrum = BinnedSED.from_response(_response(4), shape, ei_bin_indices=[1, 2])
+    parameter = spectrum.bin_shape_parameters(1)["xc"]
+    assert parameter.bounds == shape.xc.bounds
+    assert parameter.delta == shape.xc.delta
+    parameter.bounds = (100, 5000)
+    parameter.value = 3000  # Outside the original reference bounds.
+    parameter.free = True
+    model = Model(PointSource("source", l=0, b=0, spectral_shape=spectrum))
+    assert parameter.unit == u.keV
+    cloned = clone_model(model).source.spectrum.main.shape
+    other = cloned.bin_shape_parameters(1)["xc"]
+    assert other.free is True
+    assert other.value == pytest.approx(3000)
+    assert other.bounds == (100, 5000)
+    assert other.unit == u.keV
+    assert cloned.bin_shape_parameters(0)["xc"].free is False
+    energy = np.geomspace(*spectrum.bin_edges[[0, -1]], 30)
+    np.testing.assert_allclose(cloned(energy), spectrum(energy))
+    np.testing.assert_allclose(cloned(energy * u.keV).value, spectrum(energy))
+    np.testing.assert_allclose(
+        get_integral_values(cloned, spectrum.bin_edges),
+        get_integral_values(spectrum, spectrum.bin_edges),
+    )
+    other.value = 1500
+    assert parameter.value == pytest.approx(3000)
+
+
+def test_bin_shape_parameter_indices_are_local_and_checked():
+    spectrum = BinnedSED.from_response(_response(4), ei_bin_indices=[2, 3])
+    assert spectrum.bin_shape_parameters(1)["index"] is spectrum.shape1_index
+    for index in (-1, 2):
+        with pytest.raises(IndexError, match="SED bin index"):
+            spectrum.bin_shape_parameters(index)
+    with pytest.raises(TypeError):
+        spectrum.bin_shape_parameters(0.5)
+    with pytest.raises(KeyError):
+        spectrum.bin_shape_parameters(0)["xc"]
+
+
+@pytest.mark.parametrize("family", ["powerlaw", "cutoff_powerlaw"])
+def test_threeml_minuit_fits_a_selected_bin_shape_parameter(family):
+    from threeML import DataList, JointLikelihood
+    from threeML.plugin_prototype import PluginPrototype
+
+    if family == "powerlaw":
+        spectrum = BinnedSED.from_response(_response(2))
+        parameter_name, truth_value = "index", -1.3
+    else:
+        shape = Cutoff_powerlaw()
+        shape.index.value = -2
+        shape.xc.value = 700
+        spectrum = BinnedSED.from_response(_response(2), shape)
+        parameter_name, truth_value = "xc", 400
+    # A small spectral likelihood tests optimizer plumbing, without external
+    # response data. It does not test identifiability in the COSI response.
+    x = np.geomspace(110, 900, 20)
+    truth_shape = spectrum.bin_spectral_shape(0)
+    truth_shape.parameters[parameter_name].value = truth_value
+    truth = 2e-6 * truth_shape(x) / truth_shape(spectrum.pivots[0])
+    unchanged_value = spectrum.bin_shape_parameters(1)[parameter_name].value
+
+    class SpectralData(PluginPrototype):
+        def __init__(self):
+            super().__init__("spectral_data", {})
+
+        def set_model(self, model):
+            self.model = model
+
+        def get_log_like(self):
+            prediction = self.model.source.spectrum.main.shape(x)
+            return -0.5 * np.sum(((prediction - truth) / (0.02 * truth)) ** 2)
+
+        def inner_fit(self):
+            return self.get_log_like()
+
+        def get_number_of_data_points(self):
+            return len(x)
+
+    spectrum.K1.free = False
+    spectrum.bin_shape_parameters(0)[parameter_name].free = True
+    model = Model(PointSource("source", l=0, b=0, spectral_shape=spectrum))
+    fit = JointLikelihood(model, DataList(SpectralData()), verbose=False)
+    fit.set_minimizer("minuit")
+    fit.fit(quiet=True)
+    assert spectrum.K0.value == pytest.approx(2e-6, rel=1e-3)
+    assert spectrum.bin_shape_parameters(0)[parameter_name].value == pytest.approx(truth_value, rel=1e-3)
+    assert spectrum.bin_shape_parameters(1)[parameter_name].value == unchanged_value
+
+
+def test_composite_shape_parameters_and_priors_are_independent():
+    from astromodels import Uniform_prior
+
+    shape = _powerlaw(-1.2) + _powerlaw(-2.5)
+    shape.parameters["index_1"].prior = Uniform_prior(lower_bound=-3, upper_bound=0)
+    spectrum = BinnedSED.from_response(_response(2), shape)
+    first = spectrum.bin_shape_parameters(0)["index_1"]
+    second = spectrum.bin_shape_parameters(1)["index_1"]
+    assert first.prior is not second.prior
+    assert first.prior is not shape.parameters["index_1"].prior
+    before = spectrum([150, 1500])
+    first.value = -1.8
+    first.free = True
+    after = spectrum([150, 1500])
+    assert before[0] != after[0]
+    assert before[1] == after[1]
+    model = Model(PointSource("source", l=0, b=0, spectral_shape=spectrum))
+    cloned = clone_model(model).source.spectrum.main.shape
+    assert cloned.bin_shape_parameters(0)["index_1"].has_prior()
+    assert cloned.bin_shape_parameters(0)["index_1"].free
+    np.testing.assert_allclose(cloned([150, 1500]), after)
+
+
+def test_shape_parameters_preserve_transformations_in_cached_classes():
+    shape = Cutoff_powerlaw()
+    spectrum = BinnedSED.from_response(_response(2), shape)
+    assert type(spectrum.shape0_xc.transformation) is type(shape.xc.transformation)
+    shape.xc.remove_transformation()
+    untransformed = BinnedSED.from_response(_response(2), shape)
+    assert untransformed.shape0_xc.transformation is None
+
+
+def test_per_bin_shape_changes_can_be_compensated_by_normalization():
+    # A response-aligned SED bin supplies one integrated flux to the folding
+    # operation. This degeneracy is why shape parameters are fixed by default.
+    spectrum = BinnedSED.from_response(_response(3))
+    original_flux = get_integral_values(spectrum, spectrum.bin_edges)
+    spectrum.bin_shape_parameters(1)["index"].value = -1.1
+    new_flux = get_integral_values(spectrum, spectrum.bin_edges)
+    spectrum.K1.value *= original_flux[1] / new_flux[1]
+    np.testing.assert_allclose(
+        get_integral_values(spectrum, spectrum.bin_edges), original_flux, rtol=1e-12,
+    )
+
+
+def test_linked_input_shape_is_snapshotted_before_freeing_bin_parameter():
+    from astromodels import Line
+
+    reference = _powerlaw(-1.4)
+    shape = _powerlaw()
+    shape.index.add_auxiliary_variable(reference.index, Line(a=0, b=1))
+    spectrum = BinnedSED.from_response(_response(2), shape)
+    assert spectrum.bin_shape_parameters(0)["index"].value == -1.4
+    assert not spectrum.spectral_shape.index.has_auxiliary_variable
+    before = spectrum([150, 1500])
+    parameter = spectrum.bin_shape_parameters(0)["index"]
+    parameter.free = True
+    parameter.value = -2.3
+    after = spectrum([150, 1500])
+    assert after[0] != before[0]
+    assert after[1] == before[1]
+    assert shape.index.has_auxiliary_variable
+    reference.index.value = -2.7
+    assert spectrum.bin_shape_parameters(1)["index"].value == -1.4
+
+
+def test_per_bin_cutoff_values_follow_energy_unit_conversion():
+    shape = Cutoff_powerlaw()
+    shape.xc.value = 800
+    spectrum = BinnedSED.from_response(_response(2), shape)
+    flux_unit = u.keV**-1 * u.cm**-2 * u.s**-1
+    spectrum.set_units(u.keV, flux_unit)
+    spectrum.bin_shape_parameters(1)["xc"].value = 1200
+    energy = np.array([150, 1500]) * u.keV
+    before = spectrum(energy)
+    spectrum.set_units(u.MeV, u.MeV**-1 * u.cm**-2 * u.s**-1)
+    np.testing.assert_allclose(spectrum(energy).to_value(flux_unit), before.value)
+    assert spectrum.bin_shape_parameters(1)["xc"].unit == u.MeV
+    assert spectrum.bin_shape_parameters(1)["xc"].value == pytest.approx(1.2)
