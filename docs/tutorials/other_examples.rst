@@ -21,3 +21,5 @@ Other examples
    Polarization (maximum likelihood method) <polarization/maximum_likelihood_method.ipynb>
 
    Light curve (flux light curve of a GRB) <light_curves/speclc_grbdc3.ipynb>
+
+   Spectral fit with SED model <spectral_fits/sed_model/sed_spectral_model_tutorial.ipynb>
