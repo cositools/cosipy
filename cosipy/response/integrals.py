@@ -3,6 +3,7 @@ import numpy as np
 from astromodels import (
     Powerlaw,
     Cutoff_powerlaw,
+    Super_cutoff_powerlaw,
     Band,
     Band_grbm,
     Gaussian,
@@ -16,9 +17,10 @@ from astromodels import (
     Quartic,
 )
 
-from cosipy.threeml import Band_Eflux
+from cosipy.threeml import Band_Eflux, BinnedSED
 
-def get_integral_values(f, x_in, force_quad = False):
+
+def get_integral_values(f, x_in, force_quad=False):
     """
     Compute the integral of a function f between the specified
     endpoints.  If available, use an integral formula specific
@@ -47,6 +49,7 @@ def get_integral_values(f, x_in, force_quad = False):
 
     x = np.asarray(x_in)
 
+    
     # Functions with discontinuities either give inaccurate results or
     # fail altogether with adaptive quadrature.
     if force_quad and \
@@ -66,6 +69,17 @@ def get_integral_values(f, x_in, force_quad = False):
                                         f.piv.value,
                                         f.xc.value,
                                         f.K.value)
+
+        case Super_cutoff_powerlaw():
+            return integral_super_co_powerlaw(x,
+                                              f.index.value,
+                                              f.piv.value,
+                                              f.xc.value,
+                                              f.gamma.value,
+                                              f.K.value)
+
+        case BinnedSED():
+            return integral_binned_sed(f, x)
 
         case Band():
             return integral_band(x,
@@ -153,8 +167,14 @@ def get_integral_values(f, x_in, force_quad = False):
                                          f.upper_bound.value,
                                          f.value.value)
 
+        
         case _:
-            return integral_generic(f, x)
+            if is_xspec_model(f):
+                return integral_generic_XSPEC(f, x)
+
+    return integral_generic(f, x)
+
+
 
 def integral_generic(f, x):
     """
@@ -181,6 +201,70 @@ def integral_generic(f, x):
         integrate.quad(f, xl, xh)[0] for
         xl, xh in zip(x[:-1], x[1:])
     ])
+
+# MAB //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+def integral_generic_XSPEC(f, x, n_sub=64, floor=0.0):
+    """
+    Stable numerical integration of a spectral model over energy bins.
+
+    Parameters
+    ----------
+    f : callable
+        Spectral model f(E), usually differential flux.
+    x : array-like
+        Energy bin edges.
+    n_sub : int
+        Number of internal sample points per bin.
+    floor : float
+        Minimum allowed spectral value.
+
+    Returns
+    -------
+    np.ndarray
+        Integrated flux in each energy bin.
+    """
+
+    x = np.asarray(x, dtype=float)
+    out = np.zeros(len(x) - 1, dtype=float)
+
+    for i, (xl, xh) in enumerate(zip(x[:-1], x[1:])):
+
+        if not np.isfinite(xl) or not np.isfinite(xh) or xh <= xl:
+            out[i] = 0.0
+            continue
+
+        # Use log spacing for positive energy bins
+        if xl > 0:
+            e = np.geomspace(xl, xh, n_sub)
+        else:
+            e = np.linspace(xl, xh, n_sub)
+
+        try:
+            y = f(e)
+        except Exception:
+            # Fallback to scalar evaluation
+            y = np.array([f(ee) for ee in e])
+
+        y = np.asarray(y, dtype=float)
+
+        # Clean bad model values
+        y[~np.isfinite(y)] = 0.0
+        y[y < floor] = floor
+
+        out[i] = np.trapezoid(y, e)
+
+    return out
+
+def is_xspec_model(f):
+    class_name = f.__class__.__name__
+    description = getattr(f, "description", "")
+
+    return (
+        class_name.startswith("XS_")
+        or "XS_" in description
+    )
+# MAB //////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 def integral_powerlaw(x, b, p, c):
@@ -294,6 +378,62 @@ def integral_co_powerlaw(x, a, p, c, K):
     return np.diff(v)
 
 
+def integral_super_co_powerlaw(x, a, p, c, g, K):
+    """
+    Compute the exact integral of a super-exponential cut-off power law.
+
+    The model has the form
+
+      f(x) = K (x/p)^a * exp(-(x/c)^g)
+
+    with g > 0.  Using z=(x/c)^g transforms the integral into the
+    ordinary cut-off-power-law form already handled by
+    :func:`integral_co_powerlaw`.
+
+    Inputs
+    ------
+    x : array of float
+      monotonically increasing integration grid
+    a, p, c, g, K : float
+      model parameters
+
+    Returns
+    -------
+    array of |x|-1 definite integral values
+    """
+
+    if g <= 0.0:
+        raise ValueError("Super-cutoff-power-law gamma must be positive.")
+
+    # gamma=1 is exactly the ordinary cutoff power law.
+    if np.isclose(g, 1.0):
+        return integral_co_powerlaw(x, a, p, c, K)
+
+    z = np.power(x/c, g)
+
+    transformed_index = (a + 1.0)/g - 1.0
+    transformed_norm = K * np.power(c/p, a) * c/g
+
+    return integral_co_powerlaw(
+        z,
+        transformed_index,
+        1.0,
+        1.0,
+        transformed_norm,
+    )
+
+
+def integral_binned_sed(f, x):
+    """
+    Compute exact integrals of a ``BinnedSED`` between successive edges.
+    """
+
+    return np.array([
+        f.integral(xl, xh)
+        for xl, xh in zip(x[:-1], x[1:])
+    ], dtype=float)
+
+
 def integral_band(x, a, b, p, c, K):
     """
     Compute the integral of a cut-off powerlaw between the specified
@@ -403,6 +543,7 @@ def integral_gaussian(x, mu, sigma, F):
 
     return np.diff(v)
 
+
 def integral_polynomial(x, coeffs):
     """
     Compute the integral of a polynomial between the specified
@@ -433,6 +574,7 @@ def integral_polynomial(x, coeffs):
 
     return np.diff(v)
 
+
 def integral_stepfunction(x, x_lo, x_hi, value):
     """
     Compute the integral of a step function between the specified
@@ -460,14 +602,15 @@ def integral_stepfunction(x, x_lo, x_hi, value):
     """
 
     # contribution of Heaviside(x_lo)
-    v_step_up   = np.maximum(0., x[1:] - np.maximum(x[:-1],x_lo))
+    v_step_up   = np.maximum(0., x[1:] - np.maximum(x[:-1], x_lo))
     # contribution of Heaviside(x_hi)
-    v_step_down = np.maximum(0., x[1:] - np.maximum(x[:-1],x_hi))
+    v_step_down = np.maximum(0., x[1:] - np.maximum(x[:-1], x_hi))
 
     v = v_step_up - v_step_down
     v *= value
 
     return v
+
 
 def integral_diracdelta(x, x_nonzero, value):
     """

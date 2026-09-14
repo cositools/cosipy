@@ -18,6 +18,12 @@ class RelativeCDSCoordinates:
         Parameters
         ----------
         source_direction: SkyCoord or normalized vector (3,N)
+            If a SkyCoord, it is transformed to ``pol_convention.frame``
+            before computing the local polarization basis, so any frame
+            is accepted.
+            If a bare vector, NO frame transform is performed -- it is
+            taken as-is and assumed to already be expressed in
+            ``pol_convention.frame``.
         pol_convention
         """
 
@@ -127,8 +133,9 @@ class RelativeCDSCoordinates:
         -------
         phi,az:
         phi: Angular distance with respect to the source direction.
+            Range [0, pi] .
         az: Azimuthal angle around the source direction, with a
-            0-direction defined by the polarization convention.
+            0-direction defined by the polarization convention. Range is (-pi, pi]
         Each with shape (N,M). Angles.
 
         """
