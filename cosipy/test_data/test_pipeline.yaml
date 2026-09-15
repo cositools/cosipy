@@ -333,3 +333,33 @@ tsdetect:
   coo_sys: "local"
   nside: 8
   multiresolution: false
+
+tsdetect_new:
+  model: # This is a list of sources that will be read by astromodels.core.model_parser.ModelParser
+    template (point source): *template_pw
+  sc_file: 20280301_2s.fits
+  data:
+    class: DataInterfaceTBD
+    args:
+      - ts_map_src_bkg.h5
+    kwargs:
+      input_yaml: bin_test.yaml
+  background: # This is a list of background component
+    class: ExpectationInterfaceTBD
+    args:
+      - ts_map_bkg.h5
+    kwargs:
+      input_yaml: bin_test.yaml
+  response:
+    class: ExpectationInterfaceTBD
+    args:
+      - test_full_detector_response.h5
+  cuts:
+    class: EventCutInterfaceTBD
+    args:
+    kwargs:
+      tstart: null
+      tstop: null
+  coo_sys: "local"
+  nside: 8
+  multiresolution: false
