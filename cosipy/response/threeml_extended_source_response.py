@@ -1,6 +1,7 @@
 from copy import copy as shallow_copy, deepcopy
 
 from astromodels.sources import Source, ExtendedSource
+
 from histpy import Axes, Histogram
 
 from cosipy.data_io import EmCDSBinnedData
