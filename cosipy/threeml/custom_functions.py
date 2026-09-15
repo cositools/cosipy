@@ -23,13 +23,14 @@ from astromodels.core.spectral_component import SpectralComponent
 from astromodels.core.tree import Node
 from astromodels.core.units import get_units
 from astromodels.functions.function import Function1D
-from astromodels.sources.source import Source, SourceType
+from astromodels.sources.source import Source, SourceType, ExtendedSource, PointSource
 from astromodels.utils.logging import setup_logger
 from astromodels.utils.pretty_list import dict_to_list
 from astromodels.functions import Constant
 from typing import Optional, Dict 
 import scipy.integrate as sp_int
 import collections
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -458,7 +459,7 @@ class SpatialTemplate_2D_Healpix(Function2D, metaclass=FunctionMeta):
 
 
 
-class CosipyPointSource(Source, Node):
+class CosipyPointSource(PointSource):
     """A point source. You can instance this class in many ways.
 
     - with Equatorial position and a function as spectrum (the component will be
@@ -512,110 +513,17 @@ class CosipyPointSource(Source, Node):
         sky_position: Optional[SkyDirection] = None,
         polarization=None,
     ):
-
-        # Check that we have all the required information
-
-        # (the '^' operator acts as XOR on booleans)
-
-        # Check that we have one and only one specification of the position
-
-        if not (
-            (ra is not None and dec is not None)
-            ^ (l is not None and b is not None)
-            ^ (sky_position is not None)
-        ):
-
-            logger.error(
-                "You have to provide one and only one specification for the position"
-            )
-
-            raise AssertionError()
-
-        # Gather the position
-
-        if not isinstance(sky_position, SkyDirection):
-
-            if (ra is not None) and (dec is not None):
-
-                # Check that ra and dec are actually numbers
-
-                try:
-
-                    ra = float(ra)
-                    dec = float(dec)
-
-                except (TypeError, ValueError):
-
-                    logger.error(
-                        "RA and Dec must be numbers. If you are confused by this "
-                        "message, you are likely using the constructor in the wrong "
-                        "way. Check the documentation."
-                    )
-
-                    raise AssertionError()
-
-                sky_position = SkyDirection(ra=ra, dec=dec)
-
-            else:
-
-                sky_position = SkyDirection(l=l, b=b)
-
-        self._sky_position: SkyDirection = sky_position
-
-        # Now gather the component(s)
-
-        # We need either a single component, or a list of components, but not both
-        # (that's the ^ symbol)
-
-        if not (spectral_shape is not None) ^ (components is not None):
-
-            logger.error(
-                "You have to provide either a single component, or a list of components"
-                " (but not both)."
-            )
-
-            raise AssertionError()
-
-        # If the user specified only one component, make a list of one element with a
-        # default name ("main")
-
-        if spectral_shape is not None:
-
-            components = [SpectralComponent("main", spectral_shape, polarization)]
-
-        Source.__init__(self, components, src_type=SourceType.POINT_SOURCE)
-
-        # A source is also a Node in the tree
-
-        Node.__init__(self, source_name)
-
-        # Add the position as a child node, with an explicit name
-
-        self._add_child(self._sky_position)
-
-        # Add a node called 'spectrum'
-
-        spectrum_node = Node("spectrum")
-        spectrum_node._add_children(self._components.values())
-
-        self._add_child(spectrum_node)
-
-        # Now set the units of the parameters for the energy domain
-
-        current_units = get_units()
-
-        # Components in this case have energy as x and differential flux as y
-
-        x_unit = current_units.energy
-        y_unit = (current_units.energy * current_units.area * current_units.time) ** (
-            -1
-        )
-
-        # Now set the units of the components
-        for component in self._components.values():
-
-            component.shape.set_units(x_unit, y_unit)
-
+       #call astromodel PointSource constructor
+       super().__init__(source_name, 
+                        ra, 
+                        dec, 
+                        spectral_shape,
+                        l, 
+                        b, 
+                        components, 
+                        sky_position, 
+                        polarization) 
+        
     def __call__(self, x, tag=None, stokes=None):
 
         is_scalar = np.isscalar(x)
@@ -771,7 +679,7 @@ class CosipyPointSource(Source, Node):
         return dict_to_list(repr_dict, rich_output)
 
 
-class CosipyExtendedSource(Source, Node):
+class CosipyExtendedSource(ExtendedSource):
     def __init__(
         self,
         source_name,
@@ -780,135 +688,13 @@ class CosipyExtendedSource(Source, Node):
         components=None,
         polarization=None,
     ):
-        # Check that we have all the required information
-        # and set the units
-
-        current_u = get_units()
-
-        if spatial_shape.n_dim == 2:
-
-            # Now gather the component(s)
-
-            # We need either a single component, or a list of components, but not both
-            # (that's the ^ symbol)
-
-            assert (spectral_shape is not None) ^ (components is not None), (
-                "You have to provide either a single "
-                "component, or a list of components "
-                "(but not both)."
-            )
-
-            # If the user specified only one component, make a list of one element with
-            # a default name ("main")
-
-            if spectral_shape is not None:
-
-                components = [SpectralComponent("main", spectral_shape, polarization)]
-
-            # Components in this case have energy as x and differential flux as y
-
-            diff_flux_units = (current_u.energy * current_u.area * current_u.time) ** (
-                -1
-            )
-
-            # Now set the units of the components
-            for component in components:
-
-                component.shape.set_units(current_u.energy, diff_flux_units)
-
-            # Set the units of the brightness
-            spatial_shape.set_units(current_u.angle, current_u.angle, u.sr**-1)
-
-        elif spatial_shape.n_dim == 3:
-
-            # If there is no spectral component then assume that the input is a
-            # template, which will provide the spectrum by itself. We just use a
-            # renormalization (a bias)
-
-            if spectral_shape is None and components is None:
-
-                # This is a template. Add a component which is just a renormalization
-
-                spectral_shape = Constant()
-                components = [SpectralComponent("main", spectral_shape)]
-
-                # set the units
-                diff_flux_units = (
-                    current_u.energy * current_u.area * current_u.time * u.sr
-                ) ** (-1)
-                spatial_shape.set_units(
-                    current_u.angle,
-                    current_u.angle,
-                    current_u.energy,
-                    diff_flux_units,
-                )
-
-            else:
-
-                # the spectral shape has been given, so this is a case where the spatial
-                # template gives an energy-dependent shape and the spectral components
-                # give the spectrum
-
-                if not ((spectral_shape is not None) ^ (components is not None)):
-
-                    logger.error(
-                        "You can provide either a single "
-                        "component, or a list of components "
-                        "(but not both)."
-                    )
-
-                    raise AssertionError()
-
-                if spectral_shape is not None:
-
-                    components = [
-                        SpectralComponent("main", spectral_shape, polarization)
-                    ]
-
-                # Assign units
-                diff_flux_units = (
-                    current_u.energy * current_u.area * current_u.time
-                ) ** (-1)
-
-                # Now set the units of the components
-                for component in components:
-                    component.shape.set_units(current_u.energy, diff_flux_units)
-
-                # Set the unit of the spatial template
-                spatial_shape.set_units(
-                    current_u.angle,
-                    current_u.angle,
-                    current_u.energy,
-                    u.sr**-1,
-                )
-
-        else:
-
-            logger.error("The spatial shape must have either 2 or 3 dimensions.")
-
-            raise RuntimeError()
-
-        # Here we have a list of components
-
-        Source.__init__(self, components, SourceType.EXTENDED_SOURCE)
-
-        # A source is also a Node in the tree
-
-        Node.__init__(self, source_name)
-
-        # Add the spatial shape as a child node, with an explicit name
-        self._spatial_shape = spatial_shape
-        self._add_child(self._spatial_shape)
-
-        # Add the same node also with the name of the function
-        # self._add_child(self._shape, self._shape.__name__)
-
-        # Add a node called 'spectrum'
-
-        spectrum_node = Node("spectrum")
-        spectrum_node._add_children(self._components.values())
-
-        self._add_child(spectrum_node)
+        #call astromodel ExtendedSource constructor
+        super.__init__(
+            source_name,
+            spatial_shape,
+            spectral_shape=None,
+            components=None,
+            polarization=None,) 
 
     @property
     def spatial_shape(self):
