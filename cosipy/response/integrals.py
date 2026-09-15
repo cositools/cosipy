@@ -425,7 +425,7 @@ def integral_super_co_powerlaw(x, a, p, c, g, K):
 
 def integral_binned_sed(f, x):
     """
-    Compute exact integrals of a ``BinnedSED`` between successive edges.
+    Compute integrals of a ``BinnedSED`` between successive edges.
     """
 
     return np.array([
