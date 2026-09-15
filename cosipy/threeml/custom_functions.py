@@ -689,7 +689,7 @@ class CosipyExtendedSource(ExtendedSource):
         polarization=None,
     ):
         #call astromodel ExtendedSource constructor
-        super.__init__(
+        super().__init__(
             source_name,
             spatial_shape,
             spectral_shape=None,
