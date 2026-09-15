@@ -23,7 +23,7 @@ from astromodels.core.spectral_component import SpectralComponent
 from astromodels.core.tree import Node
 from astromodels.core.units import get_units
 from astromodels.functions.function import Function1D
-from astromodels.sources.source import Source, SourceType, ExtendedSource, PointSource
+from astromodels.sources import Source, SourceType, ExtendedSource, PointSource
 from astromodels.utils.logging import setup_logger
 from astromodels.utils.pretty_list import dict_to_list
 from astromodels.functions import Constant
