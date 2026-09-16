@@ -57,6 +57,13 @@
 
 # In[ ]:
 
+import torch
+
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+    print("Apple Silicon GPU acceleration is ready!")
+else:
+    device = torch.device("cpu")
 
 import time
 from pathlib import Path
@@ -209,7 +216,7 @@ if __name__ == "__main__":
         path_to_model=rsp_path,
         area_batch_size=300_000,
         density_batch_size=100_000,
-        devices=["cpu"],
+        devices=["mps"],
         area_compile_mode=None,
         density_compile_mode=None,
         show_progress=True)
