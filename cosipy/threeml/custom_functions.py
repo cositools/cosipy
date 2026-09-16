@@ -514,15 +514,15 @@ class CosipyPointSource(PointSource):
         polarization=None,
     ):
        #call astromodel PointSource constructor
-       super().__init__(source_name, 
-                        ra, 
-                        dec, 
-                        spectral_shape,
-                        l, 
-                        b, 
-                        components, 
-                        sky_position, 
-                        polarization) 
+       super().__init__(source_name=source_name, 
+                        ra=ra, 
+                        dec=dec, 
+                        spectral_shape=spectral_shape,
+                        l=l, 
+                        b=b, 
+                        components=components, 
+                        sky_position=sky_position, 
+                        polarization=polarization) 
         
     def __call__(self, x, tag=None, stokes=None):
 
@@ -690,11 +690,11 @@ class CosipyExtendedSource(ExtendedSource):
     ):
         #call astromodel ExtendedSource constructor
         super().__init__(
-            source_name,
-            spatial_shape,
-            spectral_shape=None,
-            components=None,
-            polarization=None,) 
+            source_name=source_name,
+            spatial_shape=spatial_shape,
+            spectral_shape=spectral_shape,
+            components=components,
+            polarization=polarization,) 
 
     @property
     def spatial_shape(self):
