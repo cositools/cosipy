@@ -65,7 +65,7 @@ epsilon_grid = np.linspace(-0.25, .25, 3000)
 
 fig, ax = plt.subplots()
 
-for ei_keV in [100, 300, 1000, 3000, 10000]:
+for ei_keV in [100, 300, 1000, 3000, 5000]:
 
     em_keV = ei_keV * (1 + epsilon_grid)
 
@@ -82,10 +82,10 @@ for ei_keV in [100, 300, 1000, 3000, 10000]:
 
     density = np.fromiter(irf.event_probability(photons, events), dtype=float)
 
-    ax.plot(epsilon_grid, density, label=f'{ei_keV:.0f} keV')
+    ax.plot(epsilon_grid, density/np.max(density), label=f'{ei_keV:.0f} keV')
 
 ax.set_xlabel('Epsilon = (Em - Ei) / Ei')
-ax.set_ylabel('Event probability density')
+ax.set_ylabel('Event probability density [arb scale]')
 ax.set_title(f'Energy dispersion, on-axis source (Phi = {phi_kin_deg:.0f} deg)')
 ax.legend()
 
