@@ -18,7 +18,7 @@ class PolarizationAngle:
         polarization angle convention.
 
         Parameters:
-        angle : :py:class:`astropy.coordinates.Angle
+        angle : :py:class:`astropy.coordinates.Angle or angular Quantity
             Polarization angle
         source : :py:class:`astropy.coordinates.SkyCoord`
             Source direction. Optional, but needed to use vector() and transform_to()
@@ -77,14 +77,12 @@ class PolarizationAngle:
 
         # Get the projection vectors for the source direction in the
         # current convention
-        px, py = self._convention.get_basis(self._source)
-
-        px = px.cartesian.xyz
-        py = py.cartesian.xyz
+        px, py = self._convention.get_basis_vecs(self._source)
 
         # Calculate the cosine and sine of the polarization angle
-        cos_pa = np.cos(self._angle.rad)
-        sin_pa = np.sin(self._angle.rad)
+        a = self._angle.rad
+        cos_pa = np.cos(a)
+        sin_pa = np.sin(a)
 
         # Calculate the polarization vector
         pol_vec = np.outer(px, cos_pa) + np.outer(py, sin_pa)
@@ -110,10 +108,7 @@ class PolarizationAngle:
 
         # Get the projection vectors for the source direction in the
         # new convention
-        px, py = convention.get_basis(self._source)
-
-        px = px.cartesian.xyz
-        py = py.cartesian.xyz
+        px, py = convention.get_basis_vecs(self._source)
 
         # Calculate the polarization vector in the new convention
         pol_vec = self.vector.transform_to(convention.frame).cartesian.xyz
@@ -122,13 +117,11 @@ class PolarizationAngle:
         a = np.dot(pol_vec.T, px)
         b = np.dot(pol_vec.T, py)
 
-        # Calculate the new polarization angle in the new convention
-        pa = Angle(np.arctan2(b, a), unit=u.rad)
+        # Calculate the new polarization angle in the new convention,
+        # and normalize it to be between 0 and pi
+        pa = np.mod(np.arctan2(b.value, a.value), np.pi)
 
-        # Normalize the angle to be between 0 and pi
-        pa = np.where(pa < 0, pa + Angle(np.pi, unit=u.rad), pa)
-
-        return PolarizationAngle(pa,
+        return PolarizationAngle(Angle(pa, unit=u.rad),
                                  self._source,
                                  convention = convention)
 
@@ -155,10 +148,9 @@ class PolarizationAngle:
         source_coord = source_coord.transform_to(convention.frame)
         psichi = psichi.transform_to(convention.frame)
 
-        reference_coord = convention.get_basis(source_coord)[0]
+        reference_vector_cartesian, _ = convention.get_basis_vecs(source_coord)
 
         source_vector_cartesian = source_coord.cartesian.xyz.value
-        reference_vector_cartesian = reference_coord.cartesian.xyz.value
         scattered_photon_vector = psichi.cartesian.xyz.value.T
 
         # Project scattered photon vector onto plane perpendicular to
@@ -169,14 +161,19 @@ class PolarizationAngle:
         # Calculate angle between scattered photon vector & reference
         # vector on plane perpendicular to source direction
         cross_product = np.cross(projection, reference_vector_cartesian)
-        sign = np.where(np.dot(cross_product, source_vector_cartesian) < 0, -1, 1)
+
+        dp = np.dot(cross_product, source_vector_cartesian)
+        sign = np.sign(dp) + (dp == 0) # treat sign of 0 as +1
 
         normalization = np.linalg.norm(projection, axis=-1) * np.linalg.norm(reference_vector_cartesian)
 
         dot_product = np.dot(projection, reference_vector_cartesian) / normalization
 
-        dot_product = np.where((dot_product < -1.) & np.isclose(dot_product, -1.), -1., dot_product)
-        dot_product = np.where((dot_product >  1.) & np.isclose(dot_product,  1.),  1., dot_product)
+        # verify that any deviation of dot product from [-1, 1] is
+        # within numerical error bounds
+        #assert(np.all(np.abs(dot_product) - 1 <= 1e-8))
+
+        dot_product = np.clip(dot_product, -1., 1.)
 
         angle = Angle(sign * np.arccos(dot_product), unit=u.rad)
 

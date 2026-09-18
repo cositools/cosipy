@@ -1,2 +1,3 @@
+from .polarization_fitting import PolarizationFitting
 from .polarization_asad import PolarizationASAD
 from .polarization_stokes import PolarizationStokes

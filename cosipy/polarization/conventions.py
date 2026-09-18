@@ -68,8 +68,8 @@ class PolarizationConvention:
 
     def get_basis_local(self, source_vector: np.ndarray):
         """
-        Get the px,py unit vectors that define the polarization plane on
-        this convention, and in the convention's frame.
+        Get the px,py unit vectors that define the polarization plane
+        on this convention, and in the convention's frame.
 
         Polarization angle increments from px to py.
 
@@ -82,14 +82,42 @@ class PolarizationConvention:
         -------
         px,py : np.ndarray
             Polarization angle increases from px to py. pz is always
-            the opposite of the source direction --i.e. in the direction of the
-            particle.
+            the opposite of the source direction --i.e. in the
+            direction of the particle.
+
         """
+
+    def get_basis_vecs(self, source_direction: SkyCoord):
+        """
+        Get the px,py unit vectors that define the polarization plane
+        on this convention. Polarization angle increments from px to
+        py.
+
+        Parameters
+        ----------
+        source_direction : SkyCoord
+            The direction of the source
+
+        Return
+        ------
+        px,py : np.ndarray
+            Polarization angle increases from px to py. pz is always
+            the opposite of the source direction --i.e. in the
+            direction of the particle.
+
+        """
+
+        # To the convention's frame
+        source_vector = source_direction.transform_to(self.frame).cartesian.xyz.value
+
+        # Bare basis
+        return self.get_basis_local(source_vector)
 
     def get_basis(self, source_direction: SkyCoord):
         """
-        Get the px,py unit vectors that define the polarization plane on
-        this convention. Polarization angle increments from px to py.
+        Get the px,py unit vectors that define the polarization plane
+        on this convention. Polarization angle increments from px to
+        py.
 
         Parameters
         ----------
@@ -100,15 +128,13 @@ class PolarizationConvention:
         ------
         px,py : SkyCoord
             Polarization angle increases from px to py. pz is always
-            the opposite of the source direction --i.e. in the direction of the
-            particle.
+            the opposite of the source direction --i.e. in the
+            direction of the particle.
+
         """
 
-        # To the convention's frame
-        source_vector = source_direction.transform_to(self.frame).cartesian.xyz.value
-
         # Bare basis
-        px,py = self.get_basis_local(source_vector)
+        px, py = self.get_basis_vecs(source_direction)
 
         # To SkyCoord
         px = SkyCoord(*px, representation_type='cartesian', frame=self.frame)
@@ -147,7 +173,7 @@ class OrthographicConvention(PolarizationConvention):
             frame = ICRS
 
         if ref_vector is None:
-            self._ref_vector = np.asarray([0,0,1])
+            self._ref_vector = np.array([0,0,1])
             self._frame = frame
         else:
             if isinstance(ref_vector, SkyCoord):
@@ -174,7 +200,7 @@ class OrthographicConvention(PolarizationConvention):
         """
         When looking at the source
         """
-        return True if self._sign == 1 else False
+        return (self._sign == 1)
 
     @property
     def frame(self):
@@ -185,7 +211,7 @@ class OrthographicConvention(PolarizationConvention):
         pz = self._sign * source_vector
 
         # Broadcast reference vector
-        ref = np.expand_dims(self._ref_vector, axis = tuple(np.arange(1,pz.ndim, dtype = int)))
+        ref = np.expand_dims(self._ref_vector, axis = tuple(range(1, pz.ndim)))
 
         # Get py. Normalize because pz and ref dot not make 90deg angle
         py = np.cross(pz, ref, axisa = 0, axisb = 0, axisc = 0)
@@ -244,13 +270,13 @@ class MEGAlibRelative(ConventionInSpacecraftFrameMixin, OrthographicConvention):
 
         match axis:
             case 'x':
-                ref_vector = np.asarray([1,0,0])
+                ref_vector = np.array([1,0,0])
 
             case 'y':
-                ref_vector = np.asarray([0,1,0])
+                ref_vector = np.array([0,1,0])
 
             case 'z':
-                ref_vector = np.asarray([0,0,1])
+                ref_vector = np.array([0,0,1])
 
             case _:
                 raise ValueError("Axis must be 'x', 'y' or 'z'.")
@@ -320,8 +346,8 @@ class IAUPolarizationConvention(OrthographicConvention):
         angle of electric-vector maximum, e, starting from North and
         increasing through East.
         """
-        super().__init__(ref_vector = [0,0,1],
-                         frame="icrs",
+        super().__init__(ref_vector = np.array([0,0,1]),
+                         frame=ICRS,
                          clockwise = False)
 
 
@@ -360,6 +386,8 @@ class StereographicConvention(ConventionInSpacecraftFrameMixin, PolarizationConv
     def frame(self):
         return self._frame
 
+    southpole = np.array([0, 0, -1])
+
     def get_basis_local(self, source_vector:np.ndarray[float]):
         """
         source_vector already in SC coordinates as a vector
@@ -375,7 +403,7 @@ class StereographicConvention(ConventionInSpacecraftFrameMixin, PolarizationConv
 
         x,y,z = source_vector
 
-        if np.allclose(source_vector, [0,0,-1]):
+        if np.allclose(source_vector, self.southpole):
             raise RuntimeError("StereographicConvention is undefined at the -z (lat = -90 deg)")
 
         # Calculate the projection of the reference vector in stereographic coordinates
@@ -391,6 +419,6 @@ class StereographicConvention(ConventionInSpacecraftFrameMixin, PolarizationConv
         px /= norm
 
         # Calculate the perpendicular vector py using the cross product
-        py = self._sign * np.cross([x, y, z], px, axis=0)
+        py = self._sign * np.cross(source_vector, px, axis=0)
 
         return px,py
