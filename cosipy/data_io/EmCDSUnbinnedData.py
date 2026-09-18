@@ -13,11 +13,13 @@ from scoords import SpacecraftFrame
 from cosipy.data_io.UnBinnedData import UnBinnedData
 from cosipy.interfaces.data_interface import (
     TimeTagEmCDSEventDataInSCFrameInterface,
-    EmCDSEventDataInSCFrameInterface
+    EmCDSEventDataInSCFrameInterface,
+    TimeTagEmCDSDistanceEventDataInSCFrameInterface,
 )
 from cosipy.interfaces.event import (
     TimeTagEmCDSEventInSCFrameInterface,
-    EmCDSEventInSCFrameInterface
+    EmCDSEventInSCFrameInterface,
+    TimeTagEmCDSDistanceEventInSCFrameInterface,
 )
 
 from cosipy.interfaces.event_selection import EventSelectorInterface
@@ -95,6 +97,28 @@ class TimeTagEmCDSEventInSCFrame(EmCDSEventInSCFrame, TimeTagEmCDSEventInSCFrame
     def jd2(self):
         return self._jd2
 
+class TimeTagEmCDSDistanceEventInSCFrame(TimeTagEmCDSEventInSCFrame, TimeTagEmCDSDistanceEventInSCFrameInterface):
+
+    def __init__(self, jd1, jd2, energy, scatt_angle, scatt_lon, scatt_lat, distance_cm, event_id=None):
+        """
+        Parameters
+        ----------
+        jd1: julian days
+        jd2: julian days
+        energy: keV
+        scatt_angle: scattering angle radians
+        scatt_lon: scattering longitude radians
+        scatt_lat: scattering latitude radians
+        distance_cm: distance between the first two hits, cm
+        """
+        super().__init__(jd1, jd2, energy, scatt_angle, scatt_lon, scatt_lat, event_id)
+
+        self._distance_cm = distance_cm
+
+    @property
+    def distance_cm(self) -> float:
+        return self._distance_cm
+
 class EmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameInterface):
 
     _frame = SpacecraftFrame()
@@ -134,20 +158,40 @@ class EmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameInterface):
 
         self._nevents = self._id.size
 
-        if selection is not None:
-            mask = asarray(selection.select(self), dtype=bool)
+        self._apply_selection(selection, ["_energy", "_scatt_angle", "_scatt_lat", "_scatt_lon"])
 
-            if mask.size < self._nevents:
-                # The rest of the events are False implicitly
-                mask = np.append(mask, np.full(self._nevents - mask.size, False))
+    def _apply_selection(self, selection: Optional[EventSelectorInterface], array_attrs: Iterable[str]) -> None:
+        """
+        Evaluate an (optional) event selection against this object, and
+        filter ``self._id`` and every array named in ``array_attrs`` in
+        place to keep only the selected events.
 
-            self._id = self._id[mask]
-            self._energy = self._energy[mask]
-            self._scatt_angle = self._scatt_angle[mask]
-            self._scatt_lat = self._scatt_lat[mask]
-            self._scatt_lon = self._scatt_lon[mask]
+        This is meant to be called at the end of ``__init__`` by
+        implementations backed by plain numpy arrays, once all the arrays
+        that make up an event (including ``self._id``) have been set.
 
-            self._nevents = self._id.size
+        Parameters
+        ----------
+        selection: Event selection to apply. If None, nothing is done.
+        array_attrs: Names of the (already set) numpy array attributes,
+          other than ``self._id``, that should be filtered alongside it.
+        """
+
+        if selection is None:
+            return
+
+        mask = asarray(selection.select(self), dtype=bool)
+
+        if mask.size < self._nevents:
+            # The rest of the events are False implicitly
+            mask = np.append(mask, np.full(self._nevents - mask.size, False))
+
+        self._id = self._id[mask]
+
+        for attr in array_attrs:
+            setattr(self, attr, getattr(self, attr)[mask])
+
+        self._nevents = self._id.size
 
     @classmethod
     def from_astropy(cls,
@@ -262,22 +306,7 @@ class TimeTagEmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameFromArrays
 
         super().__init__(energy, scatt_lon, scatt_lat, scatt_angle, event_id)
 
-        if selection is not None:
-            mask = asarray(selection.select(self), dtype=bool)
-
-            if mask.size < self._nevents:
-                # The rest of the events are False implicitly
-                mask = np.append(mask, np.full(self._nevents - mask.size, False))
-
-            self._id = self._id[mask]
-            self._jd1 = self._jd1[mask]
-            self._jd2 = self._jd2[mask]
-            self._energy = self._energy[mask]
-            self._scatt_angle = self._scatt_angle[mask]
-            self._scatt_lat = self._scatt_lat[mask]
-            self._scatt_lon = self._scatt_lon[mask]
-
-            self._nevents = self._id.size
+        self._apply_selection(selection, ["_jd1", "_jd2", "_energy", "_scatt_angle", "_scatt_lat", "_scatt_lon"])
 
     @classmethod
     def from_astropy(cls,
@@ -337,40 +366,180 @@ class TimeTagEmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameFromArrays
     def jd2(self) -> Iterable[float]:
         return self._jd2
 
+class TimeTagEmCDSDistanceEventDataInSCFrameFromArrays(TimeTagEmCDSEventDataInSCFrameFromArrays,
+                                                        TimeTagEmCDSDistanceEventDataInSCFrameInterface):
+
+    event_type = TimeTagEmCDSDistanceEventInSCFrameInterface
+
+    def __init__(self,
+                   jd1: np.ndarray[float],
+                   jd2: np.ndarray[float],
+                   energy_keV: np.ndarray[float],
+                   scattered_lon_rad_sc:  np.ndarray[float],
+                   scattered_lat_rad_sc: np.ndarray[float],
+                   scatt_angle_rad: np.ndarray[float],
+                   distance_cm: np.ndarray[float],
+                   event_id: Optional[np.ndarray[int]] = None,
+                   selection: Optional[EventSelectorInterface] = None):
+        """Initialize from bare numpy arrays. The user is responsible from
+        getting the right units, coordinates and formats
+
+        Parameters
+        ----------
+        jd1: Julian days. Internal astropy Time representation using
+          two values for full precision.
+        jd2: Julian days. Internal astropy Time representation using
+          two values for full precision.
+        energy_keV: energy [keV]
+        scattered_lon_rad_sc: Longitude of the direction of the
+          scattered photon in spacecraft coordinates [radian]
+        scattered_lat_rad_sc: Latitude of the direction of the
+          scattered photon in spacecraft coordinates [radian]
+        scatt_angle_rad: Compton scattering angle [radians]
+        distance_cm: distance between the first two hits [cm]
+        event_id: Event ID. Optional. Sequential is not provided
+        selection: Optional. Apply an event selection.
+
+        """
+
+        # Check size
+        self._jd1, self._jd2, energy, scatt_angle, scatt_lon, scatt_lat, self._distance_cm = np.broadcast_arrays(
+            jd1, jd2, energy_keV, scatt_angle_rad, scattered_lon_rad_sc, scattered_lat_rad_sc, distance_cm)
+
+        super().__init__(self._jd1, self._jd2, energy, scatt_lon, scatt_lat, scatt_angle, event_id)
+
+        self._apply_selection(selection,
+                               ["_jd1", "_jd2", "_energy", "_scatt_angle", "_scatt_lat", "_scatt_lon",
+                                "_distance_cm"])
+
+    @classmethod
+    def from_astropy(cls,
+                     time:Time,
+                     energy:Quantity,
+                     scattering_angle:Angle,
+                     scattered_direction:SkyCoord,
+                     distance:Quantity,
+                     event_id:Optional[Iterable[int]] = None,
+                    selection:Optional[EventSelectorInterface] = None):
+        """
+        Initialize from astropy objects, taking into account the units and
+        formats
+
+        Parameters
+        ----------
+        time
+        energy
+        scattering_angle
+        scattered_direction
+        distance: distance between the first two hits
+        event_id
+        selection
+
+        """
+
+        jd1 = time.jd1
+        jd2 = time.jd2
+        energy = energy.to_value(u.keV)
+        scatt_angle = scattering_angle.to_value(u.rad)
+        distance_cm = distance.to_value(u.cm)
+
+        if not isinstance(scattered_direction.frame, SpacecraftFrame):
+            raise ValueError("Coordinates need to be in SC frame")
+
+        scattered_direction = scattered_direction.represent_as(UnitSphericalRepresentation)
+
+        scatt_lat = scattered_direction.lat.rad
+        scatt_lon = scattered_direction.lon.rad
+
+        if event_id is not None:
+            event_id = np.asarray(event_id)
+
+        return cls(jd1, jd2, energy, scatt_lon, scatt_lat, scatt_angle, distance_cm, event_id, selection)
+
+    def __getitem__(self, i: int) -> TimeTagEmCDSDistanceEventInSCFrameInterface:
+        return TimeTagEmCDSDistanceEventInSCFrame(self._jd1[i], self._jd2[i], self._energy[i], self._scatt_angle[i],
+                                                   self._scatt_lon[i], self._scatt_lat[i], self._distance_cm[i],
+                                                   self._id[i])
+
+    def __iter__(self) -> Iterator[TimeTagEmCDSDistanceEventInSCFrameInterface]:
+        for id, jd1, jd2, energy, scatt_angle, scatt_lat, scatt_lon, distance_cm in zip(
+                self._id, self._jd1, self._jd2, self._energy, self._scatt_angle, self._scatt_lat, self._scatt_lon,
+                self._distance_cm):
+            yield TimeTagEmCDSDistanceEventInSCFrame(jd1, jd2, energy, scatt_angle, scatt_lon, scatt_lat,
+                                                     distance_cm, id)
+
+    @property
+    def distance_cm(self) -> Iterable[float]:
+        return self._distance_cm
+
+def _load_dc3_fits_columns(data_path: Union[Path, List[Path]],
+                            extra_columns: Iterable[str] = ()) -> dict:
+    """
+    Read the standard DC3 fits columns needed to build a
+    TimeTagEmCDSEventDataInSCFrameFromArrays (plus any extra columns
+    requested) from one or more fits files, and time-sort the result.
+
+    Parameters
+    ----------
+    data_path: Single fits file, or list of fits files (concatenated)
+    extra_columns: Names of any additional fits columns to read, e.g. 'Distance'
+
+    Returns
+    -------
+    dict mapping each column name to its time-sorted, concatenated array
+    """
+
+    columns = ['TimeTags', 'Energies', 'Phi', 'Psi local', 'Chi local', *extra_columns]
+
+    if isinstance(data_path, (str, Path)):
+        data_path = [Path(data_path)]
+
+    data = {column: np.empty(0) for column in columns}
+
+    for file in data_path:
+        # get_dict_from_fits is really a static method, no config file needed
+        data_dict = UnBinnedData.get_dict_from_fits(None, str(file))
+
+        for column in columns:
+            data[column] = np.append(data[column], data_dict[column])
+
+    # Time sort
+    tsort = np.argsort(data['TimeTags'])
+
+    for column in columns:
+        data[column] = data[column][tsort]
+
+    return data
+
 class TimeTagEmCDSEventDataInSCFrameFromDC3Fits(TimeTagEmCDSEventDataInSCFrameFromArrays):
 
     def __init__(self, data_path: Union[Path, List[Path]],
                  selection:EventSelectorInterface = None):
 
-        time = np.empty(0)
-        energy = np.empty(0)
-        phi = np.empty(0)
-        psi = np.empty(0)
-        chi = np.empty(0)
+        data = _load_dc3_fits_columns(data_path)
 
-        if isinstance(data_path, (str, Path)):
-            data_path = [Path(data_path)]
-
-        for file in data_path:
-            # get_dict_from_fits is really a static method, no config file needed
-            data_dict = UnBinnedData.get_dict_from_fits(None, str(file))
-
-            time = np.append(time, data_dict['TimeTags'])
-            energy = np.append(energy, data_dict['Energies'])
-            phi = np.append(phi, data_dict['Phi'])
-            psi = np.append(psi, data_dict['Psi local'])
-            chi = np.append(chi, data_dict['Chi local'])
-
-        # Time sort
-        tsort = np.argsort(time)
-
-        time = time[tsort]
-        energy = energy[tsort]
-        phi = phi[tsort]
-        psi = psi[tsort]
-        chi = chi[tsort]
-
-        time = Time(time, format='unix')
+        time = Time(data['TimeTags'], format='unix')
+        energy = data['Energies']
+        phi = data['Phi']
+        psi = data['Psi local']
+        chi = data['Chi local']
 
         # Psi is colatitude (latitude complementary angle)
         super().__init__(time.jd1, time.jd2, energy, chi, np.pi / 2 - psi, phi, selection = selection)
+
+class TimeTagEmCDSDistanceEventDataInSCFrameFromDC3Fits(TimeTagEmCDSDistanceEventDataInSCFrameFromArrays):
+
+    def __init__(self, data_path: Union[Path, List[Path]],
+                 selection:EventSelectorInterface = None):
+
+        data = _load_dc3_fits_columns(data_path, extra_columns=['Distance'])
+
+        time = Time(data['TimeTags'], format='unix')
+        energy = data['Energies']
+        phi = data['Phi']
+        psi = data['Psi local']
+        chi = data['Chi local']
+        distance = data['Distance']
+
+        # Psi is colatitude (latitude complementary angle)
+        super().__init__(time.jd1, time.jd2, energy, chi, np.pi / 2 - psi, phi, distance, selection = selection)
