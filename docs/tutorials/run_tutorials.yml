@@ -108,7 +108,17 @@ tutorials:
           checksum: bf2d0c16eac5954fb56489480c2602ca
         COSI-SMEX/DC4/Data/Responses/nfbackground_v1-01.pt:
           checksum: 52a4fb024930e18430bff80db882d3d5
-    
+
+    spectral_fit_relative_hist_grb:
+      notebook: spectral_fits/continuum_fit/grb/example_grb_fit_relative_hist_response.ipynb
+      wasabi_files:
+        COSI-SMEX/DC3/Data/Sources/GRB_bn090424592_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
+          checksum: 08c1f1202d78df40a4aed3b785d273e0
+        COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.fits:
+          checksum: ca94ff1d7a73c1f41479aaf598807673
+        COSI-SMEX/develop/Data/Responses/ResponseContinuum.area.relative.nonsparse.h5.zip:
+          checksum: 7c082917a3bcb22d6f7116b0a6831007
+
     spectral_fit_normalizing_flows_crab:
       notebook: spectral_fits/continuum_fit/crab/example_crab_fit_normalizing_flows.ipynb
       wasabi_files:
