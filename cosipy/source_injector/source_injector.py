@@ -142,8 +142,7 @@ class SourceInjector():
             with response as response:
 
                 scatt_map = orientation.get_scatt_map(response.nside * 2,
-                                                      target_coord=coordinate,
-                                                      earth_occ=earth_occ)
+                                                      target_coord=coordinate if earth_occ else None)
 
                 psr = response.get_point_source_response(coord=coordinate,
                                                          scatt_map=scatt_map)

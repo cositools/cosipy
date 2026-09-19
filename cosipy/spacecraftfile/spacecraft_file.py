@@ -1267,7 +1267,6 @@ class SpacecraftHistory:
     def get_scatt_map(self,
                       nside:int,
                       target_coord:Optional[SkyCoord] = None,
-                      earth_occ:Optional[bool] = True,
                       angle_nbins:Optional[int] = None) -> SpacecraftAttitudeMap:
 
         """
@@ -1278,20 +1277,17 @@ class SpacecraftHistory:
         grid that discretizes the rotvec's direction, while a multiple
         of nside defines the number of bins to discretize its angle.
 
-        If a target coordinate is provided and earth_occ is True,
-        attitudes for which the view of the target is occluded by
-        the earth are excluded.
+        If a target coordinate is provided, attitudes for which the
+        view of the target is occluded by the earth are excluded.
 
         Parameters
         ----------
         nside : int
             The nside of the scatt map.
         target_coord : astropy.coordinates.SkyCoord, optional
-            The coordinates of the target object.
-        earth_occ : bool, optional
-            Option to include Earth occultation in scatt map calculation.
-            Default is True.
-        angle_nbins : int, ptional
+            The coordinates of the target object. If not specified,
+            Earth occultation is not applied.
+        angle_nbins : int, optional
             Number of bins used for the rotvec's angle. If none
             specified, default is 8*nside
 
@@ -1305,7 +1301,7 @@ class SpacecraftHistory:
         source = target_coord
 
         # compute time that the source is visible per time bin
-        duration = self.get_source_visibility(source if earth_occ else None)
+        duration = self.get_source_visibility(source)
 
         # Convert attitudes from points to time bins.  We use the
         # attitude at the start of the bin as the representative value
@@ -1363,7 +1359,7 @@ class SpacecraftHistory:
                                  frame = self._attitude.frame)
 
         return SpacecraftAttitudeMap(binned_attitudes, duration,
-                                     source = source if earth_occ else None)
+                                     source = source)
 
     @staticmethod
     def _sparse_sum_duplicates(indices:np.ndarray,

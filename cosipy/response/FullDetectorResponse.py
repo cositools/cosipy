@@ -834,8 +834,7 @@ class FullDetectorResponse(HealpixBase):
         coord = hpbase.pix2skycoord(ipix)
 
         scatt_map = orientation.get_scatt_map(nside = nside_scatt_map,
-                                              target_coord = coord,
-                                              earth_occ = earth_occ)
+                                              target_coord = coord if earth_occ else None)
 
         psr = self.get_point_source_response(coord = coord,
                                              scatt_map = scatt_map)
