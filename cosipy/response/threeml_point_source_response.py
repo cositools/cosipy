@@ -192,8 +192,7 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
                 # Inertial, e.g., galactic
 
                 scatt_map = self._sc_ori.get_scatt_map(nside=self._nside,
-                                                       target_coord=coord,
-                                                       earth_occ=True)
+                                                       target_coord=coord)
 
                 self._psr = PointSourceResponse.from_scatt_map(coord,
                                                                self._data,
