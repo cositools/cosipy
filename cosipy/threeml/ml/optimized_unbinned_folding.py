@@ -86,11 +86,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._integration_batch_size = 1_000_000
         self._offset: Optional[float] = sys.float_info.min
         
-        #TODO: Remove
-        self._use_photowidth = True
-        self._photofraction = 1.0
-        self._epsilonfraction = -0.05
-        
         # Per-interval switch: False (default) = adaptive peak+background placement,
         # True = plain linearly-spaced Gauss-Legendre nodes covering the whole interval,
         # ignoring IRF peak locations entirely. Useful for narrow intervals dedicated to
@@ -590,9 +585,9 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         accept = (energy > 1600.0) & (energy_m_keV < energy)
         return torch.where(accept, energy, torch.tensor(float('nan'), dtype=torch.float32))
     
+    @staticmethod
     def _get_missing_energy_peak(phi_geo_rad, energy_m_keV, phi_rad,
                                  photopeak_offset: float, photopeak_scale_right: float,
-                                 use_photowidth: bool, photofraction: float, epsilonfraction: float,
                                  inverse: bool = False) -> torch.Tensor:
         cos_geo = torch.cos(phi_geo_rad)
         cos_phi = torch.cos(phi_rad)
@@ -607,11 +602,8 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                               ((1022.0 + energy_m_keV)**2 - energy_m_keV * (2044.0 + energy_m_keV) * cos_phi - 2 * energy_m_keV**2 * cos_geo * torch.sin(phi_rad/2)**2))
             energy = (energy_m_keV**2 * (1 - cos_geo - cos_phi + cos_phi * cos_geo) + root) / denom
 
-        if use_photowidth:
-            hw_P_right = torch.sqrt(energy_m_keV.clamp(min=-photopeak_offset + 1e-6) + photopeak_offset) * photopeak_scale_right
-            accept = energy >= (energy_m_keV + hw_P_right * photofraction)
-        else:
-            accept = energy_m_keV/energy - 1 < epsilonfraction
+        hw_P_right = torch.sqrt(energy_m_keV.clamp(min=-photopeak_offset + 1e-6) + photopeak_offset) * photopeak_scale_right
+        accept = energy >= (energy_m_keV + hw_P_right)
         return torch.where(accept, energy, torch.tensor(float('nan'), dtype=torch.float32))
     
     def _peak_half_width(self, peak_type: int, peak_val: torch.Tensor, width_params) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -991,11 +983,9 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
 
             missing_direct = self._get_missing_energy_peak(phi_geo_rad, energy_m_keV, phi_rad,
                                                              photopeak_offset, photopeak_scale_right, 
-                                                             self._use_photowidth, self._photofraction, self._epsilonfraction,
                                                              inverse=False).squeeze(1)
             missing_wrong  = self._get_missing_energy_peak(phi_igeo_rad, energy_m_keV, phi_rad,
                                                              photopeak_offset, photopeak_scale_right, 
-                                                             self._use_photowidth, self._photofraction, self._epsilonfraction,
                                                              inverse=True).squeeze(1)
             raw_peaks = torch.stack([energy_m_keV.squeeze(1), escape_raw, missing_direct, missing_wrong], dim=1)
 
@@ -1891,86 +1881,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             return result + self._offset
         else:
             return result
-    
-    def extract_missing_energy_events(self, num_samples: int = 5) -> dict:
-        """
-        Extracts CDS parameters and labeled peak energies (direct vs. inverse solutions)
-        across specified epsilon ranges.
-        """
-        if self._source is None:
-            raise RuntimeError("Call set_source() first to set source coordinates.")
-
-        # Compute CDS geometry angles
-        coord = self._source.position.sky_coord
-        sc_coord_sph = self._get_target_in_sc_frame(coord, self._sc_ori_unique)[self._inv_idx]
-        lon_ph_rad_arr = asarray(sc_coord_sph.lon.rad, dtype=np.float32)
-        lat_ph_rad_arr = asarray(sc_coord_sph.lat.rad, dtype=np.float32)
-        
-        phi_geo_rad, _ = self._get_CDS_coordinates(
-            torch.as_tensor(lon_ph_rad_arr), torch.as_tensor(lat_ph_rad_arr)
-        )
-
-        # Inverse geometry angle correction: pi - phi_geo
-        phi_geo_rad_inv = torch.pi - phi_geo_rad
-
-        # Calculate direct and inverse missing energy peaks
-        Ei_direct = self._get_missing_energy_peak(phi_geo_rad, self._energy_m_keV, self._phi_rad, inverse=False)
-        Ei_inverse = self._get_missing_energy_peak(phi_geo_rad_inv, self._energy_m_keV, self._phi_rad, inverse=True)
-        
-        eps = (self._energy_m_keV / Ei_direct) - 1.0
-
-        bins = [
-            (-0.02, -0.01),
-            (-0.03, -0.02),
-            (-0.04, -0.03),
-            (-0.05, -0.04),
-            (-0.06, -0.05),
-            (-0.07, -0.06),
-            (-0.08, -0.07),
-            (-0.09, -0.08),
-            (-0.10, -0.09),
-            (-0.11, -0.10),
-            (-0.12, -0.11),
-            (-0.13, -0.12),
-            (-0.14, -0.13),
-            (-0.15, -0.14),
-        ]
-
-        extracted_events = {}
-
-        for low, high in bins:
-            mask = (eps >= low) & (eps < high) & (~torch.isnan(Ei_direct))
-            matching_indices = torch.where(mask)[0][:num_samples]
-
-            events_data = []
-            for idx in matching_indices:
-                em = self._energy_m_keV[idx].item()
-                peaks_dict = {}
-                
-                d_val = Ei_direct[idx].item()
-                i_val = Ei_inverse[idx].item()
-                
-                if not np.isnan(d_val) and d_val > em:
-                    peaks_dict["direct"] = d_val
-                if not np.isnan(i_val) and i_val > em:
-                    peaks_dict["inverse"] = i_val
-
-                events_data.append({
-                    "event_index": idx.item(),
-                    "lon_ph_rad": float(lon_ph_rad_arr[idx]),
-                    "lat_ph_rad": float(lat_ph_rad_arr[idx]),
-                    "Em_keV": em,
-                    "phi_rad": self._phi_rad[idx].item(),
-                    "psi_lon_rad": self._lon_scatt[idx].item(),
-                    "chi_lat_rad": self._lat_scatt[idx].item(),
-                    "Ei_peaks_keV": peaks_dict,  # Dict mapping solution type -> peak value
-                    "phi_geo_rad": phi_geo_rad[idx].item(),
-                    "epsilon": eps[idx].item(),
-                })
-
-            extracted_events[f"[{low}, {high}]"] = events_data
-
-        return extracted_events
 
 class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourceResponseInterface):
     
