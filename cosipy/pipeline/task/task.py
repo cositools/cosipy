@@ -312,7 +312,7 @@ if __name__ == "__main__":
     cosi_threemlfit()
 
 
-def  cosi_tsdetect(argv=None):
+def  cosi_tsdetect (argv=None):
     # Parse arguments from commandline
     apar = argparse.ArgumentParser(
         usage=textwrap.dedent(
@@ -430,7 +430,7 @@ def  cosi_tsdetect(argv=None):
     delta = tstop - tstart
     delta = delta.to_value('s')
     #
-    #if 'Time' in bkg_full.axes:
+    #
     bkg_full=Histogram.open(bk_data_path)
     bk_tstart=np.min(bkg_full.axes['Time'].edges.value)
     bk_tstop=np.max(bkg_full.axes['Time'].edges.value)
@@ -440,8 +440,7 @@ def  cosi_tsdetect(argv=None):
     bkg_model = bkg_full.project(['Em', 'Phi', 'PsiChi'])
     bkg_model /= (bkg_full_livetime / delta)
     del bkg_full
-    #else:
-    #    bkg_model = bkg_full.projectt(['Em', 'Phi', 'PsiChi'])
+
 
     #Check for previous running
     plot_filename = odir / plot_name
@@ -496,3 +495,5 @@ def  cosi_tsdetect(argv=None):
 
 if __name__ == "__main__":
         cosi_tsdetect()
+
+

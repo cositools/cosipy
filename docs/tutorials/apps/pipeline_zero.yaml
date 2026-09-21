@@ -238,7 +238,7 @@ threeml_source_models:
 
               delta: 10.0
 
-              free: true
+              free: false
 
           polarization: {}
 
