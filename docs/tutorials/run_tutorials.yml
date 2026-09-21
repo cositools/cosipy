@@ -117,7 +117,11 @@ tutorials:
         COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.fits:
           checksum: ca94ff1d7a73c1f41479aaf598807673
         COSI-SMEX/develop/Data/Responses/ResponseContinuum.area.relative.nonsparse.h5.zip:
-          checksum: 7c082917a3bcb22d6f7116b0a6831007
+          checksum: 2a5ab4f227608349f934d219ffebc2f4
+        COSI-SMEX/develop/Data/Responses/relative_hist_irf_from_nf_response.h5.zip:
+          checksum: d9093daeaf56a386095a42ae40c6635e
+        COSI-SMEX/DC4/Data/Responses/unpolarized_nfresponse_v1-01.pt:
+          checksum: bf2d0c16eac5954fb56489480c2602ca
 
     spectral_fit_normalizing_flows_crab:
       notebook: spectral_fits/continuum_fit/crab/example_crab_fit_normalizing_flows.ipynb
