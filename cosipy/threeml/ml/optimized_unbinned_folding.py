@@ -71,7 +71,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         
         # Default parameters for irf energy node placement
         self._density_integration_nodes = [63,]
-        self._total_expectation_resolution = 18.
+        self._total_expectation_resolution = 9.
         self._peak_nodes = [[19, 13],]
         # (photopeak_offset, photopeak_scale, escape_width, missing_energy_scale)
         # half-widths: photopeak = sqrt(Ei + photopeak_offset) * photopeak_scale
@@ -1897,7 +1897,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         
         All IRF queries are cached and can be saved to / loaded from a file.
         """
-        print("Init start", flush = True)
         
         # Interface inputs
         self._source = None
@@ -1910,7 +1909,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         self.force_energy_node_caching = force_energy_node_caching
         
         # Default parameters for irf energy node placement
-        self._total_expectation_resolution = 18.
+        self._total_expectation_resolution = 9.
         self._peak_nodes = [[19, 13, 13],]#[[18, 12, 12],]
         self._bkg_nodes  = [[8, 10, 14],]
         self._bkg_thresholds = [[500.0, 2000.0],]
@@ -1965,8 +1964,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         # Bucket Caching structures
         self._bucket_indices_cache: Optional[List[Dict[int, torch.Tensor]]] = None
         
-        print("Init time interp start", flush = True)
-        
         # Precomputed spacecraft history - Midpoint
         self._mid_times = self._sc_ori.obstime[:-1] + (self._sc_ori.obstime[1:] - self._sc_ori.obstime[:-1]) / 2
         self._sc_ori_center = self._sc_ori.interp(self._mid_times)
@@ -1984,8 +1981,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         unique_ratio = interval_ratios[bin_indices]
         self._livetime_ratio = unique_ratio[self._inv_idx].astype(np.float32)
         
-        print("Init data loading start", flush = True)
-        
         # Event kinematics tensors
         self._energy_m_keV = torch.as_tensor(asarray(self._data.energy_keV, dtype=np.float32))
         self._phi_rad = torch.as_tensor(asarray(self._data.scattering_angle_rad, dtype=np.float32))
@@ -1996,8 +1991,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         self._sin_lat_scatt = torch.sin(self._lat_scatt)
         self._cos_lon_scatt = torch.cos(self._lon_scatt)
         self._sin_lon_scatt = torch.sin(self._lon_scatt)
-        
-        print("Init prepare integration structures start", flush = True)
         
         # Also runs _check_memory_savings
         self.reduce_memory = reduce_memory
