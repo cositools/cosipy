@@ -111,7 +111,8 @@ def freeze_binned_sed_bins(spectrum, local_bin_indices):
     for i in bins:
         if i < 0 or i >= spectrum.n_bins:
             raise IndexError(
-                f"BinnedSED local bin indices must lie in [0, {spectrum.n_bins - 1}]."
+                "Binned SED local bin indices must lie in "
+                f"[0, {spectrum.n_bins - 1}]."
             )
 
         par = getattr(spectrum, f"K{i}")

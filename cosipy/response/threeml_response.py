@@ -7,8 +7,7 @@ from numba.typed.dictobject import DictModel
 from cosipy.interfaces import BinnedThreeMLModelFoldingInterface, BinnedThreeMLSourceResponseInterface, \
     BinnedDataInterface, DataInterface, ThreeMLSourceResponseInterface
 
-from astromodels import Model
-from astromodels.sources import PointSource, ExtendedSource
+from astromodels import Model, PointSource, ExtendedSource
 
 from histpy import Axes, Histogram
 
