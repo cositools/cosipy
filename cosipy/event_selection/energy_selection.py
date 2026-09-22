@@ -76,6 +76,32 @@ class EnergySelector(EventSelectorInterface):
         """(N, 2) Quantity of [min, max) ranges."""
         return Quantity(self._energy_ranges_keV, u.keV)
 
+    def _check_nonempty(self, accessor_name: str):
+        if len(self._energy_ranges_keV) == 0:
+            raise ValueError(f"{accessor_name} is undefined: this EnergySelector has no ranges (empty selection).")
+
+    @property
+    def min_energy_keV(self) -> float:
+        """Lower edge of the lowest range, in keV, as a plain float."""
+        self._check_nonempty("min_energy_keV")
+        return float(self._energy_ranges_keV[:, 0].min())
+
+    @property
+    def max_energy_keV(self) -> float:
+        """Upper edge of the highest range, in keV, as a plain float."""
+        self._check_nonempty("max_energy_keV")
+        return float(self._energy_ranges_keV[:, 1].max())
+
+    @property
+    def min_energy(self) -> Quantity:
+        """Lower edge of the lowest range, as a Quantity."""
+        return Quantity(self.min_energy_keV, u.keV)
+
+    @property
+    def max_energy(self) -> Quantity:
+        """Upper edge of the highest range, as a Quantity."""
+        return Quantity(self.max_energy_keV, u.keV)
+
     def union(self, other: "EnergySelector") -> "EnergySelector":
         """Ranges selected by either self or other."""
 
