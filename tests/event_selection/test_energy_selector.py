@@ -185,6 +185,15 @@ def test_intersect_disjoint_ranges_selects_nothing():
     assert not np.any(mask)
 
 
+def test_select_warns_on_empty_selector():
+    a = EnergySelector(u.Quantity([0., 100.], u.keV))
+    b = EnergySelector(u.Quantity([200., 300.], u.keV))
+    empty = a.intersect(b)
+
+    with pytest.warns(UserWarning, match="empty selection"):
+        asarray(empty.select(events), dtype=bool)
+
+
 def test_except_removes_overlapping_range():
     a = EnergySelector(u.Quantity([0., 300.], u.keV))
     b = EnergySelector(u.Quantity([100., 200.], u.keV))
