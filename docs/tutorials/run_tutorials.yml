@@ -118,8 +118,10 @@ tutorials:
           checksum: ca94ff1d7a73c1f41479aaf598807673
         COSI-SMEX/develop/Data/Responses/ResponseContinuum.area.relative.nonsparse.h5.zip:
           checksum: 2a5ab4f227608349f934d219ffebc2f4
+          unzip: True
         COSI-SMEX/develop/Data/Responses/relative_hist_irf_from_nf_response.h5.zip:
           checksum: d9093daeaf56a386095a42ae40c6635e
+          unzip: True
         COSI-SMEX/DC4/Data/Responses/unpolarized_nfresponse_v1-01.pt:
           checksum: bf2d0c16eac5954fb56489480c2602ca
 
