@@ -237,18 +237,42 @@ def build_relative_hist_irf_from_rsp(irf_rsp_path: Union[str, Path],
     return output_path
 
 
+def _parse_args():
+
+    import argparse
+
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    p.add_argument("irf_rsp_path", type=Path,
+                   help="Path to the full 6D differential-response .rsp(.gz) file.")
+    p.add_argument("aeff_rsp_path", type=Path,
+                   help="Path to the aeff-only .rsp(.gz) file.")
+    p.add_argument("output_path", type=Path,
+                   help="Path to write the final HDF5 file to (loadable with "
+                        "IRFRelativeHistUnpolarized.from_h5()).")
+    p.add_argument("--pa-convention", default="RelativeX",
+                   help="Polarization angle convention for the Zeta axis. Default: %(default)s")
+    p.add_argument("--smoothing-k", type=float, default=0,
+                   help="Mean-response smoothing weight -- see build_irf_hist()/_smooth_counts(). "
+                        "0 disables smoothing. Default: %(default)s")
+    p.add_argument("--overwrite", action="store_true",
+                   help="Overwrite output_path (and any intermediate converted HDF5 files) if it exists.")
+
+    return p.parse_args()
+
+
 if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
 
-    wdir = Path("/Users/imartin5/cosi/scratch/response_relative_coordinates/v4")
+    args = _parse_args()
 
     output_path = build_relative_hist_irf_from_rsp(
-        irf_rsp_path=wdir / 'ResponseContinuum.rel.binnedimaging.imagingresponse.nonsparse.rsp.gz',
-        aeff_rsp_path=wdir / 'ResponseContinuum.rel.binnedimaging.imagingresponse.nonsparse.aeff.rsp.gz',
-        output_path=wdir / 'ResponseContinuum.area.relative.nonsparse.h5',
-        pa_convention="RelativeX",
-        smoothing_k=0,
-        overwrite=True)
+        irf_rsp_path=args.irf_rsp_path,
+        aeff_rsp_path=args.aeff_rsp_path,
+        output_path=args.output_path,
+        pa_convention=args.pa_convention,
+        smoothing_k=args.smoothing_k,
+        overwrite=args.overwrite)
 
     print(f"Wrote {output_path}")
