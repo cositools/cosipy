@@ -108,6 +108,9 @@ def test_unbinned_data_all(tmp_path):
     # Test SAA cut:
     analysis.cut_SAA_events(unbinned_data=tmp_path/"test_h5.hdf5")
 
+    # Test Earth Horizon cut
+    analysis.cut_EarthHorizon(0.4,unbinned_data=tmp_path/"test_h5.hdf5")
+
     return
 
 def test_unbinned_data_nopointings(tmp_path):
