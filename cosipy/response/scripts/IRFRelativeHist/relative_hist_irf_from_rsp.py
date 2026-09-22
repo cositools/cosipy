@@ -8,13 +8,6 @@ MEGAlib's feature/binned-imaging-reparametrization branch): one for the full
 6D differential response (NuLambda, Ei, Epsilon, Phi, Theta, Zeta), and one
 for the total effective area alone (NuLambda, Ei).
 
-This replaces the former two-step workflow of running rspconverter.py (a
-thin wrapper around RspConverter.convert_to_h5()) and then hand-running
-relrsp_checks_and_prep.ipynb: this script does both, keeping only the
-production pipeline (smoothing/weighting, unit conversion, phase-space
-handling, polarization-convention tagging and the final write) and dropping
-the notebook's exploratory/diagnostic plotting cells.
-
 Pipeline
 --------
 1. Convert both .rsp.gz files to HDF5 with RspConverter.
@@ -24,7 +17,8 @@ Pipeline
    a. Smooth the raw per-bin counts by blending them towards the
       Ei-conditional marginal distributions of Epsilon, (Phi, Theta) and
       Zeta (see _smooth_counts() and the "Smoothing" section of
-      20260428-BinnedRelResponse-cosipy-Israel.pdf) -- bins with too little
+      https://github.com/user-attachments/files/31315263/20260428-BinnedRelResponse-cosipy-Israel.pdf)
+      -- bins with too little
       local statistics borrow more from the smooth marginal, at the cost of
       washing out real correlations, controlled by `smoothing_k`.
    b. Convert to effective area (same per-Ei EFF_AREA correction as above).
