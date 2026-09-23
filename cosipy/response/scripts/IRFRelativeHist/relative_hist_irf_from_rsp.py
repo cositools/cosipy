@@ -40,8 +40,10 @@ interpolates on (see its class docstring).
 """
 
 import logging
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import h5py as h5
@@ -57,10 +59,24 @@ from cosipy.polarization import PolarizationAxis
 logger = logging.getLogger(__name__)
 
 
+def _default_h5_name(rsp_path: Union[str, Path]) -> str:
+    """Same ".rsp"/".gz" -> ".h5" filename derivation as
+    RspConverter.convert_to_h5() uses when h5_filename is not given, but
+    returning just the filename (not the full path), so callers can place
+    it under a directory of their choosing."""
+
+    h5_path = Path(rsp_path)
+    while h5_path.suffix in {".rsp", ".gz"}:
+        h5_path = h5_path.with_suffix("")
+
+    return h5_path.name + ".h5"
+
+
 def convert_rsp_to_h5(irf_rsp_path: Union[str, Path],
                       aeff_rsp_path: Union[str, Path],
                       irf_h5_path: Union[str, Path] = None,
                       aeff_h5_path: Union[str, Path] = None,
+                      intermediate_dir: Union[str, Path] = None,
                       pa_convention: str = "RelativeX",
                       overwrite: bool = False):
     """
@@ -68,11 +84,36 @@ def convert_rsp_to_h5(irf_rsp_path: Union[str, Path],
     (RspConverter's native "DRM"-group format, not yet the final
     IRFRelativeHistUnpolarized-compatible layout).
 
+    Parameters
+    ----------
+    irf_h5_path, aeff_h5_path : str or Path, optional
+        Explicit output paths. If not given, default to
+        _default_h5_name(irf_rsp_path/aeff_rsp_path) under
+        `intermediate_dir` (or, if `intermediate_dir` is also None, next
+        to the input .rsp.gz file, i.e. RspConverter's own default).
+    intermediate_dir : str or Path, optional
+        Directory the default irf_h5_path/aeff_h5_path are placed under.
+        Created if it doesn't exist. Ignored for a path given explicitly.
+        See `intermediate_dir` in build_relative_hist_irf_from_rsp() for
+        why you'd want this instead of the (source-directory) default --
+        namely, to avoid colliding with an unrelated same-named file
+        there, and to control where the (fairly large) intermediate
+        files end up.
+
     Returns
     -------
     (Path, Path)
         Paths to the converted (irf, aeff) HDF5 files.
     """
+
+    if intermediate_dir is not None:
+        intermediate_dir = Path(intermediate_dir)
+        intermediate_dir.mkdir(parents=True, exist_ok=True)
+
+        if irf_h5_path is None:
+            irf_h5_path = intermediate_dir / _default_h5_name(irf_rsp_path)
+        if aeff_h5_path is None:
+            aeff_h5_path = intermediate_dir / _default_h5_name(aeff_rsp_path)
 
     converter = RspConverter()
 
@@ -211,9 +252,27 @@ def build_irf_hist(irf_drm_h5_path: Union[str, Path],
     return h
 
 
+@contextmanager
+def _resolve_intermediate_dir(intermediate_dir: Optional[Union[str, Path]]):
+    """
+    Yield `intermediate_dir` as given, or, if None, a freshly created
+    temporary directory that is removed again on exit (including on
+    error) -- so a default run doesn't leave the (fairly large)
+    intermediate per-rsp HDF5 files lying around, or risk colliding with
+    an unrelated same-named file next to the input .rsp.gz.
+    """
+
+    if intermediate_dir is not None:
+        yield Path(intermediate_dir)
+    else:
+        with tempfile.TemporaryDirectory(prefix="relative_hist_irf_from_rsp_") as tmp_dir:
+            yield Path(tmp_dir)
+
+
 def build_relative_hist_irf_from_rsp(irf_rsp_path: Union[str, Path],
                                      aeff_rsp_path: Union[str, Path],
                                      output_path: Union[str, Path],
+                                     intermediate_dir: Optional[Union[str, Path]] = None,
                                      pa_convention: str = "RelativeX",
                                      smoothing_k: float = 0,
                                      overwrite: bool = False) -> Path:
@@ -221,17 +280,32 @@ def build_relative_hist_irf_from_rsp(irf_rsp_path: Union[str, Path],
     End-to-end: convert both .rsp.gz files to HDF5, build the weighted
     "IRF" and "AEFF" histograms, and write them to `output_path` -- ready
     to be loaded with IRFRelativeHistUnpolarized.from_h5(output_path).
+
+    Parameters
+    ----------
+    intermediate_dir : str or Path, optional
+        Directory the intermediate RspConverter-produced HDF5 files
+        (irf/aeff, in RspConverter's native "DRM" layout -- see
+        convert_rsp_to_h5()) are written to. Defaults to a temporary
+        directory that is removed again once this function returns (or
+        raises), so it neither collides with an unrelated same-named
+        file next to the input .rsp.gz files (RspConverter's own
+        default location) nor leaves those (fairly large) intermediate
+        files behind. Pass an explicit directory to keep them instead,
+        e.g. to reuse across repeated runs.
     """
 
     output_path = Path(output_path)
 
-    irf_drm_path, aeff_drm_path = convert_rsp_to_h5(
-        irf_rsp_path, aeff_rsp_path, pa_convention=pa_convention, overwrite=overwrite)
+    with _resolve_intermediate_dir(intermediate_dir) as resolved_intermediate_dir:
+        irf_drm_path, aeff_drm_path = convert_rsp_to_h5(
+            irf_rsp_path, aeff_rsp_path, intermediate_dir=resolved_intermediate_dir,
+            pa_convention=pa_convention, overwrite=overwrite)
 
-    aeff_hist = build_aeff_hist(aeff_drm_path)
+        aeff_hist = build_aeff_hist(aeff_drm_path)
+        irf_hist = build_irf_hist(irf_drm_path, pa_convention=pa_convention, smoothing_k=smoothing_k)
+
     aeff_hist.write(str(output_path), name="AEFF", overwrite=overwrite)
-
-    irf_hist = build_irf_hist(irf_drm_path, pa_convention=pa_convention, smoothing_k=smoothing_k)
     irf_hist.write(str(output_path), name="IRF", overwrite=overwrite)
 
     return output_path
@@ -243,13 +317,16 @@ def _parse_args():
 
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    p.add_argument("irf_rsp_path", type=Path,
+    p.add_argument("--irf-rsp-path", type=Path, required=True,
                    help="Path to the full 6D differential-response .rsp(.gz) file.")
-    p.add_argument("aeff_rsp_path", type=Path,
+    p.add_argument("--aeff-rsp-path", type=Path, required=True,
                    help="Path to the aeff-only .rsp(.gz) file.")
-    p.add_argument("output_path", type=Path,
+    p.add_argument("--output-path", type=Path, required=True,
                    help="Path to write the final HDF5 file to (loadable with "
                         "IRFRelativeHistUnpolarized.from_h5()).")
+    p.add_argument("--intermediate-dir", type=Path, default=None,
+                   help="Directory for the intermediate RspConverter-produced HDF5 files. "
+                        "Default: a temporary directory, removed again once the script exits.")
     p.add_argument("--pa-convention", default="RelativeX",
                    help="Polarization angle convention for the Zeta axis. Default: %(default)s")
     p.add_argument("--smoothing-k", type=float, default=0,
@@ -271,6 +348,7 @@ if __name__ == "__main__":
         irf_rsp_path=args.irf_rsp_path,
         aeff_rsp_path=args.aeff_rsp_path,
         output_path=args.output_path,
+        intermediate_dir=args.intermediate_dir,
         pa_convention=args.pa_convention,
         smoothing_k=args.smoothing_k,
         overwrite=args.overwrite)
