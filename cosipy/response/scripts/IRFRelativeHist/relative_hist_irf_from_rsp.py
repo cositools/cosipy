@@ -329,7 +329,7 @@ def _parse_args():
                         "Default: a temporary directory, removed again once the script exits.")
     p.add_argument("--pa-convention", default="RelativeX",
                    help="Polarization angle convention for the Zeta axis. Default: %(default)s")
-    p.add_argument("--smoothing-k", type=float, default=0,
+    p.add_argument("--smoothing-k", type=float, default=1.,
                    help="Mean-response smoothing weight -- see build_irf_hist()/_smooth_counts(). "
                         "0 disables smoothing. Default: %(default)s")
     p.add_argument("--overwrite", action="store_true",
