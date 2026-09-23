@@ -94,6 +94,50 @@ def test_energy_ranges_and_energy_ranges_keV_are_consistent():
     assert selector.energy_ranges.unit == u.keV
 
 
+def test_min_max_energy_single_range():
+    selector = EnergySelector(u.Quantity([100., 250.], u.keV))
+
+    assert selector.min_energy_keV == 100.
+    assert selector.max_energy_keV == 250.
+    assert selector.min_energy == 100. * u.keV
+    assert selector.max_energy == 250. * u.keV
+
+
+def test_min_max_energy_multiple_disjoint_ranges():
+    # min/max span the full extent, not just the first range.
+    selector = EnergySelector(u.Quantity([[200., 300.], [0., 120.]], u.keV))
+
+    assert selector.min_energy_keV == 0.
+    assert selector.max_energy_keV == 300.
+
+
+def test_min_max_energy_default_selector():
+    selector = EnergySelector()  # [0, inf) keV, no cut
+
+    assert selector.min_energy_keV == 0.
+    assert np.isinf(selector.max_energy_keV)
+
+
+def test_min_max_energy_raises_on_empty_selector():
+    a = EnergySelector(u.Quantity([0., 100.], u.keV))
+    b = EnergySelector(u.Quantity([200., 300.], u.keV))
+    empty = a.intersect(b)
+
+    assert empty.energy_ranges_keV.shape == (0, 2)
+
+    with pytest.raises(ValueError):
+        empty.min_energy_keV
+
+    with pytest.raises(ValueError):
+        empty.max_energy_keV
+
+    with pytest.raises(ValueError):
+        empty.min_energy
+
+    with pytest.raises(ValueError):
+        empty.max_energy
+
+
 def test_union_combines_ranges():
     a = EnergySelector(u.Quantity([0., 100.], u.keV))
     b = EnergySelector(u.Quantity([200., 300.], u.keV))
@@ -139,6 +183,15 @@ def test_intersect_disjoint_ranges_selects_nothing():
 
     mask = asarray(combined.select(events), dtype=bool)
     assert not np.any(mask)
+
+
+def test_select_warns_on_empty_selector():
+    a = EnergySelector(u.Quantity([0., 100.], u.keV))
+    b = EnergySelector(u.Quantity([200., 300.], u.keV))
+    empty = a.intersect(b)
+
+    with pytest.warns(UserWarning, match="empty selection"):
+        asarray(empty.select(events), dtype=bool)
 
 
 def test_except_removes_overlapping_range():

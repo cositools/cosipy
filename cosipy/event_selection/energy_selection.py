@@ -1,4 +1,5 @@
 from typing import Iterable
+import warnings
 
 import numpy as np
 import astropy.units as u
@@ -76,6 +77,70 @@ class EnergySelector(EventSelectorInterface):
         """(N, 2) Quantity of [min, max) ranges."""
         return Quantity(self._energy_ranges_keV, u.keV)
 
+    def _check_nonempty(self, accessor_name: str):
+        # Raise rather than e.g. returning None: None would be ambiguous
+        # (does it mean "empty selector" or "no bound, i.e. +/-inf"?), and
+        # an EnergySelector with no ranges selects nothing -- a selector
+        # that throws out every single event is never what you actually
+        # want, so surface it immediately instead of silently propagating
+        # a meaningless min/max downstream.
+        if len(self._energy_ranges_keV) == 0:
+            raise ValueError(f"{accessor_name} is undefined: this EnergySelector has no ranges (empty selection).")
+
+    @property
+    def min_energy_keV(self) -> float:
+        """
+        Lower edge of the lowest range, in keV, as a plain float.
+
+        Raises
+        ------
+        ValueError
+            If this selector has no ranges (empty selection) -- see
+            _check_nonempty().
+        """
+        self._check_nonempty("min_energy_keV")
+        return float(self._energy_ranges_keV[:, 0].min())
+
+    @property
+    def max_energy_keV(self) -> float:
+        """
+        Upper edge of the highest range, in keV, as a plain float.
+
+        Raises
+        ------
+        ValueError
+            If this selector has no ranges (empty selection) -- see
+            _check_nonempty().
+        """
+        self._check_nonempty("max_energy_keV")
+        return float(self._energy_ranges_keV[:, 1].max())
+
+    @property
+    def min_energy(self) -> Quantity:
+        """
+        Lower edge of the lowest range, as a Quantity.
+
+        Raises
+        ------
+        ValueError
+            If this selector has no ranges (empty selection) -- see
+            _check_nonempty().
+        """
+        return Quantity(self.min_energy_keV, u.keV)
+
+    @property
+    def max_energy(self) -> Quantity:
+        """
+        Upper edge of the highest range, as a Quantity.
+
+        Raises
+        ------
+        ValueError
+            If this selector has no ranges (empty selection) -- see
+            _check_nonempty().
+        """
+        return Quantity(self.max_energy_keV, u.keV)
+
     def union(self, other: "EnergySelector") -> "EnergySelector":
         """Ranges selected by either self or other."""
 
@@ -125,6 +190,10 @@ class EnergySelector(EventSelectorInterface):
 
     def _select(self, events: EventDataWithEnergyInterface,
                 early_stop: bool = True) -> Iterable[bool]:
+
+        if len(self._energy_ranges_keV) == 0:
+            warnings.warn("EnergySelector has no ranges (empty selection); it will reject every event.",
+                          stacklevel=2)
 
         energy_keV = np.asarray(asarray(events.energy_keV, dtype=np.float64, force_dtype=False))
         lo, hi = self._energy_ranges_keV[:, 0], self._energy_ranges_keV[:, 1]
