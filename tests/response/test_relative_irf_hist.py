@@ -233,6 +233,50 @@ def _make_uniform_irf_hist(nside=2, n_eps=8, eps_range=(-0.8, 0.8)):
     return Histogram(axes, contents=np.ones(axes.nbins), unit=u.cm * u.cm)
 
 
+def _make_peaked_irf_hist(nside=1, ei_edges_keV=(100., 178., 316., 562., 1000.),
+                          eps_sigma=0.01, n_eps=100, eps_range=(-0.5, 0.5)):
+    """A multi-Ei-bin irf histogram whose Epsilon distribution is a narrow
+    Gaussian around eps=0, identical (by construction) at every Ei bin --
+    i.e. the energy resolution itself does not depend on Ei at all. Any
+    Ei-dependence of a measured-energy selection's *fraction* therefore
+    comes purely from the Em -> Epsilon = Em/Ei - 1 conversion, not from a
+    genuinely varying response, which is what lets
+    test_narrow_cut_matches_exact_fraction_at_target_ei below compute an
+    exact expected answer independent of Ei interpolation."""
+
+    eps_edges = np.linspace(*eps_range, n_eps + 1)
+    eps_centers = 0.5 * (eps_edges[:-1] + eps_edges[1:])
+    eps_profile = np.exp(-0.5 * (eps_centers / eps_sigma) ** 2)
+    eps_profile /= eps_profile.sum()  # each Ei/pixel/Phi/Theta/Zeta slice sums to 1
+
+    axes = Axes([
+        HealpixAxis(nside=nside, scheme='ring', coordsys=SpacecraftFrame(), label='NuLambda'),
+        Axis(np.asarray(ei_edges_keV) * u.keV, label='Ei', scale='log'),
+        Axis(eps_edges, label='Epsilon'),
+        Axis([0., 180.] * u.deg, label='Phi'),
+        Axis([-90., 90.] * u.deg, label='Theta'),
+        PolarizationAxis(np.linspace(0, 360, 5) * u.deg, convention=StereographicConvention(), label='Zeta'),
+    ])
+
+    contents = np.broadcast_to(
+        eps_profile[None, None, :, None, None, None],
+        axes.nbins).copy()
+
+    return Histogram(axes, contents=contents, unit=u.cm * u.cm)
+
+
+def _make_fine_flat_aeff_hist(nside=1, n_ei=201, ei_range_keV=(100., 1000.)):
+    """A total-effective-area histogram, flat in Ei and much finer than
+    _make_peaked_irf_hist's own (coarse) Ei grid."""
+
+    axes = Axes([
+        HealpixAxis(nside=nside, scheme='ring', coordsys=SpacecraftFrame(), label='NuLambda'),
+        Axis(np.geomspace(*ei_range_keV, n_ei + 1) * u.keV, label='Ei', scale='log'),
+    ])
+
+    return Histogram(axes, contents=np.ones(axes.nbins), unit=u.cm * u.cm)
+
+
 class TestEnergySelections:
     """selections=... on IRFRelativeHistUnpolarized should scale
     _tot_aeff, per (NuLambda, Ei), by the fraction of effective area
@@ -338,3 +382,48 @@ class TestEnergySelections:
             selections=EnergySelector(u.Quantity([150., 400.], u.keV)))
 
         np.testing.assert_array_equal(cut._diff_aeff.contents, no_cut._diff_aeff.contents)
+
+    def test_narrow_cut_matches_exact_fraction_at_target_ei(self):
+        """A narrow measured-energy cut, applied with a separate `aeff`
+        on a much finer Ei grid than irf's own (coarse) one, must use
+        each of aeff's own *exact* Ei values for the Em -> Epsilon
+        conversion -- not irf's own (coarser) Ei grid, whose derived
+        fraction-vs-Ei curve is a poor thing to linearly interpolate for
+        a narrow cut, since Em/Ei - 1 makes the corresponding Epsilon
+        window shift and rescale rapidly with Ei even when (as here) the
+        underlying response doesn't vary with Ei at all."""
+
+        eps_sigma = 0.01
+        irf_hist = _make_peaked_irf_hist(eps_sigma=eps_sigma)
+        aeff_hist = _make_fine_flat_aeff_hist()
+
+        model = IRFRelativeHistUnpolarized(
+            irf_hist, aeff=aeff_hist,
+            selections=EnergySelector(u.Quantity([495., 505.], u.keV)))
+
+        eps_edges = np.asarray(irf_hist.axes['Epsilon'].edges)
+        eps_centers = 0.5 * (eps_edges[:-1] + eps_edges[1:])
+        eps_widths = np.diff(eps_edges)
+        eps_profile = np.exp(-0.5 * (eps_centers / eps_sigma) ** 2)
+        eps_profile /= eps_profile.sum()
+        density = eps_profile / eps_widths
+
+        def exact_fraction(ei_keV):
+            eps_lo = np.clip(495. / ei_keV - 1, eps_edges[0], eps_edges[-1])
+            eps_hi = np.clip(505. / ei_keV - 1, eps_edges[0], eps_edges[-1])
+            selected = IRFRelativeHistUnpolarized._integrate_piecewise_linear(
+                density, eps_centers, eps_lo, eps_hi)
+            return selected  # eps_profile already sums to 1, so this IS the fraction
+
+        # aeff_hist's own Ei axis object is mutated in place by
+        # IRFRelativeHistUnpolarized.__init__ (unit stripping) even
+        # though copy=True -- see the note on Histogram.copy() not
+        # deep-copying individual Axis objects in TestParallelInterp
+        # above -- so by now it's already the plain keV value.
+        target_ei_keV = np.asarray(aeff_hist.axes['Ei'].centers)
+        expected_fraction = np.array([exact_fraction(ei) for ei in target_ei_keV])
+
+        # aeff_hist is flat (all ones), so _tot_aeff post-cut equals the
+        # fraction directly, for every NuLambda pixel.
+        for pix in range(model._tot_aeff.contents.shape[0]):
+            np.testing.assert_allclose(model._tot_aeff.contents[pix], expected_fraction, atol=1e-6)
