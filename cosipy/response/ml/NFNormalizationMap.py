@@ -37,10 +37,13 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
         self._map_npix: int = hp.nside2npix(self._map_nside)
         self._intvar_resolution: Optional[float] = 1.5
         self._menergy_keV_resolution: Optional[float] = 8.0
-        self._range_intvar: Optional[Tuple[float, float]] = (100., 10_000.)
         self._atol: float = 0.1
         self._Em_peak_widths: Optional[Tuple[float, float, float]] = (0.85, 0.70, 0.75)
         self._Em_peak_nums: Optional[Tuple[int, int, int]] = (18, 12, 12)
+        
+        self._range_intvar: Tuple[float, float] = (100., 10_000.)
+        self._range_menergy_keV: Tuple[float, float] = (100., 10_000.)
+        self._range_scatt_angle_rad: Optional[Tuple[float, float]] = None
     
     @property
     def map_nside(self):
@@ -50,9 +53,15 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
     
     @property
     def range_ienergy_keV(self):
+        """Fixed valid range for ienergy_keV. This is a constant of the response model
+        and cannot be changed at runtime -- construct a new instance to use a different one."""
         return self._range_intvar
-    @range_ienergy_keV.setter
-    def range_ienergy_keV(self, val: Tuple[float, float]): self.set_integration_parameters(range_intvar=val)
+    
+    @property
+    def range_menergy_keV(self):
+        """Fixed valid range for menergy_keV. This is a constant of the response model
+        and cannot be changed at runtime -- construct a new instance to use a different one."""
+        return self._range_menergy_keV
     
     @property
     def ienergy_keV_resolution(self):
@@ -76,14 +85,12 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
                                    map_nside: Optional[int] = -1,
                                    intvar_resolution: Optional[float] = -1.0,
                                    menergy_keV_resolution: Optional[float] = -1.0,
-                                   range_intvar: Optional[Tuple[float, float]] = None,
                                    atol: Optional[float] = -1.0,
                                    Em_peak_widths: Optional[Tuple[float, float, float]] = None,
                                    Em_peak_nums: Optional[Tuple[int, int, int]] = None):
         
         super().set_integration_parameters(intvar_resolution=intvar_resolution,
                                             menergy_keV_resolution=menergy_keV_resolution,
-                                            range_intvar=range_intvar,
                                             atol=atol)
         
         new_map_nside = map_nside if map_nside != -1 else self._map_nside
@@ -144,8 +151,8 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
                 f.attrs['ienergy_keV_resolution'] = self._intvar_resolution
             if self._menergy_keV_resolution is not None:
                 f.attrs['menergy_keV_resolution'] = self._menergy_keV_resolution
-            if self._range_intvar is not None:
-                f.attrs['range_energy_keV'] = self._range_intvar
+            f.attrs['range_ienergy_keV'] = self._range_intvar
+            f.attrs['range_menergy_keV'] = self._range_menergy_keV
             if self._Em_peak_nums is not None:
                 f.attrs['Em_peak_nums'] = json.dumps(self._Em_peak_nums)
             if self._Em_peak_widths is not None:
@@ -200,10 +207,24 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
             else:
                 self._menergy_keV_resolution = None
                 
-            if 'range_energy_keV' in f.attrs:
-                self._range_intvar = tuple(f.attrs['range_energy_keV'])
-            else:
-                self._range_intvar = None
+            # _range_intvar / _range_menergy_keV are fixed by this class's __init__, not
+            # by the cache file. Verify the file was built with matching ranges instead
+            # of overwriting them, so a stale cache from an older/different fixed range
+            # is caught rather than silently applied.
+            if 'range_ienergy_keV' in f.attrs:
+                loaded_range_intvar = tuple(f.attrs['range_ienergy_keV'])
+                if not np.allclose(loaded_range_intvar, self._range_intvar):
+                    raise ValueError(
+                        f"Cache mismatch: file was built with range_ienergy_keV={loaded_range_intvar}, "
+                        f"but this class defines _range_intvar={self._range_intvar}."
+                    )
+            if 'range_menergy_keV' in f.attrs:
+                loaded_range_menergy = tuple(f.attrs['range_menergy_keV'])
+                if not np.allclose(loaded_range_menergy, self._range_menergy_keV):
+                    raise ValueError(
+                        f"Cache mismatch: file was built with range_menergy_keV={loaded_range_menergy}, "
+                        f"but this class defines _range_menergy_keV={self._range_menergy_keV}."
+                    )
             
             self._intvar = json.loads(f.attrs['ienergy_keV'])
             
@@ -217,12 +238,16 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
             else:
                 self._scatt_angle_rad = None
             
+            menergy_is_full = self._is_full_domain(self._menergy_keV, self._range_menergy_keV) if self._menergy_keV is not None else True
+            scatt_is_full = self._is_full_domain(self._scatt_angle_rad, self._range_scatt_angle_rad) if self._scatt_angle_rad is not None else True
+            self._is_identity_cut = menergy_is_full and scatt_is_full
+            
             self._maps = torch.from_numpy(f['maps'][:])
             self._init_maps()
             self._init_interpolator()
     
     def query_normalization(self, pol_rad: ArrayLike, az_rad: ArrayLike, ienergy_keV: ArrayLike) -> np.ndarray:
-        self.init_cache()
+        self.init_setup()
         
         pol_rad, az_rad, ienergy_keV = [np.atleast_1d(x).ravel() for x in [pol_rad, az_rad, ienergy_keV]]
         
@@ -231,6 +256,13 @@ class NFNormalizationMap(NFNormalizationMapEmBase[IEnergyList, NFNormalizationDe
                 f"Input shape mismatch: pol_rad {pol_rad.shape}, az_rad {az_rad.shape}, "
                 f"and ienergy_keV {ienergy_keV.shape} must all have the same flat length."
             )
+        
+        if self._is_identity_cut:
+            # The measured-energy cut spans the whole valid menergy_keV range, i.e. it's
+            # not actually a cut: the correction is exactly 1, same as without a cut.
+            return np.ones_like(ienergy_keV, dtype=np.float64)
+        
+        self.init_cache()
         
         results = np.zeros_like(ienergy_keV, dtype=np.float64)
         processed_mask = np.zeros_like(ienergy_keV, dtype=bool)

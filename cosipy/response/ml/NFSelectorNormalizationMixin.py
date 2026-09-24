@@ -18,17 +18,12 @@ class EnergySelectorNormalizationMixin:
                 raise ValueError("This implementation only supports EnergySelector.")
             else:
                 self._selector = selector
-                self._menergy_min_list = getattr(selector, 'menergy_keV_min', None)
-                self._menergy_max_list = getattr(selector, 'menergy_keV_max', None)
-                if self._menergy_min_list is None and self._menergy_max_list is None:
-                    # TODO: log warning that no map needs to be initialized
-                    self._selector = None
+                self._menergy_list = selector.energy_ranges_keV
+                if len(self._menergy_list) == 0:
+                    raise ValueError("The provided EnergySelector has no energy ranges defined.")
                 else:
-                    if self._menergy_min_list is None:
-                        self._menergy_min_list = [np.nan for _ in self._menergy_max_list]
-                    if self._menergy_max_list is None:
-                        self._menergy_max_list = [np.nan for _ in self._menergy_min_list]
-                        
+                    self._menergy_min_list = selector.energy_ranges_keV[:, 0].tolist()
+                    self._menergy_max_list = selector.energy_ranges_keV[:, 1].tolist()
                     self._menergy_intervals = list(zip(self._menergy_min_list, self._menergy_max_list))
 
     @property

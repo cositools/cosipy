@@ -5,9 +5,10 @@ from typing import Union, Optional, Tuple, List, Sequence, TypeVar, Generic
 from pathlib import Path
 from abc import ABC, abstractmethod
 
-Interval = Tuple[Union[float, int], Union[float, int]]
-ArrayLike = Union[np.ndarray, torch.Tensor, Sequence, float, int, np.number]
-IEnergyList = List[Union[float, int, Interval]]
+NumberTypes = Union[float, int, np.number]
+Interval = Tuple[NumberTypes, NumberTypes]
+ArrayLike = Union[np.ndarray, torch.Tensor, Sequence, NumberTypes]
+IEnergyList = List[Union[NumberTypes, Interval]]
 MEnergyList = List[Interval]
 
 T_IntVarList = TypeVar('T_IntVarList')
@@ -20,6 +21,10 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
     # Need to be defined by implementation
     _intvar_allow_float: bool
     _intvar_name: str
+    
+    _range_intvar: Tuple[float, float]
+    _range_menergy_keV: Optional[Tuple[float, float]]
+    _range_scatt_angle_rad: Optional[Tuple[float, float]]
     
     def __init__(self,
                  nfdensity: Optional[T_NormDensityType] = None,
@@ -40,10 +45,16 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
         self._scatt_angle_rad = None
         self._interpolator = None
         
+        # None here only means "not yet set by the subclass __init__"; _set_domain
+        # enforces that _range_intvar (always) and _range_menergy_keV/_range_scatt_angle_rad
+        # (when that quantity is used) are no longer None once actually needed.
         self._range_intvar: Optional[Tuple[float, float]] = None
+        self._range_menergy_keV: Optional[Tuple[float, float]] = None
+        self._range_scatt_angle_rad: Optional[Tuple[float, float]] = None
         self._intvar_resolution: Optional[float] = None
         self._atol: float = 0.0
         self._menergy_keV_resolution: Optional[float] = None
+        self._is_identity_cut: bool = False
         
         if nfdensity is not None:
             self._set_norm_dimensions(nfdensity.norm_dimensions)
@@ -68,26 +79,19 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
     
     def set_integration_parameters(self,
                                    intvar_resolution: Optional[float] = -1.0,
-                                   range_intvar: Optional[Tuple[float, float]] = None,
                                    atol: Optional[float] = -1.0):
         
         new_intvar_resolution = intvar_resolution if intvar_resolution != -1.0 else self._intvar_resolution
-        new_range_intvar = range_intvar or self._range_intvar
         new_atol = atol if atol != -1.0 else self._atol
         
         if not isinstance(new_intvar_resolution, (float, int, np.number)) or (new_intvar_resolution <= 0):
             raise ValueError(f"{self._intvar_name}_resolution must be a positive float.")
         
-        if not isinstance(new_range_intvar, tuple) or (len(new_range_intvar) != 2) or not isinstance(new_range_intvar[0], (float, int, np.number)) or not isinstance(new_range_intvar[1], (float, int, np.number)):
-            raise ValueError(f"range_{self._intvar_name} must be a tuple of 2 floats.")
-        
         if not isinstance(new_atol, (float, int, np.number)) or (new_atol <= 0):
             raise ValueError("atol must be a positive float.")
         
         new_atol = min(new_atol, new_intvar_resolution)
-        changed = [a != b for a, b in zip(
-            [new_intvar_resolution, new_range_intvar],
-            [self._intvar_resolution, self._range_intvar])]
+        changed = [new_intvar_resolution != self._intvar_resolution]
         
         if any(changed):
             if self._nfdensity is None:
@@ -98,7 +102,6 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
             self.clear_cache()
         
         self._intvar_resolution = new_intvar_resolution
-        self._range_intvar = new_range_intvar
         self._atol = new_atol
     
     @staticmethod
@@ -212,43 +215,54 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
         self._intvar = None
         self._menergy_keV = None
         self._scatt_angle_rad = None
+        self._is_identity_cut = False
 
-    def _validate_intervals(self, name: str, val: list, allow_float: bool = False, check_overlap: bool = False) -> list:
+    def _validate_intervals(self, name: str, val: list, range_bounds: Tuple[float, float],
+                             allow_float: bool = False, check_overlap: bool = False) -> list:
+            # TODO: we could also check that floats dont lie within any of the intervals
             if not isinstance(val, list):
                 raise TypeError(f"{name} must be a list.")
+            if not val:
+                raise ValueError(f"{name} must contain at least one entry.")
             
+            range_min, range_max = range_bounds
             parsed_items = []
             
             for item in val:
-                if isinstance(item, (float, int, np.number)):
+                if isinstance(item, NumberTypes):
                     if not allow_float:
                         raise ValueError(f"Elements of {name} cannot be a float. They must be tuple intervals (e.g., (a, b)).")
                     else:
-                        parsed_items.append(float(item))
+                        point = float(item)
+                        if not (range_min <= point <= range_max):
+                            raise ValueError(
+                                f"Value {point} in {name} is outside the valid range {range_bounds}."
+                            )
+                        parsed_items.append(point)
                 
                 elif isinstance(item, tuple):
                     if len(item) != 2:
                         raise ValueError(f"Each interval in {name} must have exactly 2 elements. Got {item}.")
                     
-                    if all([isinstance(x, (float, int, np.number)) for x in item]):
+                    if all([isinstance(x, NumberTypes) for x in item]):
                         a, b = float(item[0]), float(item[1])
                     elif all([isinstance(x, Time) for x in item]):  
                         a, b = float(item[0].utc.unix), float(item[1].utc.unix)
                     else:
                         raise TypeError(f"Unrecognized elements in {name}: {item}. Expected numbers or times.")
                     
-                    if np.isnan(a) or np.isnan(b):
-                        if self._range_intvar is None:
-                            raise ValueError("Cannot have NaN intervals if the range is not specified.")
-                        if np.isnan(a):
-                            a = self._range_intvar[0]
-                        if np.isnan(b):
-                            b = self._range_intvar[1]
-                    
                     if a >= b:
                         raise ValueError(f"Intervals in {name} must be strictly increasing (a < b). Got {item}.")
                     
-                    parsed_items.append([a, b])
+                    a_clamped = max(a, range_min)
+                    b_clamped = min(b, range_max)
+                    
+                    if a_clamped >= b_clamped:
+                        raise ValueError(
+                            f"Interval {item} in {name} lies entirely outside the valid range {range_bounds}"
+                        )
+                    
+                    parsed_items.append([a_clamped, b_clamped])
                 else:
                     raise TypeError(f"Unrecognized element in {name}: {item}. Expected float/int or tuple.")
             
@@ -266,6 +280,19 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
                             )
 
             return parsed_items
+    
+    @staticmethod
+    def _is_full_domain(intervals: Optional[list], domain_range: Optional[Tuple[float, float]]) -> bool:
+        """True if `intervals` is a single interval that (after clamping) exactly spans
+        `domain_range`, i.e. the cut is a no-op and the normalization correction must be
+        identically 1, same as if no cut had been applied at all."""
+        if domain_range is None or intervals is None:
+            return False
+        only_intervals = [item for item in intervals if isinstance(item, list)]
+        if len(only_intervals) != 1:
+            return False
+        a, b = only_intervals[0]
+        return bool(np.isclose(a, domain_range[0]) and np.isclose(b, domain_range[1]))
 
     def _set_domain(self,
                     intvar: T_IntVarList,
@@ -273,9 +300,20 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
                     scatt_angle_rad: Optional[MEnergyList] = None,
                     ):
         
-        intvar_val = self._validate_intervals(self._intvar_name, intvar, allow_float=self._intvar_allow_float)
+        if self._range_intvar is None:
+            raise RuntimeError(
+                f"{type(self).__name__} must define _range_intvar (a fixed (min, max) tuple) "
+                f"in its __init__ before the domain can be set."
+            )
+        
+        intvar_val = self._validate_intervals(self._intvar_name, intvar,
+                                               range_bounds=self._range_intvar,
+                                               allow_float=self._intvar_allow_float)
         
         # Check intervals
+        
+        menergy_arr = None
+        scatt_arr = None
         
         if menergy_keV is not None and scatt_angle_rad is not None and self._norm_dimensions != "EmPhi":
             raise ValueError("Only one of menergy_keV or scatt_angle_rad can be specified given the normalization dimensions.")
@@ -283,12 +321,26 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
             raise ValueError("At least one of menergy_keV or scatt_angle_rad must be specified.")
         if menergy_keV is not None:
             if self._norm_dimensions != "Phi":
-                menergy_arr = self._validate_intervals("menergy_keV", menergy_keV, allow_float=False, check_overlap=True)
+                if self._range_menergy_keV is None:
+                    raise RuntimeError(
+                        f"{type(self).__name__} must define _range_menergy_keV (a fixed (min, max) tuple) "
+                        f"in its __init__ before menergy_keV can be used."
+                    )
+                menergy_arr = self._validate_intervals("menergy_keV", menergy_keV,
+                                                        range_bounds=self._range_menergy_keV,
+                                                        allow_float=False, check_overlap=True)
             else:
                 raise ValueError("menergy_keV is not supported for normalization dimensions Phi.")
         if scatt_angle_rad is not None:
             if self._norm_dimensions != "Em":
-                scatt_arr = self._validate_intervals("scatt_angle_rad", scatt_angle_rad, allow_float=False, check_overlap=True)
+                if self._range_scatt_angle_rad is None:
+                    raise RuntimeError(
+                        f"{type(self).__name__} must define _range_scatt_angle_rad (a fixed (min, max) tuple) "
+                        f"in its __init__ before scatt_angle_rad can be used."
+                    )
+                scatt_arr = self._validate_intervals("scatt_angle_rad", scatt_angle_rad,
+                                                      range_bounds=self._range_scatt_angle_rad,
+                                                      allow_float=False, check_overlap=True)
             else:
                 raise ValueError("scatt_angle_rad is not supported for normalization dimensions Em.")
         if menergy_keV is not None and scatt_angle_rad is not None:
@@ -315,6 +367,13 @@ class NFNormalizationMapBase(ABC, Generic[T_IntVarList, T_NormDensityType]):
         self._intvar = intvar_val
         self._menergy_keV = menergy_arr if menergy_keV is not None else None
         self._scatt_angle_rad = scatt_arr if scatt_angle_rad is not None else None
+        
+        # A cut that spans the entire valid range for every dimension it uses is a no-op:
+        # the normalization correction must come out to exactly 1, same as without a cut,
+        # rather than whatever the numerical integration happens to produce.
+        menergy_is_full = self._is_full_domain(menergy_arr, self._range_menergy_keV) if menergy_keV is not None else True
+        scatt_is_full = self._is_full_domain(scatt_arr, self._range_scatt_angle_rad) if scatt_angle_rad is not None else True
+        self._is_identity_cut = menergy_is_full and scatt_is_full
 
     def _inference_helper(self, context: torch.Tensor, source: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
         active_pool = True
@@ -341,11 +400,9 @@ class NFNormalizationMapEmBase(NFNormalizationMapBase[T_IntVarList, T_NormDensit
     def set_integration_parameters(self,
                                    intvar_resolution: Optional[float] = -1.0,
                                    menergy_keV_resolution: Optional[float] = -1.0,
-                                   range_intvar: Optional[Tuple[float, float]] = None,
                                    atol: Optional[float] = -1.0):
         
         super().set_integration_parameters(intvar_resolution=intvar_resolution,
-                                            range_intvar=range_intvar,
                                             atol=atol)
         
         new_menergy_keV_resolution = menergy_keV_resolution if menergy_keV_resolution != -1.0 else self._menergy_keV_resolution
@@ -448,59 +505,6 @@ class NFNormalizationMapEmBase(NFNormalizationMapBase[T_IntVarList, T_NormDensit
             weights.append(w)
             
         return (torch.cat(nodes), torch.cat(weights)) if nodes else (torch.empty(0), torch.empty(0))
-    
-    #def _node_logic_Em(self, peaks: List[float], widths: List[Tuple[float, int]], menergy_keV: List[float]) -> Tuple[torch.Tensor, torch.Tensor]:
-    #    Emin, Emax = menergy_keV
-    #    n_peaks = len(peaks)
-    #    
-    #    def n_fill_peaks(E1, E2):
-    #        diff = E2 - E1
-    #        if diff < self._menergy_keV_resolution:
-    #            return 2
-    #        else:
-    #            return int(np.ceil(diff / self._menergy_keV_resolution))
-    #    
-    #    if n_peaks == 0:
-    #        n_nodes = n_fill_peaks(Emin, Emax)
-    #        n, w = self._build_nodes(n_nodes)
-    #        return self._scale_nodes_exp(Emin, Emax, n, w)
-    #    else:
-    #        nodes = []
-    #        weights = []
-    #        
-    #        diffs = [widths[i][0] for i in range(n_peaks)]
-    #        n_nodes_peaks = [widths[i][1] for i in range(n_peaks)]
-    #        
-    #        El = Emin
-    #        for i in range(n_peaks):
-    #            EC = peaks[i]
-    #            E1 = np.clip(EC - diffs[i], a_min=El, a_max=None)
-    #            Er = Emax if i == n_peaks - 1 else (EC + peaks[i+1])/2
-    #            E2 = np.clip(EC + diffs[i], a_min=None, a_max=Er)
-    #            
-    #            if not np.isclose(El, E1):
-    #                n_nodes = n_fill_peaks(El, E1)
-    #                n, w = self._build_nodes(n_nodes)
-    #                n, w = self._scale_nodes_exp(El, E1, n, w)
-    #                nodes.append(n)
-    #                weights.append(w)
-    #            
-    #            n_nodes = n_nodes_peaks[i]
-    #            n, w = self._build_nodes(n_nodes)
-    #            n, w = self._scale_nodes_center(E1, E2, EC, n, w)
-    #            nodes.append(n)
-    #            weights.append(w)
-    #            
-    #            El = E2
-    #        
-    #        if not np.isclose(El, Emax):
-    #            n_nodes = n_fill_peaks(El, Emax)
-    #            n, w = self._build_nodes(n_nodes)
-    #            n, w = self._scale_nodes_exp(El, Emax, n, w)
-    #            nodes.append(n)
-    #            weights.append(w)
-    #        
-    #        return torch.cat(nodes), torch.cat(weights)
 
     def _nodes_Em(self, **kwargs) -> Tuple[torch.Tensor, torch.Tensor]: ...
 

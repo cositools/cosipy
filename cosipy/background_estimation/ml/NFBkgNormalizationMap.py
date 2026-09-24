@@ -28,6 +28,10 @@ class NFBkgNormalizationMap(NFNormalizationMapEmBase[MEnergyList, NFBkgNormaliza
         self._intvar_allow_float: bool = False
         self._intvar_name: str = "time"
         
+        self._range_intvar: Tuple[float, float] = (1835487300.0, 1843467255.0)
+        self._range_menergy_keV: Tuple[float, float] = (100., 10_000.)
+        self._range_scatt_angle_rad: Optional[Tuple[float, float]] = None
+        
         # Default parameters
         self._Em_peak_widths = {
             "w0": 0.30,
@@ -100,9 +104,16 @@ class NFBkgNormalizationMap(NFNormalizationMapEmBase[MEnergyList, NFBkgNormaliza
         pass
     
     def query_normalization(self, time: Time) -> np.ndarray:
-        self.init_cache()
+        self.init_setup()
         
         time = np.atleast_1d(time.utc.unix).ravel()
+        
+        if self._is_identity_cut:
+            # The menergy_keV cut spans the whole valid range, i.e. it's not actually
+            # a cut: the correction is exactly 1, same as without a cut.
+            return np.ones_like(time, dtype=np.float64)
+        
+        self.init_cache()
         
         results = np.zeros_like(time, dtype=np.float64)
         processed_mask = np.zeros_like(time, dtype=bool)
