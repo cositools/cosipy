@@ -1,17 +1,15 @@
 import numpy as np
-
-from astropy import units as u
-
-from threeML import JointLikelihood, DataList
-from astromodels import Parameter
-
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.statistics import PoissonLikelihood
 from cosipy.background_estimation import FreeNormBinnedBackground
 from cosipy.interfaces import ThreeMLPluginInterface
 from cosipy.response import BinnedThreeMLModelFolding, BinnedInstrumentResponse, BinnedThreeMLPointSourceResponse
 from cosipy.data_io import EmCDSBinnedData
-
+from threeML import *
+from threeML import JointLikelihood, DataList
+from astromodels import Parameter
+from astropy import units as u
+from mhealpy import HealpixMap
 
 def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
     """
@@ -77,16 +75,20 @@ def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
     cosi.set_model(model)
     plugins = DataList(cosi)
     like = JointLikelihood(model, plugins, verbose=False)
-    like.fit()
     results = like.results
-
-    expectation = response.expectation()
-    expectation_bkg = bkg.expectation()
-    tot_exp_counts = \
-        expectation.project('Em').to_dense(copy=False).contents + \
-        expectation_bkg.project('Em').to_dense(copy=False).contents
-
-    return results, tot_exp_counts
+    try: #FRANCESCO
+        like.fit()
+    except Exception as e:
+        print(f'FIT CRASHED. Error: {e}')
+        return None, None
+    else:
+        print('CONVERGED')
+        results = like.results
+        expectation = response.expectation()
+        expectation_bkg = bkg.expectation()
+        tot_exp_counts = expectation.project('Em').to_dense(copy=False).contents + (
+        expectation_bkg.project('Em').to_dense(copy=False).contents)
+        return results, tot_exp_counts
 
 
 def get_fit_par(results):
@@ -135,8 +137,68 @@ def get_fit_fluxes(results):
         sum_sources=True,
         flux_unit="1/(cm2 s)"
     )
-
+    #
     fl = result_fl["flux"].values[0].value
     e_low_fl = np.abs(result_fl["low bound"].values[0].value - fl)
     e_hi_fl = result_fl["hi bound"].values[0].value - fl
     return (fl, e_low_fl, e_hi_fl)
+
+
+def get_ts_results(map_filename, ts_results, ts_uniq=None, multiresolution=False, nside=None, overwrite_map=False):
+    """
+    Extract peak TS values, coordinates, and pixel spacing from TS map results.
+    Save the TS map in fits format.
+
+    Parameters
+    ----------
+    ts_results : array-like
+        Array of Test Statistic values.
+    ts_uniq : array-like, optional
+        HEALPix UNIQ indices for multiresolution maps (required if multiresolution=True).
+    multiresolution : bool, optional
+        If True, process as a MOC map. Default is False.
+    nside : int, optional
+        HEALPix resolution parameter (required if multiresolution=False).
+    overwrite_map : bool, optional
+        If True, overwrite the .fits map. Default is False.
+
+    Returns
+    -------
+    max_ts : float
+        Maximum TS value found in the map.
+    max_coo : astropy.coordinates.SkyCoord
+        SkyCoord object at the location of the maximum TS.
+    max_l : float
+        Galactic longitude [deg] at maximum TS.
+    max_b : float
+        Galactic latitude [deg] at maximum TS.
+    pixel_mean_spacing : float
+        Angular size of the pixel [deg]. For MOC, returns the minimum spacing.
+    """
+    if not multiresolution:
+        if nside is None:
+            raise ValueError("nside must be provided when multiresolution is False")
+
+        max_ts = np.max(ts_results)
+        highest_idx = np.argmax(ts_results)
+        m = HealpixMap(nside=nside, data=ts_results, scheme="nested", coordsys="galactic")
+        max_coo = m.pix2skycoord(highest_idx)
+        pixel_area = m.pixarea()
+        pixel_mean_spacing = np.degrees(np.sqrt(pixel_area.value))
+        m.write_map(map_filename, overwrite=overwrite_map)
+    else:
+        if ts_uniq is None:
+            raise ValueError("ts_uniq must be provided when multiresolution is True")
+
+        max_ts = np.max(ts_results)
+        highest_idx = np.argmax(ts_results)
+        m = HealpixMap(data=ts_results, uniq=ts_uniq, coordsys="galactic")
+        max_coo = m.pix2skycoord(highest_idx)
+        pixel_area = np.min(m.pixarea())
+        pixel_mean_spacing = np.degrees(np.sqrt(pixel_area.value))
+        m.write_map(map_filename, overwrite=overwrite_map)
+
+    max_l = float(max_coo.l.value)
+    max_b = float(max_coo.b.value)
+
+    return (max_ts, max_coo,max_l, max_b, pixel_mean_spacing)

@@ -1,0 +1,21 @@
+data_file: /Users/lauradigesu/Dropbox/work/cosi/testnew_pipeline/GalTotal_SA100_F98_3months_unbinned_data_filtered_with_SAAcut.fits
+ori_file: /Users/lauradigesu/Dropbox/work/cosi/testnew_pipeline/DC3-3mo-arbitrary-10s.fits
+unbinned_output: fits
+time_bins: 1
+energy_bins:
+- 100.0
+- 158.489
+- 251.189
+- 398.107
+- 630.957
+- 1000.0
+- 1584.89
+- 2511.89
+- 3981.07
+- 6309.57
+- 10000.0
+phi_pix_size: 6
+nside: 1
+scheme: RING
+tmin: 1835587306.0
+tmax: 1835587307.0
