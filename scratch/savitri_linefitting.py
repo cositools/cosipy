@@ -96,8 +96,9 @@ from cosipy.threeml.ml.function_torch import FastGaussianPyTorch
 
 if __name__ == "__main__":
 
-    #irf_mode = "nn" # Does not support energy cut
-    irf_mode = "hist"
+    irf_mode = "nn" # Does not support energy cut
+    #irf_mode = "hist"
+    #irf_mode = "hist_nn"
     #irf_mode = "mixed" # Mix between w/wo distance cut. Only for debugging.
 
     # Optional measured-energy cut -- None by default (no cut). E.g.
@@ -139,7 +140,7 @@ if __name__ == "__main__":
     #fetch_wasabi_file('COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.fits', 
     #                  checksum = 'ca94ff1d7a73c1f41479aaf598807673', output=str(sc_orientation_path))
 
-    rsp_path = data_path / "unpolarized_nfresponse_v1-01.pt"
+    rsp_path = data_path / "COSI-SMEX/DC4/Data/Responses/unpolarized_nfresponse_v1-01.pt"
     #fetch_wasabi_file('COSI-SMEX/DC4/Data/Responses/unpolarized_nfresponse_v1-01.pt',
     #                  checksum = 'bf2d0c16eac5954fb56489480c2602ca', output=str(rsp_path))
 
@@ -184,7 +185,7 @@ if __name__ == "__main__":
 
         selector = ChainEventSelectors(*selectors)
 
-    elif irf_mode in ['nn', 'mixed']:
+    elif irf_mode in ['nn', 'mixed', 'hist_nn']:
 
         # Mixed get the Aeff from nn, so no
 
@@ -239,6 +240,20 @@ if __name__ == "__main__":
         selections = energy_selector
         )
 
+    elif irf_mode == 'hist_nn':
+
+        # Just new hist -- same energy_selector as the event-data cut
+        # above, so the IRF's normalization and the fitted events stay
+        # consistent with each other.
+        irf = IRFRelativeHistUnpolarized.from_h5(
+            #data_path / "COSI-SMEX/develop/Data/Responses/ResponseContinuum.area.relative.nonsparse_smoothing1p0.h5",
+            data_path / "COSI-SMEX/develop/Data/Responses/relative_hist_irf_from_nf_response.h5",
+            # data_path / "ResponseContinuum.area.relative.nonsparse.h5",
+            nthreads=10,
+            selections=energy_selector
+        )
+
+
     elif irf_mode == 'mixed':
 
         # Mix aeff through hist
@@ -247,17 +262,18 @@ if __name__ == "__main__":
               aeff = Histogram.open("/Users/imartin5/cosi/scratch/response_relative_coordinates/v3/aeff_nside64_ei64_NNresponse.h5", 'aeff'))
 
     elif irf_mode == 'nn':
-        devices = ["cuda:0", "cuda:1", "cuda:2", "cuda:3"]
+
 
         rsp = NFResponse(
                 path_to_model=rsp_path,
                 area_batch_size=400_000,
                 density_batch_size=100_000,
-                devices=devices,
-                #area_compile_mode=None,
-                #density_compile_mode=None,
+                devices=['cpu'],
+                area_compile_mode=None,
+                density_compile_mode=None,
                 show_progress=False)
-        
+
+        irf = UnpolarizedNFFarFieldInstrumentResponseFunction(rsp)
 
     else:
 
@@ -377,6 +393,8 @@ if __name__ == "__main__":
     print(f"Data Events: {data.nevents}\nExpected Events: {expectation_density.expected_counts():.2f}\nRelative Deviation {100 * (expectation_density.expected_counts()/data.nevents - 1):.3f} %")
 
 
+    exit
+
     # Now you could save the cache.
 
     # In[ ]:
@@ -410,7 +428,7 @@ if __name__ == "__main__":
     # In[ ]:
 
 
-    energy = np.geomspace(1100*u.keV, 1200*u.keV).to_value(u.keV)
+    energy = np.linspace(1800*u.keV, 1820*u.keV).to_value(u.keV)
 
     flux_lo = np.zeros_like(energy)
     flux_median = np.zeros_like(energy)
@@ -445,7 +463,7 @@ if __name__ == "__main__":
         ax.axvline(energy_cut_max.to_value(u.keV), color = 'red')
 
     #ax.semilogx()
-    ax.semilogy()
+    #ax.semilogy()
     ax.set_xlabel("Energy [keV]")
     ax.set_ylabel(r"$ \frac{\mathrm{d}N}{\mathrm{d}E}$ [keV$^{-1}$ cm$^{-2}$ s$^{-1}$]")
     ax.set_ylim(ymin=1e-15)
