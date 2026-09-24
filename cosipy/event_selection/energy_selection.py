@@ -1,127 +1,201 @@
+from typing import Iterable
+import warnings
+
 import numpy as np
+import astropy.units as u
+from astropy.units import Quantity
 
+from cosipy.interfaces.data_interface import EventDataWithEnergyInterface
 from cosipy.interfaces.event_selection import EventSelectorInterface
-from cosipy.interfaces import EventDataInterface
-from cosipy.util.iterables import itertools_batched, asarray
+from cosipy.util.iterables import asarray
 
-from typing import Union, List, Optional, Iterable
-
-Numeric = Union[float, int, np.number]
 
 class EnergySelector(EventSelectorInterface):
-    
-    def __init__(self, 
-                 menergy_keV_min: Optional[Union[Numeric, List[Numeric]]] = None, 
-                 menergy_keV_max: Optional[Union[Numeric, List[Numeric]]] = None, 
-                 batch_size: Optional[int] = None):
-        """
-        Selects events that fall within ANY of the measured energy intervals defined by
-        corresponding pairs of (menergy_keV_min, menergy_keV_max).
 
-        Valid combinations:
-        - (None, None): No energy constraints
-        - (Scalar, None): Single lower bound only
-        - (None, Scalar): Single upper bound only  
-        - (Scalar, Scalar): Single energy interval
-        - (List, List): Multiple energy intervals (same length required)
+    event_data_type = EventDataWithEnergyInterface
+
+    def __init__(self, energy_ranges: Quantity = None):
+        """
+        Selects events whose measured energy falls within any of the
+        given [min, max) ranges.
 
         Parameters
         ----------
-        menergy_keV_min : numeric, list of numeric, or None
-            Minimum measured energy(ies) in keV [inclusive]. If list, menergy_keV_max 
-            must also be a list of the same length.
-        menergy_keV_max : numeric, list of numeric, or None
-            Maximum measured energy(ies) in keV [exclusive]. If list, menergy_keV_min 
-            must also be a list of the same length.
-        batch_size : int, default None
-            Number of events to process at once.
-            If None, all values are processed in a single batch.
-            This parameter only affects iteration when the expectation density
-            is provided as an iterator that is not a numpy array. If it is already
-            an array, batching is not applied.
+        energy_ranges: Quantity of shape (N, 2) or (2,)
+            N (or a single) [min, max) energy range(s), inclusive
+            minimum / exclusive maximum. Ranges may overlap or be given
+            out of order; they are canonicalized (sorted,
+            overlapping/adjacent ranges merged, empty/invalid ranges
+            dropped) on construction. Default: None -> a single
+            [0, inf) keV range (no cut).
         """
-        
-        min_is_list = isinstance(menergy_keV_min, list)
-        max_is_list = isinstance(menergy_keV_max, list)
 
-        if menergy_keV_min is not None and menergy_keV_max is not None:
-            if min_is_list != max_is_list:
-                raise ValueError("menergy_keV_min and menergy_keV_max must both be scalar or both be list.")
-                
-        elif menergy_keV_min is None and menergy_keV_max is not None:
-            if max_is_list:
-                raise ValueError("When menergy_keV_min is None, menergy_keV_max must not be a list.")
-                
-        elif menergy_keV_min is not None and menergy_keV_max is None:
-            if min_is_list:
-                raise ValueError("When menergy_keV_max is None, menergy_keV_min must not be a list.")
-                
-        else:
-            pass
+        if energy_ranges is None:
+            energy_ranges = Quantity([[0., np.inf]], u.keV)
 
-        if menergy_keV_min is not None:
-            if not min_is_list:
-                menergy_keV_min = [menergy_keV_min]
+        arr = np.asarray(Quantity(energy_ranges).to_value(u.keV), dtype=float)
 
-        if menergy_keV_max is not None:
-            if not max_is_list:
-                menergy_keV_max = [menergy_keV_max]
-        
-        if menergy_keV_min is not None and menergy_keV_max is not None:
-            if len(menergy_keV_min) != len(menergy_keV_max):
-                raise ValueError("menergy_keV_min and menergy_keV_max must have same length.")
+        if arr.ndim == 1:
+            if arr.shape != (2,):
+                raise ValueError("energy_ranges must have shape (N, 2) or (2,)")
+            arr = arr[None, :]
+        elif arr.ndim != 2 or arr.shape[-1] != 2:
+            raise ValueError("energy_ranges must have shape (N, 2) or (2,)")
+
+        self._energy_ranges_keV = self._merge_ranges(arr)
+
+    @staticmethod
+    def _merge_ranges(ranges_keV: np.ndarray) -> np.ndarray:
+        """
+        Sort, drop empty/invalid (hi <= lo), and merge overlapping or
+        touching [min, max) ranges into minimal canonical form.
+        """
+
+        ranges_keV = ranges_keV[ranges_keV[:, 1] > ranges_keV[:, 0]]
+
+        if len(ranges_keV) == 0:
+            return ranges_keV.reshape(0, 2)
+
+        sorted_ranges = ranges_keV[np.argsort(ranges_keV[:, 0])]
+
+        merged = [sorted_ranges[0].copy()]
+        for lo, hi in sorted_ranges[1:]:
+            if lo <= merged[-1][1]:
+                merged[-1][1] = max(merged[-1][1], hi)
             else:
-                for mn, mx in zip(menergy_keV_min, menergy_keV_max):
-                    if mn >= mx:
-                        raise ValueError("menergy_keV_min must be strictly less than menergy_keV_max.")
+                merged.append(np.array([lo, hi]))
 
-        self._menergy_min_list = menergy_keV_min
-        self._menergy_max_list = menergy_keV_max
-        self._batch_size = batch_size
-    
-    @property
-    def menergy_keV_min(self) -> Optional[List[Numeric]]: return self._menergy_min_list
+        return np.array(merged)
 
     @property
-    def menergy_keV_max(self) -> Optional[List[Numeric]]: return self._menergy_max_list
-        
-    def _select(self, events:EventDataInterface, early_stop:bool = True) -> Iterable[bool]:
-        
-        def process_chunk(energy: np.ndarray):
-            
-            if self._menergy_min_list is None and self._menergy_max_list is None:
-                return np.ones_like(energy, dtype=bool)
+    def energy_ranges_keV(self) -> np.ndarray:
+        """(N, 2) array of [min, max) ranges, in keV, as plain floats."""
+        return self._energy_ranges_keV.copy()
 
-            if self._menergy_min_list is None:
-                result = energy < self._menergy_max_list[0]
+    @property
+    def energy_ranges(self) -> Quantity:
+        """(N, 2) Quantity of [min, max) ranges."""
+        return Quantity(self._energy_ranges_keV, u.keV)
 
-            elif self._menergy_max_list is None:
-                result = energy >= self._menergy_min_list[0]
+    def _check_nonempty(self, accessor_name: str):
+        # Raise rather than e.g. returning None: None would be ambiguous
+        # (does it mean "empty selector" or "no bound, i.e. +/-inf"?), and
+        # an EnergySelector with no ranges selects nothing -- a selector
+        # that throws out every single event is never what you actually
+        # want, so surface it immediately instead of silently propagating
+        # a meaningless min/max downstream.
+        if len(self._energy_ranges_keV) == 0:
+            raise ValueError(f"{accessor_name} is undefined: this EnergySelector has no ranges (empty selection).")
 
-            else:
-                result = np.zeros(len(energy), dtype=bool)
-                
-                for e_min, e_max in zip(self._menergy_min_list, self._menergy_max_list):
-                    result |= (energy >= e_min) & (energy < e_max)
+    @property
+    def min_energy_keV(self) -> float:
+        """
+        Lower edge of the lowest range, in keV, as a plain float.
 
-            return result
+        Raises
+        ------
+        ValueError
+            If this selector has no ranges (empty selection) -- see
+            _check_nonempty().
+        """
+        self._check_nonempty("min_energy_keV")
+        return float(self._energy_ranges_keV[:, 0].min())
 
-        def process_in_chunks(events):
+    @property
+    def max_energy_keV(self) -> float:
+        """
+        Upper edge of the highest range, in keV, as a plain float.
 
-            for chunk in itertools_batched(events, self._batch_size):
+        Raises
+        ------
+        ValueError
+            If this selector has no ranges (empty selection) -- see
+            _check_nonempty().
+        """
+        self._check_nonempty("max_energy_keV")
+        return float(self._energy_ranges_keV[:, 1].max())
 
-                energies = []
+    @property
+    def min_energy(self) -> Quantity:
+        """
+        Lower edge of the lowest range, as a Quantity.
 
-                for event in chunk:
-                    energies.append(event.energy_keV)
+        Raises
+        ------
+        ValueError
+            If this selector has no ranges (empty selection) -- see
+            _check_nonempty().
+        """
+        return Quantity(self.min_energy_keV, u.keV)
 
-                energies = asarray(energies, dtype=np.float64)
+    @property
+    def max_energy(self) -> Quantity:
+        """
+        Upper edge of the highest range, as a Quantity.
 
-                result = process_chunk(energies)
+        Raises
+        ------
+        ValueError
+            If this selector has no ranges (empty selection) -- see
+            _check_nonempty().
+        """
+        return Quantity(self.max_energy_keV, u.keV)
 
-                yield from result
-        
-        if getattr(self, '_batch_size', None) is None or isinstance(getattr(events, 'energy_keV', None), np.ndarray):
-            return process_chunk(asarray(events.energy_keV, dtype=np.float64))
-        else:
-            return process_in_chunks(events)
+    def union(self, other: "EnergySelector") -> "EnergySelector":
+        """Ranges selected by either self or other."""
+
+        if not isinstance(other, EnergySelector):
+            raise TypeError(f"union() expects another EnergySelector, got {type(other)}")
+
+        combined = np.concatenate([self._energy_ranges_keV, other._energy_ranges_keV], axis=0)
+
+        return EnergySelector(Quantity(combined, u.keV))
+
+    def intersect(self, other: "EnergySelector") -> "EnergySelector":
+        """Ranges selected by both self and other."""
+
+        if not isinstance(other, EnergySelector):
+            raise TypeError(f"intersect() expects another EnergySelector, got {type(other)}")
+
+        los = np.maximum(self._energy_ranges_keV[:, None, 0], other._energy_ranges_keV[None, :, 0])
+        his = np.minimum(self._energy_ranges_keV[:, None, 1], other._energy_ranges_keV[None, :, 1])
+
+        combined = np.stack([los.ravel(), his.ravel()], axis=1)
+
+        return EnergySelector(Quantity(combined, u.keV))  # constructor drops empty (his<=los) pairs
+
+    def except_(self, other: "EnergySelector") -> "EnergySelector":
+        """Ranges selected by self but not other (set difference)."""
+
+        if not isinstance(other, EnergySelector):
+            raise TypeError(f"except_() expects another EnergySelector, got {type(other)}")
+
+        result = []
+        for a, b in self._energy_ranges_keV:
+            cur = a
+            for lo, hi in other._energy_ranges_keV:  # sorted, non-overlapping
+                if hi <= cur or lo >= b:
+                    continue
+                if lo > cur:
+                    result.append([cur, min(lo, b)])
+                cur = max(cur, hi)
+                if cur >= b:
+                    break
+            if cur < b:
+                result.append([cur, b])
+
+        combined = np.array(result) if result else np.empty((0, 2))
+
+        return EnergySelector(Quantity(combined, u.keV))
+
+    def _select(self, events: EventDataWithEnergyInterface,
+                early_stop: bool = True) -> Iterable[bool]:
+
+        if len(self._energy_ranges_keV) == 0:
+            warnings.warn("EnergySelector has no ranges (empty selection); it will reject every event.",
+                          stacklevel=2)
+
+        energy_keV = np.asarray(asarray(events.energy_keV, dtype=np.float64, force_dtype=False))
+        lo, hi = self._energy_ranges_keV[:, 0], self._energy_ranges_keV[:, 1]
+
+        return np.any((energy_keV[..., None] >= lo) & (energy_keV[..., None] < hi), axis=-1)
