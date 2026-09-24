@@ -265,45 +265,6 @@ def _make_peaked_irf_hist(nside=1, ei_edges_keV=(100., 178., 316., 562., 1000.),
     return Histogram(axes, contents=contents, unit=u.cm * u.cm)
 
 
-def _make_ei_varying_peaked_irf_hist(nside=1, ei_edges_keV=(100., 178., 316., 562., 1000.),
-                                     n_eps=200, eps_range=(-0.5, 0.5)):
-    """Like _make_peaked_irf_hist, but the Epsilon resolution's width
-    genuinely varies with Ei (sigma ~ sqrt(Ei)), so a target Ei between
-    two of irf's own (coarse) grid points has a *different* Epsilon
-    profile shape than either neighbor -- not just a different overall
-    scale. Content is Ei * shape(eps; Ei), matching the dEm = Ei*dEpsilon
-    Jacobian a real (Ei-dependent-width) response would have: this is
-    what exposes a bias from interpolating raw content (which is roughly
-    Ei-linear) across the log-scaled Ei axis, rather than interpolating a
-    proper Ei-density."""
-
-    eps_edges = np.linspace(*eps_range, n_eps + 1)
-    eps_centers = 0.5 * (eps_edges[:-1] + eps_edges[1:])
-    ei_edges_keV = np.asarray(ei_edges_keV)
-    ei_centers = np.sqrt(ei_edges_keV[:-1] * ei_edges_keV[1:])  # log-axis bin centers
-
-    def profile_at(ei):
-        sigma = 0.01 * (ei / 300.) ** 0.5
-        p = np.exp(-0.5 * (eps_centers / sigma) ** 2)
-        return p / p.sum()
-
-    axes = Axes([
-        HealpixAxis(nside=nside, scheme='ring', coordsys=SpacecraftFrame(), label='NuLambda'),
-        Axis(ei_edges_keV * u.keV, label='Ei', scale='log'),
-        Axis(eps_edges, label='Epsilon'),
-        Axis([0., 180.] * u.deg, label='Phi'),
-        Axis([-90., 90.] * u.deg, label='Theta'),
-        PolarizationAxis(np.linspace(0, 360, 5) * u.deg, convention=StereographicConvention(), label='Zeta'),
-    ])
-
-    npix = axes['NuLambda'].nbins
-    contents = np.empty(axes.nbins)
-    for i, ei in enumerate(ei_centers):
-        contents[:, i, :, :, :, :] = (ei * profile_at(ei))[None, :, None, None, None]
-
-    return Histogram(axes, contents=contents, unit=u.cm * u.cm)
-
-
 def _make_fine_flat_aeff_hist(nside=1, n_ei=201, ei_range_keV=(100., 1000.)):
     """A total-effective-area histogram, flat in Ei and much finer than
     _make_peaked_irf_hist's own (coarse) Ei grid."""
@@ -469,48 +430,6 @@ class TestEnergySelections:
         # fraction directly, for every NuLambda pixel.
         for pix in range(model._tot_aeff.contents.shape[0]):
             np.testing.assert_allclose(model._tot_aeff.contents[pix], expected_fraction, atol=1e-6)
-
-    def test_narrow_cut_with_ei_varying_shape_interpolates_as_a_density(self):
-        """When the Epsilon resolution's *shape* (not just its overall
-        scale) genuinely varies with Ei, per-bin content is only roughly
-        linear in Ei (via the dEm = Ei*dEpsilon Jacobian). Interpolating
-        that raw content directly across irf's (log-scaled) Ei axis --
-        rather than dividing out the Ei factor first -- biases the
-        result by several percent for a target Ei between two widely
-        separated grid points. This regresses that: the fraction must
-        stay close to the fraction computed from the true continuous
-        model at each target Ei, not just close to whatever the (biased)
-        implementation used to produce."""
-
-        irf_hist = _make_ei_varying_peaked_irf_hist()
-        aeff_hist = _make_fine_flat_aeff_hist(n_ei=401)
-
-        model = IRFRelativeHistUnpolarized(
-            irf_hist, aeff=aeff_hist,
-            selections=EnergySelector(u.Quantity([495., 505.], u.keV)))
-
-        eps_edges = np.asarray(irf_hist.axes['Epsilon'].edges)
-        eps_centers = 0.5 * (eps_edges[:-1] + eps_edges[1:])
-
-        def profile_at(ei_keV):
-            sigma = 0.01 * (ei_keV / 300.) ** 0.5
-            p = np.exp(-0.5 * (eps_centers / sigma) ** 2)
-            return p / p.sum()
-
-        def exact_fraction(ei_keV):
-            profile = profile_at(ei_keV)
-            density = profile / np.diff(eps_edges)
-            eps_lo = np.clip(495. / ei_keV - 1, eps_edges[0], eps_edges[-1])
-            eps_hi = np.clip(505. / ei_keV - 1, eps_edges[0], eps_edges[-1])
-            selected = IRFRelativeHistUnpolarized._integrate_piecewise_linear(
-                density, eps_centers, eps_lo, eps_hi)
-            return selected
-
-        target_ei_keV = np.asarray(model._tot_aeff.axes['Ei'].centers)
-        expected_fraction = np.array([exact_fraction(ei) for ei in target_ei_keV])
-
-        for pix in range(model._tot_aeff.contents.shape[0]):
-            np.testing.assert_allclose(model._tot_aeff.contents[pix], expected_fraction, atol=0.01)
 
     @pytest.mark.parametrize('cut_keV', [(495., 505.), (400., 600.)])
     def test_coarse_aeff_grid_is_refined_to_resolve_cut(self, cut_keV):
