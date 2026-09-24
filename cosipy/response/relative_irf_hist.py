@@ -132,15 +132,8 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         is then evaluated at each of ``tot_aeff``'s own exact ``Ei``
         values -- rather than evaluating the fraction on ``irf``'s own
         (coarser) ``Ei`` grid and interpolating *that* onto ``tot_aeff``.
-        The latter is a poor approximation for a narrow energy cut,
-        since ``Em -> Epsilon`` (``eps = Em/Ei - 1``) depends on ``Ei``,
-        so the fraction can vary sharply with ``Ei`` even where the
-        underlying response varies smoothly. The response is
-        interpolated across ``Ei`` as a density (content divided by
-        ``irf``'s native ``Ei``, since content scales roughly linearly
-        with it), not as raw content, to avoid biasing that
-        interpolation against a log-scaled ``Ei`` axis.
-        For the same reason, in this case ``_tot_aeff``'s ``Ei`` grid is
+
+        To account for a narrow energy cut, the ``_tot_aeff``'s ``Ei`` grid is
         also refined automatically near the cut: the fraction varies
         with ``Ei`` on a scale of ~``Ei * dEpsilon``, often much finer
         than ``aeff``'s own ``Ei`` bins, and ``_tot_aeff`` is linearly
@@ -149,14 +142,10 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         edge or center (``Ei = E_cut / (1 + Epsilon)``); every original
         ``aeff`` edge is kept. Without a separate ``aeff``, ``_tot_aeff``
         stays on ``irf``'s own ``Ei`` grid.
+
         Within a single ``Ei`` value, the fraction is computed by
-        linearly interpolating between ``Epsilon`` bin centers -- the
-        same interpolation model ``histpy.Histogram.interp()`` uses --
-        so for **non-uniform** ``Epsilon`` binning it is only an
-        approximation when a cut boundary lands strictly inside a bin;
-        a cut that fully includes or excludes a bin is always exact,
-        which covers the default (no cut) case exactly. ``_diff_aeff``
-        is never modified. Defaults to ``None`` (no cut).
+        linearly interpolating between ``Epsilon`` bin centers.
+        Defaults to ``None`` (no cut).
     """
 
     event_data_type = EmCDSEventDataInSCFrameInterface
@@ -452,12 +441,7 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         (``eps = Em/Ei - 1``) depends on ``Ei``, so the corresponding
         ``Epsilon`` window shifts and rescales with it, and the
         resulting *fraction* can vary sharply with ``Ei`` even where
-        the underlying response varies smoothly. Interpolating that
-        fraction across ``irf``'s own (coarser) ``Ei`` grid -- as an
-        earlier version of this method did -- is a poor approximation
-        in that regime; interpolating the smoother underlying response
-        first and evaluating the cut at the exact target ``Ei`` avoids
-        it.
+        the underlying response varies smoothly.
 
         The response itself is interpolated as a density, not as raw
         content: per-``(NuLambda, Ei, Epsilon)``-bin content scales
@@ -465,9 +449,7 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         fixed ``Epsilon``), so it is divided by ``irf``'s own (native)
         ``Ei`` before interpolating across the (typically log-scaled)
         ``Ei`` axis, and the *target* ``Ei`` is multiplied back in
-        afterwards. Interpolating the raw, Ei-linear content directly
-        would otherwise be biased by ``histpy.Histogram.interp()``'s
-        log(Ei)-weighted interpolation.
+        afterwards.
 
         Also in that (separate ``aeff``) case, ``tot_aeff``'s ``Ei`` grid
         is first refined near the cut boundaries -- see
