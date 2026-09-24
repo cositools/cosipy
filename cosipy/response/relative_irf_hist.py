@@ -135,7 +135,11 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         The latter is a poor approximation for a narrow energy cut,
         since ``Em -> Epsilon`` (``eps = Em/Ei - 1``) depends on ``Ei``,
         so the fraction can vary sharply with ``Ei`` even where the
-        underlying response varies smoothly.
+        underlying response varies smoothly. The response is
+        interpolated across ``Ei`` as a density (content divided by
+        ``irf``'s native ``Ei``, since content scales roughly linearly
+        with it), not as raw content, to avoid biasing that
+        interpolation against a log-scaled ``Ei`` axis.
         Within a single ``Ei`` value, the fraction is computed by
         linearly interpolating between ``Epsilon`` bin centers -- the
         same interpolation model ``histpy.Histogram.interp()`` uses --
@@ -446,6 +450,16 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         first and evaluating the cut at the exact target ``Ei`` avoids
         it.
 
+        The response itself is interpolated as a density, not as raw
+        content: per-``(NuLambda, Ei, Epsilon)``-bin content scales
+        roughly *linearly* with ``Ei`` (since ``dEm = Ei * dEpsilon`` at
+        fixed ``Epsilon``), so it is divided by ``irf``'s own (native)
+        ``Ei`` before interpolating across the (typically log-scaled)
+        ``Ei`` axis, and the *target* ``Ei`` is multiplied back in
+        afterwards. Interpolating the raw, Ei-linear content directly
+        would otherwise be biased by ``histpy.Histogram.interp()``'s
+        log(Ei)-weighted interpolation.
+
         Parameters
         ----------
         irf : histpy.Histogram
@@ -494,13 +508,27 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         photon_dir = UnitSphericalRepresentation(lon=Quantity(lon_mesh, 'rad', copy=False),
                                                  lat=Quantity(lat_mesh, 'rad', copy=False))
 
-        # Interpolate irf's response onto tot_aeff's own (NuLambda, Ei)
-        # grid one Epsilon bin center at a time, so the result stays on
-        # irf's own native Epsilon binning.
+        # Per-(NuLambda, Ei, Epsilon)-bin content scales roughly *linearly*
+        # with the true energy Ei: Em = Ei*(1 + Epsilon), so at fixed
+        # Epsilon, dEm = Ei * d(Epsilon) -- i.e. a bin's content is that
+        # Ei factor times a density in Em whose *shape* is the
+        # (approximately) Ei-independent thing this whole relative-
+        # coordinates scheme is built around. Interpolating raw content
+        # directly across Ei -- typically a log-scaled axis -- therefore
+        # interpolates a quantity that is intrinsically linear in Ei using
+        # log(Ei)-weighted interpolation, which biases the result. Divide
+        # the Ei factor out first, interpolate the resulting Em-density
+        # (still one Epsilon bin center at a time, so Epsilon itself is
+        # not reinterpolated), and multiply the *target* Ei back in
+        # afterwards to reconstruct content there.
+        native_ei_keV = irf.axes['Ei'].centers
+        density_vs_epsilon = Histogram(irf_vs_epsilon.axes,
+                                        contents=irf_vs_epsilon.contents / native_ei_keV[None, :, None])
+
         content_vs_epsilon = np.empty((len(nulambda_dir), len(target_ei_keV), len(epsilon_centers)))
         for k, eps_k in enumerate(epsilon_centers):
             eps_mesh = np.full_like(ei_mesh, eps_k)
-            content_vs_epsilon[:, :, k] = irf_vs_epsilon.interp(photon_dir, ei_mesh, eps_mesh)
+            content_vs_epsilon[:, :, k] = density_vs_epsilon.interp(photon_dir, ei_mesh, eps_mesh) * ei_mesh
 
         fraction = IRFRelativeHistUnpolarized._selection_fraction(
             content_vs_epsilon, target_ei_keV, epsilon_centers, epsilon_widths, epsilon_edges, selector)
