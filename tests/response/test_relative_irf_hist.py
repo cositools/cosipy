@@ -410,9 +410,16 @@ class TestEnergySelections:
             _make_irf_hist(seed=4), aeff=_make_aeff_hist(seed=5),
             selections=EnergySelector(u.Quantity([150., 400.], u.keV)))
 
-        assert cut._tot_aeff.contents.shape == no_cut._tot_aeff.contents.shape
-        assert np.all(cut._tot_aeff.contents <= no_cut._tot_aeff.contents + 1e-9)
-        assert cut._tot_aeff.contents.sum() < no_cut._tot_aeff.contents.sum()
+        # The cut refines the Ei grid near its boundaries, but never
+        # drops an original edge.
+        cut_edges = np.asarray(cut._tot_aeff.axes['Ei'].edges)
+        no_cut_edges = np.asarray(no_cut._tot_aeff.axes['Ei'].edges)
+        assert len(cut_edges) > len(no_cut_edges)
+        assert np.all(np.isin(no_cut_edges, cut_edges))
+
+        no_cut_on_cut_grid = IRFRelativeHistUnpolarized._regrid_ei(no_cut._tot_aeff, cut._tot_aeff.axes['Ei'])
+        assert np.all(cut._tot_aeff.contents <= no_cut_on_cut_grid.contents + 1e-9)
+        assert cut._tot_aeff.contents.sum() < no_cut_on_cut_grid.contents.sum()
 
     def test_diff_aeff_unaffected_by_selections(self):
         no_cut = IRFRelativeHistUnpolarized(_make_irf_hist(seed=6))
@@ -454,12 +461,8 @@ class TestEnergySelections:
                 density, eps_centers, eps_lo, eps_hi)
             return selected  # eps_profile already sums to 1, so this IS the fraction
 
-        # aeff_hist's own Ei axis object is mutated in place by
-        # IRFRelativeHistUnpolarized.__init__ (unit stripping) even
-        # though copy=True -- see the note on Histogram.copy() not
-        # deep-copying individual Axis objects in TestParallelInterp
-        # above -- so by now it's already the plain keV value.
-        target_ei_keV = np.asarray(aeff_hist.axes['Ei'].centers)
+        # _tot_aeff's Ei grid is aeff's, refined near the cut.
+        target_ei_keV = np.asarray(model._tot_aeff.axes['Ei'].centers)
         expected_fraction = np.array([exact_fraction(ei) for ei in target_ei_keV])
 
         # aeff_hist is flat (all ones), so _tot_aeff post-cut equals the
@@ -503,8 +506,89 @@ class TestEnergySelections:
                 density, eps_centers, eps_lo, eps_hi)
             return selected
 
-        target_ei_keV = np.asarray(aeff_hist.axes['Ei'].centers)
+        target_ei_keV = np.asarray(model._tot_aeff.axes['Ei'].centers)
         expected_fraction = np.array([exact_fraction(ei) for ei in target_ei_keV])
 
         for pix in range(model._tot_aeff.contents.shape[0]):
             np.testing.assert_allclose(model._tot_aeff.contents[pix], expected_fraction, atol=0.01)
+
+    @pytest.mark.parametrize('cut_keV', [(495., 505.), (400., 600.)])
+    def test_coarse_aeff_grid_is_refined_to_resolve_cut(self, cut_keV):
+        """On an aeff Ei grid much coarser than the fraction's own
+        variation (~Ei * dEpsilon), sampling the fraction only at aeff's
+        bin centers and linearly interpolating _tot_aeff between them
+        misrepresents a narrow cut badly -- for (495, 505) keV on this
+        grid, its integral over Ei comes out ~2x too large. The grid must
+        be refined so the interpolated _tot_aeff tracks the exact fraction
+        everywhere, not just at the grid points."""
+
+        lo, hi = cut_keV
+        eps_sigma = 0.01
+        irf_hist = _make_peaked_irf_hist(eps_sigma=eps_sigma)
+        aeff_hist = _make_fine_flat_aeff_hist(n_ei=40, ei_range_keV=(50., 10000.))
+
+        model = IRFRelativeHistUnpolarized(irf_hist, aeff=aeff_hist,
+                                           selections=EnergySelector(u.Quantity([lo, hi], u.keV)))
+
+        eps_edges = np.asarray(irf_hist.axes['Epsilon'].edges)
+        eps_centers = 0.5 * (eps_edges[:-1] + eps_edges[1:])
+        eps_profile = np.exp(-0.5 * (eps_centers / eps_sigma) ** 2)
+        eps_profile /= eps_profile.sum()
+        density = eps_profile / np.diff(eps_edges)
+
+        def exact_fraction(ei_keV):
+            return IRFRelativeHistUnpolarized._integrate_piecewise_linear(
+                density, eps_centers,
+                np.clip(lo / ei_keV - 1, eps_edges[0], eps_edges[-1]),
+                np.clip(hi / ei_keV - 1, eps_edges[0], eps_edges[-1]))
+
+        ei_axis = model._tot_aeff.axes['Ei']
+        fine_ei = np.geomspace(300., 800., 5001)
+        bins, weights = ei_axis.interp_weights(fine_ei)
+        interpolated = (model._tot_aeff.contents[0][bins[0]] * weights[0]
+                        + model._tot_aeff.contents[0][bins[1]] * weights[1])
+        expected = np.array([exact_fraction(ei) for ei in fine_ei])
+
+        np.testing.assert_allclose(interpolated, expected, atol=0.02)
+        np.testing.assert_allclose(np.trapezoid(interpolated, fine_ei),
+                                   np.trapezoid(expected, fine_ei), rtol=0.01)
+
+    def test_refinement_only_splits_bins_the_cut_can_reach(self):
+        """New edges only go where a cut boundary maps into Ei (Ei =
+        E_cut / (1 + Epsilon)); every original edge is kept, so bins
+        outside that range keep their exact edges and centers."""
+
+        irf_hist = _make_peaked_irf_hist()  # Epsilon in [-0.5, 0.5]
+        aeff_hist = _make_fine_flat_aeff_hist(n_ei=40, ei_range_keV=(50., 10000.))
+        orig_edges = aeff_hist.axes['Ei'].edges.to_value(u.keV)
+        orig_centers = aeff_hist.axes['Ei'].centers.to_value(u.keV)
+
+        model = IRFRelativeHistUnpolarized(irf_hist, aeff=aeff_hist,
+                                           selections=EnergySelector(u.Quantity([495., 505.], u.keV)))
+
+        new_edges = np.asarray(model._tot_aeff.axes['Ei'].edges)
+        new_centers = np.asarray(model._tot_aeff.axes['Ei'].centers)
+        assert np.all(np.isin(orig_edges, new_edges))
+
+        # Epsilon in [-0.5, 0.5] -> Em in [495, 505] keV only comes from
+        # Ei in [330, 1010] keV.
+        added = np.setdiff1d(new_edges, orig_edges)
+        assert len(added) > 0
+        assert added.min() >= 495. / 1.5 and added.max() <= 505. / 0.5
+
+        untouched = (orig_edges[1:] <= added.min()) | (orig_edges[:-1] >= added.max())
+        assert np.all(np.isin(orig_centers[untouched], new_centers))
+
+    def test_full_range_cut_with_aeff_leaves_grid_unchanged(self):
+        """A cut whose boundaries can't map into aeff's Ei range adds no
+        edges."""
+
+        irf_hist = _make_peaked_irf_hist()
+        aeff_hist = _make_fine_flat_aeff_hist(n_ei=40, ei_range_keV=(50., 10000.))
+        orig_edges = np.asarray(aeff_hist.axes['Ei'].edges.to_value(u.keV))
+
+        model = IRFRelativeHistUnpolarized(irf_hist, aeff=aeff_hist,
+                                           selections=EnergySelector(u.Quantity([0., 1e9], u.keV)))
+
+        np.testing.assert_array_equal(np.asarray(model._tot_aeff.axes['Ei'].edges), orig_edges)
+        np.testing.assert_allclose(model._tot_aeff.contents, 1.)

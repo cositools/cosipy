@@ -7,7 +7,7 @@ from astropy import units as u
 from astropy.coordinates import spherical_to_cartesian, UnitSphericalRepresentation
 from astropy.io.fits import update
 from astropy.units import Quantity
-from histpy import Histogram, HealpixAxis, Axis
+from histpy import Histogram, HealpixAxis, Axis, Axes
 from mhealpy.plot.axes import HealpyAxes
 
 from cosipy.interfaces import EventDataInterface
@@ -140,6 +140,15 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         ``irf``'s native ``Ei``, since content scales roughly linearly
         with it), not as raw content, to avoid biasing that
         interpolation against a log-scaled ``Ei`` axis.
+        For the same reason, in this case ``_tot_aeff``'s ``Ei`` grid is
+        also refined automatically near the cut: the fraction varies
+        with ``Ei`` on a scale of ~``Ei * dEpsilon``, often much finer
+        than ``aeff``'s own ``Ei`` bins, and ``_tot_aeff`` is linearly
+        interpolated in ``Ei`` at evaluation time. Extra ``Ei`` edges are
+        added wherever a cut boundary ``E_cut`` maps onto an ``Epsilon``
+        edge or center (``Ei = E_cut / (1 + Epsilon)``); every original
+        ``aeff`` edge is kept. Without a separate ``aeff``, ``_tot_aeff``
+        stays on ``irf``'s own ``Ei`` grid.
         Within a single ``Ei`` value, the fraction is computed by
         linearly interpolating between ``Epsilon`` bin centers -- the
         same interpolation model ``histpy.Histogram.interp()`` uses --
@@ -460,6 +469,11 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         would otherwise be biased by ``histpy.Histogram.interp()``'s
         log(Ei)-weighted interpolation.
 
+        Also in that (separate ``aeff``) case, ``tot_aeff``'s ``Ei`` grid
+        is first refined near the cut boundaries -- see
+        :meth:`_refine_ei_edges` -- so the returned histogram can have
+        more ``Ei`` bins than ``tot_aeff``.
+
         Parameters
         ----------
         irf : histpy.Histogram
@@ -499,6 +513,19 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
 
             return tot_aeff * fraction_hist
 
+        # A narrow cut makes the fraction vary with Ei on a scale set by
+        # irf's Epsilon binning (~Ei * dEpsilon), typically much finer
+        # than tot_aeff's own Ei grid. Refine that grid where needed, so
+        # _tot_aeff (linearly interpolated in Ei at evaluation time)
+        # resolves the cut.
+        aeff_ei_axis = tot_aeff.axes['Ei']
+        refined_ei_edges = IRFRelativeHistUnpolarized._refine_ei_edges(
+            aeff_ei_axis.edges, epsilon_edges, epsilon_centers, selector)
+
+        if len(refined_ei_edges) > len(aeff_ei_axis.edges):
+            refined_ei_axis = Axis(refined_ei_edges, label='Ei', scale=aeff_ei_axis.axis_scale)
+            tot_aeff = IRFRelativeHistUnpolarized._regrid_ei(tot_aeff, refined_ei_axis)
+
         nulambda_dir = tot_aeff.axes['NuLambda'].pix2skycoord(np.arange(tot_aeff.axes['NuLambda'].nbins))
         target_ei_keV = tot_aeff.axes['Ei'].centers
 
@@ -534,6 +561,91 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
             content_vs_epsilon, target_ei_keV, epsilon_centers, epsilon_widths, epsilon_edges, selector)
 
         return tot_aeff * fraction
+
+    @staticmethod
+    def _refine_ei_edges(ei_edges: np.ndarray, epsilon_edges: np.ndarray, epsilon_centers: np.ndarray,
+                         selector: EnergySelector, rtol: float = 1e-6) -> np.ndarray:
+        """
+        ``ei_edges`` plus extra edges wherever a cut boundary ``E_cut``
+        maps onto one of ``irf``'s ``Epsilon`` edges or centers, i.e. at
+        ``Ei = E_cut / (1 + Epsilon)``.
+
+        At fixed ``Ei`` the selection fraction integrates a density that
+        is piecewise-linear between ``Epsilon`` centers (and clipped at
+        the outer ``Epsilon`` edges), so as a function of ``Ei`` it has
+        kinks exactly where a cut boundary crosses an ``Epsilon`` center
+        or outer edge, and is smooth in between. Adding an edge at each
+        of those, plus at each inner ``Epsilon`` edge (roughly halfway
+        between consecutive kinks), gives about two ``Ei`` bins per
+        ``Epsilon`` bin that the cut boundary sweeps through.
+
+        Original edges are always kept, so ``Ei`` bins that no cut
+        boundary maps into keep their exact edges (and centers).
+
+        Parameters
+        ----------
+        ei_edges : numpy.ndarray
+            The (unitless, keV) ``Ei`` edges to refine.
+        epsilon_edges, epsilon_centers : numpy.ndarray
+            ``irf``'s own ``Epsilon`` axis edges/centers.
+        selector : EnergySelector
+            The (possibly multi-range) combined energy selection.
+        rtol : float, optional
+            New edges closer than ``rtol`` (relative) to an existing edge,
+            or to each other, are dropped, to avoid degenerate bins.
+
+        Returns
+        -------
+        numpy.ndarray
+            The refined, strictly increasing ``Ei`` edges.
+        """
+
+        ei_edges = np.asarray(ei_edges, dtype=float)
+
+        cut_bounds = np.asarray(selector.energy_ranges_keV, dtype=float).ravel()
+        cut_bounds = cut_bounds[np.isfinite(cut_bounds) & (cut_bounds > 0)]
+
+        one_plus_eps = 1 + np.concatenate((epsilon_edges, epsilon_centers))
+        one_plus_eps = one_plus_eps[one_plus_eps > 0]
+
+        new = np.unique(cut_bounds[:, None] / one_plus_eps[None, :])
+        new = new[(new > ei_edges[0]) & (new < ei_edges[-1])]
+
+        # Drop new edges too close to an original one...
+        idx = np.searchsorted(ei_edges, new)
+        dist = np.minimum(np.abs(new - ei_edges[idx - 1]), np.abs(ei_edges[idx] - new))
+        new = new[dist > rtol * new]
+
+        # ... or to the previous kept new edge.
+        if len(new):
+            keep = [new[0]]
+            for x in new[1:]:
+                if x - keep[-1] > rtol * x:
+                    keep.append(x)
+            new = np.asarray(keep)
+
+        return np.union1d(ei_edges, new)
+
+    @staticmethod
+    def _regrid_ei(tot_aeff: Histogram, new_ei_axis: Axis) -> Histogram:
+        """
+        ``tot_aeff`` (axes ``['NuLambda', 'Ei']``) re-sampled at
+        ``new_ei_axis``'s centers, using the original ``Ei`` axis's own
+        interpolation (``histpy.Axis.interp_weights``, i.e. log-domain for
+        a log-scaled axis) -- the same one ``tot_aeff.interp()`` would use
+        -- so bins whose center didn't move keep their value.
+        """
+
+        old_ei_axis = tot_aeff.axes['Ei']
+        old_contents = np.asarray(tot_aeff.contents)
+
+        if old_ei_axis.nbins == 1:
+            contents = np.repeat(old_contents, new_ei_axis.nbins, axis=1)
+        else:
+            bins, weights = old_ei_axis.interp_weights(new_ei_axis.centers)
+            contents = old_contents[:, bins[0]] * weights[0] + old_contents[:, bins[1]] * weights[1]
+
+        return Histogram(Axes([tot_aeff.axes['NuLambda'], new_ei_axis]), contents=contents)
 
     @staticmethod
     def _integrate_piecewise_linear(values: np.ndarray, x_centers: np.ndarray,
