@@ -2,7 +2,7 @@ import numpy as np
 
 from typing import Union, Tuple, Dict
 
-from cosipy.response.ml.NFBase import CompileMode, build_c_arqs_flow, build_cmlp_diaggaussian_base, NNDensityInferenceWrapper, DensityModel, RateModel
+from cosipy.response.ml.NFBase import CompileMode, build_c_arqs_flow, build_cmlp_diaggaussian_base, NNDensityInferenceWrapper, DensityModel, RateModel, RQSplineTransform
 import normflows as nf
 import torch
 
@@ -212,6 +212,90 @@ class TotalBackgroundDensityCMLPDGaussianCARQSFlow(DensityModel):
                      (nchi >= 0.0) & (nchi <= 1.0) & \
                      (nem  >= (np.log10(self._menergy_cuts[0])/2 - 1)) & \
                      (nem  <= (np.log10(self._menergy_cuts[1])/2 - 1)) & \
+                     (nphi >= self._phi_cuts[0]/np.pi) & \
+                     (nphi <= self._phi_cuts[1]/np.pi)
+                     
+        return valid_mask
+
+class TotalBackgroundDensityECDFSplineCMLPDGaussianCARQSFlow(TotalBackgroundDensityCMLPDGaussianCARQSFlow):
+    def __init__(self, density_input: Dict, worker_device: Union[str, int, torch.device],
+                 batch_size: int, compile_mode: CompileMode = "default"):
+        super().__init__(density_input, worker_device, batch_size, compile_mode)
+    
+    def _init_model(self, input: Dict):
+        self._snapshot          = input["model_state_dict"]
+        self._bins              = input["bins"]
+        self._hidden_units      = input["hidden_units"]
+        self._residual_blocks   = input["residual_blocks"]
+        self._total_layers      = input["total_layers"]
+        self._context_size      = input["context_size"]
+        self._mlp_hidden_units  = input["mlp_hidden_units"]
+        self._mlp_hidden_layers = input["mlp_hidden_layers"]
+        self._menergy_cuts      = input["menergy_cuts"]
+        self._phi_cuts          = input["phi_cuts"]
+        
+        self._start_time: float     = input["start_time"]
+        self._total_time: float     = input["total_time"]
+        self._period: float         = input["period"]
+        self._slew_duration: float  = input["slew_duration"]
+        self._obs_duration: float   = input["obs_duration"]
+        self._outlocs: torch.Tensor = input["outlocs"].to(self._worker_device)
+        self._coefficients: Dict    = input["coefficients"]
+        
+        return self._load_model()
+
+    def _load_model(self) -> NNDensityInferenceWrapper:
+        model = self._build_model()
+        
+        model.load_state_dict(self._snapshot)
+        model = NNDensityInferenceWrapper(model)
+        model.eval()
+        model.to(self._worker_device)
+        
+        self._rqs_splines = RQSplineTransform(self._coefficients)
+        self._rqs_splines.to(self._worker_device)
+        
+        return model
+
+    def _inverse_transform_coordinates(self, *args: torch.Tensor) -> torch.Tensor:
+        nem, nphi, npsi, nchi, _ = args
+        
+        em  = self._rqs_splines.backward(nem)[0]
+        phi = nphi * np.pi
+        az  = npsi * 2 * np.pi
+        pol = torch.acos(2 * nchi - 1)
+
+        return torch.stack([em, phi, az, pol], dim=1)
+
+    def _transform_coordinates(self, *args: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        time, em, phi, scatt_az, scatt_pol = args
+        
+        nem, jac_part = self._rqs_splines.forward(em)
+
+        jac = 1/(4*np.pi**2) * jac_part
+
+        ctx = self._transform_context(time)
+
+        src = torch.cat([
+            (nem).unsqueeze(1),
+            (phi / np.pi).unsqueeze(1),
+            (scatt_az / (2 * np.pi)).unsqueeze(1),
+            ((torch.cos(scatt_pol) + 1) / 2).unsqueeze(1)
+        ], dim=1)
+
+        return ctx.to(torch.float32), src.to(torch.float32), jac.to(torch.float32)
+    
+    def _valid_samples(self, *args: torch.Tensor) -> torch.Tensor:
+        nem, nphi, npsi, nchi, _ = args
+        
+        em = self._rqs_splines.backward(nem)[0]
+        
+        valid_mask = (nem  >= 0.0) & (nem  <= 1.0) & \
+                     (nphi >  0.0) & (nphi <= 1.0) & \
+                     (npsi >= 0.0) & (npsi <= 1.0) & \
+                     (nchi >= 0.0) & (nchi <= 1.0) & \
+                     (em   >= self._menergy_cuts[0]) & \
+                     (em   <= self._menergy_cuts[1]) & \
                      (nphi >= self._phi_cuts[0]/np.pi) & \
                      (nphi <= self._phi_cuts[1]/np.pi)
                      

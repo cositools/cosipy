@@ -7,3 +7,5 @@ from .ContinuumEstimationNN import ContinuumEstimationNN
 from .ContinuumEstimationNN import GCN
 from .nf_unbinned_background import FreeNormNFUnbinnedBackground
 from .NFBackground import NFBackground
+from .NFBkgNormalizationDensity import NFBkgNormalizationDensity
+from .NFBkgNormalizationMap import NFBkgNormalizationMap

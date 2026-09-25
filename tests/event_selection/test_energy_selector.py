@@ -5,7 +5,7 @@ import astropy.units as u
 import pytest
 
 from cosipy.event_selection.energy_selection import EnergySelector
-from cosipy.event_selection.distance_selection import DistanceSelector
+from cosipy.event_selection.time_selection import TimeSelector
 from cosipy.interfaces.data_interface import EventDataWithEnergyInterface
 from cosipy.interfaces.event import EventWithEnergyInterface
 from cosipy.util.iterables import asarray
@@ -224,7 +224,7 @@ def test_except_superset_range_empties_selector():
 @pytest.mark.parametrize("method", ["union", "intersect", "except_"])
 def test_combinators_raise_on_non_energy_selector(method):
     a = EnergySelector()
-    not_a_selector = DistanceSelector()
+    not_a_selector = TimeSelector()
 
     with pytest.raises(TypeError):
         getattr(a, method)(not_a_selector)
