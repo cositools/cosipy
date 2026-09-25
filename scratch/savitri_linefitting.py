@@ -96,8 +96,8 @@ from cosipy.threeml.ml.function_torch import FastGaussianPyTorch
 
 if __name__ == "__main__":
 
-    irf_mode = "nn" # Does not support energy cut
-    #irf_mode = "hist"
+    #irf_mode = "nn" # Does not support energy cut
+    irf_mode = "hist"
     #irf_mode = "hist_nn"
     #irf_mode = "mixed" # Mix between w/wo distance cut. Only for debugging.
 
@@ -301,7 +301,10 @@ if __name__ == "__main__":
     
     psr.cache_batch_size = 5_000_000
     psr.integration_batch_size = 5_000_000
-    psr.energy_range = (1800, 1820)
+    psr.energy_range = [(1800, 1820)]
+    psr.total_expectation_resolution = 0.05  # The lower the finer
+    psr.density_integration_nodes = (18 + 10 + 10) + 2 * (12 + 10) + 20  # The higher the finer
+    psr.peak_nodes = (18 + 10 + 10, 12 + 10)  # The higher the finer
     
     #position of the OrEr region 
     l =  163.0
