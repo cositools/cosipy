@@ -12,6 +12,8 @@ import numpy as np
 import astropy.units as u
 from scoords import Attitude
 
+from astromodels.core.polarization import StokesPolarization
+
 from .functions import get_integrated_spectral_model
 
 import logging
@@ -79,14 +81,30 @@ class PointSourceResponse(Histogram):
              Histogram with the expected counts on each analysis bin
         """
 
-        polarization = to_linear_polarization(polarization)
+        factor = 1.
+
+        polarization_level = None
+
+        if isinstance(polarization, StokesPolarization):
+
+            Q = polarization.Q.value.k.value
+            U = polarization.U.value.k.value
+            pd = np.sqrt(Q**2 + U**2)
+
+            if pd > 1.:
+
+                factor = np.exp((pd - 1.)**2)
+                polarization_angle = np.degrees(.5 * np.arctan2(U, Q) % np.pi)
+                polarization_level = 1.
 
         if 'Pol' in self.axes.labels:
 
             pol_axis = self.axes['Pol']
 
-            polarization_angle = polarization.angle.value
-            polarization_level = polarization.degree.value / 100.
+            if polarization_level is None:
+                polarization = to_linear_polarization(polarization)
+                polarization_angle = polarization.angle.value
+                polarization_level = polarization.degree.value / 100.
 
             if polarization_angle == 180.:
                 polarization_angle = 0.
@@ -105,6 +123,8 @@ class PointSourceResponse(Histogram):
 
         else:
 
+            polarization = to_linear_polarization(polarization)
+
             if polarization.degree.value != 0:
                 raise RuntimeError(
                     "Response must have polarization angle axis to include polarization in point source response")
@@ -116,7 +136,7 @@ class PointSourceResponse(Histogram):
             energy_axis = self.photon_energy_axis
             flux = get_integrated_spectral_model(spectrum, energy_axis)
 
-        expectation = np.tensordot(contents, flux.contents, axes=(0, 0))
+        expectation = np.tensordot(contents, flux.contents, axes=(0, 0)) * factor
 
         # if self is sparse, expectation will be a SparseArray with
         # no units, so set the result's unit explicitly

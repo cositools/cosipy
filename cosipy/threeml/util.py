@@ -1,4 +1,6 @@
 from typing import Union
+import numpy as np
+import astropy.units as u
 
 from astromodels.core.polarization import Polarization, LinearPolarization, StokesPolarization
 
@@ -27,10 +29,13 @@ def to_linear_polarization(polarization: Union[Polarization, None]):
 
     elif isinstance(polarization, StokesPolarization):
 
-        # FIXME: Here we should convert the any Stokes parameters to Linear
-        #    The circular component looks like unpolarized to us.
-        #    This conversion is not yet implemented in Astromodels
-        raise ValueError("Fix me. I can't handle StokesPolarization yet")
+        Q = polarization.Q.value.k.value
+        U = polarization.U.value.k.value
+
+        pa = np.degrees(.5 * np.arctan2(U, Q) % np.pi)
+        pd = np.sqrt(Q**2 + U**2) * 100.
+
+        return LinearPolarization(pd, pa)
 
     else:
 
