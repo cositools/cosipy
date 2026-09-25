@@ -94,11 +94,27 @@ sys.exit(pytest.main(['-v', 'tests/response/test_relative_irf_hist.py']))
 The ~28 `RuntimeWarning: divide by zero` warnings from histpy come from
 existing code and are harmless.
 
-The sandbox's network policy blocks the Wasabi bucket
-(`s3.us-west-1.wasabisys.com`), so the real response files
-(`relative_hist_irf_from_nf_response.h5`,
-`ResponseContinuum.area.relative.nonsparse_smoothing1p0.h5`) can't be
-downloaded. Validate with synthetic histograms instead.
+Real response files live on COSI's Wasabi bucket
+(`s3.us-west-1.wasabisys.com`). Whether you can reach it depends on the
+environment's network policy, so **try first** rather than assuming:
+
+```python
+from cosipy.util import fetch_wasabi_file  # needs full cosipy; otherwise load
+                                           # cosipy/util/data_fetching.py directly
+fetch_wasabi_file('COSI-SMEX/develop/Data/Responses/relative_hist_irf_from_nf_response.h5.zip',
+                  output='relative_hist_irf_from_nf_response.h5.zip', unzip=True,
+                  checksum='d9093daeaf56a386095a42ae40c6635e')             # hist_nn
+fetch_wasabi_file('COSI-SMEX/develop/Data/Responses/ResponseContinuum.area.relative.nonsparse_smoothing1p0.h5.zip',
+                  output='ResponseContinuum.area.relative.nonsparse_smoothing1p0.h5.zip', unzip=True,
+                  checksum='bd2dfa700d0d382b052ea428a7eeabe1')             # hist_simple
+```
+
+A quick reachability probe is
+`curl -sS -o /dev/null -w '%{http_code}\n' https://s3.us-west-1.wasabisys.com`:
+`CONNECT tunnel failed, response 403` means an egress proxy blocks it,
+while any HTTP status from Wasabi itself means it's reachable. If it's
+reachable, validate energy-selection changes on these real files as well;
+if it's blocked, say so and validate with synthetic histograms.
 
 ## `IRFRelativeHistUnpolarized` (`cosipy/response/relative_irf_hist.py`)
 
