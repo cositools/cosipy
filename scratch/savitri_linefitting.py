@@ -170,15 +170,21 @@ if __name__ == "__main__":
         lo = energy_cut_min if energy_cut_min is not None else 0 * u.keV
         hi = energy_cut_max if energy_cut_max is not None else np.inf * u.keV
 
-        if irf_mode == "hist" :
+        if irf_mode in ["hist", "hist_nn"] :
             energy_selector = EnergySelector(u.Quantity([[lo.to_value(u.keV), hi.to_value(u.keV)]], u.keV))
         
         #print(energy_selector)
 
     if irf_mode in ['hist', 'hist_nn']:
-        from cosipy.event_selection import DistanceSelector, ChainEventSelectors
-        distance_selector = DistanceSelector(min_distance=1 * u.cm)
-        selectors = [distance_selector, time_selector]
+
+        from cosipy.event_selection import ChainEventSelectors
+
+        selectors = [time_selector]
+
+        if irf_mode == "hist":
+            from cosipy.event_selection import DistanceSelector, ChainEventSelectors
+            distance_selector = DistanceSelector(min_distance=1 * u.cm)
+            selectors.append(distance_selector)
 
         if energy_selector is not None:
             selectors.append(energy_selector)
