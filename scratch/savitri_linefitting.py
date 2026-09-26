@@ -96,9 +96,9 @@ from cosipy.threeml.ml.function_torch import FastGaussianPyTorch
 
 if __name__ == "__main__":
 
-    irf_mode = "nn" # Does not support energy cut
+    #irf_mode = "nn" # Does not support energy cut
     #irf_mode = "hist"
-    #irf_mode = "hist_nn"
+    irf_mode = "hist_nn"
     #irf_mode = "mixed" # Mix between w/wo distance cut. Only for debugging.
 
     # Optional measured-energy cut -- None by default (no cut). E.g.
@@ -175,7 +175,7 @@ if __name__ == "__main__":
         
         #print(energy_selector)
 
-    if irf_mode == 'hist':
+    if irf_mode in ['hist', 'hist_nn']:
         from cosipy.event_selection import DistanceSelector, ChainEventSelectors
         distance_selector = DistanceSelector(min_distance=1 * u.cm)
         selectors = [distance_selector, time_selector]
@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
         selector = ChainEventSelectors(*selectors)
 
-    elif irf_mode in ['nn', 'mixed', 'hist_nn']:
+    elif irf_mode in ['nn', 'mixed', ]:
 
         # Mixed get the Aeff from nn, so no
 
