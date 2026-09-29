@@ -923,7 +923,7 @@ class UnBinnedData(DataIO):
             logger.info("Saving file...")
             self.write_unbinned_output(output_name)
     
-	def select_data_with_selector(self, selector,
+    def select_data_with_selector(self, selector,
                                   output_name=None,
                                   unbinned_data=None):
         """Applies an EventSelectorInterface to the unbinned data.
