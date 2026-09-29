@@ -6,6 +6,7 @@ import shutil
 import gzip
 import numpy as np
 import pytest
+from cosipy.event_selection.time_selection import TimeSelector
 
 def test_unbinned_data_all(tmp_path):
 
@@ -107,6 +108,12 @@ def test_unbinned_data_all(tmp_path):
 
     # Test SAA cut:
     analysis.cut_SAA_events(unbinned_data=tmp_path/"test_h5.hdf5")
+
+    # Test selection with EventSelectorInterface
+    analysis.unbinned_output = "fits"
+    selector = TimeSelector(tstop=analysis.tmax)
+    analysis.select_data_with_selector(selector,output_name=tmp_path/"temp_test_file",unbinned_data=tmp_path/"test_fits.fits.gz")
+    assert np.amax(analysis.cosi_dataset['TimeTags']) <= 1835478001.0    
 
     return
 
