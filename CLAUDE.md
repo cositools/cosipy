@@ -133,9 +133,8 @@ if it's blocked, say so and validate with synthetic histograms.
   histogram (usually finer). `from_h5` reads an `AEFF` group automatically
   if present. `_tot_aeff` is linearly interpolated in `Ei` at evaluation
   time.
-- The tutorials are
+- The tutorial is
   `docs/tutorials/spectral_fits/continuum_fit/grb/example_grb_fit_relative_hist_response.ipynb`
-  and `docs/tutorials/spectral_fits/line_fit/al26/example_al26_line_fit_relative_hist_response.ipynb`
   (`irf_mode` = `hist_simple` / `hist_nn` / `nn`).
 
 ### Energy selections (`selections=EnergySelector(...)`)
