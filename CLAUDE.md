@@ -133,9 +133,8 @@ if it's blocked, say so and validate with synthetic histograms.
   histogram (usually finer). `from_h5` reads an `AEFF` group automatically
   if present. `_tot_aeff` is linearly interpolated in `Ei` at evaluation
   time.
-- The tutorials are
+- The tutorial is
   `docs/tutorials/spectral_fits/continuum_fit/grb/example_grb_fit_relative_hist_response.ipynb`
-  and `docs/tutorials/spectral_fits/line_fit/al26/example_al26_line_fit_relative_hist_response.ipynb`
   (`irf_mode` = `hist_simple` / `hist_nn` / `nn`).
 
 ### Energy selections (`selections=EnergySelector(...)`)
@@ -180,6 +179,12 @@ if it's blocked, say so and validate with synthetic histograms.
 - A synthetic test whose Epsilon profile has the same shape and scale at
   every `Ei` can't catch `Ei`-interpolation problems. Use shapes that vary
   with `Ei` when testing those.
+
+## Validating on real files in a sandbox
+
+- The full hist IRF files (9.6 GB) don't fit in a 15 GB sandbox (`from_h5` doesn't pass
+  `copy=False`, so it holds two copies). Slicing the `Ei` axis of the h5 with h5py (e.g.
+  916-5000 keV for Al-26) is enough for line validation.
 
 ## histpy gotchas
 
