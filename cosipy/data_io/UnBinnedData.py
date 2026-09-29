@@ -13,6 +13,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord, cartesian_to_spherical
 from astropy.table import Table
 from astropy.io import fits
+from astropy.time import Time
 
 import h5py
 
@@ -916,6 +917,72 @@ class UnBinnedData(DataIO):
         # Apply cuts to dictionary
         for key in self.cosi_dataset:
             self.cosi_dataset[key] = self.cosi_dataset[key][time_keep_index]
+
+        # Write unbinned data to file (either fits or hdf5)
+        if output_name is not None:
+            logger.info("Saving file...")
+            self.write_unbinned_output(output_name)
+    
+	def select_data_with_selector(self, selector,
+                                  output_name=None,
+                                  unbinned_data=None):
+        """Applies an EventSelectorInterface to the unbinned data.
+
+        The selector is evaluated on the events expressed as
+        TimeTagEmCDSEventDataInSCFrameFromArrays (the same
+        representation used by TimeTagEmCDSEventDataInSCFrameFromDC3Fits),
+        and the resulting mask is applied to all the columns of the
+        unbinned data dictionary.
+
+        Parameters
+        ----------
+        selector : EventSelectorInterface
+            Event selector. It must be able to operate on
+            TimeTagEmCDSEventDataInSCFrameFromArrays. Events for which
+            select() returns True are kept.
+        output_name : str, optional
+            Prefix of output file (default is None, in which case no
+            file is saved).
+        unbinned_data : str, optional
+            Name of unbinned dictionary file (default is None, in which
+            case the current self.cosi_dataset is used).
+        """
+
+        # Imported here to avoid a circular import, since
+        # EmCDSUnbinnedData imports UnBinnedData
+        from cosipy.data_io.EmCDSUnbinnedData import TimeTagEmCDSEventDataInSCFrameFromArrays
+        from cosipy.util.iterables import asarray
+
+        logger.info("Making data selections with event selector...")
+
+        # Option to read in unbinned data file
+        if unbinned_data:
+            self.cosi_dataset = self.get_dict(unbinned_data)
+
+        # Same conversions as TimeTagEmCDSEventDataInSCFrameFromDC3Fits:
+        # 'Psi local' is stored as colatitude, so latitude = pi/2 - psi
+        time = Time(self.cosi_dataset['TimeTags'], format='unix')
+
+        events = TimeTagEmCDSEventDataInSCFrameFromArrays(
+            time.jd1, time.jd2,
+            self.cosi_dataset['Energies'],
+            self.cosi_dataset['Chi local'],
+            np.pi / 2 - self.cosi_dataset['Psi local'],
+            self.cosi_dataset['Phi'])
+
+        # early_stop=False guarantees one output value per event
+        mask = asarray(selector.select(events, early_stop=False), dtype=bool)
+
+        # Be robust to selectors that return fewer values: the remaining
+        # events are implicitly not selected
+        if mask.size < events.nevents:
+            mask = np.append(mask, np.full(events.nevents - mask.size, False))
+
+        logger.info(f"Events kept: {mask.sum()} / {mask.size}")
+
+        # Apply cuts to dictionary
+        for key in self.cosi_dataset:
+            self.cosi_dataset[key] = self.cosi_dataset[key][mask]
 
         # Write unbinned data to file (either fits or hdf5)
         if output_name is not None:
