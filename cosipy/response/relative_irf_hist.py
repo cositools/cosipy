@@ -300,6 +300,15 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         self._npoints_parallel_thresh = npoints_parallel_thresh
         self._executor = ThreadPoolExecutor(max_workers=nthreads) if nthreads > 1 else None
 
+    @property
+    def axes(self) -> Axes:
+        """
+        Axes of the differential response: ``NuLambda``, ``Ei`` (keV),
+        ``Epsilon``, ``Phi``, ``Theta`` and ``Zeta`` (rad), without
+        units. The total effective area might use a finer ``Ei`` grid.
+        """
+        return self._diff_aeff.axes
+
     def _parallel_interp(self, hist, build_args, raw_arrays):
         """
         Interpolate ``hist`` at the points described by ``raw_arrays``,

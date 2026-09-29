@@ -181,6 +181,12 @@ if it's blocked, say so and validate with synthetic histograms.
   every `Ei` can't catch `Ei`-interpolation problems. Use shapes that vary
   with `Ei` when testing those.
 
+## Validating on real files in a sandbox
+
+- The full hist IRF files (9.6 GB) don't fit in a 15 GB sandbox (`from_h5` doesn't pass
+  `copy=False`, so it holds two copies). Slicing the `Ei` axis of the h5 with h5py (e.g.
+  916-5000 keV for Al-26) is enough for line validation.
+
 ## histpy gotchas
 
 - `Histogram.interp()` / `Axis.interp_weights()` on a `scale='log'` axis
