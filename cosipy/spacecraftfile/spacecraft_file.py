@@ -11,8 +11,7 @@ from astropy.coordinates import (
     GCRS,
     ITRS,
     Galactic,
-    CartesianRepresentation,
-    cartesian_to_spherical
+    CartesianRepresentation
 )
 from astropy.units import Quantity
 import astropy.units as u
@@ -715,11 +714,9 @@ class SpacecraftHistory:
         if np.all(v1 == v2):
             return d1
 
-        r, lat, lon = cartesian_to_spherical(*SpacecraftHistory._slerp(t, v1, v2))
-        dvi = GCRS(ra=lon, dec=lat, distance=r,
-                   copy=False)
-
-        return dvi
+        # Keep the same representation, so they can be concatenated
+        vi = CartesianRepresentation(SpacecraftHistory._slerp(t, v1, v2), copy=False)
+        return GCRS(vi.represent_as(d1.data.__class__), copy=False)
 
     @staticmethod
     def _interp_earth_location(t, l1, l2):

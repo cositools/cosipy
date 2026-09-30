@@ -2,7 +2,7 @@ import numpy as np
 
 import astropy.units as u
 from astropy.coordinates import (SkyCoord, GCRS, ITRS,
-                                 CartesianRepresentation, SphericalRepresentation)
+                                 CartesianRepresentation)
 from astropy.io import fits
 from astropy.time import Time
 
@@ -535,7 +535,7 @@ def _rocking_history(rocking_angle, duration = 2 * u.hour):
     attitude = Attitude.from_axes(x=SkyCoord(CartesianRepresentation(velocity), frame='icrs'),
                                   z=SkyCoord(CartesianRepresentation(zaxis), frame='icrs'),
                                   frame='icrs')
-    location = GCRS(CartesianRepresentation(zenith * 6900 * u.km).represent_as(SphericalRepresentation))
+    location = GCRS(CartesianRepresentation(zenith * 6900 * u.km))
     livetime = np.diff(obstime.unix) * u.s
 
     return SpacecraftHistory(obstime, attitude, location, livetime)
