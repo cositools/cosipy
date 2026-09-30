@@ -959,7 +959,13 @@ class UnBinnedData(DataIO):
         if unbinned_data:
             self.cosi_dataset = self.get_dict(unbinned_data)
 
-        # Same conversions as TimeTagEmCDSEventDataInSCFrameFromDC3Fits:
+        # Same time sorting as TimeTagEmCDSEventDataInSCFrameFromDC3Fits,
+        # so time-based selectors see the events in the same order
+        tsort = np.argsort(self.cosi_dataset['TimeTags'])
+        for key in self.cosi_dataset:
+            self.cosi_dataset[key] = self.cosi_dataset[key][tsort]
+			
+	    # Same conversions as TimeTagEmCDSEventDataInSCFrameFromDC3Fits:
         # 'Psi local' is stored as colatitude, so latitude = pi/2 - psi
         time = Time(self.cosi_dataset['TimeTags'], format='unix')
 
