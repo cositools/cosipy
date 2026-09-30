@@ -11,8 +11,8 @@ from astropy.coordinates import (
     GCRS,
     ITRS,
     Galactic,
-    cartesian_to_spherical,
-    spherical_to_cartesian
+    CartesianRepresentation,
+    cartesian_to_spherical
 )
 from astropy.units import Quantity
 import astropy.units as u
@@ -51,7 +51,8 @@ class SpacecraftHistory:
                  obstime: Time,
                  attitude: Attitude,
                  location: GCRS,
-                 livetime: Quantity = None):
+                 livetime: Quantity = None,
+                 earth_location: EarthLocation = None):
         """Handles the spacecraft orientation. Calculates the dwell time
         map and point source response over a certain orientation
         period.
@@ -71,6 +72,9 @@ class SpacecraftHistory:
             bin. Should have one less element than the number of
             timestamps. If not provided, assume that the instrument
             was fully on without interruptions.
+        earth_location:
+            Geographic location of the spacecraft at each timestamp.
+            Computed from 'location' when first needed if not provided.
 
         """
 
@@ -99,6 +103,11 @@ class SpacecraftHistory:
         self._attitude = attitude
 
         self._gcrs = location
+
+        if not (earth_location is None or earth_location.shape == obstime.shape):
+            raise ValueError(f"'earth_location' must have the same length as the timestamps ({obstime.shape}), but it has shape ({earth_location.shape})")
+
+        self._earth_location = earth_location
 
         self._cache_earth_occ = False
 
@@ -171,15 +180,46 @@ class SpacecraftHistory:
         """
         Geographic location of the SC at each timestamp.
 
-        Only the Earth rotation angle is used to go from GCRS to the
-        Earth-fixed frame. Neglecting precession, nutation and polar
-        motion results in errors of ~0.2 deg around 2028, in exchange
-        for being orders of magnitude faster than a full ITRS
-        transformation.
+        Computed the first time it is needed and cached, unless it was
+        provided on initialization.
         """
-        lon = self._gcrs.ra - self._obstime.earth_rotation_angle(0)
-        x, y, z = spherical_to_cartesian(self._gcrs.distance, self._gcrs.dec, lon)
-        return EarthLocation.from_geocentric(x, y, z)
+        if self._earth_location is None:
+            self._earth_location = self._compute_earth_location()
+
+        return self._earth_location
+
+    def _compute_earth_location(self) -> EarthLocation:
+        """
+        The full GCRS to ITRS transformation is slow, so it is only
+        computed once per day, at the reference times closest to each
+        timestamp. In between, only the change in the Earth rotation
+        angle is applied. The error from the precession and nutation
+        of the pole within half a day is at the arcsec level.
+        """
+        dt = (self._obstime - self.tstart).to_value(u.day)
+        days = np.round(dt).astype(int)
+        ref_time = self.tstart + np.arange(days[-1] + 1) * u.day
+
+        # rotation[:, :, day] is the GCRS to ITRS rotation matrix at ref_time[day]
+        basis = GCRS(CartesianRepresentation(np.eye(3)[:, :, None] * u.km), obstime=ref_time)
+        rotation = basis.transform_to(ITRS(obstime=ref_time)).cartesian.xyz.value
+
+        xyz = self._gcrs.cartesian.xyz.to_value(u.km).reshape(3, -1)
+        xyz = np.broadcast_to(xyz, (3, self.npoints))
+
+        # Timestamps are sorted, so each day is a contiguous block
+        edges = np.searchsorted(days, np.arange(ref_time.size + 1))
+        xyz_ref = np.empty(xyz.shape)
+        for day, (start, stop) in enumerate(zip(edges[:-1], edges[1:])):
+            xyz_ref[:, start:stop] = rotation[:, :, day] @ xyz[:, start:stop]
+
+        # Earth rotation angle rate, in rad/day (IERS 2010 Conventions)
+        delta_era = 2 * np.pi * 1.00273781191135448 * (dt - days)
+
+        x = np.cos(delta_era) * xyz_ref[0] + np.sin(delta_era) * xyz_ref[1]
+        y = -np.sin(delta_era) * xyz_ref[0] + np.cos(delta_era) * xyz_ref[1]
+
+        return EarthLocation.from_geocentric(x, y, xyz_ref[2], unit=u.km)
 
     @property
     def rocking_angle(self) -> Quantity:

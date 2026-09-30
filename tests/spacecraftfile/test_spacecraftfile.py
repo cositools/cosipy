@@ -465,24 +465,37 @@ def test_update_ephemeris_scaling():
 
 def test_earth_location():
 
-    ori = SpacecraftHistory.open(test_data.path / "20280301_first_10sec.fits")
+    # Several days, to use multiple reference times for the pole
+    ori = _rocking_history(0 * u.deg, duration = 3 * u.day)
 
     gcrs = GCRS(ori.location.cartesian, obstime=ori.obstime)
     expected = gcrs.transform_to(ITRS(obstime=ori.obstime)).earth_location
 
     location = ori.earth_location
 
-    assert np.allclose((location.lon - expected.lon).wrap_at(180*u.deg).deg, 0, atol=0.3)
-    assert np.allclose(location.lat.deg, expected.lat.deg, atol=0.3)
-    assert np.allclose(location.height.to_value(u.km), expected.height.to_value(u.km), atol=1)
+    assert np.allclose((location.lon - expected.lon).wrap_at(180*u.deg).to_value(u.arcsec), 0, atol=2)
+    assert np.allclose(location.lat.to_value(u.arcsec), expected.lat.to_value(u.arcsec), atol=2)
+    assert np.allclose(location.height.to_value(u.m), expected.height.to_value(u.m), atol=1)
+
+    # Cached
+    assert ori.earth_location is location
+
+    # Provided on initialization
+    ori = SpacecraftHistory(ori.obstime, ori.attitude, ori.location, ori.livetime,
+                            earth_location = expected)
+    assert ori.earth_location is expected
+
+    with raises(ValueError):
+        SpacecraftHistory(ori.obstime, ori.attitude, ori.location, ori.livetime,
+                          earth_location = expected[:-1])
 
 
-def _rocking_history(rocking_angle):
+def _rocking_history(rocking_angle, duration = 2 * u.hour):
     """
     Circular orbit rocking the z-axis towards the orbit normal
     """
 
-    obstime = Time('2028-03-01') + np.arange(0, 7200, 60) * u.s
+    obstime = Time('2028-03-01') + np.arange(0, duration.to_value(u.s), 60) * u.s
     phase = 2 * np.pi * (obstime - obstime[0]).to_value(u.s) / 5700
     inc = np.deg2rad(20)
 
