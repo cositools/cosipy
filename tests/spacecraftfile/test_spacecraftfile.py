@@ -1,11 +1,18 @@
 import numpy as np
 
 import astropy.units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import (SkyCoord, GCRS, ITRS,
+                                 CartesianRepresentation)
 from astropy.io import fits
 from astropy.time import Time
 
 from mhealpy import HealpixBase
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+from scoords import Attitude
 
 from cosipy import test_data
 from cosipy import SpacecraftHistory
@@ -454,3 +461,67 @@ def test_update_ephemeris_scaling():
         ori.livetime.to_value(u.s), 
         original_livetime * 0.40
     )
+
+
+def test_earth_location():
+
+    ori = SpacecraftHistory.open(test_data.path / "20280301_first_10sec.fits")
+
+    gcrs = GCRS(ori.location.cartesian, obstime=ori.obstime)
+    expected = gcrs.transform_to(ITRS(obstime=ori.obstime)).earth_location
+
+    location = ori.earth_location
+
+    assert np.allclose((location.lon - expected.lon).wrap_at(180*u.deg).deg, 0, atol=0.3)
+    assert np.allclose(location.lat.deg, expected.lat.deg, atol=0.3)
+    assert np.allclose(location.height.to_value(u.km), expected.height.to_value(u.km), atol=1)
+
+
+def _rocking_history(rocking_angle):
+    """
+    Circular orbit rocking the z-axis towards the orbit normal
+    """
+
+    obstime = Time('2028-03-01') + np.arange(0, 7200, 60) * u.s
+    phase = 2 * np.pi * (obstime - obstime[0]).to_value(u.s) / 5700
+    inc = np.deg2rad(20)
+
+    zenith = np.array([np.cos(phase), np.sin(phase)*np.cos(inc), np.sin(phase)*np.sin(inc)])
+    velocity = np.array([-np.sin(phase), np.cos(phase)*np.cos(inc), np.cos(phase)*np.sin(inc)])
+    normal = np.cross(zenith, velocity, axis=0)
+
+    angle = rocking_angle.to_value(u.rad)
+    zaxis = np.cos(angle) * zenith + np.sin(angle) * normal
+
+    attitude = Attitude.from_axes(x=SkyCoord(CartesianRepresentation(velocity), frame='icrs'),
+                                  z=SkyCoord(CartesianRepresentation(zaxis), frame='icrs'),
+                                  frame='icrs')
+    location = GCRS(CartesianRepresentation(zenith * 6900 * u.km))
+    livetime = np.diff(obstime.unix) * u.s
+
+    return SpacecraftHistory(obstime, attitude, location, livetime)
+
+
+def test_rocking_angle():
+
+    for angle in [30, -20] * u.deg:
+        ori = _rocking_history(angle)
+        assert np.allclose(ori.rocking_angle.to_value(u.deg), angle.value, atol=0.01)
+
+
+def test_plots():
+
+    ori = _rocking_history(30 * u.deg)
+    ori.livetime[10:20] = 0
+
+    ax = ori.plot_orbit(saa_polygon=([-90, 30, 30, -90], [-30, -30, 0, 0]))
+    assert len(ax.lines) > 2
+
+    ax = ori.plot_pointing(ori.tstart + 10 * u.min)
+    assert ax.get_title() == (ori.tstart + 10 * u.min).isot
+
+    ax = ori.plot_rocking_angle()
+    assert np.allclose(ax.lines[0].get_ydata(), 30, atol=0.01)
+
+    plt.close('all')
+

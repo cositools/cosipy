@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Union, Optional
 
@@ -10,7 +11,8 @@ from astropy.coordinates import (
     GCRS,
     ITRS,
     Galactic,
-    cartesian_to_spherical
+    cartesian_to_spherical,
+    spherical_to_cartesian
 )
 from astropy.units import Quantity
 import astropy.units as u
@@ -18,6 +20,10 @@ from astropy.table import QTable
 from astropy.io import fits
 
 from mhealpy import HealpixBase, HealpixMap
+
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from matplotlib.patches import Patch
 
 from histpy import Axis, HealpixAxis
 
@@ -159,6 +165,41 @@ class SpacecraftHistory:
         """
         lon,  lat, _ = self._gcrs_to_earth_zenith_altitude(self._gcrs)
         return SkyCoord(lon, lat, frame=Galactic(), copy=False)
+
+    @property
+    def earth_location(self) -> EarthLocation:
+        """
+        Geographic location of the SC at each timestamp.
+
+        Only the Earth rotation angle is used to go from GCRS to the
+        Earth-fixed frame. Neglecting precession, nutation and polar
+        motion results in errors of ~0.2 deg around 2028, in exchange
+        for being orders of magnitude faster than a full ITRS
+        transformation.
+        """
+        lon = self._gcrs.ra - self._obstime.earth_rotation_angle(0)
+        x, y, z = spherical_to_cartesian(self._gcrs.distance, self._gcrs.dec, lon)
+        return EarthLocation.from_geocentric(x, y, z)
+
+    @property
+    def rocking_angle(self) -> Quantity:
+        """
+        Angle between the SC z-axis and the Earth's zenith at the SC
+        location, measured on the plane containing the zenith and the
+        orbit normal. Positive values point towards the orbit normal
+        (north for a prograde orbit).
+        """
+        zenith = self._gcrs.cartesian.xyz.value
+        velocity = np.gradient(zenith, self._obstime_dt_jd, axis=1)
+        normal = np.cross(zenith, velocity, axis=0)
+
+        zaxis = self._attitude.as_axes()[2].transform_to(GCRS())
+        zaxis = zaxis.cartesian.xyz.value
+
+        z_up = np.sum(zaxis * zenith, axis=0) / np.linalg.norm(zenith, axis=0)
+        z_north = np.sum(zaxis * normal, axis=0) / np.linalg.norm(normal, axis=0)
+
+        return np.rad2deg(np.arctan2(z_north, z_up)) * u.deg
 
     @staticmethod
     def _default_file_version(file_version = None):
@@ -1466,3 +1507,152 @@ class SpacecraftHistory:
         else:
             # Standard cosipy SpacecraftHistory storage natively uses _livetime
             self._livetime = self.livetime * fraction
+
+    def plot_orbit(self, ax=None, saa_polygon=None):
+        """
+        Plot the SC ground track on top of the Earth's coastlines.
+        Portions of the orbit with zero livetime (e.g. SAA passages)
+        are highlighted.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes to draw on. A new figure is created by default.
+        saa_polygon : tuple of array-like, optional
+            (longitude, latitude) of the vertices of an SAA region to
+            draw. Quantities with angular units or floats in degrees.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+
+        if ax is None:
+            _, ax = plt.subplots(figsize=(10, 5))
+
+        for lon, lat in _coastlines():
+            ax.plot(lon, lat, color='0.5', lw=0.5)
+
+        if saa_polygon is not None:
+            lon, lat = (Quantity(c, u.deg).value for c in saa_polygon)
+            ax.fill(lon, lat, facecolor='none', edgecolor='C0',
+                    hatch='xx', label='SAA')
+
+        location = self.earth_location
+        lon = location.lon.wrap_at(180 * u.deg).deg
+        lat = location.lat.deg
+
+        # Break the line where it crosses the antimeridian
+        lon[1:][np.abs(np.diff(lon)) > 180] = np.nan
+
+        dead = np.append(self.livetime == 0, False)
+
+        ax.plot(lon, lat, color='C3', lw=1, label='Orbit')
+        ax.plot(np.where(dead, lon, np.nan), lat, color='k', lw=3,
+                label='Zero livetime')
+
+        ax.set_xlim(-180, 180)
+        ax.set_ylim(-90, 90)
+        ax.set_xticks(np.arange(-180, 181, 60))
+        ax.set_yticks(np.arange(-90, 91, 30))
+        ax.set_aspect('equal')
+        ax.set_xlabel('Longitude (deg)')
+        ax.set_ylabel('Latitude (deg)')
+        ax.legend(loc='lower left')
+
+        return ax
+
+    def plot_pointing(self, time: Time, fov: Quantity = 60 * u.deg,
+                      ax=None, nside=128):
+        """
+        Plot the SC z-axis, field of view and the region occulted by
+        the Earth at a given time, in galactic coordinates.
+
+        Parameters
+        ----------
+        time : Time
+            Scalar time within the history.
+        fov : Quantity
+            Radius of the field of view around the z-axis.
+        ax : mhealpy 'mollview' axes, optional
+            A new figure is created by default.
+        nside : int
+            Resolution of the HEALPix maps used to draw the regions.
+
+        Returns
+        -------
+        astropy.visualization.wcsaxes.WCSAxes
+        """
+
+        if ax is None:
+            fig = plt.figure(figsize=(10, 5))
+            ax = fig.add_subplot(projection='mollview', coord='G')
+
+        zaxis = self.interp_attitude(time).as_axes()[2].transform_to(Galactic())
+
+        location = self.interp_location(time)
+        nadir = GCRS(ra=location.ra + 180 * u.deg, dec=-location.dec)
+        nadir = nadir.transform_to(Galactic())
+        earth_radius = np.arcsin(self._r_earth * u.km / location.distance)
+
+        for center, radius, color in [(nadir, earth_radius, 'C0'),
+                                      (zaxis, fov, 'C1')]:
+            disc = HealpixMap(nside=nside, coordsys='galactic',
+                              data=np.full(12 * nside ** 2, np.nan))
+            disc[disc.query_disc(center.cartesian.xyz.value,
+                                 radius.to_value(u.rad))] = 1
+            disc.plot(ax, cbar=False, cmap=ListedColormap([color]), alpha=0.4)
+
+        ax.scatter(zaxis.l.deg, zaxis.b.deg, transform=ax.get_transform('galactic'),
+                   marker='*', s=150, color='C1', edgecolor='k')
+
+        ax.legend(handles=[Patch(color='C1', alpha=0.4, label='Field of view'),
+                           Patch(color='C0', alpha=0.4, label='Earth')],
+                  loc='lower right')
+        ax.coords.grid(True, color='0.8', ls=':')
+        ax.set_title(time.isot)
+
+        return ax
+
+    def plot_rocking_angle(self, ax=None):
+        """
+        Plot the rocking angle (see ``rocking_angle``) as a function of
+        time.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes to draw on. A new figure is created by default.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+
+        if ax is None:
+            _, ax = plt.subplots(figsize=(10, 4))
+
+        ax.plot(self.obstime.to_value('datetime64'),
+                self.rocking_angle.to_value(u.deg))
+
+        ax.set_xlabel('Time (UTC)')
+        ax.set_ylabel('Rocking angle (deg)')
+
+        return ax
+
+
+def _coastlines():
+    """
+    Coastlines from Natural Earth (public domain), 1:110m scale.
+
+    Returns
+    -------
+    list of (lon, lat) arrays, in degrees
+    """
+
+    path = Path(__file__).parent / 'data' / 'ne_110m_coastline.geojson'
+
+    with open(path) as f:
+        features = json.load(f)['features']
+
+    return [np.transpose(f['geometry']['coordinates']) for f in features]
