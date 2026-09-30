@@ -2,7 +2,7 @@ import numpy as np
 
 import astropy.units as u
 from astropy.coordinates import (SkyCoord, GCRS, ITRS,
-                                 CartesianRepresentation)
+                                 CartesianRepresentation, SphericalRepresentation)
 from astropy.io import fits
 from astropy.time import Time
 
@@ -490,6 +490,32 @@ def test_earth_location():
                           earth_location = expected[:-1])
 
 
+def test_earth_location_carried_over():
+
+    ori = _rocking_history(0 * u.deg)
+    tstart = ori.tstart
+
+    def assert_carried_over(new_ori):
+        # Interpolated from the parent's, and close to a fresh computation
+        assert new_ori._earth_location is not None
+        carried = new_ori.earth_location
+        new_ori._earth_location = None
+        fresh = new_ori.earth_location
+        assert np.allclose(u.Quantity(carried.geocentric).to_value(u.km),
+                           u.Quantity(fresh.geocentric).to_value(u.km), atol=1)
+
+    # Not computed yet, so nothing to carry over
+    assert ori.select_interval(tstart + 90*u.s, tstart + 1000*u.s)._earth_location is None
+
+    ori.earth_location
+
+    assert_carried_over(ori.select_interval(tstart + 90*u.s, tstart + 1000*u.s))
+    assert_carried_over(ori.select_interval(tstart + 10*u.s, tstart + 20*u.s))
+    assert_carried_over(ori.interp(tstart + [30, 75, 400] * u.s))
+    assert_carried_over(ori.apply_gti(GoodTimeInterval(tstart + [90, 2000] * u.s,
+                                                       tstart + [1000, 3000] * u.s)))
+
+
 def _rocking_history(rocking_angle, duration = 2 * u.hour):
     """
     Circular orbit rocking the z-axis towards the orbit normal
@@ -509,7 +535,7 @@ def _rocking_history(rocking_angle, duration = 2 * u.hour):
     attitude = Attitude.from_axes(x=SkyCoord(CartesianRepresentation(velocity), frame='icrs'),
                                   z=SkyCoord(CartesianRepresentation(zaxis), frame='icrs'),
                                   frame='icrs')
-    location = GCRS(CartesianRepresentation(zenith * 6900 * u.km))
+    location = GCRS(CartesianRepresentation(zenith * 6900 * u.km).represent_as(SphericalRepresentation))
     livetime = np.diff(obstime.unix) * u.s
 
     return SpacecraftHistory(obstime, attitude, location, livetime)

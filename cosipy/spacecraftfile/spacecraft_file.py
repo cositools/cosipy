@@ -715,19 +715,38 @@ class SpacecraftHistory:
         if np.all(v1 == v2):
             return d1
 
-        # angle between v1, v2
-        norm = d1.spherical.distance * d2.spherical.distance
-        theta = np.arccos(np.einsum('i...,i...->...', v1, v2)/norm)
-
-        # SLERP interpolated vector
-        den = np.sin(theta)
-        vi = (np.sin((1 - t) * theta) * v1 + np.sin(t * theta) * v2) / den
-
-        r, lat, lon = cartesian_to_spherical(*vi)
+        r, lat, lon = cartesian_to_spherical(*SpacecraftHistory._slerp(t, v1, v2))
         dvi = GCRS(ra=lon, dec=lat, distance=r,
                    copy=False)
 
         return dvi
+
+    @staticmethod
+    def _interp_earth_location(t, l1, l2):
+        """
+        Same as _interp_location, but for EarthLocation
+        """
+
+        v1 = Quantity(l1.geocentric)
+        v2 = Quantity(l2.geocentric)
+
+        if np.all(v1 == v2):
+            return l1
+
+        return EarthLocation.from_geocentric(*SpacecraftHistory._slerp(t, v1, v2))
+
+    @staticmethod
+    def _slerp(t, v1, v2):
+        """
+        SLERP between Cartesian vectors v1 and v2, with shape (3, ...)
+        """
+
+        # angle between v1, v2
+        norm = np.linalg.norm(v1, axis=0) * np.linalg.norm(v2, axis=0)
+        theta = np.arccos(np.einsum('i...,i...->...', v1, v2)/norm)
+
+        den = np.sin(theta)
+        return (np.sin((1 - t) * theta) * v1 + np.sin(t * theta) * v2) / den
 
     @staticmethod
     def _interp_attitude(t, att1, att2):
@@ -863,8 +882,14 @@ class SpacecraftHistory:
         cum_livetime = self._cumulative_livetime(points, weights)
         diff_livetime = cum_livetime[1:] - cum_livetime[:-1]
 
+        interp_earth_location = None
+        if self._earth_location is not None:
+            interp_earth_location = self._interp_earth_location(weights[1],
+                                                                self._earth_location[points[0]],
+                                                                self._earth_location[points[1]])
+
         return self.__class__(times, interp_attitude, interp_location,
-                              diff_livetime)
+                              diff_livetime, interp_earth_location)
 
     def select_interval(self, start:Time = None, stop:Time = None) -> "SpacecraftHistory":
         """
@@ -909,6 +934,11 @@ class SpacecraftHistory:
         new_location = self._gcrs[start_points[1]:stop_points[1]]
         new_livetime = self.livetime[start_points[1]:stop_points[0]]
 
+        # Only carried over if already available
+        earth_location = self._earth_location
+        if earth_location is not None:
+            new_earth_location = earth_location[start_points[1]:stop_points[1]]
+
         # Left edge
         # new_obstime.size can be zero if the requested interval fell
         # completely an existing interval
@@ -930,6 +960,13 @@ class SpacecraftHistory:
                                                    self._gcrs[start_points[1]])[None]
 
             new_location = np.concatenate((start_location, new_location))
+
+            if earth_location is not None:
+                start_earth_location = self._interp_earth_location(start_weights[1],
+                                                                   earth_location[start_points[0]],
+                                                                   earth_location[start_points[1]])
+                new_earth_location = np.concatenate((start_earth_location[None], new_earth_location))
+
             first_livetime = self.livetime[start_points[0]] * start_weights[0]
             new_livetime = np.append(first_livetime, new_livetime)
 
@@ -955,6 +992,14 @@ class SpacecraftHistory:
 
         new_location = np.concatenate((new_location, stop_location))
 
+        if earth_location is not None:
+            stop_earth_location = self._interp_earth_location(stop_weights[1],
+                                                              earth_location[stop_points[0]],
+                                                              earth_location[stop_points[1]])
+            new_earth_location = np.concatenate((new_earth_location, stop_earth_location[None]))
+        else:
+            new_earth_location = None
+
         if np.all(start_points == stop_points):
             # This can only happen if the requested interval fell
             # completely an existing interval
@@ -968,7 +1013,7 @@ class SpacecraftHistory:
         new_obstime.format = self.obstime.format
 
         new_history = self.__class__(new_obstime, new_attitude, new_location,
-                                     new_livetime)
+                                     new_livetime, new_earth_location)
 
         # make sure new object uses same earth occ caching as old object
         new_history.cache_earth_occ = self.cache_earth_occ
@@ -993,6 +1038,7 @@ class SpacecraftHistory:
         new_attitude = None
         new_location = None
         new_livetime = None
+        new_earth_location = None
 
         for i, (start, stop) in enumerate(gti):
             _sph = self.select_interval(start, stop)
@@ -1001,12 +1047,14 @@ class SpacecraftHistory:
             _attitude = _sph._attitude.as_matrix()
             _location = _sph._gcrs
             _livetime = _sph.livetime
+            _earth_location = _sph._earth_location
 
             if i == 0:
                 new_obstime = _obstime
                 new_attitude = _attitude
                 new_location = _location
                 new_livetime = _livetime
+                new_earth_location = _earth_location
             else:
                 new_obstime = Time(np.append(new_obstime.jd1, _obstime.jd1),
                                    np.append(new_obstime.jd2, _obstime.jd2),
@@ -1015,13 +1063,15 @@ class SpacecraftHistory:
                 new_location = np.concatenate((new_location, _location))
                 new_livetime = np.append(new_livetime, 0 * new_livetime.unit) # assign livetime of zero between GTIs
                 new_livetime = np.append(new_livetime, _livetime)
+                if new_earth_location is not None:
+                    new_earth_location = np.concatenate((new_earth_location, _earth_location))
 
         # finalizing
         new_attitude = Attitude.from_matrix(new_attitude, frame=self._attitude.frame)
         new_obstime.format = self.obstime.format
 
         new_history = self.__class__(new_obstime, new_attitude, new_location,
-                                     new_livetime)
+                                     new_livetime, new_earth_location)
 
         # make sure new object uses same earth occ caching as old object
         new_history.cache_earth_occ = self.cache_earth_occ
