@@ -15,6 +15,7 @@ from .event import (
     ComptonDataSpaceInSCFrameEventInterface,
     EmCDSEventInSCFrameInterface,
     TimeTagEmCDSEventInSCFrameInterface,
+    TimeTagEmCDSDistanceEventInSCFrameInterface,
     EventWithScatteringAngleInterface,
 )
 
@@ -26,7 +27,8 @@ __all__ = ["DataInterface",
            "EventDataInterface",
            "BinnedDataInterface",
            "TimeTagEventDataInterface",
-           "EventDataWithEnergyInterface"
+           "EventDataWithEnergyInterface",
+           "TimeTagEmCDSDistanceEventDataInSCFrameInterface",
           ]
 
 @runtime_checkable
@@ -276,3 +278,26 @@ class TimeTagEmCDSEventDataInSCFrameInterface(TimeTagEventDataInterface,
     event_type = TimeTagEmCDSEventInSCFrameInterface
 
     def __iter__(self) -> Iterator[TimeTagEmCDSEventInSCFrameInterface]:...
+
+@runtime_checkable
+class TimeTagEmCDSDistanceEventDataInSCFrameInterface(TimeTagEmCDSEventDataInSCFrameInterface, Protocol):
+    """
+    A TimeTagEmCDSEventDataInSCFrameInterface event data collection that
+    also tracks the distance between the first two hits of each Compton
+    event.
+    """
+
+    event_type = TimeTagEmCDSDistanceEventInSCFrameInterface
+
+    def __iter__(self) -> Iterator[TimeTagEmCDSDistanceEventInSCFrameInterface]:...
+
+    @property
+    def distance_cm(self) -> Iterable[float]:
+        return [e.distance_cm for e in self]
+
+    @property
+    def distance(self) -> Quantity:
+        """
+        Add fancy distance quantity
+        """
+        return Quantity(self.distance_cm, u.cm)
