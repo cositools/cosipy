@@ -12,6 +12,7 @@ __all__ = [
     "EventInterface",
     "TimeTagEventInterface",
     "EventWithEnergyInterface",
+    "TimeTagEmCDSDistanceEventInSCFrameInterface",
 ]
 
 @runtime_checkable
@@ -113,3 +114,20 @@ class TimeTagEmCDSEventInSCFrameInterface(TimeTagEventInterface,
                                           EmCDSEventInSCFrameInterface,
                                           Protocol):
     data_space_units = EmCDSEventInSCFrameInterface.data_space_units * TimeTagEventInterface.data_space_units
+
+@runtime_checkable
+class TimeTagEmCDSDistanceEventInSCFrameInterface(TimeTagEmCDSEventInSCFrameInterface, Protocol):
+    """
+    A TimeTagEmCDSEventInSCFrameInterface event that also tracks the
+    distance between the first two hits of the Compton event.
+    """
+
+    @property
+    def distance_cm(self) -> float: ...
+
+    @property
+    def distance(self) -> Quantity:
+        """
+        Add fancy distance quantity
+        """
+        return Quantity(self.distance_cm, u.cm)
