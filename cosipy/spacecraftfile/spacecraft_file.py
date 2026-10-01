@@ -1619,8 +1619,18 @@ class SpacecraftHistory:
     def plot_orbit(self, ax=None, saa=True):
         """
         Plot the SC ground track on top of the Earth's coastlines,
-        colored by the (unwrapped) roll angle. Timestamps followed by
-        zero livetime (e.g. SAA passages) are not drawn.
+        colored by the roll angle. Timestamps followed by zero livetime
+        (e.g. SAA passages) are not drawn.
+
+        The roll angle (see ``roll_angle``) is the rotation of the SC
+        around its z-axis: the angle between the SC x-axis and the
+        direction of motion of the SC, after projecting the latter onto
+        the plane perpendicular to the z-axis. It increases
+        counter-clockwise when looking from the tip of the z-axis
+        towards the SC. A roll angle of 0 means the x-axis points
+        forward, along the orbit. It is unwrapped for plotting, so it
+        can go beyond the [-180, 180] deg range instead of jumping by
+        360 deg.
 
         Parameters
         ----------
