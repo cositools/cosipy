@@ -516,9 +516,11 @@ def test_earth_location_carried_over():
                                                        tstart + [1000, 3000] * u.s)))
 
 
-def _rocking_history(rocking_angle, duration = 2 * u.hour):
+def _rocking_history(rocking_angle, duration = 2 * u.hour, roll_rate = 0 * u.deg / u.min):
     """
-    Circular orbit rocking the z-axis towards the orbit normal
+    Circular orbit rocking the z-axis towards the orbit normal, and
+    rolling the x-axis around the z-axis starting from the direction
+    of motion
     """
 
     obstime = Time('2028-03-01') + np.arange(0, duration.to_value(u.s), 60) * u.s
@@ -532,7 +534,10 @@ def _rocking_history(rocking_angle, duration = 2 * u.hour):
     angle = rocking_angle.to_value(u.rad)
     zaxis = np.cos(angle) * zenith + np.sin(angle) * normal
 
-    attitude = Attitude.from_axes(x=SkyCoord(CartesianRepresentation(velocity), frame='icrs'),
+    roll = (roll_rate * (obstime - obstime[0])).to_value(u.rad)
+    xaxis = np.cos(roll) * velocity + np.sin(roll) * np.cross(zaxis, velocity, axis=0)
+
+    attitude = Attitude.from_axes(x=SkyCoord(CartesianRepresentation(xaxis), frame='icrs'),
                                   z=SkyCoord(CartesianRepresentation(zaxis), frame='icrs'),
                                   frame='icrs')
     location = GCRS(CartesianRepresentation(zenith * 6900 * u.km))
@@ -548,13 +553,34 @@ def test_rocking_angle():
         assert np.allclose(ori.rocking_angle.to_value(u.deg), angle.value, atol=0.01)
 
 
+def test_roll_angle():
+
+    ori = _rocking_history(30 * u.deg, roll_rate = 7 * u.deg / u.min)
+
+    expected = 7 * (ori.obstime - ori.tstart).to_value(u.min)
+    roll = np.unwrap(ori.roll_angle.to_value(u.deg), period = 360)
+
+    assert np.allclose(roll, expected, atol=0.01)
+
+
 def test_plots():
 
-    ori = _rocking_history(30 * u.deg)
+    ori = _rocking_history(30 * u.deg, roll_rate = 7 * u.deg / u.min)
     ori.livetime[10:20] = 0
 
-    ax = ori.plot_orbit(saa_polygon=([-90, 30, 30, -90], [-30, -30, 0, 0]))
-    assert len(ax.lines) > 2
+    ax = ori.plot_orbit()
+    assert ax.name == 'mollweide'
+    assert len(ax.patches) == 1
+    orbit = ax.collections[0]
+    assert len(orbit.get_offsets()) == ori.npoints - 11
+    assert orbit.get_array().max() > 360
+
+    ax = ori.plot_orbit(saa = False)
+    assert len(ax.patches) == 0
+
+    _, ax = plt.subplots()
+    ax = ori.plot_orbit(ax, saa = ([-90, 30, 30, -90], [-30, -30, 0, 0]))
+    assert np.allclose(ax.patches[0].get_xy()[:4], [[-90, -30], [30, -30], [30, 0], [-90, 0]])
 
     ax = ori.plot_pointing(ori.tstart + 10 * u.min)
     assert ax.get_title() == (ori.tstart + 10 * u.min).isot

@@ -23,6 +23,7 @@ from mhealpy import HealpixBase, HealpixMap
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from matplotlib.patches import Patch
+from matplotlib.projections.geo import GeoAxes
 
 from histpy import Axis, HealpixAxis
 
@@ -229,7 +230,8 @@ class SpacecraftHistory:
         (north for a prograde orbit).
         """
         zenith = self._gcrs.cartesian.xyz.value
-        velocity = np.gradient(zenith, self._obstime_dt_jd, axis=1)
+        velocity = np.gradient(zenith, self._obstime_dt_jd, axis=1,
+                               edge_order=min(2, self.npoints - 1))
         normal = np.cross(zenith, velocity, axis=0)
 
         zaxis = self._attitude.as_axes()[2].transform_to(GCRS())
@@ -239,6 +241,25 @@ class SpacecraftHistory:
         z_north = np.sum(zaxis * normal, axis=0) / np.linalg.norm(normal, axis=0)
 
         return np.rad2deg(np.arctan2(z_north, z_up)) * u.deg
+
+    @property
+    def roll_angle(self) -> Quantity:
+        """
+        Angle of the SC x-axis around the z-axis, measured from the
+        direction of motion projected onto the plane perpendicular to
+        the z-axis. Positive values are counter-clockwise when looking
+        from the tip of the z-axis.
+        """
+        velocity = np.gradient(self._gcrs.cartesian.xyz.value, self._obstime_dt_jd, axis=1,
+                               edge_order=min(2, self.npoints - 1))
+
+        xaxis, _, zaxis = (axis.transform_to(GCRS()).cartesian.xyz.value
+                           for axis in self._attitude.as_axes())
+
+        x_along = np.sum(xaxis * velocity, axis=0)
+        x_across = np.sum(np.cross(velocity, xaxis, axis=0) * zaxis, axis=0)
+
+        return np.rad2deg(np.arctan2(x_across, x_along)) * u.deg
 
     @staticmethod
     def _default_file_version(file_version = None):
@@ -1595,19 +1616,24 @@ class SpacecraftHistory:
             # Standard cosipy SpacecraftHistory storage natively uses _livetime
             self._livetime = self.livetime * fraction
 
-    def plot_orbit(self, ax=None, saa_polygon=None):
+    def plot_orbit(self, ax=None, saa=True):
         """
-        Plot the SC ground track on top of the Earth's coastlines.
-        Portions of the orbit with zero livetime (e.g. SAA passages)
-        are highlighted.
+        Plot the SC ground track on top of the Earth's coastlines,
+        colored by the (unwrapped) roll angle. Timestamps followed by
+        zero livetime (e.g. SAA passages) are not drawn.
 
         Parameters
         ----------
         ax : matplotlib.axes.Axes, optional
-            Axes to draw on. A new figure is created by default.
-        saa_polygon : tuple of array-like, optional
-            (longitude, latitude) of the vertices of an SAA region to
-            draw. Quantities with angular units or floats in degrees.
+            Axes to draw on. A new figure with a Mollweide projection
+            is created by default.
+        saa : bool or tuple of array-like, optional
+            SAA region to draw. If True (default), the contour where
+            the magnetic field strength at the Earth's surface is
+            28000 nT, according to IGRF-14 at epoch 2028.0. Pass a
+            (longitude, latitude) pair to draw a custom polygon, with
+            Quantities with angular units or floats in degrees. None or
+            False to not draw it.
 
         Returns
         -------
@@ -1615,37 +1641,40 @@ class SpacecraftHistory:
         """
 
         if ax is None:
-            _, ax = plt.subplots(figsize=(10, 5))
+            fig = plt.figure(figsize=(10, 6))
+            ax = fig.add_subplot(projection='mollweide')
+
+        # Geographic projections use radians
+        to_ax = np.deg2rad if isinstance(ax, GeoAxes) else np.asarray
 
         for lon, lat in _coastlines():
-            ax.plot(lon, lat, color='0.5', lw=0.5)
+            ax.plot(to_ax(lon), to_ax(lat), color='0.5', lw=0.5)
 
-        if saa_polygon is not None:
-            lon, lat = (Quantity(c, u.deg).value for c in saa_polygon)
-            ax.fill(lon, lat, facecolor='none', edgecolor='C0',
+        if saa is True:
+            saa = _saa_contour()
+
+        if saa is not None and saa is not False:
+            lon, lat = (Quantity(c, u.deg).value for c in saa)
+            ax.fill(to_ax(lon), to_ax(lat), facecolor='none', edgecolor='C0',
                     hatch='xx', label='SAA')
+            ax.legend(loc='lower right')
 
         location = self.earth_location
         lon = location.lon.wrap_at(180 * u.deg).deg
         lat = location.lat.deg
+        roll = np.unwrap(self.roll_angle.to_value(u.deg), period=360)
 
-        # Break the line where it crosses the antimeridian
-        lon[1:][np.abs(np.diff(lon)) > 180] = np.nan
+        # Each timestamp is drawn if the following interval had livetime
+        live = np.append(self.livetime.value > 0, False)
 
-        dead = np.append(self.livetime == 0, False)
+        orbit = ax.scatter(to_ax(lon[live]), to_ax(lat[live]), c=roll[live],
+                           s=2, lw=0, rasterized=True)
+        ax.figure.colorbar(orbit, ax=ax, orientation='horizontal',
+                           shrink=0.6, label='Roll angle (deg)')
 
-        ax.plot(lon, lat, color='C3', lw=1, label='Orbit')
-        ax.plot(np.where(dead, lon, np.nan), lat, color='k', lw=3,
-                label='Zero livetime')
-
-        ax.set_xlim(-180, 180)
-        ax.set_ylim(-90, 90)
-        ax.set_xticks(np.arange(-180, 181, 60))
-        ax.set_yticks(np.arange(-90, 91, 30))
-        ax.set_aspect('equal')
+        ax.grid(True, ls=':', color='0.8')
         ax.set_xlabel('Longitude (deg)')
         ax.set_ylabel('Latitude (deg)')
-        ax.legend(loc='lower left')
 
         return ax
 
@@ -1743,3 +1772,26 @@ def _coastlines():
         features = json.load(f)['features']
 
     return [np.transpose(f['geometry']['coordinates']) for f in features]
+
+
+def _saa_contour():
+    """
+    Contour of the South Atlantic Anomaly where the magnetic field
+    strength at the Earth's surface is 28000 nT, according to
+    IGRF-14 at epoch 2028.0. Generated with::
+
+        lon, lat = np.meshgrid(np.arange(-180, 180.01, 0.25), np.arange(-89, 89.01, 0.25))
+        B = np.linalg.norm(ppigrf.igrf(lon, lat, 0, datetime(2028, 1, 1)), axis=0)[0]
+        contour = plt.contour(lon, lat, B, levels=[28000]).get_paths()[0].vertices[::4]
+
+    Returns
+    -------
+    (lon, lat) arrays, in degrees
+    """
+
+    path = Path(__file__).parent / 'data' / 'saa_igrf14_2028.geojson'
+
+    with open(path) as f:
+        polygon = json.load(f)['features'][0]['geometry']['coordinates'][0]
+
+    return np.transpose(polygon)
