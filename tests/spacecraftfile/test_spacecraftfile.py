@@ -1,11 +1,18 @@
 import numpy as np
 
 import astropy.units as u
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import (SkyCoord, GCRS, ITRS,
+                                 CartesianRepresentation)
 from astropy.io import fits
 from astropy.time import Time
 
 from mhealpy import HealpixBase
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+from scoords import Attitude
 
 from cosipy import test_data
 from cosipy import SpacecraftHistory
@@ -454,3 +461,132 @@ def test_update_ephemeris_scaling():
         ori.livetime.to_value(u.s), 
         original_livetime * 0.40
     )
+
+
+def test_earth_location():
+
+    # Several days, to use multiple reference times for the pole
+    ori = _rocking_history(0 * u.deg, duration = 3 * u.day)
+
+    gcrs = GCRS(ori.location.cartesian, obstime=ori.obstime)
+    expected = gcrs.transform_to(ITRS(obstime=ori.obstime)).earth_location
+
+    location = ori.earth_location
+
+    assert np.allclose((location.lon - expected.lon).wrap_at(180*u.deg).to_value(u.arcsec), 0, atol=2)
+    assert np.allclose(location.lat.to_value(u.arcsec), expected.lat.to_value(u.arcsec), atol=2)
+    assert np.allclose(location.height.to_value(u.m), expected.height.to_value(u.m), atol=1)
+
+    # Cached
+    assert ori.earth_location is location
+
+    # Provided on initialization
+    ori = SpacecraftHistory(ori.obstime, ori.attitude, ori.location, ori.livetime,
+                            earth_location = expected)
+    assert ori.earth_location is expected
+
+    with raises(ValueError):
+        SpacecraftHistory(ori.obstime, ori.attitude, ori.location, ori.livetime,
+                          earth_location = expected[:-1])
+
+
+def test_earth_location_carried_over():
+
+    ori = _rocking_history(0 * u.deg)
+    tstart = ori.tstart
+
+    def assert_carried_over(new_ori):
+        # Interpolated from the parent's, and close to a fresh computation
+        assert new_ori._earth_location is not None
+        carried = new_ori.earth_location
+        new_ori._earth_location = None
+        fresh = new_ori.earth_location
+        assert np.allclose(u.Quantity(carried.geocentric).to_value(u.km),
+                           u.Quantity(fresh.geocentric).to_value(u.km), atol=1)
+
+    # Not computed yet, so nothing to carry over
+    assert ori.select_interval(tstart + 90*u.s, tstart + 1000*u.s)._earth_location is None
+
+    ori.earth_location
+
+    assert_carried_over(ori.select_interval(tstart + 90*u.s, tstart + 1000*u.s))
+    assert_carried_over(ori.select_interval(tstart + 10*u.s, tstart + 20*u.s))
+    assert_carried_over(ori.interp(tstart + [30, 75, 400] * u.s))
+    assert_carried_over(ori.apply_gti(GoodTimeInterval(tstart + [90, 2000] * u.s,
+                                                       tstart + [1000, 3000] * u.s)))
+
+
+def _rocking_history(rocking_angle, duration = 2 * u.hour, roll_rate = 0 * u.deg / u.min):
+    """
+    Circular orbit rocking the z-axis towards the orbit normal, and
+    rolling the x-axis around the z-axis starting from the direction
+    of motion
+    """
+
+    obstime = Time('2028-03-01') + np.arange(0, duration.to_value(u.s), 60) * u.s
+    phase = 2 * np.pi * (obstime - obstime[0]).to_value(u.s) / 5700
+    inc = np.deg2rad(20)
+
+    zenith = np.array([np.cos(phase), np.sin(phase)*np.cos(inc), np.sin(phase)*np.sin(inc)])
+    velocity = np.array([-np.sin(phase), np.cos(phase)*np.cos(inc), np.cos(phase)*np.sin(inc)])
+    normal = np.cross(zenith, velocity, axis=0)
+
+    angle = rocking_angle.to_value(u.rad)
+    zaxis = np.cos(angle) * zenith + np.sin(angle) * normal
+
+    roll = (roll_rate * (obstime - obstime[0])).to_value(u.rad)
+    xaxis = np.cos(roll) * velocity + np.sin(roll) * np.cross(zaxis, velocity, axis=0)
+
+    attitude = Attitude.from_axes(x=SkyCoord(CartesianRepresentation(xaxis), frame='icrs'),
+                                  z=SkyCoord(CartesianRepresentation(zaxis), frame='icrs'),
+                                  frame='icrs')
+    location = GCRS(CartesianRepresentation(zenith * 6900 * u.km))
+    livetime = np.diff(obstime.unix) * u.s
+
+    return SpacecraftHistory(obstime, attitude, location, livetime)
+
+
+def test_rocking_angle():
+
+    for angle in [30, -20] * u.deg:
+        ori = _rocking_history(angle)
+        assert np.allclose(ori.rocking_angle.to_value(u.deg), angle.value, atol=0.01)
+
+
+def test_roll_angle():
+
+    ori = _rocking_history(30 * u.deg, roll_rate = 7 * u.deg / u.min)
+
+    expected = 7 * (ori.obstime - ori.tstart).to_value(u.min)
+    roll = np.unwrap(ori.roll_angle.to_value(u.deg), period = 360)
+
+    assert np.allclose(roll, expected, atol=0.01)
+
+
+def test_plots():
+
+    ori = _rocking_history(30 * u.deg, roll_rate = 7 * u.deg / u.min)
+    ori.livetime[10:20] = 0
+
+    ax = ori.plot_orbit()
+    assert ax.name == 'mollweide'
+    assert len(ax.patches) == 1
+    orbit = ax.collections[0]
+    assert len(orbit.get_offsets()) == ori.npoints - 11
+    assert orbit.get_array().max() > 360
+
+    ax = ori.plot_orbit(saa = False)
+    assert len(ax.patches) == 0
+
+    _, ax = plt.subplots()
+    ax = ori.plot_orbit(ax, saa = ([-90, 30, 30, -90], [-30, -30, 0, 0]))
+    assert np.allclose(ax.patches[0].get_xy()[:4], [[-90, -30], [30, -30], [30, 0], [-90, 0]])
+
+    ax = ori.plot_pointing(ori.tstart + 10 * u.min)
+    assert ax.get_title() == (ori.tstart + 10 * u.min).isot
+
+    ax = ori.plot_rocking_angle()
+    assert np.allclose(ax.lines[0].get_ydata(), 30, atol=0.01)
+
+    plt.close('all')
+
