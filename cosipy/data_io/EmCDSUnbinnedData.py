@@ -476,7 +476,7 @@ class TimeTagEmCDSDistanceEventDataInSCFrameFromArrays(TimeTagEmCDSEventDataInSC
     def distance_cm(self) -> Iterable[float]:
         return self._distance_cm
 
-def _load_dc3_fits_columns(data_path: Union[Path, List[Path]],
+def _load_dc3_columns(data_path: Union[Path, List[Path]],
                             extra_columns: Iterable[str] = ()) -> dict:
     """
     Read the standard DC3 fits columns needed to build a
@@ -526,7 +526,7 @@ class TimeTagEmCDSEventDataInSCFrameFromDC3Fits(TimeTagEmCDSEventDataInSCFrameFr
     def __init__(self, data_path: Union[Path, List[Path]],
                  selection:EventSelectorInterface = None):
 
-        data = _load_dc3_fits_columns(data_path)
+        data = _load_dc3_columns(data_path)
 
         time = Time(data['TimeTags'], format='unix')
         energy = data['Energies']
@@ -542,7 +542,7 @@ class TimeTagEmCDSDistanceEventDataInSCFrameFromDC3Fits(TimeTagEmCDSDistanceEven
     def __init__(self, data_path: Union[Path, List[Path]],
                  selection:EventSelectorInterface = None):
 
-        data = _load_dc3_fits_columns(data_path, extra_columns=['Distance'])
+        data = _load_dc3_columns(data_path, extra_columns=['Distance'])
 
         time = Time(data['TimeTags'], format='unix')
         energy = data['Energies']
@@ -910,7 +910,7 @@ class TimeTagEmCDSEventDataInSCAndGalFrameFromDC3Fits(TimeTagEmCDSEventDataInSCA
     def __init__(self, data_path: Union[Path, List[Path]],
                  selection:EventSelectorInterface = None):
 
-        data = _load_dc3_fits_columns(data_path, extra_columns=['Psi galactic', 'Chi galactic'])
+        data = _load_dc3_columns(data_path, extra_columns=['Psi galactic', 'Chi galactic'])
 
         time = Time(data['TimeTags'], format='unix')
         energy = data['Energies']
