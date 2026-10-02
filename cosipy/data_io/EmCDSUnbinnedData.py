@@ -477,15 +477,15 @@ class TimeTagEmCDSDistanceEventDataInSCFrameFromArrays(TimeTagEmCDSEventDataInSC
         return self._distance_cm
 
 def _load_dc3_columns(data_path: Union[Path, List[Path]],
-                            extra_columns: Iterable[str] = ()) -> dict:
+                       extra_columns: Iterable[str] = ()) -> dict:
     """
     Read the standard DC3 fits columns needed to build a
     TimeTagEmCDSEventDataInSCFrameFromArrays (plus any extra columns
-    requested) from one or more fits files, and time-sort the result.
+    requested) from one or more fits or hdf5 files, and time-sort the result.
 
     Parameters
     ----------
-    data_path: Single fits file, or list of fits files (concatenated)
+    data_path: Single fits or hdf5 file, or list of files (concatenated)
     extra_columns: Names of any additional fits columns to read, e.g. 'Distance'
 
     Returns
