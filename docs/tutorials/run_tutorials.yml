@@ -108,7 +108,23 @@ tutorials:
           checksum: bf2d0c16eac5954fb56489480c2602ca
         COSI-SMEX/DC4/Data/Responses/nfbackground_v1-01.pt:
           checksum: 52a4fb024930e18430bff80db882d3d5
-    
+
+    spectral_fit_relative_hist_grb:
+      notebook: spectral_fits/continuum_fit/grb/example_grb_fit_relative_hist_response.ipynb
+      wasabi_files:
+        COSI-SMEX/DC3/Data/Sources/GRB_bn090424592_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
+          checksum: 08c1f1202d78df40a4aed3b785d273e0
+        COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.fits:
+          checksum: ca94ff1d7a73c1f41479aaf598807673
+        COSI-SMEX/develop/Data/Responses/ResponseContinuum.area.relative.nonsparse_smoothing1p0.h5.zip:
+          checksum: bd2dfa700d0d382b052ea428a7eeabe1
+          unzip: True
+        COSI-SMEX/develop/Data/Responses/relative_hist_irf_from_nf_response.h5.zip:
+          checksum: d9093daeaf56a386095a42ae40c6635e
+          unzip: True
+        COSI-SMEX/DC4/Data/Responses/unpolarized_nfresponse_v1-01.pt:
+          checksum: bf2d0c16eac5954fb56489480c2602ca
+
     spectral_fit_normalizing_flows_crab:
       notebook: spectral_fits/continuum_fit/crab/example_crab_fit_normalizing_flows.ipynb
       wasabi_files:
@@ -178,6 +194,22 @@ tutorials:
           checksum: 3690422b417e73014de546642799d6e3
         COSI-SMEX/cosipy_tutorials/Data/Responses/PointSourceResponse/psr_gal_511_DC2.h5:
           checksum: 50eb36c2bc0089ba230af457ec768fa0
+
+    spectral_fit_sed_model:
+      notebook: spectral_fits/sed_model/sed_spectral_model_tutorial.ipynb
+      ancillary_files:
+       - spectral_fits/sed_model/galdiff.yaml
+       - spectral_fits/sed_model/Positrons_In_Flight_Annihilation_spec.dat
+      wasbi_files:
+       COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.fits:
+         checksum: ca94ff1d7a73c1f41479aaf598807673
+       COSI-SMEX/DC3/Data/Responses/extended_source_response/extended_source_response_continuum_merged.h5.gz:
+         unzip: True
+         checksum: 92ed7e22b1dafce6b57611d5cdb6cf70
+       COSI-SMEX/cosipy_tutorials/sed_model_spectral_fit/total_BG_binned_data.hdf5:
+         checksum: 4cc422ce4e03e591be6fc8c8c7636c1e
+       COSI-SMEX/cosipy_tutorials/sed_model_spectral_fit/inflight_binned_data.hdf5:
+         checksum: 6e0c84e9d97f2ba5ba8c3667209a20dd
 
     imaging_511:
       notebook:
@@ -353,6 +385,18 @@ tutorials:
 
     gti:
       notebook: event_selection/GTI.ipynb
+
+    pointing_cut:
+      notebook: event_selection/pointing_cut.ipynb
+      ancillary_files:
+        - event_selection/inputs.yaml
+      wasabi_files:
+        COSI-SMEX/DC4/Data/Mock_Dataset/dc4_mock_dataset_3months_unbinned_data_filtered_with_SAAcut_time_ordered.fits.gz:
+          checksum: 762b7ad849b501ddaa31799ec19d14b9
+        COSI-SMEX/DC4/Data/Backgrounds/Total_DC4_BG_3months_unbinned_data_filtered_with_SAAcut_withSAAbck.fits.gz:
+          checksum: 73c8b23e43684da3b35c25499254202b
+        COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.fits:
+          checksum: ca94ff1d7a73c1f41479aaf598807673
 
     lightcurves:
       notebook:

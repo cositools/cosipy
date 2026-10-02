@@ -64,6 +64,7 @@ class PolarizationAxis(Axis):
         new = super()._copy(edges, copy_edges)
 
         # self._convention is not copied. It's safe to share it.
+        new._convention = self._convention
 
         return new
 

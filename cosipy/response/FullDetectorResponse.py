@@ -1027,33 +1027,100 @@ class FullDetectorResponse(HealpixBase):
     def __str__(self):
         return f"{self.__class__.__name__}(filename = '{self.filename.resolve()}')"
 
+    # def __repr__(self):
+
+    #     output = (f"FILENAME: '{self.filename.resolve()}'\n"
+    #               f"AXES:\n")
+
+    #     for naxis, axis in enumerate(self._axes):
+
+    #         if naxis == 0:
+    #             description = "Location of the simulated source in the spacecraft coordinates"
+    #         else:
+    #             description = self._drm['AXIS_DESCRIPTIONS'].attrs[axis.label]
+
+    #         output += (f"  {axis.label}:\n"
+    #                    f"    DESCRIPTION: '{description}'\n")
+
+    #         if isinstance(axis, HealpixAxis):
+    #             output += (f"    TYPE: 'healpix'\n"
+    #                        f"    NPIX: {axis.npix}\n"
+    #                        f"    NSIDE: {axis.nside}\n"
+    #                        f"    SCHEME: '{axis.scheme}'\n")
+    #         else:
+    #             output += (f"    TYPE: '{axis.axis_scale}'\n"
+    #                        f"    UNIT: '{axis.unit}'\n"
+    #                        f"    NBINS: {axis.nbins}\n"
+    #                        f"    EDGES: [{', '.join([str(e) for e in axis.edges])}]\n")
+
+    #     return output
+
+    # MAB /////////////////////////////////////////////////////////////////////////////////
     def __repr__(self):
 
-        output = (f"FILENAME: '{self.filename.resolve()}'\n"
-                  f"AXES:\n")
+        output = (
+            f"FILENAME: '{self.filename.resolve()}'\n"
+            f"AXES:\n"
+        )
 
         for naxis, axis in enumerate(self._axes):
 
             if naxis == 0:
-                description = "Location of the simulated source in the spacecraft coordinates"
+                description = (
+                    "Location of the simulated source "
+                    "in the spacecraft coordinates"
+                )
             else:
-                description = self._drm['AXIS_DESCRIPTIONS'].attrs[axis.label]
+                description = self._drm[
+                    "AXIS_DESCRIPTIONS"
+                ].attrs.get(
+                    axis.label,
+                    "No description available",
+                )
 
-            output += (f"  {axis.label}:\n"
-                       f"    DESCRIPTION: '{description}'\n")
+            output += (
+                f"  {axis.label}:\n"
+                f"    DESCRIPTION: '{description}'\n"
+            )
 
             if isinstance(axis, HealpixAxis):
-                output += (f"    TYPE: 'healpix'\n"
-                           f"    NPIX: {axis.npix}\n"
-                           f"    NSIDE: {axis.nside}\n"
-                           f"    SCHEME: '{axis.scheme}'\n")
+
+                output += (
+                    f"    TYPE: 'healpix'\n"
+                    f"    NPIX: {axis.npix}\n"
+                    f"    NSIDE: {axis.nside}\n"
+                    f"    SCHEME: '{axis.scheme}'\n"
+                )
+
             else:
-                output += (f"    TYPE: '{axis.axis_scale}'\n"
-                           f"    UNIT: '{axis.unit}'\n"
-                           f"    NBINS: {axis.nbins}\n"
-                           f"    EDGES: [{', '.join([str(e) for e in axis.edges])}]\n")
+
+                edges = axis.edges
+
+                # Convert Quantity-like objects to their numerical values,
+                # while preserving non-Quantity objects such as
+                # PolarizationAngle.
+                if hasattr(edges, "value"):
+                    edges_to_print = edges.value
+                else:
+                    edges_to_print = edges
+
+                # Some axis edge objects are not iterable.
+                try:
+                    edges_string = ", ".join(
+                        str(edge) for edge in edges_to_print
+                    )
+                except TypeError:
+                    edges_string = str(edges_to_print)
+
+                output += (
+                    f"    TYPE: '{axis.axis_scale}'\n"
+                    f"    UNIT: '{axis.unit}'\n"
+                    f"    NBINS: {axis.nbins}\n"
+                    f"    EDGES: [{edges_string}]\n"
+                )
 
         return output
+    # MAB /////////////////////////////////////////////////////////////////////////////////
 
     def _repr_pretty_(self, p, cycle):
 

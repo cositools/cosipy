@@ -117,6 +117,10 @@ class PolarizationASAD():
                                        asads['background_scaled'],
                                        self._mu_100['mu'])
 
+        if self._mdp > 1.:
+            logger.warning("The minimum detectable polarization (MDP) exceeds 100%, " 
+                            "so it is not possible to measure the polarization.")
+
         if show_plots:
 
             self.plot_asad(asads['source'],

@@ -334,6 +334,13 @@ class SpacecraftHistory:
 
         t = QTable.read(filename)
 
+        #Convert EVERY column to native byte order ---
+        for colname in t.colnames:
+            col = t[colname]
+            t[colname] = np.astype(col, col.dtype.newbyteorder('='), copy=False)
+        
+            
+        
         # make sure we have version info, and that we support this version
         if "VERSION" not in t.meta:
             raise ValueError("FITS orientation file has no version info")

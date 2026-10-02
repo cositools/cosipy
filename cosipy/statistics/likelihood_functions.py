@@ -78,7 +78,8 @@ class UnbinnedLikelihood(UnbinnedLikelihoodInterface):
             density = asarray(chunk, dtype=np.float64, force_dtype=False)
 
             # We don't have to continue
-            if density.min() <= 0.0:
+            # Note: also catches NaN values
+            if not np.all(density > 0.0):
                 return -np.inf
 
             nobservations += density.size

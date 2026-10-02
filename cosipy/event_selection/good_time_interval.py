@@ -96,6 +96,60 @@ class GoodTimeInterval():
         self._tstart_list = self._tstart_list[sort_idx]
         self._tstop_list = self._tstop_list[sort_idx]
 
+    def contains(self, times, time_format='unix', time_scale='utc'):
+        """
+        Check which times fall inside this GTI.
+
+        Parameters
+        ----------
+        times : astropy.time.Time or array-like
+            Times to test. Numeric inputs are interpreted with
+            ``time_format`` and ``time_scale``.
+        time_format : str, optional
+            Astropy time format for numeric inputs. Default is 'unix'.
+        time_scale : str, optional
+            Astropy time scale for numeric inputs. Default is 'utc'.
+
+        Returns
+        -------
+        numpy.ndarray or numpy.bool_
+            Boolean mask with the same shape as ``times``. Intervals
+            use the half-open convention ``start <= time < stop``.
+        """
+
+        input_is_time = isinstance(times, Time)
+        if input_is_time:
+            time = times
+        else:
+            time = Time(times, format=time_format, scale=time_scale)
+
+        result_shape = np.shape(time)
+        if len(self) == 0:
+            return np.zeros(result_shape, dtype=bool)
+
+        flat_time = Time(np.ravel(time.jd1), np.ravel(time.jd2), format='jd',
+                         scale=time.scale)
+
+        t0 = self._tstart_list[0]
+        relative_time = (flat_time - t0).jd
+        relative_starts = (self._tstart_list - t0).jd
+        relative_stops = (self._tstop_list - t0).jd
+
+        # Support overlapping intervals without requiring GTIs to be
+        # normalized by tracking the latest stop seen at each start.
+        cumulative_stops = np.maximum.accumulate(relative_stops)
+
+        interval_idx = np.searchsorted(relative_starts, relative_time,
+                                       side='right') - 1
+        mask = np.zeros(relative_time.shape, dtype=bool)
+        valid_interval = interval_idx >= 0
+        mask[valid_interval] = (
+            relative_time[valid_interval]
+            < cumulative_stops[interval_idx[valid_interval]]
+        )
+
+        return mask.reshape(result_shape)
+
     def save_as_fits(self, filename, overwrite=False, output_format='unix'):
         """
         Save GTI data to a FITS file.
