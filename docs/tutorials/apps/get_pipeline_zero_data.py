@@ -4,11 +4,10 @@ import subprocess
 from pathlib import Path
 from cosipy.util import fetch_wasabi_file
 from cosipy import BinnedData
-#
 indir=Path.cwd() # Current path by default
 #
 #
-#Get Response from the DC4 folder in wasabi (new version)
+#Get Response from the develop folder in wasabi (new version)
 #
 filename = "ResponseContinuum.o3.e100_10000.b10log.s10396905069491.m2284.filtered.nonsparse.binnedimaging.imagingresponse.h5"
 fetch_wasabi_file('COSI-SMEX/DC4/Data/Responses/' + filename,
@@ -23,14 +22,16 @@ fetch_wasabi_file('COSI-SMEX/DC4/Data/Orientation/'+filename,
                   output=indir/filename,
                   checksum = '1b851c042acf4c909798e2401e9d2e38')
 
+
+
+
 #
 #Get Galactic background
 #
 filename='GalTotal_SA100_F98_3months_unbinned_data_filtered_with_SAAcut.fits.gz'
 fetch_wasabi_file('COSI-SMEX/DC3/Data/Backgrounds/Ge/'+filename,
                   output=indir/filename,
-                  checksum = '824e67875da23a42307ec13ba784147d',
-		  unzip=True)
+                  checksum = '824e67875da23a42307ec13ba784147d', unzip=True)
 
 #
 #Get GRB source data
@@ -39,8 +40,7 @@ fetch_wasabi_file('COSI-SMEX/DC3/Data/Backgrounds/Ge/'+filename,
 filename="GRB_bn081207680_3months_unbinned_data_filtered_with_SAAcut.fits.gz"
 fetch_wasabi_file('COSI-SMEX/DC3/Data/Sources/'+filename,
                   output=indir/filename,
-                  checksum = '9de69d22cc880ce144a298004bb294f2',
-		  unzip=True)
+                  checksum = '9de69d22cc880ce144a298004bb294f2', unzip=True)
 #
 #
 #==================================

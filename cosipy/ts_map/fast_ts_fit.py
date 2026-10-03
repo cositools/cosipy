@@ -342,7 +342,7 @@ class FastTSMap():
     @staticmethod
     def plot_ts(m_ts, skycoord = None, containment = None, scheme="nested",
                 save_plot = False, save_dir = "",
-                save_name = "ts_map.png", dpi = 300):
+                save_name = "ts_map.png", dpi = 300,*, mark_center=True):
         """
         Plot a TS map.
 
@@ -367,7 +367,8 @@ class FastTSMap():
             File name under which tos ave the plot
         dpi : int, optional
             DPI used for plotting / saving
-
+        mark_center : bool, optional
+        If True, marks the center on the map (default is True)
         """
 
         fig, ax = plt.subplots(dpi = dpi)
@@ -394,16 +395,18 @@ class FastTSMap():
                            label = f"True location at l={lon}, b={lat}",
                            color = "fuchsia")
 
-        hp.projscatter(0, 0, marker = "o",
-                       linewidths = 0.5,
-                       lonlat=True,
-                       coord = "G",
-                       color = "red")
+        if mark_center==True:
 
-        hp.projtext(350, 0, "(l=0, b=0)",
-                    lonlat=True,
-                    coord = "G",
-                    color = "red")
+            hp.projscatter(0, 0, marker = "o",
+                           linewidths = 0.5,
+                           lonlat=True,
+                           coord = "G",
+                           color = "red")
+
+            hp.projtext(350, 0, "(l=0, b=0)",
+                        lonlat=True,
+                        coord = "G",
+                        color = "red")
 
         if save_plot:
             fig.savefig(Path(save_dir)/save_name, dpi = dpi)
