@@ -10,7 +10,7 @@ import numpy as np
 from scipy import interpolate
 
 import astropy.units as u
-from astropy.coordinates import SkyCoord, cartesian_to_spherical, Galactic, GCRS,CartesianRepresentation
+from astropy.coordinates import SkyCoord, cartesian_to_spherical
 from astropy.table import Table
 from astropy.io import fits
 
