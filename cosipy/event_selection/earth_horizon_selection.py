@@ -53,9 +53,9 @@ class EHSelector(EventSelectorInterface):
     
     def _select(self, events:TimeTagEmCDSEventInSCAndGalFrameInterface, early_stop:bool = True) -> Iterable[bool]:
         
-        def process_chunk(jd1: np.ndarray, phi: np.ndarray, psi_gal: np.ndarray, chi_gal: np.ndarray):
+        def process_chunk(jd1: np.ndarray, jd2: np.ndarray, phi: np.ndarray, psi_gal: np.ndarray, chi_gal: np.ndarray):
 
-            costheta, theta_max = self.Angle_PsiChi_Ez(jd1, psi_gal, chi_gal)
+            costheta, theta_max = self.Angle_PsiChi_Ez(jd1, jd2, psi_gal, chi_gal)
             fsky = self.calculate_sky_fraction(costheta, phi, theta_max)
 
             result = ( fsky >= self._cutvalue)
@@ -80,39 +80,42 @@ class EHSelector(EventSelectorInterface):
             for chunk in itertools_batched(events, self._batch_size):
 
                 jd1 = []
+                jd2 = []
                 phi = []
                 psi_gal = []
                 chi_gal = []
                 
                 for event in chunk:
-                    jd1.append(events.jd1)
-                    phi.append(events.scattering_angle_rad)
-                    psi_gal.append(events.scattered_lon_deg_gal)
-                    chi_gal.append(events.scattered_lat_deg_gal)
+                    jd1.append(event.jd1)
+                    jd2.append(event.jd2)
+                    phi.append(event.scattering_angle_rad)
+                    psi_gal.append(event.scattered_lon_deg_gal)
+                    chi_gal.append(event.scattered_lat_deg_gal)
 
                 # Cache in memory
                 jd1 = asarray(jd1, dtype=np.float64, force_dtype=False)
+                jd2 = asarray(jd2, dtype=np.float64, force_dtype=False)
                 phi = asarray(phi, dtype=np.float64, force_dtype=False)
                 psi_gal = asarray(psi_gal, dtype=np.float64, force_dtype=False)
                 chi_gal = asarray(chi_gal, dtype=np.float64, force_dtype=False)
 
 
-                result, stop = process_chunk(jd1, phi, psi_gal, chi_gal)
+                result, stop = process_chunk(jd1, jd2, phi, psi_gal, chi_gal)
 
                 yield from result
 
                 if stop:
                     return
 
-        if (self._batch_size is None) or (isinstance(events.jd1, np.ndarray) and isinstance(events.scattering_angle_rad, np.ndarray)
+        if (self._batch_size is None) or (isinstance(events.jd1, np.ndarray) and isinstance(events.jd2, np.ndarray) and isinstance(events.scattering_angle_rad, np.ndarray)
                 and isinstance(events.scattered_lon_deg_gal, np.ndarray) and isinstance(events.scattered_lat_deg_gal, np.ndarray) ):
-            results, _ = process_chunk(events.jd1, events.scattering_angle_rad, events.scattered_lon_deg_gal, events.scattered_lat_deg_gal)
+            results, _ = process_chunk(events.jd1, events.jd2, events.scattering_angle_rad, events.scattered_lon_deg_gal, events.scattered_lat_deg_gal)
             return results
         else:
             return process_in_chunks(events)
 
        
-    def Angle_PsiChi_Ez(self, jd1, psi_gal, chi_gal):
+    def Angle_PsiChi_Ez(self, jd1, jd2, psi_gal, chi_gal):
         """
         Calculates the angle between PsiChi and the Earth zenith for each event.
     
@@ -120,6 +123,8 @@ class EHSelector(EventSelectorInterface):
         -----------
         jd1 : array-like
             obstime of the events
+        jd2 : array-like
+            obstime of the events    
         psi_gal : array-like
             scattered direction of the events in galactic frame (lon)
         chi_gal : array-like
@@ -142,7 +147,7 @@ class EHSelector(EventSelectorInterface):
     
         # Ensure the events time is sorted and convert it to a NumPy array
         ori_times = Time(self._ori.obstime.value, format='unix').jd #convert unix time into jd
-        event_times = jd1
+        event_times = jd1 + jd2
         
         # Find the closest index ahead of each event time
         idx = np.searchsorted(ori_times, event_times, side='left')
@@ -265,13 +270,19 @@ class EHSelector(EventSelectorInterface):
         # Calculate the angle and the resulting sky fraction
         alpha_cut = np.arccos(cos_alpha_cut)
         f_sky = alpha_cut / np.pi
-    
+
+        # Calculate cos(theta_psichi + theta_phi)
+        cos_sum = costheta_psichi * np.cos(theta_phi) - safe_sin_term * np.sin(theta_phi)
+
+        # Remember: <= on angles becomes >= on cosines
+        condition = cos_sum >= costheta_max
+
         # Clean up the perfectly on-axis edge cases manually if needed
         # (If centered on zenith and within horizon, f_sky should be 1.0)
         if np.isscalar(costheta_psichi):
             if sin_term == 0:
-                f_sky = 1.0 if (costheta_psichi + np.cos(theta_phi)) <= costheta_max else 0.0
+                f_sky = 1.0 if condition else 0.0
         else:
-            f_sky = np.where(sin_term == 0, np.where((costheta_psichi + np.cos(theta_phi)) <= costheta_max, 1.0, 0.0), f_sky)
+            f_sky = np.where(sin_term == 0, np.where(condition, 1.0, 0.0), f_sky)
         
         return f_sky
