@@ -273,21 +273,21 @@ class ComptonDataSpaceInGalFrameEventDataInterface(EventDataWithScatteringAngleI
     def __iter__(self) -> Iterator[ComptonDataSpaceInGalFrameEventInterface]:...
 
     @property
-    def scattered_lon_deg_gal(self) -> Iterable[float]:
-        return [e.scattered_lon_deg_gal for e in self]
+    def scattered_lon_rad_gal(self) -> Iterable[float]:
+        return [e.scattered_lon_rad_gal for e in self]
 
     @property
-    def scattered_lat_deg_gal(self) -> Iterable[float]:
-        return [e.scattered_lat_deg_gal for e in self]
+    def scattered_lat_rad_gal(self) -> Iterable[float]:
+        return [e.scattered_lat_rad_gal for e in self]
 
     @property
     def scattered_direction_gal(self) -> SkyCoord:
         """
         Add fancy energy quantity
         """
-        return SkyCoord(self.scattered_lon_deg_gal,
-                        self.scattered_lat_deg_gal,
-                        unit = u.deg,
+        return SkyCoord(self.scattered_lon_rad_gal,
+                        self.scattered_lat_rad_gal,
+                        unit = u.rad,
                         frame = "Galactic")
 
     
