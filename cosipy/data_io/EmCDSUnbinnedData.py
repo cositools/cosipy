@@ -3,7 +3,7 @@ from typing import Iterable, Iterator, Optional, Union, List
 
 import numpy as np
 
-from astropy.coordinates import Angle, SkyCoord, UnitSphericalRepresentation
+from astropy.coordinates import Angle, SkyCoord, UnitSphericalRepresentation, Galactic
 from astropy.time import Time
 from astropy.units import Quantity
 import astropy.units as u
@@ -568,8 +568,8 @@ class EmCDSEventInSCAndGalFrame(EmCDSEventInSCAndGalFrameInterface):
         scatt_angle: scattering angle radians
         scatt_lon_sc: scattering longitude radians (SC frame)
         scatt_lat_sc: scattering latitude radians (SC frame)
-        scatt_lon_gal: scattering longitude deg (Gal frame)
-        scatt_lat_gal: scattering latitude deg (Gal frame)
+        scatt_lon_gal: scattering longitude radians (Gal frame)
+        scatt_lat_gal: scattering latitude radians (Gal frame)
         """
         self._id = event_id
         self._energy = energy
@@ -604,11 +604,11 @@ class EmCDSEventInSCAndGalFrame(EmCDSEventInSCAndGalFrameInterface):
         return self._scatt_lat_sc
 
     @property
-    def scattered_lon_deg_gal(self) -> float:
+    def scattered_lon_rad_gal(self) -> float:
         return self._scatt_lon_gal
 
     @property
-    def scattered_lat_deg_gal(self) -> float:
+    def scattered_lat_rad_gal(self) -> float:
         return self._scatt_lat_gal
 
 class TimeTagEmCDSEventInSCAndGalFrame(EmCDSEventInSCAndGalFrame, TimeTagEmCDSEventInSCAndGalFrameInterface):
@@ -623,8 +623,8 @@ class TimeTagEmCDSEventInSCAndGalFrame(EmCDSEventInSCAndGalFrame, TimeTagEmCDSEv
         scatt_angle: scattering angle radians
         scatt_lon_sc: scattering longitude radians (SC frame)
         scatt_lat_sc: scattering latitude radians (SC frame)
-        scatt_lon_gal: scattering longitude deg (Gal frame)
-        scatt_lat_gal: scattering latitude deg (Gal frame)
+        scatt_lon_gal: scattering longitude radians (Gal frame)
+        scatt_lat_gal: scattering latitude radians (Gal frame)
         """
         super().__init__(energy, scatt_angle, scatt_lon_sc, scatt_lat_sc, scatt_lon_gal, scatt_lat_gal, event_id)
 
@@ -648,8 +648,8 @@ class EmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFrameInter
                    energy_keV: np.ndarray[float],
                    scattered_lon_rad_sc:  np.ndarray[float],
                    scattered_lat_rad_sc: np.ndarray[float],
-                   scattered_lon_deg_gal:  np.ndarray[float],
-                   scattered_lat_deg_gal: np.ndarray[float],
+                   scattered_lon_rad_gal:  np.ndarray[float],
+                   scattered_lat_rad_gal: np.ndarray[float],
                    scatt_angle_rad: np.ndarray[float],
                    event_id: Optional[np.ndarray[int]] = None,
                    selection: Optional[EventSelectorInterface] = None):
@@ -661,15 +661,15 @@ class EmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFrameInter
         energy_keV: energy [keV]
         scattered_lon_rad_sc: Longitude of the direction of the scattered photon in spacecraft coordinates [radian]
         scattered_lat_rad_sc:  Latitude of the direction of the scattered photon in spacecraft coordinates [radian]
-        scattered_lon_deg_gal: Longitude of the direction of the scattered photon in galactic coordinates [deg]
-        scattered_lat_deg_gal:  Latitude of the direction of the scattered photon in galactic coordinates [deg]
+        scattered_lon_rad_gal: Longitude of the direction of the scattered photon in galactic coordinates [radians]
+        scattered_lat_rad_gal:  Latitude of the direction of the scattered photon in galactic coordinates [radians]
         scatt_angle_rad: Compton scattering angle [radians]
         event_id: Event ID. Optional. Sequential is not provided
         selection: Optional. Apply an event selection.
         """
 
         # Check size
-        self._energy, self._scatt_angle, self._scatt_lon_sc, self._scatt_lat_sc, self._scatt_lon_gal, self._scatt_lat_gal = np.broadcast_arrays(energy_keV, scatt_angle_rad, scattered_lon_rad_sc, scattered_lat_rad_sc, scattered_lon_deg_gal, scattered_lat_deg_gal)
+        self._energy, self._scatt_angle, self._scatt_lon_sc, self._scatt_lat_sc, self._scatt_lon_gal, self._scatt_lat_gal = np.broadcast_arrays(energy_keV, scatt_angle_rad, scattered_lon_rad_sc, scattered_lat_rad_sc, scattered_lon_rad_gal, scattered_lat_rad_gal)
 
         if event_id is None:
             self._id = np.arange(self._energy.size)
@@ -722,7 +722,7 @@ class EmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFrameInter
         if not isinstance(scattered_direction_sc.frame, SpacecraftFrame):
             raise ValueError("Local PsiChi Coordinates need to be in SC frame")
         
-        if not isinstance(scattered_direction_gal.frame, "Galactic"):
+        if not isinstance(scattered_direction_gal.frame, Galactic):
             raise ValueError("Galactic PsiChi Coordinates need to be in Galactic frame")
 
         
@@ -731,8 +731,8 @@ class EmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFrameInter
 
         scatt_lat_sc = scattered_direction_sc.lat.rad
         scatt_lon_sc = scattered_direction_sc.lon.rad
-        scatt_lat_gal = scattered_direction_gal.lat.deg
-        scatt_lon_gal = scattered_direction_gal.lon.deg
+        scatt_lat_gal = scattered_direction_gal.lat.rad
+        scatt_lon_gal = scattered_direction_gal.lon.rad
 
         if event_id is not None:
             event_id = np.asarray(event_id)
@@ -777,11 +777,11 @@ class EmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFrameInter
         return self._scatt_lat_sc
 
     @property
-    def scattered_lon_deg_gal(self) -> Iterable[float]:
+    def scattered_lon_rad_gal(self) -> Iterable[float]:
         return self._scatt_lon_gal
 
     @property
-    def scattered_lat_deg_gal(self) -> Iterable[float]:
+    def scattered_lat_rad_gal(self) -> Iterable[float]:
         return self._scatt_lat_gal
 
 class TimeTagEmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFrameFromArrays, TimeTagEmCDSEventDataInSCAndGalFrameInterface):
@@ -794,8 +794,8 @@ class TimeTagEmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFra
                    energy_keV: np.ndarray[float],
                    scattered_lon_rad_sc:  np.ndarray[float],
                    scattered_lat_rad_sc: np.ndarray[float],
-                   scattered_lon_deg_gal:  np.ndarray[float],
-                   scattered_lat_deg_gal: np.ndarray[float],
+                   scattered_lon_rad_gal:  np.ndarray[float],
+                   scattered_lat_rad_gal: np.ndarray[float],
                    scatt_angle_rad: np.ndarray[float],
                    event_id: Optional[np.ndarray[int]] = None,
                    selection: Optional[EventSelectorInterface] = None):
@@ -809,8 +809,8 @@ class TimeTagEmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFra
         energy_keV: energy [keV]
         scattered_lon_rad_sc: Longitude of the direction of the scattered photon in spacecraft coordinates [radian]
         scattered_lat_rad_sc:  Latitude of the direction of the scattered photon in spacecraft coordinates [radian]
-        scattered_lon_deg_gal: Longitude of the direction of the scattered photon in galactic coordinates [deg]
-        scattered_lat_deg_gal:  Latitude of the direction of the scattered photon in galactic coordinates [deg]
+        scattered_lon_rad_gal: Longitude of the direction of the scattered photon in galactic coordinates [radians]
+        scattered_lat_rad_gal:  Latitude of the direction of the scattered photon in galactic coordinates [radians]
         scatt_angle_rad: Compton scattering angle [radians]
         event_id: Event ID. Optional. Sequential is not provided
         selection: Optional. Apply an event selection.
@@ -818,7 +818,7 @@ class TimeTagEmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFra
 
         # Check size
         self._jd1, self._jd2, energy, scatt_angle, scatt_lon_sc, scatt_lat_sc, scatt_lon_gal, scatt_lat_gal = np.broadcast_arrays(
-            jd1, jd2, energy_keV, scatt_angle_rad, scattered_lon_rad_sc, scattered_lat_rad_sc, scattered_lon_deg_gal, scattered_lat_deg_gal)
+            jd1, jd2, energy_keV, scatt_angle_rad, scattered_lon_rad_sc, scattered_lat_rad_sc, scattered_lon_rad_gal, scattered_lat_rad_gal)
 
         super().__init__(energy, scatt_lon_sc, scatt_lat_sc, scatt_lon_gal, scatt_lat_gal, scatt_angle, event_id)
 
@@ -872,7 +872,7 @@ class TimeTagEmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFra
         if not isinstance(scattered_direction_sc.frame, SpacecraftFrame):
             raise ValueError("Local PsiChi Coordinates need to be in SC frame")
         
-        if not isinstance(scattered_direction_gal.frame, "Galactic"):
+        if not isinstance(scattered_direction_gal.frame, Galactic):
             raise ValueError("Galactic PsiChi Coordinates need to be in Galactic frame")
 
         scattered_direction_sc = scattered_direction_sc.represent_as(UnitSphericalRepresentation)
@@ -880,8 +880,8 @@ class TimeTagEmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFra
 
         scatt_lat_sc = scattered_direction_sc.lat.rad
         scatt_lon_sc = scattered_direction_sc.lon.rad
-        scatt_lat_gal = scattered_direction_gal.lat.deg
-        scatt_lon_gal = scattered_direction_gal.lon.deg
+        scatt_lat_gal = scattered_direction_gal.lat.rad
+        scatt_lon_gal = scattered_direction_gal.lon.rad
 
         if event_id is not None:
             event_id = np.asarray(event_id)
@@ -921,4 +921,4 @@ class TimeTagEmCDSEventDataInSCAndGalFrameFromDC3Fits(TimeTagEmCDSEventDataInSCA
         chi_gal = data['Chi galactic']
 
         # Psi is colatitude (latitude complementary angle)
-        super().__init__(time.jd1, time.jd2, energy, chi_local, np.pi / 2 - psi_local, psi_gal, chi_gal, phi, selection = selection)
+        super().__init__(time.jd1, time.jd2, energy, chi_local, np.pi / 2 - psi_local, np.deg2rad(chi_gal), np.deg2rad(psi_gal), phi, selection = selection)
