@@ -737,7 +737,7 @@ class EmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFrameInter
         if event_id is not None:
             event_id = np.asarray(event_id)
 
-        return cls(energy, scatt_lon_rad, scatt_lat_rad, scatt_lon_gal, scatt_lat_gal, scatt_angle, event_id, selection)
+        return cls(energy, scatt_lon_sc, scatt_lat_sc, scatt_lon_gal, scatt_lat_gal, scatt_angle, event_id, selection)
 
 
     def __getitem__(self, i: int) -> EmCDSEventInSCAndGalFrameInterface:
