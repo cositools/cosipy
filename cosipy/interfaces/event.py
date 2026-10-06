@@ -117,22 +117,22 @@ class ComptonDataSpaceInSCFrameEventInterface(EventWithScatteringAngleInterface,
 @runtime_checkable
 class ComptonDataSpaceInGalFrameEventInterface(EventWithScatteringAngleInterface, Protocol):
 
-    data_space_units = EventWithScatteringAngleInterface.data_space_units * u.deg
+    data_space_units = EventWithScatteringAngleInterface.data_space_units * u.sr
 
     @property
-    def scattered_lon_deg_gal(self) -> float: ...
+    def scattered_lon_rad_gal(self) -> float: ...
 
     @property
-    def scattered_lat_deg_gal(self) -> float: ...
+    def scattered_lat_rad_gal(self) -> float: ...
 
     @property
     def scattered_direction_gal(self) -> SkyCoord:
         """
         Add fancy energy quantity
         """
-        return SkyCoord(self.scattered_lon_deg_gal,
-                        self.scattered_lat_deg_gal,
-                        unit=u.deg,
+        return SkyCoord(self.scattered_lon_rad_gal,
+                        self.scattered_lat_rad_gal,
+                        unit=u.rad,
                         frame="Galactic")
 
 @runtime_checkable
