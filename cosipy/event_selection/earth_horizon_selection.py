@@ -89,8 +89,8 @@ class EHSelector(EventSelectorInterface):
                     jd1.append(event.jd1)
                     jd2.append(event.jd2)
                     phi.append(event.scattering_angle_rad)
-                    psi_gal.append(event.scattered_lon_deg_gal)
-                    chi_gal.append(event.scattered_lat_deg_gal)
+                    psi_gal.append(event.scattered_lon_rad_gal)
+                    chi_gal.append(event.scattered_lat_rad_gal)
 
                 # Cache in memory
                 jd1 = asarray(jd1, dtype=np.float64, force_dtype=False)
@@ -108,8 +108,8 @@ class EHSelector(EventSelectorInterface):
                     return
 
         if (self._batch_size is None) or (isinstance(events.jd1, np.ndarray) and isinstance(events.jd2, np.ndarray) and isinstance(events.scattering_angle_rad, np.ndarray)
-                and isinstance(events.scattered_lon_deg_gal, np.ndarray) and isinstance(events.scattered_lat_deg_gal, np.ndarray) ):
-            results, _ = process_chunk(events.jd1, events.jd2, events.scattering_angle_rad, events.scattered_lon_deg_gal, events.scattered_lat_deg_gal)
+                and isinstance(events.scattered_lon_rad_gal, np.ndarray) and isinstance(events.scattered_lat_rad_gal, np.ndarray) ):
+            results, _ = process_chunk(events.jd1, events.jd2, events.scattering_angle_rad, events.scattered_lon_rad_gal, events.scattered_lat_rad_gal)
             return results
         else:
             return process_in_chunks(events)
@@ -166,9 +166,9 @@ class EHSelector(EventSelectorInterface):
         max_ang = self._ori._min_angle_cos[nearest_idx] 
 
         # Standard spherical to cartesian unit vectors (Galactic Frame)
-        x_gal = np.cos(np.radians(psi_gal)) * np.cos(np.radians(chi_gal))
-        y_gal = np.cos(np.radians(psi_gal)) * np.sin(np.radians(chi_gal))
-        z_gal = np.sin(np.radians(psi_gal))
+        x_gal = np.cos(psi_gal) * np.cos(chi_gal)
+        y_gal = np.cos(psi_gal) * np.sin(chi_gal)
+        z_gal = np.sin(psi_gal)
         source_vector_gal = np.vstack([x_gal, y_gal, z_gal]).T 
        
         # Compute the 3x3 rotation matrix from Galactic to GCRS (ICRS/Equatorial aligned)
