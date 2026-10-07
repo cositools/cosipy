@@ -28,8 +28,6 @@ from cosipy.util.iterables import asarray
 
 class EmCDSEventInSCFrame(EmCDSEventInSCFrameInterface):
 
-    _frame = SpacecraftFrame()
-
     def __init__(self, energy, scatt_angle, scatt_lon, scatt_lat, event_id = None):
         """
         Parameters
@@ -50,10 +48,6 @@ class EmCDSEventInSCFrame(EmCDSEventInSCFrameInterface):
     @property
     def id(self) -> int:
         return self._id
-
-    @property
-    def frame(self):
-        return self._frame
 
     @property
     def energy_keV(self) -> float:
@@ -242,10 +236,6 @@ class EmCDSEventDataInSCFrameFromArrays(EmCDSEventDataInSCFrameInterface):
     def __iter__(self) -> Iterator[EmCDSEventInSCFrameInterface]:
         for id, energy, scatt_angle, scatt_lat, scatt_lon in zip(self._id, self._energy, self._scatt_angle, self._scatt_lat, self._scatt_lon):
             yield EmCDSEventInSCFrame(energy, scatt_angle, scatt_lon, scatt_lat, id)
-
-    @property
-    def frame(self) -> SpacecraftFrame:
-        return self._frame
 
     @property
     def ids(self) -> Iterable[int]:
