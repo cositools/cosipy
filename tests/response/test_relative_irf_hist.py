@@ -511,3 +511,55 @@ class TestEnergySelections:
 
         np.testing.assert_array_equal(np.asarray(model._tot_aeff.axes['Ei'].edges), orig_edges)
         np.testing.assert_allclose(model._tot_aeff.contents, 1.)
+
+
+class TestUnphysicalBins:
+    """Bins in the unphysical region of the CDS reparametrization (Phi + Theta
+    outside [0, pi]) have zero phase space. Non-zero contents there (e.g. from
+    smoothing) must not end up as huge/infinite differential effective area,
+    which overflows to inf/NaN during interpolation."""
+
+    def test_nonzero_contents_in_zero_phase_space_bins_are_zeroed(self):
+        model = IRFRelativeHistUnpolarized(_make_irf_hist())
+
+        diff_aeff = model._diff_aeff.contents
+
+        assert np.all(np.isfinite(diff_aeff))
+        # Random contents in [0, 1) divided by finite phase spaces stay moderate
+        assert diff_aeff.max() < 1e6
+
+    def test_differential_effective_area_is_finite(self):
+        model = IRFRelativeHistUnpolarized(_make_irf_hist())
+
+        photons, events = _make_photons_and_events(500)
+
+        assert np.all(np.isfinite(model._differential_effective_area_cm2(photons, events)))
+
+
+class TestZeroEffectiveArea:
+    """Where the total effective area is zero the event probability
+    (diff. area / area) must be zero, not NaN/inf, otherwise a few NaNs in
+    the per-event density break the likelihood fit."""
+
+    def test_event_probability_is_zero_where_effective_area_is_zero(self):
+        aeff = _make_aeff_hist()
+        aeff = Histogram(aeff.axes, contents=np.zeros(aeff.axes.nbins), unit=u.cm * u.cm)
+        model = IRFRelativeHistUnpolarized(_make_irf_hist(), aeff=aeff)
+
+        photons, events = _make_photons_and_events(200)
+
+        prob = np.asarray(model._event_probability(photons, events), dtype=float)
+
+        assert np.all(np.isfinite(prob))
+        assert np.all(prob == 0)
+
+    def test_event_probability_matches_ratio_where_effective_area_is_positive(self):
+        model = IRFRelativeHistUnpolarized(_make_irf_hist())
+
+        photons, events = _make_photons_and_events(200)
+
+        prob = np.asarray(model._event_probability(photons, events), dtype=float)
+        expected = (np.asarray(model._differential_effective_area_cm2(photons, events))
+                    / np.asarray(model._effective_area_cm2(photons)))
+
+        assert np.allclose(prob, expected)

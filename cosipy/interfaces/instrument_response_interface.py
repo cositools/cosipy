@@ -289,7 +289,14 @@ class FarFieldInstrumentResponseFunctionInterface(InstrumentResponseFunctionInte
             cls._event_probability is FarFieldInstrumentResponseFunctionInterface._event_probability):
             raise NotImplementedError("Implement _differential_effective_area_cm2 and/or _event_probability")
 
-        return map(operator.truediv, self._differential_effective_area_cm2(photons, events), self._effective_area_cm2(photons))
+        # Where the effective area is zero the event is impossible: return
+        # zero probability instead of 0/0 = NaN or x/0 = inf. Kept lazy;
+        # subclasses with array data can override with a vectorized version.
+        return map(self._safe_divide, self._differential_effective_area_cm2(photons, events), self._effective_area_cm2(photons))
+
+    @staticmethod
+    def _safe_divide(numerator: float, denominator: float) -> float:
+        return numerator / denominator if denominator > 0 else 0.0
 
     def effective_area(self, photons: Union[PhotonWithDirectionInSCFrameInterface, PhotonListWithDirectionInSCFrameInterface]) -> Union[Quantity,Iterable[Quantity]]:
         """
