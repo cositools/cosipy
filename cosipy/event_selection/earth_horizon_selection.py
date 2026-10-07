@@ -89,8 +89,8 @@ class EHSelector(EventSelectorInterface):
                     jd1.append(event.jd1)
                     jd2.append(event.jd2)
                     phi.append(event.scattering_angle_rad)
-                    psi_gal.append(event.scattered_lon_rad_gal)
-                    chi_gal.append(event.scattered_lat_rad_gal)
+                    psi_gal.append(event.scattered_lat_rad_gal)
+                    chi_gal.append(event.scattered_lon_rad_gal)
 
                 # Cache in memory
                 jd1 = asarray(jd1, dtype=np.float64, force_dtype=False)
@@ -109,7 +109,7 @@ class EHSelector(EventSelectorInterface):
 
         if (self._batch_size is None) or (isinstance(events.jd1, np.ndarray) and isinstance(events.jd2, np.ndarray) and isinstance(events.scattering_angle_rad, np.ndarray)
                 and isinstance(events.scattered_lon_rad_gal, np.ndarray) and isinstance(events.scattered_lat_rad_gal, np.ndarray) ):
-            results, _ = process_chunk(events.jd1, events.jd2, events.scattering_angle_rad, events.scattered_lon_rad_gal, events.scattered_lat_rad_gal)
+            results, _ = process_chunk(events.jd1, events.jd2, events.scattering_angle_rad, events.scattered_lat_rad_gal, events.scattered_lon_rad_gal)
             return results
         else:
             return process_in_chunks(events)
