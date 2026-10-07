@@ -131,7 +131,7 @@ class BinnedData(UnBinnedData):
         # Fill histogram:
         if event_range is None:
             low = 0
-            high = -1
+            high = None
         else:
             low = int(event_range[0])
             high = int(event_range[1])
