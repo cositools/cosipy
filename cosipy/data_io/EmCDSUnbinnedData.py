@@ -584,10 +584,6 @@ class EmCDSEventInSCAndGalFrame(EmCDSEventInSCAndGalFrameInterface):
         return self._id
 
     @property
-    def frame(self):
-        return self._frame
-
-    @property
     def energy_keV(self) -> float:
         return self._energy
 
