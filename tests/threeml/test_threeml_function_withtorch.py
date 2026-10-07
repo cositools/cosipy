@@ -193,8 +193,6 @@ def test_evaluate_matches_analytic_formula():
     result = f.evaluate(x, K=2.0, piv=1.0, index=-2.0, xc=10.0)
     expected = analytic_cutoff_powerlaw(x, K=2.0, piv=1.0, index=-2.0, xc=10.0)
  
-    # NOTE: evaluate() currently returns shape (N, 1) due to `.view(-1, 1)`
-    assert result.shape == (len(x), 1)
     np.testing.assert_allclose(result.ravel(), expected, rtol=1e-6)
  
  
@@ -397,8 +395,6 @@ def test_evaluate_matches_analytic_formula():
     result = f.evaluate(x, K=2.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
     expected = analytic_cutoff_powerlaw(x, K=2.0, piv=1.0, index=-2.0, xc=10.0, gamma=2.0)
  
-    # NOTE: evaluate() currently returns shape (N, 1) due to `.view(-1, 1)`
-    assert result.shape == (len(x), 1)
     np.testing.assert_allclose(result.ravel(), expected, rtol=1e-6)
  
  
