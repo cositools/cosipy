@@ -126,9 +126,9 @@ class EHSelector(EventSelectorInterface):
         jd2 : array-like
             obstime of the events    
         psi_gal : array-like
-            scattered direction of the events in galactic frame (lon)
-        chi_gal : array-like
             scattered direction of the events in galactic frame (lat)
+        chi_gal : array-like
+            scattered direction of the events in galactic frame (lon)
         Returns:
         --------
         costheta : array-like
