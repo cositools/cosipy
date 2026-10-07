@@ -80,7 +80,6 @@ class FastPowerlawPyTorch(Function1D, metaclass=FunctionMeta):
             unit_ = 1.0
 
         x_t = torch.as_tensor(x_, dtype=torch.float64, device=self.devices.value)
-        x_t = x_t.view(-1, 1)
         K_, piv_, index_ = [torch.as_tensor(t, dtype=torch.float64, device=self.devices.value) for t in (K_, piv_, index_)]
         res = torch.div(x_t, piv_)
         res.pow_(index_)
@@ -237,7 +236,6 @@ class FastCutoffPowerlawPyTorch(Function1D, metaclass=FunctionMeta):
             K_, piv_, x_, index_, xc_ = K, piv, x, index, xc
 
         x_t = torch.as_tensor(x_, dtype=torch.float64, device=self.devices.value)
-        x_t = x_t.view(-1, 1)
         K_, piv_, index_, xc_ = [torch.as_tensor(t, dtype=torch.float64, device=self.devices.value) for t in (K_, piv_, index_, xc_)]
         res = torch.div(x_t, piv_)
         res.pow_(index_)
@@ -333,7 +331,6 @@ class FastSuperCutoffPowerlawPyTorch(Function1D, metaclass=FunctionMeta):
             K_, piv_, x_, index_, xc_, gamma_ = K, piv, x, index, xc, gamma
 
         x_t = torch.as_tensor(x_, dtype=torch.float64, device=self.devices.value)
-        x_t = x_t.view(-1, 1)
         K_, piv_, index_, xc_, gamma_ = [torch.as_tensor(t, dtype=torch.float64, device=self.devices.value) for t in (K_, piv_, index_, xc_, gamma_)]
         
         res = torch.exp( index_ * torch.log(x_t / piv_) - torch.pow(x_t / xc_, gamma_) )
