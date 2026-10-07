@@ -637,7 +637,6 @@ class TimeTagEmCDSEventInSCAndGalFrame(EmCDSEventInSCAndGalFrame, TimeTagEmCDSEv
 
 class EmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFrameInterface):
 
-    _frame = "SpacecraftAndGalacticFrame"
     event_type = EmCDSEventInSCAndGalFrameInterface
 
     def __init__(self,
@@ -747,10 +746,6 @@ class EmCDSEventDataInSCAndGalFrameFromArrays(EmCDSEventDataInSCAndGalFrameInter
     def __iter__(self) -> Iterator[EmCDSEventInSCAndGalFrameInterface]:
         for id, energy, scatt_angle, scatt_lat_sc, scatt_lon_sc, scatt_lat_gal, scatt_lon_gal in zip(self._id, self._energy, self._scatt_angle, self._scatt_lat_sc, self._scatt_lon_sc, self._scatt_lat_gal, self._scatt_lon_gal):
             yield EmCDSEventInSCAndGalFrame(energy, scatt_angle, scatt_lon_sc, scatt_lat_sc, scatt_lon_gal, scatt_lat_gal, id)
-
-    @property
-    def frame(self) -> str:
-        return self._frame
 
     @property
     def ids(self) -> Iterable[int]:
