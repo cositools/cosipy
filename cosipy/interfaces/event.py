@@ -1,8 +1,11 @@
-from typing import Union, Protocol, ClassVar
-from typing_extensions import runtime_checkable
+from abc import ABC, abstractmethod
+from symtable import Class
+from typing import Sequence, Union, Protocol, ClassVar
 
-from astropy.coordinates import Angle, SkyCoord
+import numpy as np
+from astropy.coordinates import Angle, SkyCoord, BaseCoordinateFrame
 from scoords import SpacecraftFrame
+from typing_extensions import runtime_checkable
 
 from astropy.time import Time
 from astropy.units import Quantity, Unit
@@ -12,6 +15,13 @@ __all__ = [
     "EventInterface",
     "TimeTagEventInterface",
     "EventWithEnergyInterface",
+    "EventWithScatteringAngleInterface",
+    "ComptonDataSpaceInSCFrameEventInterface",
+    "ComptonDataSpaceInGalFrameEventInterface",
+    "EmCDSEventInSCFrameInterface",
+    "TimeTagEmCDSEventInSCFrameInterface",
+    "EmCDSEventInSCAndGalFrameInterface",
+    "TimeTagEmCDSEventInSCAndGalFrameInterface",
     "TimeTagEmCDSDistanceEventInSCFrameInterface",
 ]
 
@@ -22,7 +32,7 @@ class EventInterface(Protocol):
     """
 
     # This makes sure that all PDFs have the same units
-    data_space_units = ClassVar[Union[Unit, None]]
+    data_space_units = ClassVar[Union[u.Unit, None]]
 
     @property
     def id(self) -> int:
@@ -103,6 +113,28 @@ class ComptonDataSpaceInSCFrameEventInterface(EventWithScatteringAngleInterface,
                         unit=u.rad,
                         frame=SpacecraftFrame())
 
+
+@runtime_checkable
+class ComptonDataSpaceInGalFrameEventInterface(EventWithScatteringAngleInterface, Protocol):
+
+    data_space_units = EventWithScatteringAngleInterface.data_space_units * u.sr
+
+    @property
+    def scattered_lon_rad_gal(self) -> float: ...
+
+    @property
+    def scattered_lat_rad_gal(self) -> float: ...
+
+    @property
+    def scattered_direction_gal(self) -> SkyCoord:
+        """
+        Add fancy energy quantity
+        """
+        return SkyCoord(self.scattered_lon_rad_gal,
+                        self.scattered_lat_rad_gal,
+                        unit=u.rad,
+                        frame="Galactic")
+
 @runtime_checkable
 class EmCDSEventInSCFrameInterface(EventWithEnergyInterface,
                                    ComptonDataSpaceInSCFrameEventInterface,
@@ -114,6 +146,20 @@ class TimeTagEmCDSEventInSCFrameInterface(TimeTagEventInterface,
                                           EmCDSEventInSCFrameInterface,
                                           Protocol):
     data_space_units = EmCDSEventInSCFrameInterface.data_space_units * TimeTagEventInterface.data_space_units
+
+@runtime_checkable
+class EmCDSEventInSCAndGalFrameInterface(EventWithEnergyInterface,
+                                   ComptonDataSpaceInSCFrameEventInterface,
+                                   ComptonDataSpaceInGalFrameEventInterface,      
+                                   Protocol):
+    data_space_units = ComptonDataSpaceInSCFrameEventInterface.data_space_units * EventWithEnergyInterface.data_space_units * \
+                       ComptonDataSpaceInGalFrameEventInterface.data_space_units
+
+@runtime_checkable
+class TimeTagEmCDSEventInSCAndGalFrameInterface(TimeTagEventInterface,
+                                          EmCDSEventInSCAndGalFrameInterface,
+                                          Protocol):
+    data_space_units = EmCDSEventInSCAndGalFrameInterface.data_space_units * TimeTagEventInterface.data_space_units
 
 @runtime_checkable
 class TimeTagEmCDSDistanceEventInSCFrameInterface(TimeTagEmCDSEventInSCFrameInterface, Protocol):
@@ -131,3 +177,4 @@ class TimeTagEmCDSDistanceEventInSCFrameInterface(TimeTagEmCDSEventInSCFrameInte
         Add fancy distance quantity
         """
         return Quantity(self.distance_cm, u.cm)
+
