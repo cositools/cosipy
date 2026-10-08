@@ -295,8 +295,9 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         # don't poison interpolation for nearby physical events. Note that
         # the default posinf/neginf of nan_to_num would instead turn inf
         # into the largest finite float, which overflows to inf/NaN when
-        # interpolating.
-        irf[:] = np.nan_to_num(irf.contents, nan = 0.0, posinf = 0.0, neginf = 0.0)
+        # interpolating. This is done in place with a single mask, since
+        # nan_to_num would also allocate copies of the (large) contents.
+        irf.contents[~np.isfinite(irf.contents)] = 0
 
         self._diff_aeff = irf
 
@@ -756,7 +757,9 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
         *args, **kwargs
             Extra arguments forwarded verbatim to
             :meth:`__init__` (e.g. ``aeff``, ``copy``, ``nthreads``,
-            ``npoints_parallel_thresh`` or ``selections``).
+            ``npoints_parallel_thresh`` or ``selections``). ``copy``
+            defaults to False here, since the histograms are read from
+            disk and nobody else holds them.
 
         Returns
         -------
@@ -769,6 +772,9 @@ class IRFRelativeHistUnpolarized(FarFieldSpectralInstrumentResponseFunctionInter
             with h5.File(filename, 'r') as f:
                 if 'AEFF' in f:
                     kwargs['aeff'] = Histogram.open(filename, 'AEFF')
+
+        if len(args) < 2:
+            kwargs.setdefault('copy', False)
 
         return cls(Histogram.open(filename, "IRF"), *args, **kwargs)
 
