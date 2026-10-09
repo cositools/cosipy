@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Union, Optional
 
@@ -10,7 +11,7 @@ from astropy.coordinates import (
     GCRS,
     ITRS,
     Galactic,
-    cartesian_to_spherical
+    CartesianRepresentation
 )
 from astropy.units import Quantity
 import astropy.units as u
@@ -18,6 +19,11 @@ from astropy.table import QTable
 from astropy.io import fits
 
 from mhealpy import HealpixBase, HealpixMap
+
+import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
+from matplotlib.patches import Patch
+from matplotlib.projections.geo import GeoAxes
 
 from histpy import Axis, HealpixAxis
 
@@ -45,7 +51,8 @@ class SpacecraftHistory:
                  obstime: Time,
                  attitude: Attitude,
                  location: GCRS,
-                 livetime: Quantity = None):
+                 livetime: Quantity = None,
+                 earth_location: EarthLocation = None):
         """Handles the spacecraft orientation. Calculates the dwell time
         map and point source response over a certain orientation
         period.
@@ -65,6 +72,9 @@ class SpacecraftHistory:
             bin. Should have one less element than the number of
             timestamps. If not provided, assume that the instrument
             was fully on without interruptions.
+        earth_location:
+            Geographic location of the spacecraft at each timestamp.
+            Computed from 'location' when first needed if not provided.
 
         """
 
@@ -93,6 +103,11 @@ class SpacecraftHistory:
         self._attitude = attitude
 
         self._gcrs = location
+
+        if not (earth_location is None or earth_location.shape == obstime.shape):
+            raise ValueError(f"'earth_location' must have the same length as the timestamps ({obstime.shape}), but it has shape ({earth_location.shape})")
+
+        self._earth_location = earth_location
 
         self._cache_earth_occ = False
 
@@ -159,6 +174,92 @@ class SpacecraftHistory:
         """
         lon,  lat, _ = self._gcrs_to_earth_zenith_altitude(self._gcrs)
         return SkyCoord(lon, lat, frame=Galactic(), copy=False)
+
+    @property
+    def earth_location(self) -> EarthLocation:
+        """
+        Geographic location of the SC at each timestamp.
+
+        Computed the first time it is needed and cached, unless it was
+        provided on initialization.
+        """
+        if self._earth_location is None:
+            self._earth_location = self._compute_earth_location()
+
+        return self._earth_location
+
+    def _compute_earth_location(self) -> EarthLocation:
+        """
+        The full GCRS to ITRS transformation is slow, so it is only
+        computed once per day, at the reference times closest to each
+        timestamp. In between, only the change in the Earth rotation
+        angle is applied. The error from the precession and nutation
+        of the pole within half a day is at the arcsec level.
+        """
+        dt = (self._obstime - self.tstart).to_value(u.day)
+        days = np.round(dt).astype(int)
+        ref_time = self.tstart + np.arange(days[-1] + 1) * u.day
+
+        # rotation[:, :, day] is the GCRS to ITRS rotation matrix at ref_time[day]
+        basis = GCRS(CartesianRepresentation(np.eye(3)[:, :, None] * u.km), obstime=ref_time)
+        rotation = basis.transform_to(ITRS(obstime=ref_time)).cartesian.xyz.value
+
+        xyz = self._gcrs.cartesian.xyz.to_value(u.km).reshape(3, -1)
+        xyz = np.broadcast_to(xyz, (3, self.npoints))
+
+        # Timestamps are sorted, so each day is a contiguous block
+        edges = np.searchsorted(days, np.arange(ref_time.size + 1))
+        xyz_ref = np.empty(xyz.shape)
+        for day, (start, stop) in enumerate(zip(edges[:-1], edges[1:])):
+            xyz_ref[:, start:stop] = rotation[:, :, day] @ xyz[:, start:stop]
+
+        # Earth rotation angle rate, in rad/day (IERS 2010 Conventions)
+        delta_era = 2 * np.pi * 1.00273781191135448 * (dt - days)
+
+        x = np.cos(delta_era) * xyz_ref[0] + np.sin(delta_era) * xyz_ref[1]
+        y = -np.sin(delta_era) * xyz_ref[0] + np.cos(delta_era) * xyz_ref[1]
+
+        return EarthLocation.from_geocentric(x, y, xyz_ref[2], unit=u.km)
+
+    @property
+    def rocking_angle(self) -> Quantity:
+        """
+        Angle between the SC z-axis and the Earth's zenith at the SC
+        location, measured on the plane containing the zenith and the
+        orbit normal. Positive values point towards the orbit normal
+        (north for a prograde orbit).
+        """
+        zenith = self._gcrs.cartesian.xyz.value
+        velocity = np.gradient(zenith, self._obstime_dt_jd, axis=1,
+                               edge_order=min(2, self.npoints - 1))
+        normal = np.cross(zenith, velocity, axis=0)
+
+        zaxis = self._attitude.as_axes()[2].transform_to(GCRS())
+        zaxis = zaxis.cartesian.xyz.value
+
+        z_up = np.sum(zaxis * zenith, axis=0) / np.linalg.norm(zenith, axis=0)
+        z_north = np.sum(zaxis * normal, axis=0) / np.linalg.norm(normal, axis=0)
+
+        return np.rad2deg(np.arctan2(z_north, z_up)) * u.deg
+
+    @property
+    def roll_angle(self) -> Quantity:
+        """
+        Angle of the SC x-axis around the z-axis, measured from the
+        direction of motion projected onto the plane perpendicular to
+        the z-axis. Positive values are counter-clockwise when looking
+        from the tip of the z-axis.
+        """
+        velocity = np.gradient(self._gcrs.cartesian.xyz.value, self._obstime_dt_jd, axis=1,
+                               edge_order=min(2, self.npoints - 1))
+
+        xaxis, _, zaxis = (axis.transform_to(GCRS()).cartesian.xyz.value
+                           for axis in self._attitude.as_axes())
+
+        x_along = np.sum(xaxis * velocity, axis=0)
+        x_across = np.sum(np.cross(velocity, xaxis, axis=0) * zaxis, axis=0)
+
+        return np.rad2deg(np.arctan2(x_across, x_along)) * u.deg
 
     @staticmethod
     def _default_file_version(file_version = None):
@@ -634,19 +735,36 @@ class SpacecraftHistory:
         if np.all(v1 == v2):
             return d1
 
+        # Keep the same representation, so they can be concatenated
+        vi = CartesianRepresentation(SpacecraftHistory._slerp(t, v1, v2), copy=False)
+        return GCRS(vi.represent_as(d1.data.__class__), copy=False)
+
+    @staticmethod
+    def _interp_earth_location(t, l1, l2):
+        """
+        Same as _interp_location, but for EarthLocation
+        """
+
+        v1 = Quantity(l1.geocentric)
+        v2 = Quantity(l2.geocentric)
+
+        if np.all(v1 == v2):
+            return l1
+
+        return EarthLocation.from_geocentric(*SpacecraftHistory._slerp(t, v1, v2))
+
+    @staticmethod
+    def _slerp(t, v1, v2):
+        """
+        SLERP between Cartesian vectors v1 and v2, with shape (3, ...)
+        """
+
         # angle between v1, v2
-        norm = d1.spherical.distance * d2.spherical.distance
+        norm = np.linalg.norm(v1, axis=0) * np.linalg.norm(v2, axis=0)
         theta = np.arccos(np.einsum('i...,i...->...', v1, v2)/norm)
 
-        # SLERP interpolated vector
         den = np.sin(theta)
-        vi = (np.sin((1 - t) * theta) * v1 + np.sin(t * theta) * v2) / den
-
-        r, lat, lon = cartesian_to_spherical(*vi)
-        dvi = GCRS(ra=lon, dec=lat, distance=r,
-                   copy=False)
-
-        return dvi
+        return (np.sin((1 - t) * theta) * v1 + np.sin(t * theta) * v2) / den
 
     @staticmethod
     def _interp_attitude(t, att1, att2):
@@ -782,8 +900,14 @@ class SpacecraftHistory:
         cum_livetime = self._cumulative_livetime(points, weights)
         diff_livetime = cum_livetime[1:] - cum_livetime[:-1]
 
+        interp_earth_location = None
+        if self._earth_location is not None:
+            interp_earth_location = self._interp_earth_location(weights[1],
+                                                                self._earth_location[points[0]],
+                                                                self._earth_location[points[1]])
+
         return self.__class__(times, interp_attitude, interp_location,
-                              diff_livetime)
+                              diff_livetime, interp_earth_location)
 
     def select_interval(self, start:Time = None, stop:Time = None) -> "SpacecraftHistory":
         """
@@ -828,6 +952,11 @@ class SpacecraftHistory:
         new_location = self._gcrs[start_points[1]:stop_points[1]]
         new_livetime = self.livetime[start_points[1]:stop_points[0]]
 
+        # Only carried over if already available
+        earth_location = self._earth_location
+        if earth_location is not None:
+            new_earth_location = earth_location[start_points[1]:stop_points[1]]
+
         # Left edge
         # new_obstime.size can be zero if the requested interval fell
         # completely an existing interval
@@ -849,6 +978,13 @@ class SpacecraftHistory:
                                                    self._gcrs[start_points[1]])[None]
 
             new_location = np.concatenate((start_location, new_location))
+
+            if earth_location is not None:
+                start_earth_location = self._interp_earth_location(start_weights[1],
+                                                                   earth_location[start_points[0]],
+                                                                   earth_location[start_points[1]])
+                new_earth_location = np.concatenate((start_earth_location[None], new_earth_location))
+
             first_livetime = self.livetime[start_points[0]] * start_weights[0]
             new_livetime = np.append(first_livetime, new_livetime)
 
@@ -874,6 +1010,14 @@ class SpacecraftHistory:
 
         new_location = np.concatenate((new_location, stop_location))
 
+        if earth_location is not None:
+            stop_earth_location = self._interp_earth_location(stop_weights[1],
+                                                              earth_location[stop_points[0]],
+                                                              earth_location[stop_points[1]])
+            new_earth_location = np.concatenate((new_earth_location, stop_earth_location[None]))
+        else:
+            new_earth_location = None
+
         if np.all(start_points == stop_points):
             # This can only happen if the requested interval fell
             # completely an existing interval
@@ -887,7 +1031,7 @@ class SpacecraftHistory:
         new_obstime.format = self.obstime.format
 
         new_history = self.__class__(new_obstime, new_attitude, new_location,
-                                     new_livetime)
+                                     new_livetime, new_earth_location)
 
         # make sure new object uses same earth occ caching as old object
         new_history.cache_earth_occ = self.cache_earth_occ
@@ -912,6 +1056,7 @@ class SpacecraftHistory:
         new_attitude = None
         new_location = None
         new_livetime = None
+        new_earth_location = None
 
         for i, (start, stop) in enumerate(gti):
             _sph = self.select_interval(start, stop)
@@ -920,12 +1065,14 @@ class SpacecraftHistory:
             _attitude = _sph._attitude.as_matrix()
             _location = _sph._gcrs
             _livetime = _sph.livetime
+            _earth_location = _sph._earth_location
 
             if i == 0:
                 new_obstime = _obstime
                 new_attitude = _attitude
                 new_location = _location
                 new_livetime = _livetime
+                new_earth_location = _earth_location
             else:
                 new_obstime = Time(np.append(new_obstime.jd1, _obstime.jd1),
                                    np.append(new_obstime.jd2, _obstime.jd2),
@@ -934,13 +1081,15 @@ class SpacecraftHistory:
                 new_location = np.concatenate((new_location, _location))
                 new_livetime = np.append(new_livetime, 0 * new_livetime.unit) # assign livetime of zero between GTIs
                 new_livetime = np.append(new_livetime, _livetime)
+                if new_earth_location is not None:
+                    new_earth_location = np.concatenate((new_earth_location, _earth_location))
 
         # finalizing
         new_attitude = Attitude.from_matrix(new_attitude, frame=self._attitude.frame)
         new_obstime.format = self.obstime.format
 
         new_history = self.__class__(new_obstime, new_attitude, new_location,
-                                     new_livetime)
+                                     new_livetime, new_earth_location)
 
         # make sure new object uses same earth occ caching as old object
         new_history.cache_earth_occ = self.cache_earth_occ
@@ -1466,3 +1615,193 @@ class SpacecraftHistory:
         else:
             # Standard cosipy SpacecraftHistory storage natively uses _livetime
             self._livetime = self.livetime * fraction
+
+    def plot_orbit(self, ax=None, saa=True):
+        """
+        Plot the SC ground track on top of the Earth's coastlines,
+        colored by the roll angle. Timestamps followed by zero livetime
+        (e.g. SAA passages) are not drawn.
+
+        The roll angle (see ``roll_angle``) is the rotation of the SC
+        around its z-axis: the angle between the SC x-axis and the
+        direction of motion of the SC, after projecting the latter onto
+        the plane perpendicular to the z-axis. It increases
+        counter-clockwise when looking from the tip of the z-axis
+        towards the SC. A roll angle of 0 means the x-axis points
+        forward, along the orbit. It is unwrapped for plotting, so it
+        can go beyond the [-180, 180] deg range instead of jumping by
+        360 deg.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes to draw on. A new figure with a Mollweide projection
+            is created by default.
+        saa : bool or tuple of array-like, optional
+            SAA region to draw. If True (default), the contour where
+            the magnetic field strength at the Earth's surface is
+            28000 nT, according to IGRF-14 at epoch 2028.0. Pass a
+            (longitude, latitude) pair to draw a custom polygon, with
+            Quantities with angular units or floats in degrees. None or
+            False to not draw it.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+
+        if ax is None:
+            fig = plt.figure(figsize=(10, 6))
+            ax = fig.add_subplot(projection='mollweide')
+
+        # Geographic projections use radians
+        to_ax = np.deg2rad if isinstance(ax, GeoAxes) else np.asarray
+
+        for lon, lat in _coastlines():
+            ax.plot(to_ax(lon), to_ax(lat), color='0.5', lw=0.5)
+
+        if saa is True:
+            saa = _saa_contour()
+
+        if saa is not None and saa is not False:
+            lon, lat = (Quantity(c, u.deg).value for c in saa)
+            ax.fill(to_ax(lon), to_ax(lat), facecolor='none', edgecolor='C0',
+                    hatch='xx', label='SAA')
+            ax.legend(loc='lower right')
+
+        location = self.earth_location
+        lon = location.lon.wrap_at(180 * u.deg).deg
+        lat = location.lat.deg
+        roll = np.unwrap(self.roll_angle.to_value(u.deg), period=360)
+
+        # Each timestamp is drawn if the following interval had livetime
+        live = np.append(self.livetime.value > 0, False)
+
+        orbit = ax.scatter(to_ax(lon[live]), to_ax(lat[live]), c=roll[live],
+                           s=2, lw=0, rasterized=True)
+        ax.figure.colorbar(orbit, ax=ax, orientation='horizontal',
+                           shrink=0.6, label='Roll angle (deg)')
+
+        ax.grid(True, ls=':', color='0.8')
+        ax.set_xlabel('Longitude (deg)')
+        ax.set_ylabel('Latitude (deg)')
+
+        return ax
+
+    def plot_pointing(self, time: Time, fov: Quantity = 60 * u.deg,
+                      ax=None, nside=128):
+        """
+        Plot the SC z-axis, field of view and the region occulted by
+        the Earth at a given time, in galactic coordinates.
+
+        Parameters
+        ----------
+        time : Time
+            Scalar time within the history.
+        fov : Quantity
+            Radius of the field of view around the z-axis.
+        ax : mhealpy 'mollview' axes, optional
+            A new figure is created by default.
+        nside : int
+            Resolution of the HEALPix maps used to draw the regions.
+
+        Returns
+        -------
+        astropy.visualization.wcsaxes.WCSAxes
+        """
+
+        if ax is None:
+            fig = plt.figure(figsize=(10, 5))
+            ax = fig.add_subplot(projection='mollview', coord='G')
+
+        zaxis = self.interp_attitude(time).as_axes()[2].transform_to(Galactic())
+
+        location = self.interp_location(time)
+        nadir = GCRS(ra=location.ra + 180 * u.deg, dec=-location.dec)
+        nadir = nadir.transform_to(Galactic())
+        earth_radius = np.arcsin(self._r_earth * u.km / location.distance)
+
+        for center, radius, color in [(nadir, earth_radius, 'C0'),
+                                      (zaxis, fov, 'C1')]:
+            disc = HealpixMap(nside=nside, coordsys='galactic',
+                              data=np.full(12 * nside ** 2, np.nan))
+            disc[disc.query_disc(center.cartesian.xyz.value,
+                                 radius.to_value(u.rad))] = 1
+            disc.plot(ax, cbar=False, cmap=ListedColormap([color]), alpha=0.4)
+
+        ax.scatter(zaxis.l.deg, zaxis.b.deg, transform=ax.get_transform('galactic'),
+                   marker='*', s=150, color='C1', edgecolor='k')
+
+        ax.legend(handles=[Patch(color='C1', alpha=0.4, label='Field of view'),
+                           Patch(color='C0', alpha=0.4, label='Earth')],
+                  loc='lower right')
+        ax.coords.grid(True, color='0.8', ls=':')
+        ax.set_title(time.isot)
+
+        return ax
+
+    def plot_rocking_angle(self, ax=None):
+        """
+        Plot the rocking angle (see ``rocking_angle``) as a function of
+        time.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes, optional
+            Axes to draw on. A new figure is created by default.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+        """
+
+        if ax is None:
+            _, ax = plt.subplots(figsize=(10, 4))
+
+        ax.plot(self.obstime.to_value('datetime64'),
+                self.rocking_angle.to_value(u.deg))
+
+        ax.set_xlabel('Time (UTC)')
+        ax.set_ylabel('Rocking angle (deg)')
+
+        return ax
+
+
+def _coastlines():
+    """
+    Coastlines from Natural Earth (public domain), 1:110m scale.
+
+    Returns
+    -------
+    list of (lon, lat) arrays, in degrees
+    """
+
+    path = Path(__file__).parent / 'data' / 'ne_110m_coastline.geojson'
+
+    with open(path) as f:
+        features = json.load(f)['features']
+
+    return [np.transpose(f['geometry']['coordinates']) for f in features]
+
+
+def _saa_contour():
+    """
+    Contour of the South Atlantic Anomaly where the magnetic field
+    strength at the Earth's surface is 28000 nT, according to
+    IGRF-14 at epoch 2028.0. Generated with::
+
+        lon, lat = np.meshgrid(np.arange(-180, 180.01, 0.25), np.arange(-89, 89.01, 0.25))
+        B = np.linalg.norm(ppigrf.igrf(lon, lat, 0, datetime(2028, 1, 1)), axis=0)[0]
+        contour = plt.contour(lon, lat, B, levels=[28000]).get_paths()[0].vertices[::4]
+
+    Returns
+    -------
+    (lon, lat) arrays, in degrees
+    """
+
+    path = Path(__file__).parent / 'data' / 'saa_igrf14_2028.geojson'
+
+    with open(path) as f:
+        polygon = json.load(f)['features'][0]['geometry']['coordinates'][0]
+
+    return np.transpose(polygon)
