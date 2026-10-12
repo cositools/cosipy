@@ -1,20 +1,23 @@
 import itertools
-from typing import Protocol, runtime_checkable, Iterator, Union, Iterable
+from typing import Protocol, runtime_checkable, Dict, Type, Any, Tuple, Iterator, Union, Sequence, Iterable, ClassVar
 
-from astropy.coordinates import Angle, SkyCoord
-from astropy.units import  Quantity
+import numpy as np
+from astropy.coordinates import BaseCoordinateFrame, Angle, SkyCoord
+from astropy.units import Unit, Quantity
 import astropy.units as u
-
 from scoords import SpacecraftFrame
 
 from . import EventWithEnergyInterface
-
 from .event import (
     EventInterface,
     TimeTagEventInterface,
     ComptonDataSpaceInSCFrameEventInterface,
+    ComptonDataSpaceInGalFrameEventInterface,
     EmCDSEventInSCFrameInterface,
     TimeTagEmCDSEventInSCFrameInterface,
+    EmCDSEventInSCAndGalFrameInterface,
+    TimeTagEmCDSEventInSCAndGalFrameInterface,
+    TimeTagEmCDSDistanceEventInSCFrameInterface,
     EventWithScatteringAngleInterface,
 )
 
@@ -22,11 +25,19 @@ from histpy import Histogram, Axes
 
 from astropy.time import Time
 
+# Guard to prevent circular import
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .event_selection import EventSelectorInterface
+
+import histpy
+
 __all__ = ["DataInterface",
            "EventDataInterface",
            "BinnedDataInterface",
            "TimeTagEventDataInterface",
-           "EventDataWithEnergyInterface"
+           "EventDataWithEnergyInterface",
+           "TimeTagEmCDSDistanceEventDataInSCFrameInterface",
           ]
 
 @runtime_checkable
@@ -77,17 +88,14 @@ class EventDataInterface(DataInterface, Protocol):
 
         For convenience. Specific implementation can do better job.
 
-        It is not safe to call this method from an interface
-        implementation that does not explicitly overload
-        fromiter(). Call it from an interface instead.
+        It is not safe to call this method from an interface implementation that
+        does not explicitly overload fromiter(). Call it from an interface instead.
 
-        If you know it, specifying the length of the iterable can help
-        optimize the code.
-
+        If you know it, specifying the length of the iterable can help optimize the code.
         """
 
         if not getattr(cls, "_is_protocol", False):
-            raise RuntimeError("It is not safe to call fromiter() from an interface implementation that"
+            raise RuntimeError("It is not safe to call fromiter() from an interface implementation that"                        
                                "does not explicitly overload fromiter(). Call it from an interface instead.")
 
         class EventDataIterableWrapper(cls):
@@ -116,13 +124,11 @@ class EventDataInterface(DataInterface, Protocol):
         Parameters
         ----------
         event:
-        repeat: Number of time to repeat photon. If None, it will
-        repeat indefinitely (use with care)
+        repeat: Number of time to repeat photon. Is None, it will repeat indefinitely (use with care)
 
         Returns
         -------
         tuple:  is_single? (bool), event_data
-
         """
 
         if not getattr(cls, "_is_protocol", False):
@@ -153,9 +159,8 @@ class EventDataInterface(DataInterface, Protocol):
         """
         Total number of events yielded by __iter__
 
-        Convenience method. Pretty slow in general. It's suggested
-        that the implementations override it
-
+        Convenience method. Pretty slow in general. It's suggested that
+        the implementations override it
         """
         return sum(1 for _ in iter(self))
 
@@ -165,9 +170,8 @@ class EventDataInterface(DataInterface, Protocol):
 
 
 def is_single_event(photon: Union[EventInterface, 'EventDataInterface']) -> bool:
-    # Since these protocols are runtime checkable, it's not enough to
-    # check the input is EventInterface, since the EventDataInterface
-    # also returns True.
+    # Since these protocols are runtime checkable, it's not enough to check the input is
+    # EventInterface, since the EventDataInterface also returns True.
     if isinstance(photon, EventDataInterface):
         return False
     else:
@@ -262,6 +266,32 @@ class ComptonDataSpaceInSCFrameEventDataInterface(EventDataWithScatteringAngleIn
                         frame = SpacecraftFrame())
 
 @runtime_checkable
+class ComptonDataSpaceInGalFrameEventDataInterface(EventDataWithScatteringAngleInterface, Protocol):
+
+    event_type = ComptonDataSpaceInGalFrameEventInterface
+
+    def __iter__(self) -> Iterator[ComptonDataSpaceInGalFrameEventInterface]:...
+
+    @property
+    def scattered_lon_rad_gal(self) -> Iterable[float]:
+        return [e.scattered_lon_rad_gal for e in self]
+
+    @property
+    def scattered_lat_rad_gal(self) -> Iterable[float]:
+        return [e.scattered_lat_rad_gal for e in self]
+
+    @property
+    def scattered_direction_gal(self) -> SkyCoord:
+        """
+        Add fancy energy quantity
+        """
+        return SkyCoord(self.scattered_lon_rad_gal,
+                        self.scattered_lat_rad_gal,
+                        unit = u.rad,
+                        frame = "Galactic")
+
+    
+@runtime_checkable
 class EmCDSEventDataInSCFrameInterface(EventDataWithEnergyInterface, ComptonDataSpaceInSCFrameEventDataInterface, Protocol):
 
     event_type = EmCDSEventInSCFrameInterface
@@ -276,3 +306,46 @@ class TimeTagEmCDSEventDataInSCFrameInterface(TimeTagEventDataInterface,
     event_type = TimeTagEmCDSEventInSCFrameInterface
 
     def __iter__(self) -> Iterator[TimeTagEmCDSEventInSCFrameInterface]:...
+
+
+@runtime_checkable
+class EmCDSEventDataInSCAndGalFrameInterface(EventDataWithEnergyInterface, 
+                                             ComptonDataSpaceInSCFrameEventDataInterface,
+                                             ComptonDataSpaceInGalFrameEventDataInterface, Protocol):
+
+    event_type = EmCDSEventInSCAndGalFrameInterface
+
+    def __iter__(self) -> Iterator[EmCDSEventInSCAndGalFrameInterface]: ...
+
+@runtime_checkable
+class TimeTagEmCDSEventDataInSCAndGalFrameInterface(TimeTagEventDataInterface,
+                                              EmCDSEventDataInSCAndGalFrameInterface,
+                                              Protocol):
+
+    event_type = TimeTagEmCDSEventInSCAndGalFrameInterface
+
+    def __iter__(self) -> Iterator[TimeTagEmCDSEventInSCAndGalFrameInterface]:...
+
+
+@runtime_checkable
+class TimeTagEmCDSDistanceEventDataInSCFrameInterface(TimeTagEmCDSEventDataInSCFrameInterface, Protocol):
+    """
+    A TimeTagEmCDSEventDataInSCFrameInterface event data collection that
+    also tracks the distance between the first two hits of each Compton
+    event.
+    """
+
+    event_type = TimeTagEmCDSDistanceEventInSCFrameInterface
+
+    def __iter__(self) -> Iterator[TimeTagEmCDSDistanceEventInSCFrameInterface]:...
+
+    @property
+    def distance_cm(self) -> Iterable[float]:
+        return [e.distance_cm for e in self]
+
+    @property
+    def distance(self) -> Quantity:
+        """
+        Add fancy distance quantity
+        """
+        return Quantity(self.distance_cm, u.cm)

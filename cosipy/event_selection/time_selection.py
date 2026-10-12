@@ -14,6 +14,8 @@ from cosipy.util.iterables import itertools_batched, asarray
 
 class TimeSelector(EventSelectorInterface):
 
+    event_data_type = TimeTagEventDataInterface
+
     def __init__(self, tstart:Time = None, tstop:Time = None, batch_size:int = None):
         """
         Assumes events are time-ordered
@@ -165,7 +167,12 @@ class TimeSelector(EventSelectorInterface):
                     return
 
         if (self._batch_size is None) or (isinstance(events.jd1, np.ndarray) and isinstance(events.jd2, np.ndarray)):
-            results, _ = process_chunk(events.jd1, events.jd2)
+            # events.jd1/jd2 might be plain iterables rather than numpy
+            # arrays (e.g. a generic EventDataInterface implementation), so
+            # make sure they are cached as arrays before use.
+            jd1 = asarray(events.jd1, dtype=np.float64, force_dtype=False)
+            jd2 = asarray(events.jd2, dtype=np.float64, force_dtype=False)
+            results, _ = process_chunk(jd1, jd2)
             return results
         else:
             return process_in_chunks(events)
