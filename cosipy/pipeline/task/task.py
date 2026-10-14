@@ -4,6 +4,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+import sys
 import subprocess
 from astropy.time import Time
 import numpy as np
@@ -27,6 +28,8 @@ from cosipy.spacecraftfile import SpacecraftHistory
 
 from astromodels.core.model_parser import ModelParser
 
+from threeML import XYLike, Model, DataList, PointSource, JointLikelihood
+from astromodels import Constant
 
 def cosi_bindata(argv=None):
     # Parse arguments from commandline
@@ -235,7 +238,7 @@ def cosi_threemlfit(argv=None):
 
     bk_data_path = config.absolute_path(config["background:args"][0])
     bk_yaml_path = config.absolute_path(config["background:kwargs:input_yaml"])
-    bk_binned_data = load_binned_data(bk_yaml_path, bk_data_path)
+    bk_binned_data = load_binned_data(bk_yaml_path, bk_data_path)+ sys.float_info.min
 
     resp_path = config.absolute_path(config["response:args"][0])
 

@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from cosipy.response.FullDetectorResponse import FullDetectorResponse
 from cosipy.statistics import PoissonLikelihood
@@ -6,7 +7,8 @@ from cosipy.interfaces import ThreeMLPluginInterface
 from cosipy.response import BinnedThreeMLModelFolding, BinnedInstrumentResponse, BinnedThreeMLPointSourceResponse
 from cosipy.data_io import EmCDSBinnedData
 from threeML import *
-from threeML import JointLikelihood, DataList
+from threeML import JointLikelihood, DataList, XYLike
+from astromodels import Constant
 from astromodels import Parameter
 from astropy import units as u
 from mhealpy import HealpixMap
@@ -42,7 +44,9 @@ def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
 
     data = EmCDSBinnedData(sou.project('Em', 'Phi', 'PsiChi'))
 
-    bkg = FreeNormBinnedBackground(bk.project('Em', 'Phi', 'PsiChi'),
+    bkg_dist = bk.project('Em', 'Phi', 'PsiChi') + sys.float_info.min
+
+    bkg = FreeNormBinnedBackground(bkg_dist,
                                sc_history=ori_bk,
                                copy = False)
 
@@ -67,7 +71,7 @@ def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
     cosi.bkg_parameter['bkg_norm'] = Parameter('bkg_norm',  # background parameter
                                       1.0,  # initial value of parameter
                                       min_value=0,  # minimum value of parameter
-                                      max_value= 20,  # maximum value of parameter
+                                      max_value= 100,  # maximum value of parameter
                                       delta=0.05,  # initial step used by fitting engine
                                       unit = u.Hz
                                       )
@@ -88,7 +92,7 @@ def get_fit_results(sou, bk, resp_path, ori_sou, ori_bk, model):
         expectation_bkg = bkg.expectation()
         tot_exp_counts = expectation.project('Em').to_dense(copy=False).contents + (
         expectation_bkg.project('Em').to_dense(copy=False).contents)
-        return results, tot_exp_counts
+        return results,tot_exp_counts
 
 
 def get_fit_par(results):

@@ -73,4 +73,3 @@ def test_run_task(tmp_path,capsys):
     fit_results=load_analysis_results_hdf(Path(tmp_path/ "results.h5"))
     fl,em_fl,ep_fl=get_fit_fluxes(fit_results)
     assert (fl_true - 3*em_fl) <= fl <= (fl_true + 3*ep_fl)
-
