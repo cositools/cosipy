@@ -57,7 +57,6 @@ def test_response_configuration_sets_dynamic_parameters():
         response,
         ei_bin_indices=range(2, 7),
         initial_fluxes=initial_fluxes,
-        index=-2.0,
     )
 
     expected_edges = response.axes["Ei"].edges[2:8].to_value(u.keV)
@@ -66,7 +65,7 @@ def test_response_configuration_sets_dynamic_parameters():
     assert spectrum.n_bins == 5
     assert np.allclose(spectrum.bin_edges, expected_edges)
     assert np.allclose(actual_fluxes, initial_fluxes)
-    assert spectrum.index.value == -2.0
+    assert spectrum.spectral_shape.index.value == -2.0
     assert spectrum._cosipy_ei_bin_indices == tuple(range(2, 7))
     assert all(par.free for par in spectrum.normalizations)
 

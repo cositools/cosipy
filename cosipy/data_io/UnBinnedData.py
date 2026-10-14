@@ -921,3 +921,4 @@ class UnBinnedData(DataIO):
         if output_name is not None:
             logger.info("Saving file...")
             self.write_unbinned_output(output_name)
+			

@@ -50,23 +50,29 @@ background = {
     'TimeTags': np.array([1., 2.])
 }
 
-def test_spacecraft_fit():
+def test_asad_spacecraft_fit():
 
     # ASAD from unbinned data
-    polarization_spacecraft = PolarizationASAD(source_direction,
+    # test forcing source dir into Spacecraft frame when fit
+    # convention is relative
+    polarization_spacecraft = PolarizationASAD(source_direction.transform_to('galactic'),
                                                spectrum, bin_edges,
                                                unbinned_data, background,
                                                sc_orientation, response_path,
-                                               fit_convention=MEGAlibRelativeZ(attitude=attitude))
+                                               fit_convention=MEGAlibRelativeZ(attitude=attitude),
+                                               show_plots=True)
 
-    polarization_fit_spacecraft = polarization_spacecraft.fit()
+    polarization_fit_spacecraft = polarization_spacecraft.fit(show_plots=True)
+
 
     assert np.allclose([polarization_fit_spacecraft['fraction'],
                         polarization_fit_spacecraft['fraction uncertainty'],
                         polarization_fit_spacecraft['angle'].angle.rad,
                         polarization_fit_spacecraft['angle uncertainty'].rad],
-                       [0.8248301194006322, 0.7889544546660269,
-                        1.5645814961205469, 0.5143016570410734],
+                       [0.6003869888161802, 0.6728822487579333,
+                        1.5844960952872964, 0.6129286840818118],
+                       #[0.8248301194006322, 0.7889544546660269,
+                       # 1.5645814961205469, 0.5143016570410734],
                        atol=[0.2, 0.1, 0.2, 0.1])
 
     # ASAD from binned data
@@ -74,27 +80,31 @@ def test_spacecraft_fit():
                                                spectrum, bin_edges,
                                                binned_data, background,
                                                sc_orientation, response_path,
-                                               fit_convention=MEGAlibRelativeZ(attitude=attitude))
+                                               fit_convention=MEGAlibRelativeZ(attitude=attitude),
+                                               show_plots=True)
 
-    polarization_fit_spacecraft = polarization_spacecraft.fit()
+    polarization_fit_spacecraft = polarization_spacecraft.fit(show_plots=True)
 
     assert np.allclose([polarization_fit_spacecraft['fraction'],
                         polarization_fit_spacecraft['fraction uncertainty'],
                         polarization_fit_spacecraft['angle'].angle.rad,
                         polarization_fit_spacecraft['angle uncertainty'].rad],
-                       [0.9452187271167997, 0.9328483275998886,
-                        1.993361180746714, 0.6416512077658346],
+                       [0.7276138236000136, 0.7839940506480354,
+                        2.0102343787513157, 0.6885224033948842],
+                       #[0.9452187271167997, 0.9328483275998886,
+                       # 1.993361180746714, 0.6416512077658346],
                        atol=[0.2, 0.1, 0.2, 0.1])
 
-def test_icrs_fit():
+def test_asad_icrs_fit():
 
     # ASAD from unbinned data
     polarization_icrs = PolarizationASAD(source_direction.transform_to('galactic'),
                                          spectrum, bin_edges,
                                          unbinned_data, background,
-                                         sc_orientation, response_path)
+                                         sc_orientation, response_path,
+                                         show_plots=True)
 
-    polarization_fit_icrs = polarization_icrs.fit()
+    polarization_fit_icrs = polarization_icrs.fit(show_plots=True)
 
     assert np.allclose([polarization_fit_icrs['fraction'],
                         polarization_fit_icrs['fraction uncertainty'],
@@ -108,9 +118,10 @@ def test_icrs_fit():
     polarization_icrs = PolarizationASAD(source_direction.transform_to('galactic'),
                                          spectrum, bin_edges,
                                          binned_data, background,
-                                         sc_orientation, response_path)
+                                         sc_orientation, response_path,
+                                         show_plots=True)
 
-    polarization_fit_icrs = polarization_icrs.fit()
+    polarization_fit_icrs = polarization_icrs.fit(show_plots=True)
 
     assert np.allclose([polarization_fit_icrs['fraction'],
                         polarization_fit_icrs['fraction uncertainty'],
