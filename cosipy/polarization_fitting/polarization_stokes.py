@@ -50,7 +50,7 @@ class PolarizationStokes(PolarizationFitting):
     def __init__(self, source, source_spectrum, asad_bin_edges,
                  data, sc_orientation, response_file,
                  response_convention='RelativeX', background=None,
-                 fit_convention=IAUPolarizationConvention(),
+                 fit_convention=None,
                  show_plots=False):
 
         super().__init__(source, source_spectrum, sc_orientation,

@@ -52,7 +52,7 @@ class PolarizationASAD(PolarizationFitting):
     def __init__(self, source, source_spectrum, asad_bin_edges,
                  data, background,
                  sc_orientation, response_file, response_convention='RelativeX',
-                 fit_convention=IAUPolarizationConvention(), show_plots=False):
+                 fit_convention=None, show_plots=False):
 
         super().__init__(source, source_spectrum, sc_orientation,
                          response_file, response_convention,
