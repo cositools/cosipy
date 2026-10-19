@@ -46,7 +46,10 @@ class PolarizationFitting():
 
     def __init__(self, source, source_spectrum, sc_orientation,
                  response_file, response_convention='RelativeX',
-                 fit_convention=IAUPolarizationConvention()):
+                 fit_convention=None):
+
+        if fit_convention is None:
+            fit_convention = IAUPolarizationConvention()
 
         self._response = FullDetectorResponse.open(response_file, pa_convention=response_convention)
 

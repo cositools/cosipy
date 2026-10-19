@@ -12,7 +12,7 @@ class PolarizationAngle:
 
     def __init__(self, angle,
                  source: SkyCoord = None,
-                 convention = IAUPolarizationConvention()):
+                 convention = None):
         """
         Defines a polarization angle in the context of a source direction and
         polarization angle convention.
@@ -30,7 +30,9 @@ class PolarizationAngle:
         # Ensure pa is an Angle object
         self._angle = Angle(angle)
 
-        if not isinstance(convention, PolarizationConvention):
+        if convention is None:
+            convention = IAUPolarizationConvention()
+        elif not isinstance(convention, PolarizationConvention):
             convention = PolarizationConvention.get_convention(convention)
 
         self._convention = convention
