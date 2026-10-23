@@ -3,6 +3,7 @@ import logging
 import healpy as hp
 import numpy as np
 from astropy import units as u
+from astropy.coordinates import SkyCoord
 from astropy.time import Time
 from histpy import Axes, Axis, HealpixAxis, Histogram
 
@@ -15,47 +16,62 @@ from cosipy.util.iterables import asarray
 
 logger = logging.getLogger(__name__)
 
+# Unit of the model map, as in AllSkyImageModel.
+FLUX_UNIT = u.Unit("1/(cm2 s sr)")
 
-class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
+
+class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
     """
-    Event-by-event data interface for Richardson-Lucy image deconvolution.
+    Event-by-event data interface for Richardson-Lucy imaging of a gamma-ray
+    line.
 
     Instead of binning the events into a CDS histogram, the response is
-    evaluated at each event's own measured coordinates. 
+    evaluated at each event's own measured coordinates.  The IRF is evaluated
+    at a single incident energy, which is exact only for a monochromatic
+    source -- hence "Mono".  A continuum band needs the IRF integrated over Ei
+    instead, which belongs in a separate interface.
 
-    The data space
+    The likelihood
     --------------
-    The data axis has ``n_events + 1`` bins.  The first ``n_events`` hold one
-    event each.  The last one is a normalization bin: it carries the integral
-    of the intensity over the whole data space,
+    The data is the list of N = ``n_events`` observed events, each a point
+    x_i in the data space (measured energy, Compton data space, time).  A model
+    map F predicts an intensity lambda(x) over that space, and its integral
 
-        N_tot = \\int \\lambda(x) dx.
+        Lambda = \\int \\lambda(x) dx
 
-    That bin is what makes this interface self-contained.  The unbinned
-    extended log-likelihood is
+    is the number of events the model expects -- a property of the model, not
+    of the data.  The unbinned extended log-likelihood is
 
-        ln L = \\sum_i ln \\lambda(x_i) - N_tot,
+        ln L = \\sum_i ln \\lambda(x_i) - Lambda.
 
-    and N_tot cannot be recovered from the per-event densities, because the
+    For pixel j and event i,
+
+        \\lambda_j(x_i) = F_j dOmega A_eff(j, t_i) P(x_i | j, t_i) e(t_i) V_j(t_i)
+
+    where e is the live fraction and V_j is 0 while the Earth blocks pixel j.
+    Lambda integrates the same quantity, so the exposure carries the same
+    livetime and Earth occultation as the per-event densities.  Leave either
+    out of one side only and the flux scale is biased.
+
+    Carrying Lambda
+    ---------------
+    Lambda cannot be recovered from the per-event densities, because the
     events are not a quadrature rule for the data space -- summing
     ``expectation`` gives a sum of densities, not an integral.  A binned
-    interface gets it for free from ``np.sum(expectation)``.  Carrying it in a
-    dedicated bin keeps every expectation histogram self-describing, so
-    ``calc_log_likelihood(expectation)`` keeps the base-class signature and no
-    caller has to hand the model back to the interface.
+    interface gets it for free from ``np.sum(expectation)``.
 
-    The bookkeeping survives everything the algorithms do to an expectation,
-    because both the source and background terms are linear:  source and
-    background expectations are added element-wise (so their normalization bins
-    add to the total), and a background normalization scales its model (so it
-    scales that model's contribution to the total).  An expectation computed
-    several iterations ago still carries its own correct N_tot, which is what
-    the accelerators need when they compare a trial step against the
-    unaccelerated one.
+    The base class hands ``calc_log_likelihood`` only an expectation
+    histogram, and the accelerators combine expectations linearly
+    (``before + a * (after - before)``), so Lambda has to travel inside the
+    expectation.  The data axis therefore has ``n_events + 1`` bins: one per
+    event, plus a trailing bin that holds Lambda.  That last bin is model
+    bookkeeping, not an event.  It survives everything the algorithms do to an
+    expectation because Lambda is linear in the model and in each background
+    normalization.
 
-    ``self._event`` holds 1 in every event bin and 0 in the normalization bin.
-    The RL M-step forms ``event / expectation``, so the ratio is 0 there and
-    the normalization bin drops out of every response and background product.
+    ``self._event`` holds 1 in every event bin and 0 in the Lambda bin.  The RL
+    M-step forms ``event / expectation``, so the ratio is 0 there and the bin
+    drops out of every response and background product.
 
     Scaling
     -------
@@ -70,11 +86,12 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
         events,
         nside,
         sc_history,
+        energy,
         energy_edges,
         exposure_map=None,
         response_matrix=None,
         background_models=None,
-        name="UnbinnedImageDataInterface",
+        name="UnbinnedImageDataInterfaceMono",
     ):
         """
         Parameters
@@ -88,26 +105,30 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
         nside : int
             HEALPix nside of the galactic model map (RING scheme).
         sc_history : :py:class:`cosipy.spacecraftfile.SpacecraftHistory`
-            Used to interpolate the attitude at each event's timestamp, and to
-            integrate the exposure map when one is not supplied.
+            Attitude, location and livetime.  Its attitude may be in any
+            inertial frame.  Used for the attitude, live fraction and Earth
+            occultation at each event's timestamp, and to integrate the
+            exposure map when one is not supplied.
+        energy : :py:class:`astropy.units.Quantity` or float
+            Incident energy of the line (keV if a float).  The IRF is evaluated
+            here.
         energy_edges : array-like
-            Edges in keV of the model's incident-energy axis.  This discretizes
-            the *sky model*; each event's measured energy enters the likelihood
-            unbinned.  The IRF is evaluated at the arithmetic midpoint of each
-            bin.  Only a single bin is supported for now (see below).
+            Edges in keV of the model's single incident-energy bin.  They only
+            label the model map, which must match the image model's axes, and
+            must contain ``energy``.
         exposure_map : array-like, optional
             Pre-computed per-pixel exposure of shape ``(npix,)`` in cm^2 s sr
-            (effective area x livetime x pixel solid angle).  Computed from
-            ``sc_history`` when omitted.
+            (effective area x visible livetime x pixel solid angle).  Computed
+            from ``sc_history`` when omitted.
         response_matrix : array-like, optional
             Pre-computed sky response of shape ``(npix, n_events)``.  Building
             it costs one IRF evaluation per pixel over the whole event list, so
             supplying a cached array turns a multi-minute step into a file
             read.  Only its shape is checked: a matrix is valid solely for the
-            exact ``nside``, event list, ``energy_edges``, ``sc_history``
-            window and IRF it was built from, and a mismatched one produces
-            wrong fluxes rather than an error.  Key any cache on all of those.
-            Computed from ``irf`` when omitted.
+            exact ``nside``, event list, ``energy``, ``sc_history`` window and
+            IRF it was built from, and a mismatched one produces wrong fluxes
+            rather than an error.  Key any cache on all of those.  Computed
+            from ``irf`` when omitted.
         background_models : dict, optional
             Maps a background model name to its per-event contribution.  Each
             value is either an object implementing
@@ -117,11 +138,11 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
             :py:class:`FreeNormNFUnbinnedBackground` both do -- or a
             ``(per_event_density, total_expected_counts)`` pair.
 
-            The densities are kept at their absolute scale, so a normalization
-            of 1.0 means the model-predicted counts.  That matches the cosipy
-            convention and works both with ``RichardsonLucyBasic``, where the
-            norm stays at 1.0, and with ``RichardsonLucy``, where it is fitted
-            in a range around 1.
+            Each model is captured once, at the rate it holds when it is
+            registered; the background objects keep that rate in Hz.  The RL
+            background normalization is a dimensionless multiplier of it, so
+            1.0 reproduces the registered rate.  Use ``background_rate`` to
+            convert a fitted normalization back to Hz.
         name : str, optional
             Name of this dataset.
         """
@@ -137,20 +158,19 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
 
         self._n_events = events.nevents
 
-        # --- Model incident-energy axis ---
-        energy_edges_keV = np.asarray(energy_edges, dtype=float)
-        energy_mids_keV = 0.5 * (energy_edges_keV[:-1] + energy_edges_keV[1:])
-        if len(energy_mids_keV) != 1:
-            raise NotImplementedError(
-                "UnbinnedImageDataInterface currently supports a single model "
-                f"incident-energy bin (got {len(energy_mids_keV)}). The response "
-                "matrix has no incident-energy axis."
+        # --- Incident energy ---
+        self._energy_keV = u.Quantity(energy, u.keV).to_value(u.keV)
+        energy_edges_keV = u.Quantity(energy_edges, u.keV).to_value(u.keV)
+        if energy_edges_keV.shape != (2,):
+            raise ValueError(
+                "energy_edges must hold the two edges of a single bin, got "
+                f"{energy_edges_keV.shape[0] - 1} bins"
             )
-        # One entry per event so the photon list lines up with the event list.
-        # All entries are the same in the single-bin case.
-        self._incident_energy_keV = np.full(
-            self._n_events, energy_mids_keV[0], dtype=float
-        )
+        if not energy_edges_keV[0] <= self._energy_keV <= energy_edges_keV[1]:
+            raise ValueError(
+                f"energy {self._energy_keV} keV is outside energy_edges "
+                f"{energy_edges_keV.tolist()} keV"
+            )
 
         # --- Axes ---
         self._model_axes = Axes(
@@ -159,7 +179,7 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
                 Axis(edges=u.Quantity(energy_edges_keV, u.keV), label="Ei", scale="log"),
             ]
         )
-        # n_events event bins plus the trailing normalization bin.
+        # n_events event bins plus the trailing Lambda bin.
         self._data_axes = Axes(
             [Axis(np.arange(self._n_events + 2), label="event")]
         )
@@ -169,14 +189,39 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
             density=np.ones(self._n_events), total=0.0
         )
 
-        # --- Per-event rotation matrices, galactic -> spacecraft frame ---
+        # --- Pixel directions ---
+        # The attitude rotates the spacecraft frame into its own inertial frame,
+        # which need not be galactic, so the pixels are expressed in that frame.
+        # Earth occultation is tested in GCRS, whose axes match ICRS for
+        # far-field directions.
+        theta, phi = hp.pix2ang(nside, np.arange(self._npix))
+        pixels = SkyCoord(phi, np.pi / 2.0 - theta, unit=u.rad, frame="galactic")
+        self._att_vecs = pixels.transform_to(sc_history.attitude.frame).cartesian.xyz.value.T
+        self._gcrs_vecs = pixels.transform_to("icrs").cartesian.xyz.value.T
+
+        # --- Spacecraft state at each event ---
         event_times = Time(events.jd1, events.jd2, format="jd")
         attitude = sc_history.interp_attitude(event_times)
-        self._rot_gal_to_sc = attitude.rot.inv().as_matrix()  # (n_events, 3, 3)
+        self._rot_to_sc = attitude.rot.inv().as_matrix()  # (n_events, 3, 3)
 
-        # All HEALPix pixel directions in galactic coordinates.
-        theta, phi = hp.pix2ang(nside, np.arange(self._npix))
-        self._gal_vecs = hp.ang2vec(theta, phi)  # (npix, 3)
+        # Live fraction of the interval each event falls in.  The exposure
+        # integrates livetime, so the per-event density needs the same factor.
+        interval_live_fraction = (
+            sc_history.livetime / sc_history.intervals_duration
+        ).to_value(u.dimensionless_unscaled)
+        event_unix = event_times.utc.unix
+        interval = np.searchsorted(sc_history.obstime.utc.unix, event_unix, side="right") - 1
+        interval = np.clip(interval, 0, len(interval_live_fraction) - 1)
+        self._event_live_fraction = interval_live_fraction[interval]
+
+        # Spacecraft location at each distinct event time, for Earth
+        # occultation.  SpacecraftHistory needs strictly increasing timestamps,
+        # hence the unique.
+        unique_unix, self._event_time_index = np.unique(event_unix, return_inverse=True)
+        if len(unique_unix) < 2:
+            raise ValueError("events must span at least two distinct timestamps")
+        self._sc_at_events = sc_history.interp(Time(unique_unix, format="unix", scale="utc"))
+        self._sc_at_events.cache_earth_occ = True
 
         # --- Exposure map ---
         if exposure_map is None:
@@ -212,7 +257,7 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
     # ------------------------------------------------------------------
 
     def _dataspace_histogram(self, density, total):
-        """Assemble a data-space histogram from per-event densities and their integral."""
+        """Assemble a data-space histogram from per-event densities and Lambda."""
 
         contents = np.empty(self._n_events + 1, dtype=float)
         contents[: self._n_events] = density
@@ -235,15 +280,20 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
         return np.asarray(contents, dtype=float).ravel()
 
     def _coerce_model(self, model):
-        """Model map as a flat array of ``npix`` fluxes."""
+        """Model map as a flat array of ``npix`` fluxes in ``FLUX_UNIT``.
 
+        Plain arrays are taken to be in ``FLUX_UNIT`` already.
+        """
+
+        contents = model.contents if isinstance(model, Histogram) else model
+
+        if isinstance(contents, u.Quantity):
+            contents = contents.to_value(FLUX_UNIT)
+
+        values = np.asarray(contents, dtype=float)
         if isinstance(model, Histogram):
-            contents = model.contents
-            if hasattr(contents, "value"):
-                contents = contents.value
-            values = np.asarray(contents, dtype=float)[:, 0]
-        else:
-            values = np.asarray(model, dtype=float).ravel()
+            values = values[:, 0]
+        values = values.ravel()
 
         if values.shape != (self._npix,):
             raise ValueError(
@@ -260,8 +310,10 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
     def response_matrix(self):
         """Sky response of shape ``(npix, n_events)``.
 
-        Element ``(j, i)`` is A_eff(j, t_i) P(event_i | photon from pixel j),
-        a density per unit data-space volume.
+        Element ``(j, i)`` is A_eff(j, t_i) P(event_i | photon from pixel j)
+        e(t_i) V_j(t_i), in cm^2 per unit data-space volume.  Times a flux in
+        ``FLUX_UNIT`` and the pixel solid angle, it gives counts per second per
+        unit data-space volume.
         """
 
         if self._response_matrix is None:
@@ -280,13 +332,17 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
 
         matrix = np.zeros((self._npix, self._n_events), dtype=float)
 
-        for j, v_gal in enumerate(self._gal_vecs):
-            photons = self._photons_from_direction(self._rot_gal_to_sc @ v_gal)
+        for j, (v_att, v_gcrs) in enumerate(zip(self._att_vecs, self._gcrs_vecs)):
+            photons = self._photons_from_direction(self._rot_to_sc @ v_att)
+
+            occluded = self._sc_at_events._get_earth_occ(v_gcrs)[self._event_time_index]
 
             matrix[j, :] = asarray(
                 self._irf.differential_effective_area_cm2(photons, self._events),
                 np.float64,
             )
+            matrix[j, :] *= self._event_live_fraction
+            matrix[j, occluded] = 0.0
 
             if (j + 1) % 100 == 0 or (j + 1) == self._npix:
                 logger.info("... %.1f%% complete.", 100.0 * (j + 1) / self._npix)
@@ -304,9 +360,7 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
         lon = np.arctan2(v_sc[:, 1], v_sc[:, 0])
         lat = np.pi / 2.0 - np.arccos(np.clip(v_sc[:, 2], -1.0, 1.0))
 
-        energy = self._incident_energy_keV
-        if len(v_sc) != len(energy):
-            energy = np.full(len(v_sc), energy[0], dtype=float)
+        energy = np.full(len(v_sc), self._energy_keV, dtype=float)
 
         return PhotonListWithDirectionAndEnergyInSCFrame(lon, lat, energy)
 
@@ -329,10 +383,12 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
     def _build_exposure_map(self, n_time_samples=5000):
         """Integrate the effective area over the spacecraft history.
 
-        The pixel solid angle is folded in so that the RL M-step denominator
-        matches the ``pixarea`` factor applied in ``calc_source_expectation``
-        and ``calc_T_product`` -- model fluxes are per steradian.  This is the
-        same convention as ``DataIF_COSI_DC2._calc_exposure_map``.
+        Each interval contributes its livetime, or nothing while the Earth
+        blocks the pixel.  The pixel solid angle is folded in so that the RL
+        M-step denominator matches the ``pixarea`` factor applied in
+        ``calc_source_expectation`` and ``calc_T_product`` -- model fluxes are
+        per steradian.  This is the same convention as
+        ``DataIF_COSI_DC2._calc_exposure_map``.
 
         Parameters
         ----------
@@ -347,37 +403,49 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
         logger.info("Integrating the exposure map over the spacecraft history...")
 
         sc = self._sc_history
-        livetime = sc.livetime.to(u.s).value  # (n_intervals,)
-        n_intervals = len(livetime)
+        n_intervals = sc.nintervals
 
         # Each interval is represented by the attitude at its start.
         rot = sc.attitude.rot.inv()
 
         if n_intervals > n_time_samples:
             # Split the history into contiguous chunks and weight each sampled
-            # attitude by the summed livetime of its chunk.  This preserves the
-            # total livetime exactly and keeps dead-time structure (an SAA pass,
-            # say) from being smeared uniformly over the orbit.
+            # attitude by the summed visible livetime of its chunk.  This keeps
+            # dead time and occultation (an SAA pass, a source setting) exact
+            # instead of smearing them uniformly over the orbit.
             edges = np.linspace(0, n_intervals, n_time_samples + 1, dtype=int)
-            cumulative = np.concatenate(([0.0], np.cumsum(livetime)))
-            livetime = cumulative[edges[1:]] - cumulative[edges[:-1]]
+            chunk_starts = edges[:-1]
             # Index the rotation before expanding it: three months of 1 s bins is
             # ~8e6 intervals, and as_matrix() over all of them costs ~0.5 GB only
             # to discard all but n_time_samples of the rows.
             rot_intervals = rot[(edges[:-1] + edges[1:]) // 2].as_matrix()
         else:
+            chunk_starts = None
             rot_intervals = rot.as_matrix()[:-1]
 
-        n_t = len(livetime)
+        n_t = len(rot_intervals)
 
-        # v_sc[t, j] = rot_intervals[t] @ gal_vecs[j]
-        v_sc = np.einsum("tik,jk->tji", rot_intervals, self._gal_vecs)
+        # v_sc[t, j] = rot_intervals[t] @ att_vecs[j]
+        v_sc = np.einsum("tik,jk->tji", rot_intervals, self._att_vecs)
         photons = self._photons_from_direction(v_sc.reshape(n_t * self._npix, 3))
 
         aeff = asarray(self._irf.effective_area_cm2(photons), np.float64)
         aeff = aeff.reshape(n_t, self._npix)
 
-        exposure = (aeff * livetime[:, np.newaxis]).sum(axis=0)  # cm^2 s
+        # Occultation depends on the pixel, so the visible livetime is computed
+        # one pixel at a time rather than as an (npix, n_intervals) array.
+        exposure = np.empty(self._npix, dtype=float)
+        cache_earth_occ = sc.cache_earth_occ
+        sc.cache_earth_occ = True
+        try:
+            for j, v_gcrs in enumerate(self._gcrs_vecs):
+                visible = sc.get_source_visibility(v_gcrs).to_value(u.s)
+                if chunk_starts is not None:
+                    visible = np.add.reduceat(visible, chunk_starts)
+                exposure[j] = aeff[:, j] @ visible  # cm^2 s
+        finally:
+            sc.cache_earth_occ = cache_earth_occ
+
         exposure *= self._pixarea  # cm^2 s sr
 
         return Histogram(
@@ -418,6 +486,27 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
         self._bkg_models[key] = self._dataspace_histogram(density, total)
         self._summed_bkg_models[key] = total
 
+    def background_rate(self, key, norm=1.0):
+        """Rate of a background model at a given RL normalization.
+
+        Parameters
+        ----------
+        key : str
+            Background model name
+        norm : float, optional
+            RL background normalization, e.g. from
+            ``results[-1]["background_normalization"][key]``.
+
+        Returns
+        -------
+        :py:class:`astropy.units.Quantity`
+            Expected background counts per second of livetime, in Hz.
+        """
+
+        livetime = self._sc_history.livetime.sum()
+
+        return (norm * self.summed_bkg_model(key) / livetime).to(u.Hz)
+
     # ------------------------------------------------------------------
     # Interface methods
     # ------------------------------------------------------------------
@@ -435,7 +524,7 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
         -------
         :py:class:`histpy.Histogram`
             Per-event intensity densities, plus the total expected source
-            counts in the normalization bin.
+            counts in the Lambda bin.
         """
 
         flux = self._coerce_model(model)
@@ -522,13 +611,13 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
         """
         Calculate the unbinned extended log-likelihood,
 
-            ln L = \\sum_i ln \\lambda(x_i) - N_tot.
+            ln L = \\sum_i ln \\lambda(x_i) - Lambda.
 
         Parameters
         ----------
         expectation : :py:class:`histpy.Histogram`
             Expected count histogram, as returned by ``calc_expectation``.  Its
-            normalization bin supplies N_tot.
+            Lambda bin supplies the expected total.
 
         Returns
         -------
@@ -539,6 +628,6 @@ class UnbinnedImageDataInterface(ImageDeconvolutionDataInterfaceBase):
         contents = self._contents(expectation)
 
         density = np.maximum(contents[: self._n_events], NUMERICAL_ZERO)
-        n_tot = contents[self._i_norm]
+        expected_total = contents[self._i_norm]
 
-        return float(np.sum(np.log(density)) - n_tot)
+        return float(np.sum(np.log(density)) - expected_total)
