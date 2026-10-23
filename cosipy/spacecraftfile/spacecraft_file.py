@@ -39,7 +39,7 @@ class SpacecraftHistory:
 
     # radius of earth
     _r_earth = 6378.0
-    _far_dist = 1*u.Mpc
+    _far_dist = "1 Mpc"
 
     def __init__(self,
                  obstime: Time,
@@ -334,6 +334,13 @@ class SpacecraftHistory:
 
         t = QTable.read(filename)
 
+        #Convert EVERY column to native byte order ---
+        for colname in t.colnames:
+            col = t[colname]
+            t[colname] = np.astype(col, col.dtype.newbyteorder('='), copy=False)
+        
+            
+        
         # make sure we have version info, and that we support this version
         if "VERSION" not in t.meta:
             raise ValueError("FITS orientation file has no version info")
@@ -533,7 +540,7 @@ class SpacecraftHistory:
         # Make the distance very far away such that the parallax
         # between earth-centered and barycenter doesn't matter
         zenith_gal = SkyCoord(l = earth_lon, b = earth_lat,
-                              distance = SpacecraftHistory._far_dist,
+                              distance = Quantity(SpacecraftHistory._far_dist),
                               frame = Galactic(),
                               copy = False)
         gcrs = zenith_gal.transform_to('gcrs')
@@ -576,7 +583,7 @@ class SpacecraftHistory:
 
         # Make it far field o get galactic coordinates
         gcrs_far = GCRS(ra = gcrs.ra, dec = gcrs.dec,
-                        distance = SpacecraftHistory._far_dist,
+                        distance = Quantity(SpacecraftHistory._far_dist),
                         copy = False)
         zenith_gal = gcrs_far.transform_to(Galactic())
 

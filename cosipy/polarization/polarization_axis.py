@@ -31,7 +31,7 @@ class PolarizationAxis(Axis):
 
     def __init__(self,
                  edges,
-                 convention = IAUPolarizationConvention(),
+                 convention = None,
                  label = None,
                  unit = None,
                  copy = True):
@@ -40,7 +40,9 @@ class PolarizationAxis(Axis):
             convention = edges.convention if convention is None else convention
             edges = edges.angle
 
-        if not isinstance(convention, PolarizationConvention):
+        if convention is None:
+            convention = IAUPolarizationConvention()
+        elif not isinstance(convention, PolarizationConvention):
             convention = PolarizationConvention.get_convention(convention)
 
         self._convention = convention
@@ -64,6 +66,7 @@ class PolarizationAxis(Axis):
         new = super()._copy(edges, copy_edges)
 
         # self._convention is not copied. It's safe to share it.
+        new._convention = self._convention
 
         return new
 

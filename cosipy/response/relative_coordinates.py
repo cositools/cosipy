@@ -18,6 +18,12 @@ class RelativeCDSCoordinates:
         Parameters
         ----------
         source_direction: SkyCoord or normalized vector (3,N)
+            If a SkyCoord, it is transformed to ``pol_convention.frame``
+            before computing the local polarization basis, so any frame
+            is accepted.
+            If a bare vector, NO frame transform is performed -- it is
+            taken as-is and assumed to already be expressed in
+            ``pol_convention.frame``.
         pol_convention
         """
 
@@ -127,8 +133,9 @@ class RelativeCDSCoordinates:
         -------
         phi,az:
         phi: Angular distance with respect to the source direction.
+            Range [0, pi] .
         az: Azimuthal angle around the source direction, with a
-            0-direction defined by the polarization convention.
+            0-direction defined by the polarization convention. Range is (-pi, pi]
         Each with shape (N,M). Angles.
 
         """
@@ -151,7 +158,8 @@ class RelativeCDSCoordinates:
             np.einsum('ji...,ji...->j...',[px,py,source_vec], psichi_vec[np.newaxis])
 
         # Get the angle from the vector
-        phi = np.arccos(psichi_source_component)
+        # Rounding can put the component slightly outside [-1, 1] near the source direction or its opposite
+        phi = np.arccos(np.clip(psichi_source_component, -1, 1))
         az = np.arctan2(psichi_py_component, psichi_px_component)
 
         return Angle(phi, unit=u.rad, copy=False), Angle(az, unit=u.rad, copy=False)

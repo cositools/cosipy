@@ -1,8 +1,11 @@
-from typing import Union, Protocol, ClassVar
-from typing_extensions import runtime_checkable
+from abc import ABC, abstractmethod
+from symtable import Class
+from typing import Sequence, Union, Protocol, ClassVar
 
-from astropy.coordinates import Angle, SkyCoord
+import numpy as np
+from astropy.coordinates import Angle, SkyCoord, BaseCoordinateFrame
 from scoords import SpacecraftFrame
+from typing_extensions import runtime_checkable
 
 from astropy.time import Time
 from astropy.units import Quantity, Unit
@@ -12,6 +15,14 @@ __all__ = [
     "EventInterface",
     "TimeTagEventInterface",
     "EventWithEnergyInterface",
+    "EventWithScatteringAngleInterface",
+    "ComptonDataSpaceInSCFrameEventInterface",
+    "ComptonDataSpaceInGalFrameEventInterface",
+    "EmCDSEventInSCFrameInterface",
+    "TimeTagEmCDSEventInSCFrameInterface",
+    "EmCDSEventInSCAndGalFrameInterface",
+    "TimeTagEmCDSEventInSCAndGalFrameInterface",
+    "TimeTagEmCDSDistanceEventInSCFrameInterface",
 ]
 
 @runtime_checkable
@@ -21,7 +32,14 @@ class EventInterface(Protocol):
     """
 
     # This makes sure that all PDFs have the same units
-    data_space_units = ClassVar[Union[Unit, None]]
+    _data_space_units: ClassVar[Union[str, None]] = None
+
+    @property
+    def data_space_units(self) -> Union[Unit, None]:
+        if self._data_space_units is None:
+            return None
+
+        return Unit(self._data_space_units)
 
     @property
     def id(self) -> int:
@@ -34,7 +52,7 @@ class EventInterface(Protocol):
 @runtime_checkable
 class TimeTagEventInterface(EventInterface, Protocol):
 
-    data_space_units = u.s
+    _data_space_units = "s"
 
     @property
     def jd1(self) -> float:...
@@ -52,7 +70,7 @@ class TimeTagEventInterface(EventInterface, Protocol):
 @runtime_checkable
 class EventWithEnergyInterface(EventInterface, Protocol):
 
-    data_space_units = u.keV
+    _data_space_units = "keV"
 
     @property
     def energy_keV(self) -> float:...
@@ -67,7 +85,7 @@ class EventWithEnergyInterface(EventInterface, Protocol):
 @runtime_checkable
 class EventWithScatteringAngleInterface(EventInterface, Protocol):
 
-    data_space_units = u.rad
+    _data_space_units = "rad"
 
     @property
     def scattering_angle_rad(self) -> float: ...
@@ -84,7 +102,7 @@ class EventWithScatteringAngleInterface(EventInterface, Protocol):
 @runtime_checkable
 class ComptonDataSpaceInSCFrameEventInterface(EventWithScatteringAngleInterface, Protocol):
 
-    data_space_units = EventWithScatteringAngleInterface.data_space_units * u.sr
+    _data_space_units = "rad sr"
 
     @property
     def scattered_lon_rad_sc(self) -> float: ...
@@ -102,14 +120,67 @@ class ComptonDataSpaceInSCFrameEventInterface(EventWithScatteringAngleInterface,
                         unit=u.rad,
                         frame=SpacecraftFrame())
 
+
+@runtime_checkable
+class ComptonDataSpaceInGalFrameEventInterface(EventWithScatteringAngleInterface, Protocol):
+
+    _data_space_units = "rad sr"
+
+    @property
+    def scattered_lon_rad_gal(self) -> float: ...
+
+    @property
+    def scattered_lat_rad_gal(self) -> float: ...
+
+    @property
+    def scattered_direction_gal(self) -> SkyCoord:
+        """
+        Add fancy energy quantity
+        """
+        return SkyCoord(self.scattered_lon_rad_gal,
+                        self.scattered_lat_rad_gal,
+                        unit=u.rad,
+                        frame="Galactic")
+
 @runtime_checkable
 class EmCDSEventInSCFrameInterface(EventWithEnergyInterface,
                                    ComptonDataSpaceInSCFrameEventInterface,
                                    Protocol):
-    data_space_units = ComptonDataSpaceInSCFrameEventInterface.data_space_units * EventWithEnergyInterface.data_space_units
+    _data_space_units = "rad sr keV"
 
 @runtime_checkable
 class TimeTagEmCDSEventInSCFrameInterface(TimeTagEventInterface,
                                           EmCDSEventInSCFrameInterface,
                                           Protocol):
-    data_space_units = EmCDSEventInSCFrameInterface.data_space_units * TimeTagEventInterface.data_space_units
+    _data_space_units = "rad sr keV s"
+
+@runtime_checkable
+class EmCDSEventInSCAndGalFrameInterface(EventWithEnergyInterface,
+                                   ComptonDataSpaceInSCFrameEventInterface,
+                                   ComptonDataSpaceInGalFrameEventInterface,      
+                                   Protocol):
+    _data_space_units = "rad2 sr2 keV"
+
+@runtime_checkable
+class TimeTagEmCDSEventInSCAndGalFrameInterface(TimeTagEventInterface,
+                                          EmCDSEventInSCAndGalFrameInterface,
+                                          Protocol):
+    _data_space_units = "rad2 sr2 keV s"
+
+@runtime_checkable
+class TimeTagEmCDSDistanceEventInSCFrameInterface(TimeTagEmCDSEventInSCFrameInterface, Protocol):
+    """
+    A TimeTagEmCDSEventInSCFrameInterface event that also tracks the
+    distance between the first two hits of the Compton event.
+    """
+
+    @property
+    def distance_cm(self) -> float: ...
+
+    @property
+    def distance(self) -> Quantity:
+        """
+        Add fancy distance quantity
+        """
+        return Quantity(self.distance_cm, u.cm)
+

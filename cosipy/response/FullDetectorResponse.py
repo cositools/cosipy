@@ -593,8 +593,8 @@ class FullDetectorResponse(HealpixBase):
             if source.size > 1:
                 raise ValueError("Only a single source coordinate is supported")
 
-            if isinstance(source.frame, SpacecraftFrame):
-                raise ValueError("scatt_map is not supported for source in local coordinate frame")
+            #if isinstance(source.frame, SpacecraftFrame):
+            #    raise ValueError("scatt_map is not supported for source in local coordinate frame")
 
             has_pol = ('Pol' in self._axes.labels)
 
@@ -614,8 +614,10 @@ class FullDetectorResponse(HealpixBase):
                 from cosipy.polarization.polarization_angle import PolarizationAngle
                 from cosipy.polarization.conventions import IAUPolarizationConvention
 
-                # angles in IAU convention's frame corresponding to
-                # each bin on Pol axis in source's frame
+                # Define a set of discrete angles in the IAU
+                # convention with the same range/resolution as the
+                # response's Pol axis, to be used when sampling the
+                # polarization response.
                 pol_convention = IAUPolarizationConvention()
                 iau_pol_angles = PolarizationAngle(psr_axes['Pol'].centers.angle,
                                                    source,
@@ -665,17 +667,17 @@ class FullDetectorResponse(HealpixBase):
                     # local convention
                     conv_type = type(psr_axes['Pol'].convention)
                     conv_w_att = PolarizationConvention.get_convention(conv_type, att)
-                    loc_pol_angles = iau_pol_angles.transform_to(conv_w_att)
+                    loc_pol_angles = iau_pol_angles.transform_to(conv_w_att).angle
 
                     # wrap 180-degree polarization angles to keep them
                     # within bin range
-                    la = loc_pol_angles.angle
-                    la = np.where(la.deg == 180., 0. * u.deg , la)
+                    loc_pol_angles = np.where(loc_pol_angles.deg == 180.,
+                                              0. * u.deg , loc_pol_angles)
 
                     # map each local-convention Pol bin angle to
                     # nearest bin (TODO: this could also be
                     # interpolated)
-                    loc_pol_bins = psr_axes['Pol'].find_bin(la)
+                    loc_pol_bins = psr_axes['Pol'].find_bin(loc_pol_angles)
 
                     sf_psr += self._rot_psr_pol(psr_axes, exposure,
                                                 loc_psichi_pixels, loc_pol_bins,
@@ -1027,33 +1029,100 @@ class FullDetectorResponse(HealpixBase):
     def __str__(self):
         return f"{self.__class__.__name__}(filename = '{self.filename.resolve()}')"
 
+    # def __repr__(self):
+
+    #     output = (f"FILENAME: '{self.filename.resolve()}'\n"
+    #               f"AXES:\n")
+
+    #     for naxis, axis in enumerate(self._axes):
+
+    #         if naxis == 0:
+    #             description = "Location of the simulated source in the spacecraft coordinates"
+    #         else:
+    #             description = self._drm['AXIS_DESCRIPTIONS'].attrs[axis.label]
+
+    #         output += (f"  {axis.label}:\n"
+    #                    f"    DESCRIPTION: '{description}'\n")
+
+    #         if isinstance(axis, HealpixAxis):
+    #             output += (f"    TYPE: 'healpix'\n"
+    #                        f"    NPIX: {axis.npix}\n"
+    #                        f"    NSIDE: {axis.nside}\n"
+    #                        f"    SCHEME: '{axis.scheme}'\n")
+    #         else:
+    #             output += (f"    TYPE: '{axis.axis_scale}'\n"
+    #                        f"    UNIT: '{axis.unit}'\n"
+    #                        f"    NBINS: {axis.nbins}\n"
+    #                        f"    EDGES: [{', '.join([str(e) for e in axis.edges])}]\n")
+
+    #     return output
+
+    # MAB /////////////////////////////////////////////////////////////////////////////////
     def __repr__(self):
 
-        output = (f"FILENAME: '{self.filename.resolve()}'\n"
-                  f"AXES:\n")
+        output = (
+            f"FILENAME: '{self.filename.resolve()}'\n"
+            f"AXES:\n"
+        )
 
         for naxis, axis in enumerate(self._axes):
 
             if naxis == 0:
-                description = "Location of the simulated source in the spacecraft coordinates"
+                description = (
+                    "Location of the simulated source "
+                    "in the spacecraft coordinates"
+                )
             else:
-                description = self._drm['AXIS_DESCRIPTIONS'].attrs[axis.label]
+                description = self._drm[
+                    "AXIS_DESCRIPTIONS"
+                ].attrs.get(
+                    axis.label,
+                    "No description available",
+                )
 
-            output += (f"  {axis.label}:\n"
-                       f"    DESCRIPTION: '{description}'\n")
+            output += (
+                f"  {axis.label}:\n"
+                f"    DESCRIPTION: '{description}'\n"
+            )
 
             if isinstance(axis, HealpixAxis):
-                output += (f"    TYPE: 'healpix'\n"
-                           f"    NPIX: {axis.npix}\n"
-                           f"    NSIDE: {axis.nside}\n"
-                           f"    SCHEME: '{axis.scheme}'\n")
+
+                output += (
+                    f"    TYPE: 'healpix'\n"
+                    f"    NPIX: {axis.npix}\n"
+                    f"    NSIDE: {axis.nside}\n"
+                    f"    SCHEME: '{axis.scheme}'\n"
+                )
+
             else:
-                output += (f"    TYPE: '{axis.axis_scale}'\n"
-                           f"    UNIT: '{axis.unit}'\n"
-                           f"    NBINS: {axis.nbins}\n"
-                           f"    EDGES: [{', '.join([str(e) for e in axis.edges])}]\n")
+
+                edges = axis.edges
+
+                # Convert Quantity-like objects to their numerical values,
+                # while preserving non-Quantity objects such as
+                # PolarizationAngle.
+                if hasattr(edges, "value"):
+                    edges_to_print = edges.value
+                else:
+                    edges_to_print = edges
+
+                # Some axis edge objects are not iterable.
+                try:
+                    edges_string = ", ".join(
+                        str(edge) for edge in edges_to_print
+                    )
+                except TypeError:
+                    edges_string = str(edges_to_print)
+
+                output += (
+                    f"    TYPE: '{axis.axis_scale}'\n"
+                    f"    UNIT: '{axis.unit}'\n"
+                    f"    NBINS: {axis.nbins}\n"
+                    f"    EDGES: [{edges_string}]\n"
+                )
 
         return output
+    # MAB /////////////////////////////////////////////////////////////////////////////////
 
     def _repr_pretty_(self, p, cycle):
 

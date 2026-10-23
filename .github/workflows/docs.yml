@@ -19,6 +19,38 @@ jobs:
           pip install sphinx==8.1.3 sphinx_rtd_theme nbsphinx mock
       - name: Sphinx build
         run: |
-          make -C docs html
+          set -o pipefail
+          python -m sphinx -M clean docs docs/_build
+          python -m sphinx -M html docs docs/_build -E -a 2>&1 | tee /tmp/sphinx-build.log
+      - name: Check API documentation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          log = Path("/tmp/sphinx-build.log").read_text()
+          import_failures = [
+              line for line in log.splitlines()
+              if "WARNING: autodoc: failed to import" in line
+          ]
+          if import_failures:
+              raise SystemExit("\n".join(import_failures))
+
+          api_dir = Path("docs/_build/html/api")
+          pattern = re.compile(
+              r'class="py (?:class|function|method|attribute|property)'
+          )
+          documented_objects = sum(
+              len(pattern.findall(page.read_text()))
+              for page in api_dir.glob("*.html")
+          )
+          if documented_objects < 400:
+              raise SystemExit(
+                  "API documentation looks incomplete: "
+                  f"found only {documented_objects} documented Python objects"
+              )
+
+          print(f"Validated {documented_objects} documented Python objects")
+          PY
 
 
