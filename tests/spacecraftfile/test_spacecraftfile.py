@@ -454,3 +454,25 @@ def test_update_ephemeris_scaling():
         ori.livetime.to_value(u.s), 
         original_livetime * 0.40
     )
+
+def test_interp_attitude_slerp():
+    """Constant angular velocity between the samples, also when their quaternions have
+    opposite signs (q and -q are the same rotation)."""
+
+    from scipy.spatial.transform import Rotation
+    from scoords import Attitude
+
+    axis = np.array([0.3, -0.5, 0.8]) / np.linalg.norm([0.3, -0.5, 0.8])
+    start = Rotation.from_euler('zyx', [10, 20, 30], degrees=True)
+    step = Rotation.from_rotvec(np.deg2rad(8) * axis)
+    q1, q2 = start.as_quat(), (step * start).as_quat()
+
+    for sign in (1, -1):
+        att1 = Attitude.from_quat(q1, frame='galactic')
+        att2 = Attitude.from_quat(sign * q2, frame='galactic')
+
+        for t in (0.25, 0.5, 0.75):
+            interp = SpacecraftHistory._interp_attitude(np.array(t), att1, att2)
+            expected = Rotation.from_rotvec(t * np.deg2rad(8) * axis) * start
+            angle = (Rotation.from_quat(interp.as_quat()) * expected.inv()).magnitude()
+            assert angle < 1e-9
