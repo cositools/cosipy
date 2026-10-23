@@ -677,18 +677,26 @@ class SpacecraftHistory:
         p1 = att1.as_quat()
         p2 = att2.as_quat()
 
-        # angle between quaternions p1, p2 (xyzw order)
-        theta = 2 * np.arccos(np.einsum('i...,i...->...',
-                                        p1.transpose(),
-                                        p2.transpose()))
+        cos_theta = np.einsum('i...,i...->...', p1.transpose(), p2.transpose())
+
+        # q and -q are the same rotation: interpolate along the shorter arc
+        sign = np.where(cos_theta < 0, -1., 1.)
+        p2 = sign[..., np.newaxis] * p2
+
+        # angle between quaternions p1, p2 as 4D unit vectors (xyzw order)
+        theta = np.arccos(np.clip(np.abs(cos_theta), -1, 1))
 
         # Makes it work with scalars or any input shape
         t = t[..., np.newaxis]
         theta = theta[..., np.newaxis]
 
-        # SLERP interpolated quaternion
-        den = np.sin(theta)
-        pi = (np.sin((1 - t) * theta) * p1 + np.sin(t * theta) * p2) / den
+        # SLERP interpolated quaternion, linear for (nearly) equal quaternions
+        with np.errstate(divide='ignore', invalid='ignore'):
+            den = np.sin(theta)
+            small = theta < 1e-8
+            w1 = np.where(small, 1 - t, np.sin((1 - t) * theta) / den)
+            w2 = np.where(small, t, np.sin(t * theta) / den)
+        pi = w1 * p1 + w2 * p2
 
         return Attitude.from_quat(pi, frame=att1.frame)
 
