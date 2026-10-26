@@ -950,7 +950,7 @@ class UnBinnedData(DataIO):
 
         # Imported here to avoid a circular import, since
         # EmCDSUnbinnedData imports UnBinnedData
-        from cosipy.data_io.EmCDSUnbinnedData import TimeTagEmCDSEventDataInSCFrameFromArrays,TimeTagEmCDSDistanceEventInSCFrameInterface
+        from cosipy.data_io.EmCDSUnbinnedData import TimeTagEmCDSEventDataInSCFrameFromArrays,TimeTagEmCDSDistanceEventDataInSCFrameFromArrays
         from cosipy.util.iterables import asarray
         from cosipy.event_selection import DistanceSelector
                                       
@@ -978,7 +978,7 @@ class UnBinnedData(DataIO):
         time = Time(self.cosi_dataset['TimeTags'], format='unix')
 
         if IsDistance :
-            events = TimeTagEmCDSDistanceEventInSCFrameInterface(
+            events = TimeTagEmCDSDistanceEventDataInSCFrameFromArrays(
                 time.jd1, time.jd2,
                 self.cosi_dataset['Energies'],
                 self.cosi_dataset['Chi local'],
