@@ -48,7 +48,7 @@ class ToyEvent(TimeTagEventInterface, EventInterface):
     Unit-less 1D data of a measurement called "x" (could be anything)
     """
 
-    data_space_units = u.s
+    _data_space_units = "s"
 
     def __init__(self, index:int, x:float, time:Time):
         self._id = index

@@ -11,6 +11,7 @@ authors = [
 description = "High-level analysis for the COSI telescope data"
 requires-python = ">=3.12"
 dependencies = [
+                  "numpy>=2.0.0",
                   "histpy>=2.0.7",
                   "h5py>=3.13.0",
                   "hdf5plugin",
@@ -41,6 +42,7 @@ Homepage = "https://github.com/cositools/cosipy"
 cosi-response = "cosipy.response.FullDetectorResponse:cosi_response"
 cosi-threemlfit = "cosipy.pipeline.task.task:cosi_threemlfit"
 cosi-bindata = "cosipy.pipeline.task.task:cosi_bindata"
+cosi-tsdetect= "cosipy.pipeline.task.task:cosi_tsdetect"
 
 [tool.setuptools.packages.find]
 include = ["cosipy", "cosipy.*"]

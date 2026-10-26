@@ -158,7 +158,8 @@ class RelativeCDSCoordinates:
             np.einsum('ji...,ji...->j...',[px,py,source_vec], psichi_vec[np.newaxis])
 
         # Get the angle from the vector
-        phi = np.arccos(psichi_source_component)
+        # Rounding can put the component slightly outside [-1, 1] near the source direction or its opposite
+        phi = np.arccos(np.clip(psichi_source_component, -1, 1))
         az = np.arctan2(psichi_py_component, psichi_px_component)
 
         return Angle(phi, unit=u.rad, copy=False), Angle(az, unit=u.rad, copy=False)
