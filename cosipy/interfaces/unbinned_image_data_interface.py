@@ -19,6 +19,11 @@ logger = logging.getLogger(__name__)
 # Unit of the model map, as in AllSkyImageModel.
 FLUX_UNIT = u.Unit("1/(cm2 s sr)")
 
+# Most photons handed to the IRF in one call while integrating the exposure.
+# Each photon costs a few hundred bytes across the direction arrays and the
+# IRF's interpolation intermediates.
+_MAX_PHOTONS_PER_CALL = 20_000_000
+
 
 class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
     """
@@ -52,6 +57,12 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
     Lambda integrates the same quantity, so the exposure carries the same
     livetime and Earth occultation as the per-event densities.  Leave either
     out of one side only and the flux scale is biased.
+
+    Lambda integrates only over the part of the data space the events were
+    selected from, e.g. a measured-energy window.  The exposure must therefore
+    use the effective area for events that pass the same cuts.  The
+    per-event densities need no such factor, because every event lies inside
+    the cuts.
 
     Carrying Lambda
     ---------------
@@ -91,6 +102,7 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
         exposure_map=None,
         response_matrix=None,
         background_models=None,
+        n_time_samples=50000,
         name="UnbinnedImageDataInterfaceMono",
     ):
         """
@@ -98,10 +110,22 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
         ----------
         irf : :py:class:`cosipy.interfaces.FarFieldInstrumentResponseFunctionInterface`
             Instrument response.  Only ``differential_effective_area_cm2`` and
-            ``effective_area_cm2`` are used, so any implementation of the
-            far-field IRF interface works.
+            ``effective_area_cm2`` are used.  ``effective_area_cm2`` must be
+            the effective area for events that pass the same data-space cuts
+            as ``events``.  For a measured-energy window that means, e.g.,
+            ``IRFRelativeHistUnpolarized.from_h5(path,
+            selections=EnergySelector([emin, emax] * u.keV))``, with the same
+            selector used to cut the events.  The uncut effective area
+            overstates the exposure by the inverse of the fraction of events
+            that pass.  That fraction depends on the off-axis angle, so it
+            biases the image as well as the flux scale.
         events : :py:class:`cosipy.interfaces.EmCDSEventDataInSCFrameInterface`
-            Time-tagged event list in the spacecraft frame.
+            Time-tagged event list in the spacecraft frame.  Every event must
+            fall within ``sc_history``.  The list must also hold every
+            selected event recorded during it, since the exposure integrates
+            the whole history.  For a subsample or a time split, pass the
+            matching ``sc_history.select_interval(...)``, or scale
+            ``exposure_map`` and the background totals by the kept fraction.
         nside : int
             HEALPix nside of the galactic model map (RING scheme).
         sc_history : :py:class:`cosipy.spacecraftfile.SpacecraftHistory`
@@ -143,6 +167,24 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
             background normalization is a dimensionless multiplier of it, so
             1.0 reproduces the registered rate.  Use ``background_rate`` to
             convert a fitted normalization back to Hz.
+
+            The per-event densities should carry the live fraction, as the
+            source densities do.  :py:class:`FreeNormNFUnbinnedBackground`
+            does.  :py:class:`FreeNormBackgroundInterpolatedDensityTimeTagEmCDS`
+            does not yet, which matters only for events in partly live
+            intervals.
+        n_time_samples : int, optional
+            Number of attitudes sampled from ``sc_history`` when the exposure
+            map is integrated here.  The history is split into this many
+            contiguous chunks.  Each chunk is weighted by its summed visible
+            livetime and uses the effective area at its middle attitude.
+            Because the sky drifts through the field of view within a chunk,
+            the chunks must be short.  For a cosine-like effective area over a
+            3-month history of 1 s intervals, the per-pixel error is about 4%
+            rms at 5000 samples (~27 min chunks), 0.3% at 20000 and 0.05% at
+            50000.  A history with no
+            more intervals than this is integrated exactly.  Memory does not
+            grow with it, but run time does.
         name : str, optional
             Name of this dataset.
         """
@@ -151,6 +193,7 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
         self._irf = irf
         self._events = events
         self._sc_history = sc_history
+        self._n_time_samples = int(n_time_samples)
 
         self._nside = nside
         self._npix = hp.nside2npix(nside)
@@ -164,7 +207,7 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
         if energy_edges_keV.shape != (2,):
             raise ValueError(
                 "energy_edges must hold the two edges of a single bin, got "
-                f"{energy_edges_keV.shape[0] - 1} bins"
+                f"shape {energy_edges_keV.shape}"
             )
         if not energy_edges_keV[0] <= self._energy_keV <= energy_edges_keV[1]:
             raise ValueError(
@@ -201,6 +244,20 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
 
         # --- Spacecraft state at each event ---
         event_times = Time(events.jd1, events.jd2, format="jd")
+
+        # SpacecraftHistory clamps a time outside it to its first or last
+        # timestamp, which would hand such an event a wrong attitude instead
+        # of an error.
+        n_outside = np.count_nonzero(
+            (event_times < sc_history.tstart) | (event_times > sc_history.tstop)
+        )
+        if n_outside:
+            raise ValueError(
+                f"{n_outside} of {self._n_events} events fall outside the "
+                f"spacecraft history [{sc_history.tstart.isot}, "
+                f"{sc_history.tstop.isot}]"
+            )
+
         attitude = sc_history.interp_attitude(event_times)
         self._rot_to_sc = attitude.rot.inv().as_matrix()  # (n_events, 3, 3)
 
@@ -213,6 +270,14 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
         interval = np.searchsorted(sc_history.obstime.utc.unix, event_unix, side="right") - 1
         interval = np.clip(interval, 0, len(interval_live_fraction) - 1)
         self._event_live_fraction = interval_live_fraction[interval]
+
+        n_dead = np.count_nonzero(self._event_live_fraction == 0)
+        if n_dead:
+            logger.warning(
+                "%d events fall in zero-livetime intervals.  The source cannot "
+                "produce them, so only the background can account for them.",
+                n_dead,
+            )
 
         # Spacecraft location at each distinct event time, for Earth
         # occultation.  SpacecraftHistory needs strictly increasing timestamps,
@@ -369,7 +434,7 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
         """Per-pixel exposure in cm^2 s sr, with ``self.model_axes``."""
 
         if self._exposure_map is None:
-            self._exposure_map = self._build_exposure_map()
+            self._exposure_map = self._build_exposure_map(self._n_time_samples)
 
         return self._exposure_map
 
@@ -380,7 +445,7 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
 
         return np.asarray(contents, dtype=float)[:, 0]
 
-    def _build_exposure_map(self, n_time_samples=5000):
+    def _build_exposure_map(self, n_time_samples):
         """Integrate the effective area over the spacecraft history.
 
         Each interval contributes its livetime, or nothing while the Earth
@@ -392,8 +457,9 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
 
         Parameters
         ----------
-        n_time_samples : int, optional
-            Maximum number of attitudes to sample from the history.
+        n_time_samples : int
+            Maximum number of attitudes to sample from the history.  See the
+            constructor.
 
         Returns
         -------
@@ -419,30 +485,49 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
             # ~8e6 intervals, and as_matrix() over all of them costs ~0.5 GB only
             # to discard all but n_time_samples of the rows.
             rot_intervals = rot[(edges[:-1] + edges[1:]) // 2].as_matrix()
+
+            logger.info(
+                "Sampling %d of %d intervals, one attitude per %.0f s.",
+                n_time_samples,
+                n_intervals,
+                (sc.tstop - sc.tstart).to_value(u.s) / n_time_samples,
+            )
         else:
             chunk_starts = None
             rot_intervals = rot.as_matrix()[:-1]
 
         n_t = len(rot_intervals)
 
-        # v_sc[t, j] = rot_intervals[t] @ att_vecs[j]
-        v_sc = np.einsum("tik,jk->tji", rot_intervals, self._att_vecs)
-        photons = self._photons_from_direction(v_sc.reshape(n_t * self._npix, 3))
+        # n_t x npix photons at once would not fit in memory for a fine map
+        # and a long history, so the pixels go to the IRF in blocks.
+        block = max(1, _MAX_PHOTONS_PER_CALL // n_t)
 
-        aeff = asarray(self._irf.effective_area_cm2(photons), np.float64)
-        aeff = aeff.reshape(n_t, self._npix)
-
-        # Occultation depends on the pixel, so the visible livetime is computed
-        # one pixel at a time rather than as an (npix, n_intervals) array.
         exposure = np.empty(self._npix, dtype=float)
         cache_earth_occ = sc.cache_earth_occ
         sc.cache_earth_occ = True
         try:
-            for j, v_gcrs in enumerate(self._gcrs_vecs):
-                visible = sc.get_source_visibility(v_gcrs).to_value(u.s)
-                if chunk_starts is not None:
-                    visible = np.add.reduceat(visible, chunk_starts)
-                exposure[j] = aeff[:, j] @ visible  # cm^2 s
+            for start in range(0, self._npix, block):
+                stop = min(start + block, self._npix)
+
+                # v_sc[t, j] = rot_intervals[t] @ att_vecs[j]
+                v_sc = np.einsum(
+                    "tik,jk->tji", rot_intervals, self._att_vecs[start:stop]
+                )
+                photons = self._photons_from_direction(v_sc.reshape(-1, 3))
+
+                aeff = asarray(self._irf.effective_area_cm2(photons), np.float64)
+                aeff = aeff.reshape(n_t, stop - start)
+
+                # Occultation depends on the pixel, so the visible livetime is
+                # computed one pixel at a time rather than as an
+                # (npix, n_intervals) array.
+                for j in range(start, stop):
+                    visible = sc.get_source_visibility(self._gcrs_vecs[j]).to_value(u.s)
+                    if chunk_starts is not None:
+                        visible = np.add.reduceat(visible, chunk_starts)
+                    exposure[j] = aeff[:, j - start] @ visible  # cm^2 s
+
+                logger.info("... %.1f%% complete.", 100.0 * stop / self._npix)
         finally:
             sc.cache_earth_occ = cache_earth_occ
 
@@ -532,9 +617,10 @@ class UnbinnedImageDataInterfaceMono(ImageDeconvolutionDataInterfaceBase):
         density = self.response_matrix.T @ flux * self._pixarea
         density = np.maximum(density, NUMERICAL_ZERO)
 
-        # The integral factorizes: P(x | pixel j) is normalized over the data
-        # space, so \int \lambda dx is just exposure . flux.  Summing the
-        # per-event densities would not give this.
+        # The integral factorizes.  The exposure's effective area already holds
+        # the fraction of P(x | pixel j) that passes the event selection, so
+        # \int \lambda dx over the selected data space is exposure . flux.
+        # Summing the per-event densities would not give this.
         total = float(np.dot(self._exposure_per_pixel(), flux))
 
         return self._dataspace_histogram(density, total)
