@@ -950,31 +950,48 @@ class UnBinnedData(DataIO):
 
         # Imported here to avoid a circular import, since
         # EmCDSUnbinnedData imports UnBinnedData
-        from cosipy.data_io.EmCDSUnbinnedData import TimeTagEmCDSEventDataInSCFrameFromArrays
+        from cosipy.data_io.EmCDSUnbinnedData import TimeTagEmCDSEventDataInSCFrameFromArrays,TimeTagEmCDSDistanceEventInSCFrameInterface
         from cosipy.util.iterables import asarray
-
+        from cosipy.event_selection import DistanceSelector
+                                      
         logger.info("Making data selections with event selector...")
 
         # Option to read in unbinned data file
         if unbinned_data:
             self.cosi_dataset = self.get_dict(unbinned_data)
 
+		#check if the key Distance is present in the dataset
+        IsDistance = False                              
+        if "Distance" in self.cosi_dataset :
+            IsDistance = True
+        if not IsDistance and isinstance(selector,DistanceSelector):
+            raise TypeError("Your dataset does not include the Distance variable so you can't use this selector")
+                                      
         # Same time sorting as TimeTagEmCDSEventDataInSCFrameFromDC3Fits,
         # so time-based selectors see the events in the same order
         tsort = np.argsort(self.cosi_dataset['TimeTags'])
         for key in self.cosi_dataset:
             self.cosi_dataset[key] = self.cosi_dataset[key][tsort]
-			
+                                              
 	    # Same conversions as TimeTagEmCDSEventDataInSCFrameFromDC3Fits:
         # 'Psi local' is stored as colatitude, so latitude = pi/2 - psi
         time = Time(self.cosi_dataset['TimeTags'], format='unix')
 
-        events = TimeTagEmCDSEventDataInSCFrameFromArrays(
-            time.jd1, time.jd2,
-            self.cosi_dataset['Energies'],
-            self.cosi_dataset['Chi local'],
-            np.pi / 2 - self.cosi_dataset['Psi local'],
-            self.cosi_dataset['Phi'])
+        if IsDistance :
+            events = TimeTagEmCDSDistanceEventInSCFrameInterface(
+                time.jd1, time.jd2,
+                self.cosi_dataset['Energies'],
+                self.cosi_dataset['Chi local'],
+                np.pi / 2 - self.cosi_dataset['Psi local'],
+                self.cosi_dataset['Phi'],
+                self.cosi_dataset['Distance'] )
+        else :    
+            events = TimeTagEmCDSEventDataInSCFrameFromArrays(
+                time.jd1, time.jd2,
+                self.cosi_dataset['Energies'],
+                self.cosi_dataset['Chi local'],
+                np.pi / 2 - self.cosi_dataset['Psi local'],
+                self.cosi_dataset['Phi'])
 
         # early_stop=False guarantees one output value per event
         mask = asarray(selector.select(events, early_stop=False), dtype=bool)
