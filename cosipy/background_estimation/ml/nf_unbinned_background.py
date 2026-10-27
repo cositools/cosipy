@@ -22,7 +22,7 @@ class FreeNormNFUnbinnedBackground(EnergySelectorNormalizationMixin, BackgroundD
                  model: NFBackground,
                  data: TimeTagEmCDSEventDataInSCFrameInterface,
                  sc_history: SpacecraftHistory,
-                 selector: Optional[EventSelectorInterface] = None,
+                 selection: Optional[EventSelectorInterface] = None,
                  label: str = "bkg_norm"):
 
         self._expected_counts = None
@@ -38,7 +38,7 @@ class FreeNormNFUnbinnedBackground(EnergySelectorNormalizationMixin, BackgroundD
         self._offset: Optional[float] = sys.float_info.min
         
         self._type_map = NFBkgNormalizationMap
-        self._load_selector(selector)
+        self._load_selector(selection)
     
     @property
     def event_type(self) -> Type[EventInterface]:

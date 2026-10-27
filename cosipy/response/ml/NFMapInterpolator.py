@@ -5,6 +5,9 @@ from typing import Union, Tuple
 from abc import ABC, abstractmethod
 
 class BasePCHIPInterpolator(ABC):
+    """Etwas effizientere Implementierung des PCHIP-Interpolators.
+       Kann verbessert werden, indem man d cached."""
+    
     def __init__(self, maps):
         self._maps = maps
 
@@ -13,9 +16,36 @@ class BasePCHIPInterpolator(ABC):
                      I_next: torch.Tensor, I_nnext: torch.Tensor, 
                      map_indices_t: torch.Tensor, **kwargs) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: ...
 
+    @staticmethod
+    def _standard_pchip(h1, h2, m1, m2):
+        condition = (torch.sign(m1) != torch.sign(m2)) | (m1 == 0.0) | (m2 == 0.0)
+        w1 = 2.0 * h2 + h1
+        w2 = h2 + 2.0 * h1
+        m1_safe = torch.where(m1 == 0.0, torch.tensor(1.0, dtype=torch.float64), m1)
+        m2_safe = torch.where(m2 == 0.0, torch.tensor(1.0, dtype=torch.float64), m2)
+        whmean = (w1 / m1_safe + w2 / m2_safe) / (w1 + w2)
+        return torch.where(condition, torch.tensor(0.0, dtype=torch.float64), 1.0 / whmean)
+
+    @staticmethod
+    def _edge_case(h0, h1, m0, m1):
+        d = ((2.0 * h0 + h1) * m0 - h0 * m1) / (h0 + h1)
+        mask_sign = torch.sign(d) != torch.sign(m0)
+        mask2 = (torch.sign(m0) != torch.sign(m1)) & (torch.abs(d) > 3.0 * torch.abs(m0))
+        mmm = (~mask_sign) & mask2
+        d = torch.where(mask_sign, torch.tensor(0.0, dtype=torch.float64), d)
+        return torch.where(mmm, 3.0 * m0, d)
+
     def _pchip_interpolate(self, q_t: torch.Tensor, ref_t: torch.Tensor, 
                            map_indices_t: torch.Tensor, **kwargs) -> torch.Tensor:
         M_len = len(ref_t)
+        
+        if M_len < 2:
+            raise ValueError("ref_t braucht mindestens 2 Stützstellen")
+        if M_len == 2:
+            idx = torch.zeros_like(q_t, dtype=torch.long)
+            _, y0, y1, _ = self._get_y_nodes(idx, idx, idx + 1, idx + 1, map_indices_t, **kwargs)
+            t = (q_t - ref_t[0]) / (ref_t[1] - ref_t[0])
+            return y0 + t * (y1 - y0)
         
         idx = torch.searchsorted(ref_t, q_t, right=True) - 1
         idx = torch.clamp(idx, 0, M_len - 2)
@@ -38,36 +68,17 @@ class BasePCHIPInterpolator(ABC):
         m_prev = (y_curr - y_prev) / h_prev
         m_curr = (y_next - y_curr) / h_curr
         m_next = (y_nnext - y_next) / h_next
-        
-        def standard_pchip(h1, h2, m1, m2):
-            condition = (torch.sign(m1) != torch.sign(m2)) | (m1 == 0.0) | (m2 == 0.0)
-            w1 = 2.0 * h2 + h1
-            w2 = h2 + 2.0 * h1
-            
-            m1_safe = torch.where(m1 == 0.0, torch.tensor(1.0, dtype=torch.float64), m1)
-            m2_safe = torch.where(m2 == 0.0, torch.tensor(1.0, dtype=torch.float64), m2)
-            
-            whmean = (w1 / m1_safe + w2 / m2_safe) / (w1 + w2)
-            return torch.where(condition, torch.tensor(0.0, dtype=torch.float64), 1.0 / whmean)
-            
-        def edge_case(h0, h1, m0, m1):
-            d = ((2.0 * h0 + h1) * m0 - h0 * m1) / (h0 + h1)
-            mask_sign = torch.sign(d) != torch.sign(m0)
-            mask2 = (torch.sign(m0) != torch.sign(m1)) & (torch.abs(d) > 3.0 * torch.abs(m0))
-            mmm = (~mask_sign) & mask2
-            d = torch.where(mask_sign, torch.tensor(0.0, dtype=torch.float64), d)
-            return torch.where(mmm, 3.0 * m0, d)
             
         d_k = torch.where(
             idx == 0,
-            edge_case(h_curr, h_next, m_curr, m_next),
-            standard_pchip(h_prev, h_curr, m_prev, m_curr)
+            self._edge_case(h_curr, h_next, m_curr, m_next),
+            self._standard_pchip(h_prev, h_curr, m_prev, m_curr)
         )
         
         d_k1 = torch.where(
             idx == M_len - 2,
-            edge_case(h_curr, h_prev, m_curr, m_prev),
-            standard_pchip(h_curr, h_next, m_curr, m_next)
+            self._edge_case(h_curr, h_prev, m_curr, m_prev),
+            self._standard_pchip(h_curr, h_next, m_curr, m_next)
         )
         
         t = (q_t - ref_t[idx]) / h_curr
@@ -80,7 +91,6 @@ class BasePCHIPInterpolator(ABC):
         h11 = t3 - t2
         
         return h00 * y_curr + h10 * h_curr * d_k + h01 * y_next + h11 * h_curr * d_k1
-
 
 class SpatialSpectralInterpolator(BasePCHIPInterpolator):
     def __init__(self, maps, map_nside):
@@ -108,7 +118,6 @@ class SpatialSpectralInterpolator(BasePCHIPInterpolator):
         y_nnext = self._spatial_interpolation(q_pol, q_az, map_indices_t[I_nnext])
         
         return y_prev, y_curr, y_next, y_nnext
-
 
 class TemporalInterpolator(BasePCHIPInterpolator):
     def __init__(self, maps):

@@ -1,6 +1,8 @@
 from typing import Optional, Union, List
 import numpy as np
 import torch
+from astropy.units import Quantity
+from astropy.time import Time
 
 from cosipy.event_selection import EnergySelector
 from cosipy.interfaces.event_selection import EventSelectorInterface
@@ -18,24 +20,25 @@ class EnergySelectorNormalizationMixin:
                 raise ValueError("This implementation only supports EnergySelector.")
             else:
                 self._selector = selector
-                self._menergy_list = selector.energy_ranges_keV
-                if len(self._menergy_list) == 0:
+                menergy_list = selector.energy_ranges_keV
+                if len(menergy_list) == 0:
                     raise ValueError("The provided EnergySelector has no energy ranges defined.")
                 else:
-                    self._menergy_min_list = selector.energy_ranges_keV[:, 0].tolist()
-                    self._menergy_max_list = selector.energy_ranges_keV[:, 1].tolist()
-                    self._menergy_intervals = list(zip(self._menergy_min_list, self._menergy_max_list))
+                    self._energy_ranges = selector.energy_ranges
 
     @property
     def norm_map(self) -> Optional[NFNormalizationMapBase]:
         return self._norm_map
-    # TODO: Init map when already one set? How to changer parameters afterwards? Different types of norm maps...
-    # TODO: Check if map matches selector type and selector intervals?
-    # TODO: Changing map has influence on expectation chache (e.g. background counts)
+
     @norm_map.setter
     def norm_map(self, custom_map: NFNormalizationMapBase):
         if not isinstance(custom_map, self._type_map):
             raise TypeError("Provided map must be an instance of {}".format(self._type_map.__name__))
+        if self._norm_map is not None:
+            raise ValueError("Normalization map has already been set. To change it, please reset the selector first.")
+        compatibility_check = custom_map.check_compatibility(menergy=self._energy_ranges)
+        if not compatibility_check:
+            raise ValueError("Provided normalization map is not compatible with the current energy ranges.")
         self._norm_map = custom_map
     
     def _valid_events(self, events) -> torch.Tensor:
@@ -46,17 +49,16 @@ class EnergySelectorNormalizationMixin:
         
     def init_normalization_map(self, 
                                nfdensity: Optional[NFNormalizationMapBase] = None,
-                               intvar: Optional[List] = None,
+                               intvar: Optional[Union[Quantity, Time]] = None,
                                **kwargs
                                ):
         if self._selector is None:
             raise ValueError(f"Cannot initialize normalization map: No selector was provided to the {self.__class__.__name__}.")
-        else:
+        if self._norm_map is None:
             self._norm_map = self._type_map(
                 nfdensity, intvar,
-                menergy_keV=self._menergy_intervals,
-                **kwargs
-            )
+                menergy=self._energy_ranges,
+                **kwargs)   
     
     def _get_norm_factor(self, *args, **kwargs) -> Union[np.ndarray, float]:
         if self._selector is None:

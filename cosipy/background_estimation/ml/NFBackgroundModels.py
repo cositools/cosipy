@@ -206,8 +206,7 @@ class TotalBackgroundDensityCMLPDGaussianCARQSFlow(DensityModel):
     def _valid_samples(self, *args: torch.Tensor) -> torch.Tensor:
         nem, nphi, npsi, nchi, _ = args
         
-        valid_mask = (nem  >= 0.0) & \
-                     (nphi >  0.0) & (nphi <= 1.0) & \
+        valid_mask = (nphi >  0.0) & (nphi <= 1.0) & \
                      (npsi >= 0.0) & (npsi <= 1.0) & \
                      (nchi >= 0.0) & (nchi <= 1.0) & \
                      (nem  >= (np.log10(self._menergy_cuts[0])/2 - 1)) & \

@@ -11,7 +11,6 @@ from itertools import product, permutations
 import numpy as np
 import h5py
 from astromodels import PointSource
-from astropy.coordinates import CartesianRepresentation
 from executing import Source
 from scoords import SpacecraftFrame
 
@@ -36,7 +35,6 @@ logger = logging.getLogger(__name__)
 
 import torch
 from cosipy.response.ml.nf_instrument_response_function import UnpolarizedNFFarFieldInstrumentResponseFunction
-from cosipy.response.ml.NFNormalizationBase import IEnergyList
 
 
 PeakNodeList = Union[Tuple[int, int], List[Tuple[int, int]]]
@@ -123,20 +121,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._mid_times = self._sc_ori.obstime[:-1] + (self._sc_ori.obstime[1:] - self._sc_ori.obstime[:-1]) / 2
         self._sc_ori_center = self._sc_ori.interp(self._mid_times)
         
-        # Precomputed spacecraft history - Simpson
-        # t_edges = self._sc_ori.obstime
-        # t_mids = t_edges[:-1] + (t_edges[1:] - t_edges[:-1]) / 2
-        # all_t, inv_indices = np.unique(Time([t_edges, t_mids]), return_inverse=True)
-        # all_t = Time(all_t)
-        # self._sc_ori_simpson = self._sc_ori.interp(all_t)
-        # edge_indices = inv_indices[:len(t_edges)]
-        # mid_indices = inv_indices[len(t_edges):]
-        # livetime = self._sc_ori.livetime.to_value(u.s)
-        # self._unique_time_weights = np.zeros(len(all_t), dtype=np.float32)
-        # np.add.at(self._unique_time_weights, edge_indices[:-1], livetime / 6.0)
-        # np.add.at(self._unique_time_weights, edge_indices[1:], livetime / 6.0)
-        # np.add.at(self._unique_time_weights, mid_indices, 4.0 * livetime / 6.0)
-        
         data_times = self._data.time
         self._n_events = self._data.nevents
         self._unique_unix, self._inv_idx = np.unique(data_times.utc.unix, return_inverse=True)
@@ -148,6 +132,26 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         bin_indices = np.clip(bin_indices, 0, len(self._sc_ori.livetime) - 1)
         unique_ratio = interval_ratios[bin_indices]
         self._livetime_ratio = unique_ratio[self._inv_idx].astype(np.float32)
+        
+        #data_times = self._data.time
+        #self._n_events = self._data.nevents
+        #
+        ## Bin jedes Events (15-s-Bin der Spacecraft-History)
+        #t_edges = self._sc_ori.obstime.utc.unix
+        #event_bin = np.searchsorted(t_edges, data_times.utc.unix, side="right") - 1
+        #event_bin = np.clip(event_bin, 0, len(self._sc_ori.livetime) - 1)
+        #
+        ## Eindeutige Bins statt eindeutiger Zeiten; _inv_idx bleibt der Index pro Event
+        #self._unique_bins, self._inv_idx = np.unique(event_bin, return_inverse=True)
+        #
+        ## Orientierung = Bin-Mittelpunkt, identisch zu der in _compute_area
+        ## self._sc_ori_unique = self._sc_ori_center[self._unique_bins]
+        #self._sc_ori_unique = self._sc_ori.interp(self._mid_times[self._unique_bins])
+        #
+        #interval_ratios = (self._sc_ori.livetime.to_value(u.s) / self._sc_ori.intervals_duration.to_value(u.s))
+        #unique_ratio = interval_ratios[self._unique_bins]
+        #self._livetime_ratio = unique_ratio[self._inv_idx].astype(np.float32)
+        
         
         self._energy_m_keV = torch.as_tensor(asarray(self._data.energy_keV, dtype=np.float32))
         self._phi_rad = torch.as_tensor(asarray(self._data.scattering_angle_rad, dtype=np.float32))
@@ -161,8 +165,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         
         # Also runs _check_memory_savings
         self.reduce_memory = reduce_memory
-        
-        self._max_eps = -1.0
         
     @property
     def event_type(self) -> Type[EventInterface]:
@@ -279,7 +281,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
     def _set_integration_ranges(self,
                                 density_integration_nodes: Optional[DensityNodeList] = None,
                                 peak_nodes: Optional[PeakNodeList] = None,
-                                energy_range: Optional[IEnergyList] = None):
+                                energy_range = None):
         if energy_range is not None:
             if not isinstance(energy_range, list):
                 raise ValueError("The energy range must be a list.")
@@ -343,7 +345,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                                    total_expectation_resolution: float = -1.0,
                                    peak_nodes: Optional[PeakNodeList] = None,
                                    peak_width_params: Optional[Tuple[float, float, float, float, float]] = None,
-                                   energy_range: Optional[IEnergyList] = None,
+                                   energy_range = None,
                                    cache_batch_size: Optional[int] = -1,
                                    integration_batch_size: Optional[int] = -1,
                                    offset: float = -1.0):
@@ -427,35 +429,14 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         self._n_intervals = n_intervals
         self._check_memory_savings()
     
-    def set_flat_intervals(self, flat_intervals: Union[bool, List[bool]]):
-        """
-        Mark specific energy intervals to be integrated with a plain, linearly-spaced set
-        of Gauss-Legendre nodes covering the whole interval, instead of the adaptive
-        peak+background placement. Since these nodes don't depend on any per-event peak
-        location, they are identical for every event and are broadcast rather than computed
-        per event, so flat intervals are also cheaper than adaptive ones.
- 
-        Intended for narrow intervals dedicated to resolving a sharp flux feature (e.g. a
-        narrow line), where the IRF-peak-based placement concentrates nodes on IRF response
-        structure rather than on the flux's own narrow structure.
-        """
-        n_intervals = sum(1 for x in self._energy_range if isinstance(x, list))
-        
-        if isinstance(flat_intervals, bool):
-            new_flat_intervals = [flat_intervals] * n_intervals
-        else:
-            if (not isinstance(flat_intervals, (list, tuple))
-                or len(flat_intervals) != n_intervals
-                or not all(isinstance(b, bool) for b in flat_intervals)):
-                raise ValueError("flat_intervals must be a bool or a list of bools matching the number of energy intervals.")
-            new_flat_intervals = list(flat_intervals)
-        
-        self._flat_intervals = new_flat_intervals
-        # Forces _init_node_pool() to run again the next time the density is requested -
-        # same mechanism `irf_affected` uses in set_integration_parameters(). Not strictly
-        # necessary here since flat mode reuses the existing _nodes_bkg_0 pool untouched,
-        # but kept for consistency / to be robust to future changes.
-        self._irf_cache = self._irf_energy_node_cache = None
+    # def _build_time_grid(self, m):
+    #     t = self._sc_ori.obstime.utc.unix
+    #     frac = (np.arange(m) + 0.5) / m                     # äquidistante Mittelpunkte
+    #     t_sub = (t[:-1, None] + np.diff(t)[:, None] * frac[None, :]).ravel()
+    #     live = self._sc_ori.livetime.to_value(u.s)
+    #     w_sub = np.repeat(live / m, m)                      # Livetime des Bins / m
+    #     ori_sub = self._sc_ori.interp(Time(t_sub, format='unix', scale='utc'))
+    #     return ori_sub, w_sub
     
     @staticmethod
     def _build_nodes(degree: int) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -696,8 +677,12 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         # Midpoint
         sc_coord_sph = self._get_target_in_sc_frame(coord, self._sc_ori_center)
         earth_occ_index = self._earth_occ(coord, self._sc_ori_center)
-        
         combined_time_weights = (self._sc_ori.livetime.to_value(u.s)).astype(np.float32) * earth_occ_index
+        
+        #ori_sub, w_sub = self._build_time_grid(self._time_subdivisions)
+        #sc_coord_sph = self._get_target_in_sc_frame(coord, ori_sub)
+        #earth_occ_index = self._earth_occ(coord, ori_sub)
+        #combined_time_weights = (w_sub * earth_occ_index).astype(np.float32)
         
         # Simpson
         # sc_coord_sph = self._sc_ori_simpson.get_target_in_sc_frame(coord)
@@ -738,8 +723,10 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 batch_energies_buffer[:current_total]
                 )
             
+            sys.stdout.flush()
             eff_areas_flat = asarray(self._irf.effective_area_cm2(photons), dtype=np.float32)
             eff_areas_grid = eff_areas_flat.reshape(current_n_time, n_energy)
+            sys.stdout.flush()
 
             total_area += np.einsum('ij,i,j->j', 
                                     eff_areas_grid, 
@@ -1134,7 +1121,9 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             batch_phi_buffer[:current_total],
         )
         
+        sys.stdout.flush()
         res_block = torch.as_tensor(asarray(self._irf.differential_effective_area_cm2(photons, events), dtype=np.float32)).view(current_n, n_energy)
+        sys.stdout.flush()
         
         occ = torch.as_tensor(earth_occ_index).view(-1, 1)
         live = torch.as_tensor(live_sub).view(-1, 1)
@@ -1191,16 +1180,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             slice_sub = slice(start, end)
             
             res_block, nodes = self._compute_density_helper(self._valid_mask_cache[slice_sub], coord, sc_coord_sph, earth_occ_index, buffer)
-            
-            #current_n = end - start
-            #current_total = current_n * n_energy
-            #
-            #e_sl = self._energy_m_keV[start:end]
-            #p_sl = self._phi_rad[start:end]
-            #pg_sl = phi_geo_rad[start:end]
-            #pig_sl = phi_igeo_rad[start:end]
-            #
-            #nodes, weights = self._get_nodes(e_sl, p_sl, pg_sl, pig_sl)
 
             if batch_size_events >= self._valid_events:
                 self._irf_energy_node_cache = nodes.astype(np_memory_dtype)
@@ -1208,41 +1187,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 self._irf_energy_node_cache[start:end] = nodes.astype(np_memory_dtype)
                 
             self._irf_cache[start:end] = res_block.to(torch_memory_dtype)
-            
-            #batch_lon_src_buffer[:current_total].reshape(current_n, n_energy)[:] = lon_ph_rad[start:end, np.newaxis]
-            #batch_lat_src_buffer[:current_total].reshape(current_n, n_energy)[:] = lat_ph_rad[start:end, np.newaxis]
-            #
-            #batch_energy_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._energy_m_keV[start:end, np.newaxis])
-            #batch_lon_scatt_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._lon_scatt[start:end, np.newaxis])
-            #batch_lat_scatt_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._lat_scatt[start:end, np.newaxis])
-            #batch_phi_buffer[:current_total].reshape(current_n, n_energy)[:] = np.asarray(self._phi_rad[start:end, np.newaxis])
-            #
-            #photons = PhotonListWithDirectionAndEnergyInSCFrame(
-            #    batch_lon_src_buffer[:current_total],
-            #    batch_lat_src_buffer[:current_total],
-            #    np.asarray(nodes).ravel()
-            #    )
-            #
-            #events = EmCDSEventDataInSCFrameFromArrays(
-            #    batch_energy_buffer[:current_total],
-            #    batch_lon_scatt_buffer[:current_total],
-            #    batch_lat_scatt_buffer[:current_total],
-            #    batch_phi_buffer[:current_total],
-            #)
-            
-            #res_block = torch.as_tensor(asarray(self._irf.differential_effective_area_cm2(photons, events), dtype=np.float32)).view(current_n, n_energy)
-            
-            ###eff_areas_flat = torch.as_tensor(asarray(self._irf._effective_area_cm2(photons), dtype=np.float32))
-            ###densities_flat = torch.as_tensor(asarray(self._irf._event_probability(photons, events), dtype=np.float32))
-
-            ###res_block = (densities_flat * eff_areas_flat).view(current_n, n_energy)
-
-            #occ = torch.as_tensor(earth_occ_index[start:end]).view(-1, 1)
-            #live = torch.as_tensor(self._livetime_ratio[start:end]).view(-1, 1)
-            
-            #res_block *= occ * live * weights
-
-            #self._irf_cache[start:end] = res_block
     
     def _update_cache(self):
         
@@ -1549,14 +1493,29 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         allowed_err = max(abserr, relerr * abs(total_res_val))
         return total_res_val, bool(total_err <= allowed_err)
 
-    def _integrate_total_counts(self, coord, relerr: float, abserr: float, maxEval: int) -> tuple[float, bool]:
+    def _integrate_total_counts(self, coord, relerr: float, abserr: float, maxEval: int, m_time: int = 4) -> tuple[float, bool]:
         from cubature import cubature
         
-        sc_coord_sph = self._get_target_in_sc_frame(coord, self._sc_ori_center)
-        lon_ph_rad_center = asarray(sc_coord_sph.lon.rad, dtype=np.float32)
-        lat_ph_rad_center = asarray(sc_coord_sph.lat.rad, dtype=np.float32)
-        earth_occ_center = self._earth_occ(coord, self._sc_ori_center)
-        combined_time_weights = (self._sc_ori.livetime.to_value(u.s)).astype(np.float32) * earth_occ_center
+        def time_nodes(m: int):
+            x, w = np.polynomial.legendre.leggauss(m)
+            x = 0.5 * (x + 1.0)        
+            w = 0.5 * w                  
+
+            t = self._sc_ori.obstime.utc.unix
+            live = self._sc_ori.livetime.to_value(u.s)
+
+            t_sub = (t[:-1, None] + np.diff(t)[:, None] * x[None, :]).ravel()
+            w_sub = (live[:, None] * w[None, :]).ravel()  
+            return t_sub, w_sub
+        
+        t_sub, w_sub = time_nodes(m_time)
+        ori_sub = self._sc_ori.interp(Time(t_sub, format='unix', scale='utc'))
+        
+        sc_coord_sph = self._get_target_in_sc_frame(coord, ori_sub)
+        lon_ph_rad = asarray(sc_coord_sph.lon.rad, dtype=np.float32)
+        lat_ph_rad = asarray(sc_coord_sph.lat.rad, dtype=np.float32)
+        earth_occ = self._earth_occ(coord, ori_sub)
+        combined_time_weights = w_sub * earth_occ
 
         def total_counts_integrand(Ei):
             energies = Ei[:, 0]
@@ -1564,8 +1523,8 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
             total_counts_for_energies = np.zeros(num_eval, dtype=np.float64)
             
             for i_e, E in enumerate(energies):
-                batch_energies = np.full(len(lon_ph_rad_center), E, dtype=np.float32)
-                photons = PhotonListWithDirectionAndEnergyInSCFrame(lon_ph_rad_center, lat_ph_rad_center, batch_energies)
+                batch_energies = np.full(len(lon_ph_rad), E, dtype=np.float32)
+                photons = PhotonListWithDirectionAndEnergyInSCFrame(lon_ph_rad, lat_ph_rad, batch_energies)
                 eff_areas = asarray(self._irf.effective_area_cm2(photons), dtype=np.float64)
                 
                 total_area_at_E = np.sum(eff_areas * combined_time_weights)
@@ -1596,9 +1555,10 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
 
     def validate_integration(self, 
                              n_events: int, 
-                             relerr: float = 4e-4, 
-                             abserr: float = 1e-30, 
-                             maxEval: int = 1000000,
+                             relerr: Union[float, Tuple[float, float]] = 4e-4, 
+                             abserr: Union[float, Tuple[float, float]] = 1e-30, 
+                             maxEval: Union[int, Tuple[int, int]] = 1000000,
+                             m_time: int = 4,
                              save_path: Optional[Union[str, Path]] = None,
                              previous_results: Optional[dict] = None) -> dict:
         """
@@ -1610,6 +1570,22 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         the class's CURRENT settings. n_events/relerr/abserr/maxEval are ignored in that
         case, since no new reference integration happens.
         """
+        
+        
+        inputs = (relerr, abserr, maxEval)
+        is_tuple = [(isinstance(x, tuple) and len(x) == 2) for x in inputs]
+        
+        if all(is_tuple):
+            relerr_density, relerr_total = relerr
+            abserr_density, abserr_total = abserr
+            maxEval_density, maxEval_total = maxEval
+        elif not any(is_tuple):
+            relerr_density = relerr_total = relerr
+            abserr_density = abserr_total = abserr
+            maxEval_density = maxEval_total = maxEval
+        else:
+            raise ValueError("relerr, abserr, and maxEval must either all be scalars or all be 2-tuples.")
+        
         if self._source is None:
             raise RuntimeError("Call set_source() first.")
 
@@ -1637,7 +1613,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 converged_mask = np.asarray(de["converged_mask"], dtype=bool)
                 high_prec_densities = np.asarray(de["high_prec_densities"], dtype=np.float64)
                 if "high_precision" not in previous_results["total_counts"]:
-                    high_prec_total_counts, total_counts_converged = self._integrate_total_counts(coord, relerr, abserr, maxEval)
+                    high_prec_total_counts, total_counts_converged = self._integrate_total_counts(coord, relerr_total, abserr_total, maxEval_total, m_time)
                 else:
                     high_prec_total_counts = previous_results["total_counts"]["high_precision"]
             else:
@@ -1654,7 +1630,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                     res_val, is_converged = self._integrate_single_event_density(
                         event_idx, earth_occ_sampled[idx], livetime_ratio_sampled[idx],
                         sc_coord_sph_sampled[idx].lon.rad, sc_coord_sph_sampled[idx].lat.rad,
-                        relerr, abserr, maxEval
+                        relerr_density, abserr_density, maxEval_density
                     )
                     if self._offset is not None:
                         res_val += self._offset
@@ -1664,10 +1640,10 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
                 high_prec_densities = np.array(high_prec_densities, dtype=np.float64)
                 converged_mask = np.array(converged_mask, dtype=bool)
 
-                if sum(converged_mask) / len(converged_mask) < 0.9:
+                if (n_events > 0) and (sum(converged_mask) / len(converged_mask) < 0.9):
                     raise RuntimeError("Less than 90% of high-precision densities converged. Try increasing the maximum number of evaluations or the acceptable error.")
 
-                high_prec_total_counts, total_counts_converged = self._integrate_total_counts(coord, relerr, abserr, maxEval)
+                high_prec_total_counts, total_counts_converged = self._integrate_total_counts(coord, relerr_total, abserr_total, maxEval_total, m_time)
                 if not total_counts_converged:
                     raise RuntimeError("High-precision total counts integration did not converge. Try increasing the maximum number of evaluations or the acceptable error.")
 
@@ -1882,7 +1858,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptive(CachedUnbinnedThreeMLSourceR
         else:
             return result
 
-class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourceResponseInterface):
+class UnbinnedThreeMLPointSourceResponseIRFAdaptiveBuckets(CachedUnbinnedThreeMLSourceResponseInterface):
     
     def __init__(self,
                  data: TimeTagEmCDSEventDataInSCFrameInterface,
@@ -2082,7 +2058,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         return table
 
     def _build_bucket_table(self, interval_idx: int) -> Tuple[List[dict], torch.Tensor]:
-        print("Build bucket table start", flush = True)
         bkg_nodes = self._bkg_nodes[interval_idx]
         n_sizes = len(bkg_nodes)
         MAX_SLOTS = 3
@@ -2127,20 +2102,15 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         key_lookup = torch.full((max_key,), -1, dtype=torch.long)
         for key, bid in key_to_id.items():
             key_lookup[key] = bid
-        
-        print("Build bucket table end", flush = True)
 
         return bucket_table, key_lookup
 
     def _group_by_bucket(self, bucket_id: torch.Tensor, n_buckets: int) -> Dict[int, torch.Tensor]:
-        print("Group by bucket start", flush = True)
         
         order = torch.argsort(bucket_id, stable=True)
         sorted_ids = bucket_id[order]
         counts = torch.bincount(sorted_ids, minlength=n_buckets)
         offsets = torch.cumsum(counts, 0) - counts
-        
-        print("Group by bucket end", flush = True)
         
         return {b: order[offsets[b]:offsets[b] + counts[b]]
                 for b in range(n_buckets) if counts[b] > 0}
@@ -2151,7 +2121,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         lists (_peak_width_params, _bkg_thresholds, _peak_nodes, _bkg_nodes), and
         builds the per-interval bucket tables.
         """
-        print("Prepare integration structures start", flush = True)
         self._width_tensor: List[Tuple[float, float, float, float]] = [
             tuple(self._peak_width_params) for _ in range(self._n_intervals)
         ]
@@ -2167,7 +2136,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
             table, key_lookup = self._build_bucket_table(interval_idx)
             self._bucket_tables.append(table)
             self._bucket_key_lookup.append(key_lookup)
-        print("Prepare integration structures end", flush = True)
 
         self._build_node_pools()
     
@@ -2281,58 +2249,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         out_w = torch.where(is_zero | sum_is_zero, torch.zeros_like(out_w), out_w)
 
         return out_n, out_w
-    
-    #def _scale_nodes_center(self, E1: torch.Tensor, E2: torch.Tensor, EC: torch.Tensor,
-    #                        nodes_u: torch.Tensor, weights_u: torch.Tensor,
-    #                        beta: Optional[float] = None,
-    #                        peak_type: Optional[int] = None) -> Tuple[torch.Tensor, torch.Tensor]:
-    #    """
-    #    Denser-near-EC node placement, breakpoint shifted to reflect the actual
-    #    width ratio (as before). Escape peaks use the original cubic (power-3)
-    #    clustering instead of the sinh transform -- empirically the sinh shape
-    #    doesn't suit the escape peak's response well, whereas the photopeak and
-    #    missing-energy peaks are fine with it.
-    #    """
-    #    if beta is None:
-    #        beta = self._center_scale_beta
-#
-    #    width_left = (EC - E1)
-    #    width_right = (E2 - EC)
-    #    total_width = width_left + width_right
-#
-    #    is_zero = (total_width < 1e-9)
-    #    safe_total = torch.where(is_zero, torch.ones_like(total_width), total_width)
-#
-    #    f = width_left / safe_total
-    #    u0 = 2.0 * f - 1.0
-    #    u0 = torch.clamp(u0, min=-1.0 + 1e-6, max=1.0 - 1e-6)
-#
-    #    mask_left = (nodes_u < u0)
-    #    t_left  = (nodes_u - u0) / (u0 + 1.0)
-    #    t_right = (nodes_u - u0) / (1.0 - u0)
-    #    t = torch.where(mask_left, t_left, t_right)
-#
-    #    scale = torch.where(mask_left, width_left, width_right)
-    #    jac_denom = torch.where(mask_left, (u0 + 1.0), (1.0 - u0))
-#
-    #    if peak_type == self._TYPE_E:
-    #        # escape peak: cubic clustering, same asymmetric breakpoint as everything else
-    #        out_n = EC + t.pow(3) * scale
-    #        out_w = t.pow(2).mul(3).mul(weights_u).mul(scale).div(jac_denom)
-    #    else:
-    #        sinh_beta = np.sinh(beta)
-    #        out_n = EC + scale * torch.sinh(beta * t) / sinh_beta
-    #        out_w = weights_u * scale * beta * torch.cosh(beta * t) / sinh_beta / jac_denom
-#
-    #    w_sum = out_w.sum(dim=-1, keepdim=True)
-    #    sum_is_zero = (w_sum.abs() < 1e-12)
-    #    safe_w_sum = torch.where(sum_is_zero, torch.ones_like(w_sum), w_sum)
-    #    out_w = out_w * total_width / safe_w_sum
-#
-    #    out_n = torch.where(is_zero | sum_is_zero, EC, out_n)
-    #    out_w = torch.where(is_zero | sum_is_zero, torch.zeros_like(out_w), out_w)
-#
-    #    return out_n, out_w
 
     @staticmethod
     def _scale_nodes_log(E1: torch.Tensor, E2: torch.Tensor,
@@ -2408,8 +2324,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
             presence_eps = self._presence_eps
         if boundary_frac is None:
             boundary_frac = self._boundary_admit_frac
-        
-        print("Start classifying", flush = True)
 
         N = energy_m_keV.shape[0]
         energy_m_keV = energy_m_keV.view(-1, 1)
@@ -2569,8 +2483,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
             n_bad = int((bucket_id < 0).sum())
             raise RuntimeError(f"{n_bad} events produced an invalid bucket key -- "
                                 f"classification logic and _build_bucket_table have diverged.")
-        
-        print("Finished classifying", flush = True)
 
         return bucket_id
     
@@ -2646,19 +2558,11 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         offset = 0
         for i, t in enumerate(seq):
             n_pk = self._peak_node_count(interval_idx, t)
-            # EC must lie within [E1,E2] for _scale_nodes_center -- a boundary-admitted
-            # peak's TRUE center can legitimately sit outside its own clamped window.
             EC_i = torch.min(torch.max(peak_val[:, i:i + 1], clamped_left[:, i:i + 1]), clamped_right[:, i:i + 1])
             n_res, w_res = self._scale_nodes_center(
                 clamped_left[:, i:i + 1], clamped_right[:, i:i + 1], EC_i,
                 *self._nodes_peaks_pool[n_pk], self._center_scale_beta[min(t, 2)]
             )
-            #n_res, w_res = self._scale_nodes_center(
-            #    clamped_left[:, i:i + 1], clamped_right[:, i:i + 1], EC_i,
-            #    *self._nodes_peaks_pool[n_pk],
-            #    beta=self._center_scale_beta[min(t, 2)],
-            #    peak_type=t,
-            #)
             nodes_out[:, offset:offset + n_pk] = n_res
             weights_out[:, offset:offset + n_pk] = w_res
             offset += n_pk
@@ -2741,12 +2645,7 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
                 self._compute_area()
 
             if pdf_recalculation:
-                import time
-                t0 = time.perf_counter()
                 self._compute_density()
-                elapsed = time.perf_counter() - t0
-                print(f"[TIMING] _compute_density() took {elapsed:.2f} s "
-                      f"({self._valid_events} valid events)", flush=True)
 
             if not active_pool:
                 self._irf.shutdown_compute_pool()
@@ -3243,13 +3142,11 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
         if indices is None and n_events is None:
             raise ValueError("Either 'n_events' or 'indices' must be specified.")
 
-        print("Running validation", flush=True)
         pool_was_active = True
         if isinstance(self._irf, UnpolarizedNFFarFieldInstrumentResponseFunction):
             pool_was_active = self._irf.active_pool
             if not pool_was_active:
                 self._irf.init_compute_pool()
-        print("Pool initialized", flush=True)
 
         try:
             coord = self._source.position.sky_coord
@@ -3258,7 +3155,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
             earth_occ_index = self._earth_occ(coord, self._sc_ori_unique)[self._inv_idx]
             self._valid_mask_cache = np.where((earth_occ_index > 0) & (self._livetime_ratio > 0))[0]
             self._valid_events = int(len(self._valid_mask_cache))
-            print("Computed valid events", flush=True)
 
             if indices is not None:
                 sampled_indices = np.atleast_1d(np.asarray(indices, dtype=np.int64))
@@ -3269,13 +3165,9 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
                     replace=False
                 )
 
-            print("Determined sampled indices", flush=True)
-
             sc_coord_sph_sampled = sc_coord_sph[sampled_indices]
             earth_occ_sampled = earth_occ_index[sampled_indices]
             livetime_ratio_sampled = self._livetime_ratio[sampled_indices]
-
-            print("Determined sampled arrays", flush=True)
 
             high_prec_densities = []
             converged_mask = []
@@ -3290,8 +3182,6 @@ class UnbinnedThreeMLPointSourceResponseIRFAdaptiveV2(CachedUnbinnedThreeMLSourc
                     res_val += self._offset
                 high_prec_densities.append(res_val)
                 converged_mask.append(is_converged)
-
-            print("Finished computing high-precision densities", flush=True)
 
             high_prec_densities = np.array(high_prec_densities, dtype=np.float64)
             converged_mask = np.array(converged_mask, dtype=bool)
