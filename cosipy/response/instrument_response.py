@@ -10,7 +10,7 @@ from scoords import Attitude, SpacecraftFrame
 
 from histpy import Axes, Histogram
 
-from cosipy.polarization import PolarizationAxis
+from cosipy.polarization import PolarizationAxis, PolarizationAngle, PolarizationConvention
 from cosipy.response import FullDetectorResponse
 
 from cosipy.data_io import EmCDSBinnedData
@@ -124,7 +124,7 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
             if attitude is None:
                 raise RuntimeError("User need to provide the attitude information in order to transform to spacecraft coordinates")
 
-            return self._differential_effective_area_inertial(attitude, self.axes, direction, polarization, weight, out, add_inplace)
+            return self._differential_effective_area_inertial(attitude, self.axes, direction, weight, out, add_inplace)
 
         # Is local
 
@@ -194,7 +194,6 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
                                               attitude:Attitude,
                                               axes:Axes,
                                               direction: SkyCoord,
-                                              polarization:PolarizationAxis = None,
                                               weight:Union[float, Quantity] = None,
                                               out: Quantity = None,
                                               add_inplace:bool = False,
@@ -207,7 +206,6 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
         axes
         direction
         energy
-        polarization
         attitude
 
         Returns
@@ -221,12 +219,10 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
 
         if self.is_polarization_response:
 
-            #raise RuntimeError("Fix me. No pol yet")
-
             # Since we're doing a 0-th order interpolation, the only
             # thing that matter are the bin centers, so we're placing
             # them at the input polarization angles
-            center_angles = polarization.centers.angle.to_value(u.deg)
+            center_angles = self._dr._axes['Pol'].centers.angle.to_value(u.deg)
 
             if np.any(np.diff(center_angles) < 0):
                 raise ValueError("This implementation requires strictly monotonically increasing polarization angles")
@@ -237,7 +233,7 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
                                pol_edges,
                                pol_edges[-1] + 2 * (center_angles[-1] - pol_edges[-1]) ]
 
-            out_axes.append( PolarizationAxis(pol_edges, unit=u.deg, convention = polarization.convention, copy=False) )
+            out_axes.append(PolarizationAxis(pol_edges, unit=u.deg, convention='iau', copy=False, label='Pol'))
 
         out_axes += list(axes)
         out_axes = Axes(out_axes)
@@ -281,7 +277,6 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
         loc_psichi_pixels = self._dr._axes['PsiChi'].find_bin(theta=loc_psichi_colat,
                                                               phi=loc_psichi_lon)
 
-
         # Either initialize a new or clear cache
         if out is None:
             out = Quantity(np.zeros(out_axes.shape), dr_pix.unit, copy = None)
@@ -294,9 +289,36 @@ class BinnedInstrumentResponse(BinnedInstrumentResponseInterface):
         else:
             weight_unit = None
 
-        out.value[:] += self._dr._rot_psr(out_axes, weight,
-                                          loc_psichi_pixels,
-                                          (loc_src_pixels,))
+        if self.is_polarization_response:
+
+            iau_pol_angles = PolarizationAxis(self._dr._axes['Pol'], convention='iau').centers
+            iau_pol_angles.source = direction
+
+            # rotate each bin's polarization angle from IAU to
+            # local convention
+            conv_type = type(self._dr._axes['Pol'].convention)
+            conv_w_att = PolarizationConvention.get_convention(conv_type, attitude)
+            loc_pol_angles = iau_pol_angles.transform_to(conv_w_att)
+
+            # wrap 180-degree polarization angles to keep them
+            # within bin range
+            la = loc_pol_angles.angle
+            la = np.where(la.deg == 180., 0. * u.deg, la)
+
+            # map each local-convention Pol bin angle to
+            # nearest bin (TODO: this could also be
+            # interpolated)
+            loc_pol_bins = self._dr._axes['Pol'].find_bin(la)
+
+            out.value[:] += self._dr._rot_psr_pol(out_axes, weight,
+                                                  loc_psichi_pixels, loc_pol_bins,
+                                                  (loc_src_pixels,))
+
+        else:
+
+            out.value[:] += self._dr._rot_psr(out_axes, weight,
+                                              loc_psichi_pixels,
+                                              (loc_src_pixels,))
 
         if weight_unit is not None:
             out = Quantity(out.value, weight_unit*out.unit, copy = None)
