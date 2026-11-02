@@ -80,7 +80,7 @@ class SpacecraftHistory:
                                label= 'obstime_dt_jd')
 
         if livetime is None:
-            livetime = time_axis.widths.to(u.s)
+            livetime = (obstime[1:] - obstime[:-1]).to(u.s)
 
         self._livetime = livetime
 
@@ -338,9 +338,9 @@ class SpacecraftHistory:
         for colname in t.colnames:
             col = t[colname]
             t[colname] = np.astype(col, col.dtype.newbyteorder('='), copy=False)
-        
-            
-        
+
+
+
         # make sure we have version info, and that we support this version
         if "VERSION" not in t.meta:
             raise ValueError("FITS orientation file has no version info")
@@ -1444,7 +1444,7 @@ class SpacecraftHistory:
         lon   = np.arctan2(v[:,1], v[:,0])
         colat = np.arccos(v[:,2])
         return (lon, colat)
-    
+
     def update_ephemeris(self, ephemeris, intervals):
         """
         Adjust the mission livetime in-place based on a pulsar phase selection.
@@ -1457,17 +1457,17 @@ class SpacecraftHistory:
             A list of (start_phase, stop_phase) intervals.
         """
         exposed_durations = ephemeris.get_duty_cycle(
-            self.intervals_tstart, 
-            self.intervals_tstop, 
+            self.intervals_tstart,
+            self.intervals_tstop,
             intervals
         )
-        
+
         bin_durations = (self.intervals_tstop - self.intervals_tstart).to(u.s)
-        
+
         fraction = np.zeros_like(bin_durations.value)
         valid_bins = bin_durations > 0
         fraction[valid_bins] = (exposed_durations[valid_bins] / bin_durations[valid_bins]).decompose().value
-        
+
         if hasattr(self, '_livetime_hist') and self._livetime_hist is not None:
             # Legacy handling if a histpy object was manually injected
             self._livetime_hist.contents[:] = self._livetime_hist.contents * fraction
