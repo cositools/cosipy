@@ -10,6 +10,7 @@ from torch import nn
 import torch.multiprocessing as mp
 import normflows as nf
 import cosipy.response.ml.NFWorkerState as NFWorkerState
+from cosipy.response.ml.NFModelIO import load_nf_model
 
 
 CompileMode = Optional[Literal["default", "reduce-overhead", "max-autotune", "max-autotune-no-cudagraphs"]]
@@ -462,7 +463,7 @@ class NFBase():
     def __init__(self, path_to_model: Union[str, Path], update_worker, pool_worker, density_batch_size: int = 100_000,
                  devices: Optional[List[Union[str, int, torch.device]]] = None, density_compile_mode: CompileMode = "default",
                  additional_required_keys: List[str] = None, show_progress: bool = True):
-        self._ckpt = torch.load(str(path_to_model), map_location=torch.device('cpu'), weights_only=False)
+        self._ckpt = load_nf_model(path_to_model)
         
         required_keys = ['version', 'density_input'] + (additional_required_keys or [])
         
