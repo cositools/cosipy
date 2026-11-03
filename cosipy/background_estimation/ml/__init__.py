@@ -1,9 +1,11 @@
 import cosipy
 
 if not cosipy.with_ml:
-    raise ImportError("Install cosipy with [ml] optional packages to use these features.")
+    raise ImportError("Install cosipy with [ml] optional packages to use these features, e.g., \"pip install cosipy[ml]\".")
 
 from .ContinuumEstimationNN import ContinuumEstimationNN
 from .ContinuumEstimationNN import GCN
 from .nf_unbinned_background import FreeNormNFUnbinnedBackground
 from .NFBackground import NFBackground
+from .NFBkgNormalizationDensity import NFBkgNormalizationDensity
+from .NFBkgNormalizationMap import NFBkgNormalizationMap

@@ -4,7 +4,8 @@ from pathlib import Path
 import torch
 import torch.multiprocessing as mp
 from cosipy.response.ml.NFBase import NFBase, CompileMode, update_density_worker_settings, init_density_worker, DensityApproximation, DensityModel, RateModel
-from .NFBackgroundModels import TotalBackgroundDensityCMLPDGaussianCARQSFlow, TotalDC4BackgroundRate
+from .NFBackgroundModels import TotalBackgroundDensityCMLPDGaussianCARQSFlow, TotalDC4BackgroundRate, TotalBackgroundDensityECDFSplineCMLPDGaussianCARQSFlow
+from .NFBackgroundModels import ConstantBackgroundRate, BackgroundDensityECDFSplineDGaussianARQSFlow
 
 
 class BackgroundDensityApproximation(DensityApproximation):
@@ -12,6 +13,8 @@ class BackgroundDensityApproximation(DensityApproximation):
     def _setup_model(self):
         version_map: Dict[int, DensityModel] = {
             1: TotalBackgroundDensityCMLPDGaussianCARQSFlow,
+            2: TotalBackgroundDensityECDFSplineCMLPDGaussianCARQSFlow,
+            3: BackgroundDensityECDFSplineDGaussianARQSFlow,
         }
         if self._major_version not in version_map:
             raise ValueError(f"Unsupported major version {self._major_version} for Density Approximation")
@@ -31,6 +34,8 @@ class BackgroundRateApproximation:
     def _setup_model(self):
         version_map: Dict[int, RateModel] = {
             1: TotalDC4BackgroundRate,
+            2: TotalDC4BackgroundRate,
+            3: ConstantBackgroundRate,
         }
         if self._major_version not in version_map:
             raise ValueError(f"Unsupported major version {self._major_version} for Rate Approximation")

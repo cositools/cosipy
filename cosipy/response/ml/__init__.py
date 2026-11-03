@@ -5,3 +5,5 @@ if not cosipy.with_ml:
 
 from .NFResponse import NFResponse
 from .nf_instrument_response_function import UnpolarizedNFFarFieldInstrumentResponseFunction
+from .NFNormalizationDensity import NFNormalizationDensity
+from .NFNormalizationMap import NFNormalizationMap
