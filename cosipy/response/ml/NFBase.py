@@ -34,6 +34,24 @@ def build_c_arqs_flow(base: nf.distributions.BaseDistribution, num_layers: int,
                 
         return nf.ConditionalNormalizingFlow(base, flows)
 
+def build_diaggaussian_base(latent_dim: int, trainable: bool = True) -> nf.distributions.BaseDistribution:
+    return nf.distributions.DiagGaussian(latent_dim, trainable=trainable)
+
+def build_arqs_flow(base: nf.distributions.BaseDistribution, num_layers: int,
+                    latent_dim: int, num_bins: int,
+                    num_hidden_units: int, num_residual_blocks: int) -> nf.NormalizingFlow:
+    flows = []
+    for _ in range(num_layers):
+        flows += [nf.flows.AutoregressiveRationalQuadraticSpline(num_input_channels = latent_dim,
+                                                                 num_blocks = num_residual_blocks,
+                                                                 num_hidden_channels = num_hidden_units,
+                                                                 num_bins = num_bins,
+                                                                 num_context_channels = None)]
+        if latent_dim > 1:
+            flows += [nf.flows.LULinearPermute(latent_dim)]
+
+    return nf.NormalizingFlow(base, flows)
+
 class RQSplineTransform:
     def __init__(self, coefficients):
         self.x_knots = coefficients["x_knots"]

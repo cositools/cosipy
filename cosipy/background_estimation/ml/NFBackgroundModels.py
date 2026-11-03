@@ -2,7 +2,7 @@ import numpy as np
 
 from typing import Union, Tuple, Dict
 
-from cosipy.response.ml.NFBase import CompileMode, build_c_arqs_flow, build_cmlp_diaggaussian_base, NNDensityInferenceWrapper, DensityModel, RateModel, RQSplineTransform
+from cosipy.response.ml.NFBase import CompileMode, build_c_arqs_flow, build_cmlp_diaggaussian_base, build_arqs_flow, build_diaggaussian_base, NNDensityInferenceWrapper, DensityModel, RateModel, RQSplineTransform
 import normflows as nf
 import torch
 
@@ -299,3 +299,65 @@ class TotalBackgroundDensityECDFSplineCMLPDGaussianCARQSFlow(TotalBackgroundDens
                      (nphi <= self._phi_cuts[1]/np.pi)
                      
         return valid_mask
+
+class ConstantBackgroundRate(RateModel):
+    @property
+    def context_dim(self) -> int:
+        return 1
+
+    def _unpack_rate_input(self, rate_input: Dict):
+        self._counts = float(rate_input["counts"])
+        self._duration = float(rate_input["livetime"])
+
+        if self._duration <= 0:
+            raise ValueError(f"The simulated duration must be positive, got {self._duration} s.")
+        if self._counts < 0:
+            raise ValueError(f"The number of simulated counts cannot be negative, got {self._counts}.")
+
+        self._rate = self._counts / self._duration
+
+    @property
+    def rate(self) -> float:
+        return self._rate
+
+    def evaluate_rate(self, *args: torch.Tensor) -> torch.Tensor:
+        time = args[0]
+        return torch.full(time.shape, self._rate, dtype=torch.float64, device=time.device)
+
+class BackgroundDensityECDFSplineDGaussianARQSFlow(TotalBackgroundDensityECDFSplineCMLPDGaussianCARQSFlow):
+    def _init_model(self, input: Dict):
+        self._snapshot          = input["model_state_dict"]
+        self._bins              = input["bins"]
+        self._hidden_units      = input["hidden_units"]
+        self._residual_blocks   = input["residual_blocks"]
+        self._total_layers      = input["total_layers"]
+        self._menergy_cuts      = input["menergy_cuts"]
+        self._phi_cuts          = input["phi_cuts"]
+        self._coefficients: Dict = input["coefficients"]
+
+        return self._load_model()
+
+    def _build_model(self) -> nf.NormalizingFlow:
+        base = build_diaggaussian_base(self.source_dim, trainable=True)
+        return build_arqs_flow(
+            base, self._total_layers, self.source_dim, self._bins, self._hidden_units, self._residual_blocks
+            )
+
+    def _transform_context(self, *args: torch.Tensor) -> None:
+        return None
+
+    def _transform_coordinates(self, *args: torch.Tensor) -> Tuple[None, torch.Tensor, torch.Tensor]:
+        _, em, phi, scatt_az, scatt_pol = args
+
+        nem, jac_part = self._rqs_splines.forward(em)
+
+        jac = 1/(4*np.pi**2) * jac_part
+
+        src = torch.cat([
+            (nem).unsqueeze(1),
+            (phi / np.pi).unsqueeze(1),
+            (scatt_az / (2 * np.pi)).unsqueeze(1),
+            ((torch.cos(scatt_pol) + 1) / 2).unsqueeze(1)
+        ], dim=1)
+
+        return None, src.to(torch.float32), jac.to(torch.float32)
