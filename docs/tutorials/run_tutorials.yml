@@ -411,6 +411,14 @@ tutorials:
         COSI-SMEX/DC4/Data/Orientation/DC4_final_530km_3_month_with_slew_15sbins_GalacticEarth_SAA.fits:
           checksum: ca94ff1d7a73c1f41479aaf598807673
 
+    fov_cut:
+      notebook: event_selection/fov_cut.ipynb
+      wasabi_files:
+        COSI-SMEX/DC3/Data/Sources/crab_standard_3months_unbinned_data_filtered_with_SAAcut.fits.gz:
+          checksum: 1d73e7b9e46e51215738075e91a52632
+        COSI-SMEX/DC4/Data/Backgrounds/AlbedoPhotons_WithDetCstunbinned_data_filtered_with_SAAcut.fits.gz:
+          checksum: bbeb2bd8f5b025d77fa96f76834be4a2
+
     lightcurves:
       notebook:
         - light_curves/speclc_grbdc3_prep.ipynb
