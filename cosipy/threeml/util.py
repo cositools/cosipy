@@ -1,6 +1,6 @@
 from typing import Union
 
-from astromodels.core.polarization import Polarization, LinearPolarization, StokesPolarization
+from astromodels.core.polarization import Polarization, LinearPolarization, StokesPolarization, Unpolarized
 
 def to_linear_polarization(polarization: Union[Polarization, None]):
     # FIXME: the logic of this code block should be moved to 3ML.
@@ -13,6 +13,12 @@ def to_linear_polarization(polarization: Union[Polarization, None]):
 
     if isinstance(polarization, LinearPolarization):
         return polarization
+
+    if isinstance(polarization, Unpolarized):
+        # astromodels>=2.6.0 defaults an un-set polarization to this
+        # explicit "no polarization" type, instead of the bare
+        # Polarization base class handled below.
+        return LinearPolarization(0,0)
 
     if type(polarization) == Polarization:
         # FIXME: Polarization is the base class, but a 3ML source

@@ -514,6 +514,29 @@ class BinnedData(UnBinnedData):
     def get_em_cds(self):
         return EmCDSBinnedData(self.binned_data.project('Em', 'Phi', 'PsiChi'))
 
+    def get_segmented_em_cds(self, segment_label='Time'):
+        """
+        Like :meth:`get_em_cds`, but keeps one extra axis (e.g. ``Time``)
+        so that the resulting data can be used in a segmented spectral
+        fit that accounts for variations over time, attitude, depth, etc.
+
+        Parameters
+        ----------
+        segment_label : str, optional
+            Label of the extra axis to keep, in addition to 'Em', 'Phi'
+            and 'PsiChi'. Must already be present in ``self.binned_data``
+            (e.g. 'Time', which :meth:`get_binned_data` always produces).
+            Default is 'Time'.
+
+        Returns
+        -------
+        :py:class:`SegmentedEmCDSBinnedData`
+        """
+
+        return SegmentedEmCDSBinnedData(
+            self.binned_data.project(segment_label, 'Em', 'Phi', 'PsiChi'),
+            segment_label=segment_label)
+
 class EmCDSBinnedData(BinnedDataInterface):
     """
     Measured energy (Em), Compton polar scattering angle (Phi), and
@@ -547,3 +570,81 @@ class EmCDSBinnedData(BinnedDataInterface):
     @property
     def axes(self) -> Axes:
         return self._data.axes
+
+
+class SegmentedEmCDSBinnedData(BinnedDataInterface):
+    """
+    Measured energy (Em), Compton polar scattering angle (Phi), the
+    scattering direction (PsiChi), and one extra "segment" axis.
+
+    The segment axis lets a spectral fit account for variations of the
+    data/background (and, if the response used in the fit is built
+    accordingly, of the instrument response itself) across e.g. time
+    (label ``'Time'``), spacecraft attitude (label ``'ScAtt'``), or any
+    other per-event quantity recorded by the user (e.g. ``'Depth'``).
+
+    This mirrors :class:`EmCDSBinnedData`, but keeping that extra axis
+    instead of projecting it away.
+    """
+
+    def __init__(self, data: Histogram, segment_label: str = None):
+
+        labels = set(data.axes.labels)
+
+        if not {'Em', 'Phi', 'PsiChi'} <= labels:
+            raise ValueError("Wrong axes. 'Em', 'Phi', 'PsiChi' expected, "
+                             "in addition to a segment axis.")
+
+        extra_labels = labels - {'Em', 'Phi', 'PsiChi'}
+
+        if len(extra_labels) != 1:
+            raise ValueError("Expected exactly one extra (segment) axis in "
+                             f"addition to 'Em', 'Phi', 'PsiChi'; found {sorted(extra_labels)}.")
+
+        inferred_label, = extra_labels
+
+        if segment_label is None:
+            segment_label = inferred_label
+        elif segment_label != inferred_label:
+            raise ValueError(f"Segment axis '{segment_label}' not found in "
+                             f"data axes {data.axes.labels}.")
+
+        if not data.axes['Em'].unit.is_equivalent(u.keV):
+            raise ValueError("Em axis should have units of energy")
+
+        if not data.axes['Phi'].unit.is_equivalent(u.deg):
+            raise ValueError("Phi axis should have angle units")
+
+        if not isinstance(data.axes['PsiChi'], HealpixAxis):
+            raise ValueError(f"PsiChi must be of type {HealpixAxis}.")
+
+        if data.axes['PsiChi'].coordsys is None:
+            raise ValueError("PsiChi axes must have a coordinate system.")
+
+        self._data = data
+        self._segment_label = segment_label
+
+    @property
+    def data(self) -> Histogram:
+        return self._data
+
+    @property
+    def axes(self) -> Axes:
+        return self._data.axes
+
+    @property
+    def segment_label(self) -> str:
+        """
+        Label of the extra axis (e.g. 'Time', 'ScAtt', 'Depth').
+        """
+        return self._segment_label
+
+    def to_emcds(self) -> EmCDSBinnedData:
+        """
+        Project out the segment axis.
+
+        Useful to build a plain :class:`EmCDSBinnedData` with the same
+        Em/Phi/PsiChi binning, e.g. to construct a
+        :class:`~cosipy.response.BinnedInstrumentResponse`.
+        """
+        return EmCDSBinnedData(self._data.project('Em', 'Phi', 'PsiChi'))

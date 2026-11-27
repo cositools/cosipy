@@ -4,7 +4,7 @@ from astromodels.sources import Source, PointSource
 from scoords import SpacecraftFrame
 from histpy import Axis, Axes, Histogram
 
-from cosipy.data_io import EmCDSBinnedData
+from cosipy.data_io import EmCDSBinnedData, SegmentedEmCDSBinnedData
 
 from cosipy.polarization import PolarizationAxis
 from cosipy.threeml.util import to_linear_polarization
@@ -19,7 +19,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-__all__ = ["BinnedThreeMLPointSourceResponse"]
+__all__ = ["BinnedThreeMLPointSourceResponse", "BinnedThreeMLSegmentedPointSourceResponse"]
 
 class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
     """
@@ -236,6 +236,181 @@ class BinnedThreeMLPointSourceResponse(BinnedThreeMLSourceResponseInterface):
         self._last_convolved_source_skycoord = coord.copy()
 
         # Copy to prevent user to modify our cache
+        if copy:
+            return self._expectation.copy()
+        else:
+            return self._expectation
+
+
+class BinnedThreeMLSegmentedPointSourceResponse(BinnedThreeMLSourceResponseInterface):
+    """
+    Segmented COSI 3ML plugin for point sources.
+
+    Like :class:`BinnedThreeMLPointSourceResponse`, but the expectation
+    has one extra "segment" axis (e.g. 'Time' or 'ScAtt'), so that a
+    spectral fit can account for how the point-source response changes
+    across time or spacecraft attitude.
+
+    The segmentation (i.e. which rows of the orbit/attitude history
+    belong to which segment bin) is defined by `exposure_table`, which
+    must be the *same* exposure table (or produce the same binning) used
+    to bin `data` in the first place -- e.g. a
+    :class:`cosipy.image_deconvolution.SpacecraftAttitudeExposureTable`
+    or :class:`cosipy.image_deconvolution.TimeBinnedExposureTable`, used
+    both for ``exposure_table.get_binned_data(...)`` and here.
+    """
+
+    def __init__(self,
+                 data: SegmentedEmCDSBinnedData,
+                 instrument_response: BinnedInstrumentResponseInterface,
+                 exposure_table,
+                 energy_axis: Axis,
+                 polarization_axis: PolarizationAxis = None):
+        """
+        Parameters
+        ----------
+        data:
+            Segmented binned data (segment axis + 'Em', 'Phi', 'PsiChi').
+        instrument_response:
+            A BinnedInstrumentResponseInterface capable of providing the
+            differential effective area in local coordinates, built
+            from the *non-segmented* 'Em'/'Phi'/'PsiChi' binning, e.g.
+            ``BinnedInstrumentResponse(dr, data.to_emcds())``.
+        exposure_table:
+            Exposure table with one row per segment bin, in the same
+            order as the segment axis of `data.axes` (see
+            :meth:`~cosipy.response.PointSourceResponse.from_exposure_table`).
+        energy_axis:
+            The desired effective binning of the photon energy (aka Ei).
+        polarization_axis:
+            The desired effective binning of the photon polarization
+            angle (aka Pol).  This also defines the polarization
+            coordinate system and convention.
+
+        """
+
+        # Interface inputs
+        self._source = None
+
+        # Other implementation inputs
+        self._data = data
+        self._exposure_table = exposure_table
+        self._response = instrument_response
+        self._energy_axis = energy_axis
+        self._polarization_axis = polarization_axis
+
+        # Cache
+        self._last_convolved_source_dict = None
+        self._expectation = None
+
+        self._last_convolved_source_skycoord = None
+        self._psr = None
+
+    @property
+    def axes(self) -> Axes:
+        return self._data.axes
+
+    def clear_cache(self):
+
+        self._last_convolved_source_dict = None
+        self._expectation = None
+        self._last_convolved_source_skycoord = None
+        self._psr = None
+
+    def copy(self) -> "BinnedThreeMLSegmentedPointSourceResponse":
+        """
+        Safe copy to use for multiple sources
+        Returns
+        -------
+        A copy than can be used safely to convolve another source
+        """
+        new = copy.copy(self)
+        new.clear_cache()
+        return new
+
+    def set_source(self, source: Source):
+        """
+        The source is passed as a reference and its parameters can
+        change. Remember to check if it changed since the last time
+        the user called expectation.
+
+        """
+        if not isinstance(source, PointSource):
+            raise TypeError("I only know how to handle point sources!")
+
+        if not hasattr(source.spectrum, 'main'):
+
+            for item in source.spectrum.to_dict():
+
+                polarization = to_linear_polarization(source.components[item].polarization)
+
+                if polarization.degree.value != 0 and self._polarization_axis is None:
+                    raise RuntimeError("This response can't handle a polarized source.")
+
+        self._source = source
+
+    def expectation(self, copy = True) -> Histogram:
+
+        if self._data is None:
+            raise RuntimeError("Call set_source() first.")
+
+        if self._source is None:
+            raise RuntimeError("Call set_source() first.")
+
+        source_dict = self._source.to_dict()
+
+        coord = self._source.position.sky_coord
+
+        # Use cached expectation if nothing has changed
+        if self._expectation is not None and self._last_convolved_source_dict == source_dict:
+            if copy:
+                return self._expectation.copy()
+            else:
+                return self._expectation
+
+        # Check if the source position changed, since the per-segment
+        # response calculation is expensive
+        if self._psr is None or coord != self._last_convolved_source_skycoord:
+
+            logger.info("... Calculating segmented point source response ...")
+
+            self._psr = PointSourceResponse.from_exposure_table(coord,
+                                                                self._data,
+                                                                self._response,
+                                                                self._exposure_table,
+                                                                self._energy_axis,
+                                                                self._polarization_axis)
+
+            logger.info(f"--> done (source name : {self._source.name})")
+
+        # Convolve with spectrum
+
+        if hasattr(self._source.spectrum, 'main'):
+
+            self._expectation = self._psr.get_expectation(self._source.spectrum.main.shape)
+
+        else:
+
+            component_counter = 0
+
+            for item in self._source.spectrum.to_dict():
+
+                if component_counter == 0:
+                    self._expectation = self._psr.get_expectation(getattr(self._source.spectrum, item).shape,
+                                                                  self._source.components[item].polarization)
+                else:
+                    self._expectation += self._psr.get_expectation(getattr(self._source.spectrum, item).shape,
+                                                                   self._source.components[item].polarization)
+
+                component_counter += 1
+
+        # Check if axes match
+        if self._data.axes != self._expectation.axes:
+            raise ValueError("Currently, the expectation axes must exactly match the detector response measurement axes")
+
+        self._last_convolved_source_dict = source_dict
+        self._last_convolved_source_skycoord = coord.copy()
+
         if copy:
             return self._expectation.copy()
         else:

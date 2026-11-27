@@ -10,14 +10,14 @@ from histpy import Histogram, Axis, Axes
 
 import numpy as np
 import astropy.units as u
-from scoords import Attitude
+from scoords import Attitude, SpacecraftFrame
 
 from .functions import get_integrated_spectral_model
 
 import logging
 
 from cosipy.spacecraftfile import SpacecraftAttitudeMap
-from ..data_io import EmCDSBinnedData
+from ..data_io import EmCDSBinnedData, SegmentedEmCDSBinnedData
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,14 @@ class PointSourceResponse(Histogram):
 
     @property
     def measurement_axes(self):
-        return self.axes['Em', 'Phi', 'PsiChi']
+        # All axes except the true-energy (and, if present, polarization)
+        # axes. Normally this is just ('Em', 'Phi', 'PsiChi'), but a
+        # segmented response (see from_exposure_table()) also carries an
+        # extra segment axis (e.g. 'Time', 'ScAtt', 'Depth') that should
+        # pass through get_expectation() untouched.
+        excluded = {'Ei', 'Pol'}
+        labels = [l for l in self.axes.labels if l not in excluded]
+        return self.axes[labels]
 
     def get_expectation(self, spectrum, polarization=None, flux=None):
         """
@@ -206,4 +213,122 @@ class PointSourceResponse(Histogram):
                                                  add_inplace=True)
 
         return PointSourceResponse(axes, contents = psr)
+
+    @classmethod
+    def from_exposure_table(cls,
+                            coord: SkyCoord,
+                            data: SegmentedEmCDSBinnedData,
+                            response: BinnedInstrumentResponseInterface,
+                            exposure_table,
+                            energy_axis: Axis,
+                            polarization_axis: PolarizationAxis = None
+                            ):
+        """
+        Build a *segmented* point-source response: one slice per row of
+        an exposure table (e.g. a time or spacecraft-attitude binning),
+        instead of a single exposure-integrated response.
+
+        This is the segmented analog of :meth:`from_scatt_map`, used to
+        let a spectral fit account for how the response changes with
+        time/attitude. Each row of `exposure_table` fills its own slice
+        along the segment axis of `data.axes` (the extra axis besides
+        'Em', 'Phi' and 'PsiChi'), weighted by that row's livetime and
+        using its time-averaged attitude.
+
+        Parameters
+        ----------
+        coord:
+            Source direction. If `data.axes['PsiChi']` is in an
+            inertial frame (e.g. galactic), this must be given in that
+            frame. If it's in a local (:class:`~scoords.SpacecraftFrame`)
+            frame, `coord` must be given in an inertial frame, and it
+            will internally be rotated into the spacecraft frame using
+            each row's attitude.
+        data:
+            Segmented binned data (segment axis + 'Em', 'Phi', 'PsiChi').
+            The number of bins of the segment axis must match the
+            number of rows of `exposure_table`.
+        response:
+            Instrument response built using the *non-segmented*
+            'Em'/'Phi'/'PsiChi' binning, e.g.
+            ``BinnedInstrumentResponse(dr, data.to_emcds())``.
+        exposure_table:
+            Object with one row per segment bin (in the same order as
+            the segment axis), exposing `zpointing_averaged` and
+            `xpointing_averaged` (galactic [l, b] in degrees) and
+            `total_livetime` (seconds) -- e.g. a
+            :class:`cosipy.image_deconvolution.SpacecraftAttitudeExposureTable`
+            or :class:`cosipy.image_deconvolution.TimeBinnedExposureTable`
+            (or anything exposing the same columns via `itertuples()`).
+        energy_axis:
+            Desired binning of the true photon energy (Ei).
+        polarization_axis:
+            Desired binning of the photon polarization angle (Pol).
+
+        Returns
+        -------
+        :py:class:`PointSourceResponse`
+            Its axes are [Ei, (Pol,) <segment>, Em, Phi, PsiChi].
+        """
+
+        if not isinstance(data, SegmentedEmCDSBinnedData):
+            raise TypeError(f"Wrong data type '{type(data)}', expected {SegmentedEmCDSBinnedData}.")
+
+        segment_label = data.segment_label
+        n_segments = data.axes[segment_label].nbins
+
+        if n_segments != len(exposure_table):
+            raise ValueError(f"The '{segment_label}' axis has {n_segments} bins, "
+                             f"but exposure_table has {len(exposure_table)} rows.")
+
+        axes = [energy_axis]
+
+        polarization_centers = None
+        if polarization_axis is not None:
+            axes += [polarization_axis]
+            polarization_centers = polarization_axis.centers
+
+        axes += list(data.axes)
+        axes = Axes(axes, copy_axes=False)
+
+        segment_axis_index = axes.label_to_index(segment_label)
+
+        psr = Quantity(np.zeros(shape=axes.shape), unit=u.cm * u.cm * u.s)
+
+        is_local = isinstance(data.axes['PsiChi'].coordsys, SpacecraftFrame)
+
+        for i, row in enumerate(exposure_table.itertuples()):
+
+            z = SkyCoord(*row.zpointing_averaged, frame='galactic', unit=u.deg)
+            x = SkyCoord(*row.xpointing_averaged, frame='galactic', unit=u.deg)
+            attitude = Attitude.from_axes(x=x, z=z, frame='galactic')
+
+            livetime = Quantity(row.total_livetime, u.s)
+
+            out_index = [slice(None)] * psr.ndim
+            out_index[segment_axis_index] = i
+            out = psr[tuple(out_index)]
+
+            if is_local:
+                # PsiChi is attitude-invariant in the local frame: rotate
+                # the (inertial) source direction into the spacecraft
+                # frame for this bin's averaged attitude instead.
+                local_coord = coord.transform_to(SpacecraftFrame(attitude=attitude))
+
+                response.differential_effective_area(local_coord,
+                                                     energy_axis.centers,
+                                                     polarization_centers,
+                                                     weight=livetime,
+                                                     out=out,
+                                                     add_inplace=True)
+            else:
+                response.differential_effective_area(coord,
+                                                     energy_axis.centers,
+                                                     polarization_centers,
+                                                     attitude=attitude,
+                                                     weight=livetime,
+                                                     out=out,
+                                                     add_inplace=True)
+
+        return PointSourceResponse(axes, contents=psr)
 
