@@ -17,7 +17,7 @@ dependencies = [
                   "hdf5plugin",
                   "mhealpy>=0.3.7",
                   "scoords",
-                  "astromodels>=2.5.1",
+                  "astromodels>=2.6.0",
                   "threeml >= 2.5.0",
                   "matplotlib",
                   "numba",

@@ -4,6 +4,10 @@ from typing import Dict
 from docutils.io import InputError
 from numba.typed.dictobject import DictModel
 
+import numpy as np
+import astropy.units as u
+from astropy.units import Quantity
+
 from cosipy.interfaces import BinnedThreeMLModelFoldingInterface, BinnedThreeMLSourceResponseInterface, \
     BinnedDataInterface, DataInterface, ThreeMLSourceResponseInterface
 
@@ -12,6 +16,48 @@ from astromodels import Model, PointSource, ExtendedSource
 from histpy import Axes, Histogram
 
 __all__ = ["BinnedThreeMLModelFolding"]
+
+
+def _add_broadcast(accumulator: Histogram, contribution: Histogram) -> None:
+    """
+    Add `contribution` into `accumulator` in place, broadcasting
+    `contribution` across any extra axes that `accumulator` has but
+    `contribution` doesn't.
+
+    This supports source/background responses whose expectation is
+    independent of an extra segment axis present in the data (e.g. a
+    'Depth' axis along which only the background varies, while the
+    source response itself does not depend on it).
+    """
+
+    if accumulator.axes == contribution.axes:
+        accumulator += contribution
+        return
+
+    extra_labels = [l for l in contribution.axes.labels if l not in accumulator.axes.labels]
+
+    if extra_labels:
+        raise ValueError(f"Source response has axes {extra_labels} not "
+                         "present in the data/expectation axes.")
+
+    missing_labels = [l for l in accumulator.axes.labels if l not in contribution.axes.labels]
+
+    if not missing_labels:
+        raise ValueError("Axes mismatch: same labels, different binning.")
+
+    contents = contribution.contents
+
+    if contribution.is_sparse:
+        contents = contents.todense()
+
+    insert_positions = sorted(accumulator.axes.label_to_index(l) for l in missing_labels)
+
+    for pos in insert_positions:
+        contents = np.expand_dims(contents, axis=pos)
+
+    unit = contribution.unit if contribution.unit is not None else u.dimensionless_unscaled
+
+    accumulator += Quantity(contents, unit, copy=False)
 
 class ThreeMLModelFoldingCacheSourceResponsesMixin:
     """
@@ -187,7 +233,7 @@ class BinnedThreeMLModelFolding(BinnedThreeMLModelFoldingInterface, ThreeMLModel
 
         # Convolve all sources with the response
         for source_name,psr in self._source_responses.items():
-            self._expectation += psr.expectation()
+            _add_broadcast(self._expectation, psr.expectation())
 
         if copy:
             return self._expectation.copy()
